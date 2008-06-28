@@ -1,14 +1,21 @@
 #!/usr/bin/python2.5 
 
-# Grandcentral Dialer
-# Python front-end to a wget script to use grandcentral.com to place outbound VOIP calls.
-# (C) 2008 Mark Bergman
-# bergman@merctech.com
 
+"""
+Grandcentral Dialer
+Python front-end to a wget script to use grandcentral.com to place outbound VOIP calls.
+(C) 2008 Mark Bergman
+bergman@merctech.com
+"""
+
+
+from __future__ import with_statement
 import sys
 import os
 import re
 import time
+import threading
+import contextlib
 import gobject
 import gtk
 import gc
@@ -16,48 +23,70 @@ import gc
 
 from gcbackend import GCDialer
 
+
+@contextlib.contextmanager
+def gtk_critical_section():
+	gtk.thread_enter()
+	yield
+	gtk.thread_exit()
+
+
 def makeugly(prettynumber):
-	# function to take a phone number and strip out all non-numeric
-	# characters
-	uglynumber=re.sub('\D','',prettynumber)
+	"""
+	function to take a phone number and strip out all non-numeric
+	characters
+
+	>>> makeugly("+012-(345)-678-90")
+	'01234567890'
+	"""
+	uglynumber = re.sub('\D','',prettynumber)
 	return uglynumber
 
+
 def makepretty(phonenumber):
-	# Function to take a phone number and return the pretty version
-	# pretty numbers:
-	#	if phonenumber begins with 0:
-	#		...-(...)-...-....
-	#	else
-	#		if phonenumber is 13 digits:
-	#			(...)-...-....
-	#		else if phonenumber is 10 digits:
-	#			...-....
+	"""
+	Function to take a phone number and return the pretty version
+	 pretty numbers:
+		if phonenumber begins with 0:
+			...-(...)-...-....
+		else
+			if phonenumber is 13 digits:
+				(...)-...-....
+			else if phonenumber is 10 digits:
+				...-....
+	>>> makepretty("12")
+	'12'
+	>>> makepretty("1234567")
+	'123-4567'
+	>>> makepretty("1234567890")
+	'(123)-456-7890'
+	>>> makepretty("01234567890")
+	'+012-(345)-678-90'
+	"""
 	if phonenumber is None:
 		return ""
 
-	if len(phonenumber) < 3 :
+	if len(phonenumber) < 3:
 		return phonenumber
 
-	if  phonenumber[0] == "0" :
-			if len(phonenumber) <=3:
-				prettynumber = "+" + phonenumber[0:3] 
-			elif len(phonenumber) <=6:
-				prettynumber = "+" + phonenumber[0:3] + "-(" + phonenumber[3:6] + ")"
-			elif len(phonenumber) <=9:
-				prettynumber = "+" + phonenumber[0:3] + "-(" + phonenumber[3:6] + ")-" + phonenumber[6:9]
-			else:
-				prettynumber = "+" + phonenumber[0:3] + "-(" + phonenumber[3:6] + ")-" + phonenumber[6:9] + "-" + phonenumber[9:]
-			return prettynumber
-	elif phonenumber[0] == "1" and len(phonenumber) > 8:
-		prettynumber = "1 (" + phonenumber[1:4] + ")-" + phonenumber[4:7] + "-" + phonenumber[7:]
+	if phonenumber[0] == "0":
+		prettynumber = ""
+		prettynumber += "+" + phonenumber[0:3] 
+		if 3 < len(phonenumber):
+			prettynumber += "-(" + phonenumber[3:6] + ")"
+			if 6 < len(phonenumber):
+				prettynumber += "-" + phonenumber[6:9]
+				if 9 < len(phonenumber):
+					prettynumber += "-" + phonenumber[9:]
 		return prettynumber
-	elif len(phonenumber) <= 7 :
-			prettynumber = phonenumber[0:3] + "-" + phonenumber[3:] 
-	elif len(phonenumber) > 7 :
-			prettynumber = "(" + phonenumber[0:3] + ")-" + phonenumber[3:6] + "-" + phonenumber[6:]
+	elif len(phonenumber) <= 7:
+			prettynumber = "%s-%s" % (phonenumber[0:3], phonenumber[3:])
+	elif 7 < len(phonenumber):
+			prettynumber = "(%s)-%s-%s" % (phonenumber[0:3], phonenumber[3:6], phonenumber[6:])
 	return prettynumber
 
-class Dialpad:
+
+class Dialpad(object):
 
 	def __init__(self):
 		self.phonenumber = ""
@@ -116,7 +145,8 @@ class Dialpad:
 			"on_callbackentry_changed" : self.on_callbackentry_changed,
 			"on_notebook_switch_page" : self.on_notebook_switch_page,
 			"on_recentview_row_activated" : self.on_recentview_row_activated,
-			"on_back_clicked" : self.Backspace }
+			"on_back_clicked" : self.Backspace
+		}
 		self.wTree.connect_signals(dic)
 
 		self.attemptLogin(3)
@@ -170,7 +200,6 @@ class Dialpad:
 			self.gcd.setCallbackNumber(text)
 			self.wTree.get_object("callbackentry").set_text(self.wTree.get_object("callbackentry").get_text())
 		self.reduce_memory()
-
 
 	def attemptLogin(self, times = 1):
 		if self.isHildon:
@@ -244,9 +273,34 @@ class Dialpad:
 	def on_digit_clicked(self, widget):
 		self.setNumber(self.phonenumber + re.sub('\D','',widget.get_label()))
 
-if __name__ == "__main__":
+
+def doctest():
+	import doctest
+	failureCount, testCount = doctest.testmod()
+	if not failureCount:
+		print "Tests Successful"
+		sys.exit(0)
+	else:
+		sys.exit(1)
+
+
+def run_dialpad():
 	gc.set_threshold(50,3,3)
+	gtk.gdk.threads_init
 	title = 'Dialpad'
 	handle = Dialpad()
 	gtk.main()
 	sys.exit(1)
+
+
+if __name__ == "__main__":
+	from optparse import OptionParser
+
+	parser = OptionParser()
+	parser.add_option("-t", "--test", action="store_true", dest="test", help="Run tests")
+	(options, args) = parser.parse_args()
+
+	if options.test:
+		doctest()
+	else:
+		run_dialpad()

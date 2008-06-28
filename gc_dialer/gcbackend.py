@@ -1,8 +1,10 @@
 #!/usr/bin/python 
 
-# Grandcentral Dialer backend code
-# Eric Warnke <ericew@gmail.com>
-# Copyright 2008 GPLv2
+"""
+Grandcentral Dialer backend code
+Eric Warnke <ericew@gmail.com>
+Copyright 2008 GPLv2
+"""
 
 
 import os
@@ -11,9 +13,12 @@ import urllib
 
 from browser_emu import MozillaEmulator
 
-class GCDialer:
-	# This class encapsulates all of the knowledge necessary to interace with the grandcentral servers
-	# the functions include login, setting up a callback number, and initalting a callback
+
+class GCDialer(object):
+	"""
+	This class encapsulates all of the knowledge necessary to interace with the grandcentral servers
+	the functions include login, setting up a callback number, and initalting a callback
+	"""
 
 	_wgetOKstrRe	= re.compile("This may take a few seconds", re.M)	# string from Grandcentral.com on successful dial 
 	_validateRe	= re.compile("^[0-9]{10,}$")
@@ -45,7 +50,6 @@ class GCDialer:
 		self._accessToken = None
 		self._accountNum = None
 
-
 	def grabToken(self, data):
 		# Pull the magic cookie from the datastream
 
@@ -66,8 +70,10 @@ class GCDialer:
 		return self._accountNum
 	
 	def isAuthed(self):
-		# Attempts to detect a current session and pull the
-		# auth token ( a_t ) from the page
+		"""
+		Attempts to detect a current session and pull the
+		auth token ( a_t ) from the page
+		"""
 
 		self._lastData = self._browser.download(GCDialer._forwardselectURL)
 		self._browser.cookies.save()
@@ -77,7 +83,9 @@ class GCDialer:
 		return False
 
 	def login(self, username, password):
-		# Attempt to login to grandcentral
+		"""
+		Attempt to login to grandcentral
+		"""
 
 		if self.isAuthed():
 			return
@@ -87,11 +95,13 @@ class GCDialer:
 		return self.isAuthed()
 	
 	def setSaneCallback(self):
-		# Try to set a sane default callback number on these preferences
-		# 1) 1747 numbers ( Gizmo )
-		# 2) anything with gizmo in the name
-		# 3) anything with compueter in the name
-		# 4) the first value
+		"""
+		Try to set a sane default callback number on these preferences
+		  1) 1747 numbers ( Gizmo )
+		  2) anything with gizmo in the name
+		  3) anything with computer in the name
+		  4) the first value
+		"""
 
 		numbers = self.getCallbackNumbers()
 
@@ -126,8 +136,10 @@ class GCDialer:
 
 
 	def setCallbackNumber(self, callbacknumber):
-		# set the number that grandcental calls
-		# this should be a proper 10 digit number
+		"""
+		set the number that grandcental calls
+		this should be a proper 10 digit number
+		"""
 
 		callbackPostData = urllib.urlencode({'a_t' : self._accessToken, 'default_number' : callbacknumber })
 		self._lastData = self._browser.download(GCDialer._setforwardURL, callbackPostData)
@@ -144,12 +156,16 @@ class GCDialer:
 		self._browser.cookies.save()
 
 	def validate(self,number):
-		# Can this number be called ( syntax validation only )
+		"""
+		Can this number be called ( syntax validation only )
+		"""
 
 		return GCDialer._validateRe.match(number) != None
 
 	def dial(self,number):
-		# This is the main function responsible for initating the callback
+		"""
+		This is the main function responsible for initating the callback
+		"""
 
 		# If the number is not valid throw exception
 		if self.validate(number) == False:
