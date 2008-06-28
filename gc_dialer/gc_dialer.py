@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/python2.5 
 
 # Grandcentral Dialer
 # Python front-end to a wget script to use grandcentral.com to place outbound VOIP calls.
@@ -7,105 +7,14 @@
 
 import sys
 import os
-import time
 import re
-try:
-	import pygtk
-	pygtk.require("2.0")
-except:
-	pass
-try:
-	import gtk
-	import gtk.glade
-except:
-	sys.exit(1)
+import time
+import gobject
+import gtk
+import gc
+#import hildon
 
-histfile=os.path.expanduser("~")
-histfile=os.path.join(histfile,".gcdialerhist")	# Use the native OS file separator
-liststore = gtk.ListStore(str)
-
-class GCDialer:
-	_wgetOKstrRe	= re.compile("This may take a few seconds", re.M)	# string from Grandcentral.com on successful dial 
-	_validateRe	= re.compile("^[0-9]{7,}$")
-
-	_wgetoutput	= "/tmp/gc_dialer.output"	# results from wget command
-	_cookiefile	= os.path.join(os.path.expanduser("~"),".mozilla/microb/cookies.txt")	# file with browser cookies
-	_wgetcmd	= "wget -nv -O %s --load-cookie=\"%s\" --referer=http://www.grandcentral.com/mobile/messages http://www.grandcentral.com/mobile/calls/click_to_call?destno=%s"
-
-	def __init__(self):
-		self._msg = ""
-		if ( os.path.isfile(GCDialer._cookiefile) == False ) :
-			self._msg = 'Error: Failed to locate a file with saved browser cookies at \"' + cookiefile + '\".\n\tPlease use the web browser on your tablet to connect to www.grandcentral.com and then re-run Grandcentral Dialer.'
-
-	def validate(self,number):
-		return GCDialer._validateRe.match(number) != None
-
-	def dial(self,number):
-		self._msg = ""
-		if self.validate(number) == False:
-			self._msg = "Invalid number format %s" % (number)
-			return False
-
-		# Remove any existing output file...
-		if os.path.isfile(GCDialer._wgetoutput) :
-			os.unlink(GCDialer._wgetoutput)
-		child_stdout, child_stdin, child_stderr = os.popen3(GCDialer._wgetcmd % (GCDialer._wgetoutput, GCDialer._cookiefile, number))
-		stderr=child_stderr.read()
-
-		child_stdout.close()
-		child_stderr.close()
-		child_stdin.close()
-
-		try:
-			wgetresults = open(GCDialer._wgetoutput, 'r' )
-		except IOError:
-			self._msg = 'IOError: No /tmp/gc_dialer.output file...dial attempt failed\n\tThis probably means that there is no active internet connection, or that\nthe site www.grandcentral.com is inacessible.'
-			return False
-		
-		data = wgetresults.read()
-		wgetresults.close()
-
-		if GCDialer._wgetOKstrRe.search(data) != None:
-			return True
-		else:
-			self._msg = 'Error: Failed to login to www.grandcentral.com.\n\tThis probably means that there is no saved cookie for that site.\n\tPlease use the web browser on your tablet to connect to www.grandcentral.com and then re-run Grandcentral Dialer.'
-			return False
-
-
-def load_history_list(histfile,liststore):
-	# read the history list, load it into the liststore variable for later
-	# assignment to the combobox menu
-
-	# clear out existing entries
-	dialhist = []
-	liststore.clear()
-	if os.path.isfile(histfile) :
-		histFH = open(histfile,"r")
-		for line in histFH.readlines() :
-			fields = line.split()	# split the input lines on whitespace
-			number=fields[0]		#...save only the first field (the phone number)
-			search4num=re.compile('^' + number + '$')
-			newnumber=True	# set a flag that the current phone number is not on the history menu
-			for num in dialhist :
-				if re.match(search4num,num):
-					# the number is already in the drop-down menu list...set the
-					# flag and bail out
-					newnumber = False
-					break
-			if newnumber == True :
-				dialhist.append(number)	# append the number to the history list
-	
-		histlen=len(dialhist)
-		if histlen > 10 :
-			dialhist=dialhist[histlen - 10:histlen]		# keep only the last 10 entries
-		dialhist.reverse()	# reverse the list, so that the most recent entry is now first
-	
-		# Now, load the liststore with the entries, for later assignment to the Gtk.combobox menu
-		for entry in dialhist :
-			entry=makepretty(entry)
-			liststore.append([entry])
-	# else :
-	#	 print "The history file " + histfile + " does not exist"
+from gcbackend import GCDialer
 
 def makeugly(prettynumber):
 	# function to take a phone number and strip out all non-numeric
@@ -123,6 +32,9 @@ def makepretty(phonenumber):
 	#			(...)-...-....
 	#		else if phonenumber is 10 digits:
 	#			...-....
+	if phonenumber is None:
+		return ""
+
 	if len(phonenumber) < 3 :
 		return phonenumber
 
@@ -136,6 +48,9 @@ def makepretty(phonenumber):
 			else:
 				prettynumber = "+" + phonenumber[0:3] + "-(" + phonenumber[3:6] + ")-" + phonenumber[6:9] + "-" + phonenumber[9:]
 			return prettynumber
+	elif phonenumber[0] == "1" and len(phonenumber) > 8:
+		prettynumber = "1 (" + phonenumber[1:4] + ")-" + phonenumber[4:7] + "-" + phonenumber[7:]
+		return prettynumber
 	elif len(phonenumber) <= 7 :
 			prettynumber = phonenumber[0:3] + "-" + phonenumber[3:] 
 	elif len(phonenumber) > 7 :
@@ -144,52 +59,143 @@ def makepretty(phonenumber):
 
 class Dialpad:
 
-	phonenumber = ""
-
 	def __init__(self):
-		if os.path.isfile("/usr/local/lib/gc_dialer.glade") :
-			self.gladefile = "/usr/local/lib/gc_dialer.glade"  
-		elif os.path.isfile("./gc_dialer.glade") :
-			self.gladefile = "./gc_dialer.glade"
-
+		self.phonenumber = ""
+		self.prettynumber = ""
+		self.areacode = "518"
 		self.gcd = GCDialer()
-		if self.gcd._msg != "":
-			self.ErrPopUp(self.gcd._msg)
-			sys.exit(1)
+		self.wTree = gtk.Builder()
 
-		self.wTree = gtk.glade.XML(self.gladefile)
-		self.window = self.wTree.get_widget("Dialpad")
+		for path in [ './gc_dialer.xml',
+				'../lib/gc_dialer.xml',
+				'/usr/local/lib/gc_dialer.xml' ]:
+			if os.path.isfile(path):
+				self.wTree.add_from_file(path)
+				break
+
+		self.window = self.wTree.get_object("Dialpad")
+		#Get the buffer associated with the number display
+		self.numberdisplay = self.wTree.get_object("numberdisplay")
+		self.setNumber("")
+
+		self.recentview = self.wTree.get_object("recentview")
+		self.recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self.recentview.set_model(self.recentmodel)
+		textrenderer = gtk.CellRendererText()
+
+		# Add the column to the treeview
+		column = gtk.TreeViewColumn("Calls", textrenderer, text=1)
+		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self.recentview.append_column(column)
+
+		self.recentviewselection = self.recentview.get_selection()
+		self.recentviewselection.set_mode(gtk.SELECTION_SINGLE)
+		self.recenttime = 0.0
+
+		self.notebook = self.wTree.get_object("notebook")
+
+		self.isHildon = False
+		#if True:
+		try:
+			self.app = hildon.Program()
+			self.wTree.get_object("callbackentry").set_property('hildon-input-mode', 1|(1 << 4))
+			self.isHildon = True
+		except:
+			print "No hildon"
+
 		if (self.window):
 			self.window.connect("destroy", gtk.main_quit)
-		#Get the buffer associated with the number display
-		self.numberdisplay = self.wTree.get_widget("numberdisplay")
-		self.dialer_history = self.wTree.get_widget("dialer_history")
-
-		# Load the liststore array with the numbers from the history file
-		load_history_list(histfile,liststore)
-		# load the dropdown menu with the numbers from the dial history
-		self.dialer_history.set_model(liststore)
-		cell = gtk.CellRendererText()
-		self.dialer_history.pack_start(cell, True)
-		self.dialer_history.set_active(-1)
-		self.dialer_history.set_attributes(cell, text=0)
-
-		self.about_dialog = None
-		self.error_dialog = None
+			self.window.show_all()
 
 		dic = {
-			# Routine for processing signal from the combobox (ie., when the
-			# user selects an entry from the dropdown history
-		 	"on_dialer_history_changed" : self.on_dialer_history_changed,
-
 			# Process signals from buttons
-			"on_number_clicked"  : self.on_number_clicked,
-			"on_Clear_clicked"   : self.on_Clear_clicked,
-			"on_Dial_clicked"    : self.on_Dial_clicked,
-			"on_Backspace_clicked" : self.Backspace,
-			"on_Cancel_clicked"  : self.on_Cancel_clicked,
-			"on_About_clicked"   : self.on_About_clicked}
-		self.wTree.signal_autoconnect(dic)
+			"on_digit_clicked"  : self.on_digit_clicked,
+			"on_dial_clicked"    : self.on_dial_clicked,
+			"on_loginbutton_clicked" : self.on_loginbutton_clicked,
+			"on_clearcookies_clicked" : self.on_clearcookies_clicked,
+			"on_callbackentry_changed" : self.on_callbackentry_changed,
+			"on_notebook_switch_page" : self.on_notebook_switch_page,
+			"on_recentview_row_activated" : self.on_recentview_row_activated,
+			"on_back_clicked" : self.Backspace }
+		self.wTree.connect_signals(dic)
+
+		self.attemptLogin(3)
+		if self.gcd.getCallbackNumber() is None:
+			self.gcd.setSaneCallback()
+		
+		self.setAccountNumber()
+		self.setupCallbackCombo()
+		self.reduce_memory()
+
+	def reduce_memory(self):
+		re.purge()
+		num = gc.collect()
+		#print "collect %d objects" % ( num )
+
+	def on_recentview_row_activated(self, treeview, path, view_column):
+		model, iter = self.recentviewselection.get_selected()
+		if iter:
+			self.setNumber(self.recentmodel.get_value(iter,0))
+			self.notebook.set_current_page(0)
+			self.recentviewselection.unselect_all()
+
+	def on_notebook_switch_page(self, notebook, page, page_num):
+		if page_num == 1 and (time.time() - self.recenttime) > 300:
+			self.populate_recentview()
+
+	def populate_recentview(self):
+		print "Populating"
+		self.recentmodel.clear()
+		for item in self.gcd.get_recent():
+			self.recentmodel.append(item)
+		self.recenttime = time.time()
+
+	def on_clearcookies_clicked(self, data=None):
+		self.gcd.reset()
+		self.attemptLogin(3)
+
+	def setupCallbackCombo(self):
+		combobox = self.wTree.get_object("callbackcombo")
+		self.callbacklist = gtk.ListStore(gobject.TYPE_STRING)
+		combobox.set_model(self.callbacklist)
+		combobox.set_text_column(0)
+		for k,v in self.gcd.getCallbackNumbers().iteritems():
+			self.callbacklist.append([makepretty(k)] )
+		
+		self.wTree.get_object("callbackentry").set_text(makepretty(self.gcd.getCallbackNumber()))
+
+	def on_callbackentry_changed(self, data=None):
+		text = makeugly(self.wTree.get_object("callbackentry").get_text())
+		if self.gcd.validate(text) and text != self.gcd.getCallbackNumber():
+			self.gcd.setCallbackNumber(text)
+			self.wTree.get_object("callbackentry").set_text(self.wTree.get_object("callbackentry").get_text())
+		self.reduce_memory()
+
+
+	def attemptLogin(self, times = 1):
+		if self.isHildon:
+			dialog = hildon.LoginDialog(self.window)
+			dialog.set_message("Grandcentral Login")
+		else:
+			dialog = self.wTree.get_object("login_dialog")
+
+		while ( (times > 0) and (self.gcd.isAuthed() == False) ):
+			if dialog.run() == gtk.RESPONSE_OK:
+				if self.isHildon:
+					username = dialog.get_username()
+					password = dialog.get_password()
+				else:
+					username = self.wTree.get_object("usernameentry").get_text()
+					password = self.wTree.get_object("passwordentry").get_text()
+					self.wTree.get_object("passwordentry").set_text("")
+				self.gcd.login(username, password)
+				dialog.hide()
+				times = times - 1
+			else:
+				times = 0
+
+		if self.isHildon:
+			dialog.destroy()
 
 	def ErrPopUp(self,msg):
 		error_dialog = gtk.MessageDialog(None,0,gtk.MESSAGE_ERROR,gtk.BUTTONS_CLOSE,msg)
@@ -197,94 +203,49 @@ class Dialpad:
 			editor.about_dialog = None
 			dialog.destroy()
 		error_dialog.connect("response", close, self)
-		# error_dialog.connect("delete-event", delete_event, self)
 		self.error_dialog = error_dialog
 		error_dialog.run()
 
-	def on_About_clicked(self, menuitem, data=None):
-		if self.about_dialog: 
-			self.about_dialog.present()
+	def on_loginbutton_clicked(self, data=None):
+		self.wTree.get_object("login_dialog").response(gtk.RESPONSE_OK)
+
+	def on_dial_clicked(self, widget):
+		self.attemptLogin(3)
+
+		if not self.gcd.isAuthed() or self.gcd.getCallbackNumber() == "":
+			self.ErrPopUp("Backend link with grandcentral is not working, please try again")
 			return
 
-		authors = [ "Mark Bergman <bergman@merctech.com>",
-				"Eric Warnke <ericew@gmail.com>" ]
-
-		about_dialog = gtk.AboutDialog()
-		about_dialog.set_transient_for(None)
-		about_dialog.set_destroy_with_parent(True)
-		about_dialog.set_name("Grandcentral Dialer")
-		about_dialog.set_version("0.5")
-		about_dialog.set_copyright("Copyright \xc2\xa9 2008 Mark Bergman")
-		about_dialog.set_comments("GUI front-end to initiate outbound call from Grandcentral.com, typically with Grancentral configured to connect the outbound call to a VOIP number accessible via Gizmo on the Internet Tablet.\n\nRequires an existing browser cookie from a previous login session to http://www.grandcentral.com/mobile/messages and the program 'wget'.")
-		about_dialog.set_authors            (authors)
-		about_dialog.set_logo_icon_name     (gtk.STOCK_EDIT)
-
-		# callbacks for destroying the dialog
-		def close(dialog, response, editor):
-			editor.about_dialog = None
-			dialog.destroy()
-
-		def delete_event(dialog, event, editor):
-			editor.about_dialog = None
-			return True
-
-		about_dialog.connect("response", close, self)
-		about_dialog.connect("delete-event", delete_event, self)
-		self.about_dialog = about_dialog
-		about_dialog.show()
-
-	def on_Dial_clicked(self, widget):
-		# Strip the leading "1" before the area code, if present
-		if len(Dialpad.phonenumber) == 11 and Dialpad.phonenumber[0] == "1" :
-				Dialpad.phonenumber = Dialpad.phonenumber[1:]
-		prettynumber = makepretty(Dialpad.phonenumber)
-		if len(Dialpad.phonenumber) < 7 :
-			# It's too short to be a phone number
-			msg = 'Phone number "%s" is too short' % ( prettynumber )
-			self.ErrPopUp(msg)
-		else :
-			timestamp=time.asctime(time.localtime())
+		#if len(self.phonenumber) == 7:
+		#	#add default area code
+		#	self.phonenumber = self.areacode + self.phonenumber
 			
-			if self.gcd.dial(Dialpad.phonenumber) == True : 
-				histFH = open(histfile,"a")
-				histFH.write("%s dialed at %s\n" % ( Dialpad.phonenumber, timestamp ) )
-				histFH.close()
+		if self.gcd.dial(self.phonenumber) == False: 
+			self.ErrPopUp(self.gcd._msg)
+		else:
+			self.setNumber("")
 
-				# Re-load the updated history of dialed numbers
-				load_history_list(histfile,liststore)
-				self.dialer_history.set_active(-1)
-				self.on_Clear_clicked(widget)
-			else:
-				self.ErrPopUp(self.gcd._msg)
+		self.recentmodel.clear()
+		self.recenttime = 0.0
+		self.reduce_memory()
 
-	def on_Cancel_clicked(self, widget):
-		sys.exit(1)
+	def setNumber(self, number):
+		self.phonenumber = makeugly(number)
+		self.prettynumber = makepretty(self.phonenumber)
+		self.numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % ( self.prettynumber ) )
+
+	def setAccountNumber(self):
+		accountnumber = self.gcd.getAccountNumber()
+		self.wTree.get_object("gcnumberlabel").set_label("<span size='23000' weight='bold'>%s</span>" % (accountnumber))
 
 	def Backspace(self, widget):
-		Dialpad.phonenumber = Dialpad.phonenumber[:-1]
-		prettynumber = makepretty(Dialpad.phonenumber)
-		self.numberdisplay.set_text(prettynumber)
+		self.setNumber(self.phonenumber[:-1])
 
-	def on_Clear_clicked(self, widget):
-		Dialpad.phonenumber = ""
-		self.numberdisplay.set_text(Dialpad.phonenumber)
-
-	def on_dialer_history_changed(self,widget):
-		# Set the displayed number to the number chosen from the history list
-		history_list = self.dialer_history.get_model()
-		history_index = self.dialer_history.get_active()
-		prettynumber = history_list[history_index][0]
-		Dialpad.phonenumber = makeugly(prettynumber)
-		self.numberdisplay.set_text(prettynumber)
-
-	def on_number_clicked(self, widget):
-		Dialpad.phonenumber = Dialpad.phonenumber + re.sub('\D','',widget.get_label())
-		prettynumber = makepretty(Dialpad.phonenumber)
-		self.numberdisplay.set_text(prettynumber)
-
-
+	def on_digit_clicked(self, widget):
+		self.setNumber(self.phonenumber + re.sub('\D','',widget.get_label()))
 
 if __name__ == "__main__":
+	gc.set_threshold(50,3,3)
 	title = 'Dialpad'
 	handle = Dialpad()
 	gtk.main()
