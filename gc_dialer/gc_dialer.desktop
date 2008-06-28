@@ -1,0 +1,7 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Name=Grandcentral Dialer
+Exec=/usr/local/bin/gc_dialer.py
+Icon=gc_dialer
