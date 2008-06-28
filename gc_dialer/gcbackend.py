@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/python
 
 """
 Grandcentral Dialer backend code
@@ -20,7 +20,7 @@ class GCDialer(object):
 	the functions include login, setting up a callback number, and initalting a callback
 	"""
 
-	_wgetOKstrRe	= re.compile("This may take a few seconds", re.M)	# string from Grandcentral.com on successful dial 
+	_wgetOKstrRe	= re.compile("This may take a few seconds", re.M)	# string from Grandcentral.com on successful dial
 	_validateRe	= re.compile("^[0-9]{10,}$")
 	_accessTokenRe	= re.compile(r"""<input type="hidden" name="a_t" [^>]*value="(.*)"/>""")
 	_isLoginPageRe	= re.compile(r"""<form method="post" action="https://www.grandcentral.com/mobile/account/login">""")
@@ -39,8 +39,8 @@ class GCDialer(object):
 
 		self._msg = ""
 		if cookieFile == None:
-			cookieFile = os.path.join(os.path.expanduser("~"),".gc_dialer_cookies.txt")
-		self._browser = MozillaEmulator(None,0)
+			cookieFile = os.path.join(os.path.expanduser("~"), ".gc_dialer_cookies.txt")
+		self._browser = MozillaEmulator(None, 0)
 		self._browser.cookies.filename = cookieFile
 		if os.path.isfile(cookieFile):
 			self._browser.cookies.load()
@@ -64,11 +64,10 @@ class GCDialer(object):
 			self._accountNum = anGroup.group(1)
 		except:
 			pass
-		
 
 	def getAccountNumber(self):
 		return self._accountNum
-	
+
 	def isAuthed(self):
 		"""
 		Attempts to detect a current session and pull the
@@ -93,47 +92,45 @@ class GCDialer(object):
 		loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
 		self._lastData = self._browser.download(GCDialer._loginURL, loginPostData)
 		return self.isAuthed()
-	
+
 	def setSaneCallback(self):
 		"""
 		Try to set a sane default callback number on these preferences
-		  1) 1747 numbers ( Gizmo )
-		  2) anything with gizmo in the name
-		  3) anything with computer in the name
-		  4) the first value
+		1) 1747 numbers ( Gizmo )
+		2) anything with gizmo in the name
+		3) anything with computer in the name
+		4) the first value
 		"""
 
 		numbers = self.getCallbackNumbers()
 
-		for k,v in numbers.iteritems():
+		for k, v in numbers.iteritems():
 			if not re.compile(r"""1747""").match(k) is None:
 				self.setCallbackNumber(k)
 				return
 
-		for k,v in numbers.iteritems():
-			if not re.compile(r"""gizmo""",re.I).search(v) is None:
+		for k, v in numbers.iteritems():
+			if not re.compile(r"""gizmo""", re.I).search(v) is None:
 				self.setCallbackNumber(k)
 				return
 
-		for k,v in numbers.iteritems():
-			if not re.compile(r"""computer""",re.I).search(v) is None:
+		for k, v in numbers.iteritems():
+			if not re.compile(r"""computer""", re.I).search(v) is None:
 				self.setCallbackNumber(k)
 				return
 
-		for k,v in numbers.iteritems():
+		for k, v in numbers.iteritems():
 			self.setCallbackNumber(k)
 			return
-		
-	def getCallbackNumbers(self):
 
+	def getCallbackNumbers(self):
 		retval = {}
-				
+
 		self._lastData = self._browser.download(GCDialer._forwardselectURL)
 		for match in GCDialer._callbackRe.finditer(self._lastData):
 			retval[match.group(1)] = match.group(2)
 
-		return retval					
-
+		return retval
 
 	def setCallbackNumber(self, callbacknumber):
 		"""
@@ -155,32 +152,32 @@ class GCDialer(object):
 		self._browser.cookies.clear()
 		self._browser.cookies.save()
 
-	def validate(self,number):
+	def validate(self, number):
 		"""
 		Can this number be called ( syntax validation only )
 		"""
 
-		return GCDialer._validateRe.match(number) != None
+		return GCDialer._validateRe.match(number) is not None
 
-	def dial(self,number):
+	def dial(self, number):
 		"""
 		This is the main function responsible for initating the callback
 		"""
 
 		# If the number is not valid throw exception
-		if self.validate(number) == False:
-			raise ValueError, 'number is not valid'
+		if self.validate(number) is False:
+			raise ValueError('number is not valid')
 
 		# No point if we don't have the magic cookie
-		if not self.isAuthed:
+		if not self.isAuthed():
 			return False
 
 		# Strip leading 1 from 11 digit dialing
 		if len(number) == 11 and number[0] == 1:
-			number = number[1:] 
+			number = number[1:]
 
 		self._lastData = self._browser.download(
-			GCDialer._clicktocallURL % (self._accessToken, number), 
+			GCDialer._clicktocallURL % (self._accessToken, number),
 			None, {'Referer' : 'http://www.grandcentral.com/mobile/messages'} )
 
 		if GCDialer._wgetOKstrRe.search(self._lastData) != None:

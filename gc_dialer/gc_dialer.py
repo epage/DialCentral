@@ -1,4 +1,4 @@
-#!/usr/bin/python2.5 
+#!/usr/bin/python2.5
 
 
 """
@@ -26,9 +26,10 @@ from gcbackend import GCDialer
 
 @contextlib.contextmanager
 def gtk_critical_section():
-	gtk.thread_enter()
+	#The API changed and I hope these are the right calls
+	gtk.gdk.threads_enter()
 	yield
-	gtk.thread_exit()
+	gtk.gdk.threads_leave()
 
 
 def makeugly(prettynumber):
@@ -39,7 +40,7 @@ def makeugly(prettynumber):
 	>>> makeugly("+012-(345)-678-90")
 	'01234567890'
 	"""
-	uglynumber = re.sub('\D','',prettynumber)
+	uglynumber = re.sub('\D', '', prettynumber)
 	return uglynumber
 
 
@@ -71,7 +72,7 @@ def makepretty(phonenumber):
 
 	if phonenumber[0] == "0":
 		prettynumber = ""
-		prettynumber += "+" + phonenumber[0:3] 
+		prettynumber += "+" + phonenumber[0:3]
 		if 3 < len(phonenumber):
 			prettynumber += "-(" + phonenumber[3:6] + ")"
 			if 6 < len(phonenumber):
@@ -80,9 +81,9 @@ def makepretty(phonenumber):
 					prettynumber += "-" + phonenumber[9:]
 		return prettynumber
 	elif len(phonenumber) <= 7:
-			prettynumber = "%s-%s" % (phonenumber[0:3], phonenumber[3:])
+		prettynumber = "%s-%s" % (phonenumber[0:3], phonenumber[3:])
 	elif 7 < len(phonenumber):
-			prettynumber = "(%s)-%s-%s" % (phonenumber[0:3], phonenumber[3:6], phonenumber[6:])
+		prettynumber = "(%s)-%s-%s" % (phonenumber[0:3], phonenumber[3:6], phonenumber[6:])
 	return prettynumber
 
 
@@ -152,7 +153,7 @@ class Dialpad(object):
 		self.attemptLogin(3)
 		if self.gcd.getCallbackNumber() is None:
 			self.gcd.setSaneCallback()
-		
+
 		self.setAccountNumber()
 		self.setupCallbackCombo()
 		self.reduce_memory()
@@ -163,11 +164,13 @@ class Dialpad(object):
 		#print "collect %d objects" % ( num )
 
 	def on_recentview_row_activated(self, treeview, path, view_column):
-		model, iter = self.recentviewselection.get_selected()
-		if iter:
-			self.setNumber(self.recentmodel.get_value(iter,0))
-			self.notebook.set_current_page(0)
-			self.recentviewselection.unselect_all()
+		model, itr = self.recentviewselection.get_selected()
+		if not itr:
+			return
+
+		self.setNumber(self.recentmodel.get_value(itr, 0))
+		self.notebook.set_current_page(0)
+		self.recentviewselection.unselect_all()
 
 	def on_notebook_switch_page(self, notebook, page, page_num):
 		if page_num == 1 and (time.time() - self.recenttime) > 300:
@@ -189,9 +192,9 @@ class Dialpad(object):
 		self.callbacklist = gtk.ListStore(gobject.TYPE_STRING)
 		combobox.set_model(self.callbacklist)
 		combobox.set_text_column(0)
-		for k,v in self.gcd.getCallbackNumbers().iteritems():
+		for k, v in self.gcd.getCallbackNumbers().iteritems():
 			self.callbacklist.append([makepretty(k)] )
-		
+
 		self.wTree.get_object("callbackentry").set_text(makepretty(self.gcd.getCallbackNumber()))
 
 	def on_callbackentry_changed(self, data=None):
@@ -208,7 +211,7 @@ class Dialpad(object):
 		else:
 			dialog = self.wTree.get_object("login_dialog")
 
-		while ( (times > 0) and (self.gcd.isAuthed() == False) ):
+		while ( (times > 0) and (self.gcd.isAuthed() is False) ):
 			if dialog.run() == gtk.RESPONSE_OK:
 				if self.isHildon:
 					username = dialog.get_username()
@@ -226,8 +229,9 @@ class Dialpad(object):
 		if self.isHildon:
 			dialog.destroy()
 
-	def ErrPopUp(self,msg):
-		error_dialog = gtk.MessageDialog(None,0,gtk.MESSAGE_ERROR,gtk.BUTTONS_CLOSE,msg)
+	def ErrPopUp(self, msg):
+		error_dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, msg)
+
 		def close(dialog, response, editor):
 			editor.about_dialog = None
 			dialog.destroy()
@@ -248,8 +252,8 @@ class Dialpad(object):
 		#if len(self.phonenumber) == 7:
 		#	#add default area code
 		#	self.phonenumber = self.areacode + self.phonenumber
-			
-		if self.gcd.dial(self.phonenumber) == False: 
+
+		if self.gcd.dial(self.phonenumber) is False:
 			self.ErrPopUp(self.gcd._msg)
 		else:
 			self.setNumber("")
@@ -271,10 +275,10 @@ class Dialpad(object):
 		self.setNumber(self.phonenumber[:-1])
 
 	def on_digit_clicked(self, widget):
-		self.setNumber(self.phonenumber + re.sub('\D','',widget.get_label()))
+		self.setNumber(self.phonenumber + re.sub('\D', '', widget.get_label()))
 
 
-def doctest():
+def run_doctest():
 	import doctest
 	failureCount, testCount = doctest.testmod()
 	if not failureCount:
@@ -285,8 +289,8 @@ def doctest():
 
 
 def run_dialpad():
-	gc.set_threshold(50,3,3)
-	gtk.gdk.threads_init
+	gc.set_threshold(50, 3, 3)
+	gtk.gdk.threads_init()
 	title = 'Dialpad'
 	handle = Dialpad()
 	gtk.main()
@@ -301,6 +305,6 @@ if __name__ == "__main__":
 	(options, args) = parser.parse_args()
 
 	if options.test:
-		doctest()
+		run_doctest()
 	else:
 		run_dialpad()
