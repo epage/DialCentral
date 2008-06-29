@@ -49,6 +49,7 @@ class GCDialer(object):
 		self._lastData = ""
 		self._accessToken = None
 		self._accountNum = None
+		self._callbackNumbers = {}
 		self._lastAuthed = 0.0
 
 	def grabToken(self, data):
@@ -65,6 +66,13 @@ class GCDialer(object):
 		except:
 			pass
 
+		self._callbackNumbers = {}
+		try:
+			for match in GCDialer._callbackRe.finditer(data):
+				self._callbackNumbers[match.group(1)] = match.group(2)
+		except:
+			pass
+
 	def getAccountNumber(self):
 		return self._accountNum
 
@@ -75,6 +83,7 @@ class GCDialer(object):
 		try not to reauth more than once a minute.
 		"""
 	
+
 		if time.time() - self._lastAuthed < 60 and not force:
 			return True
 
@@ -83,7 +92,7 @@ class GCDialer(object):
 			self._browser.cookies.save()
 			if GCDialer._isLoginPageRe.search(self._lastData) is None:
 				self.grabToken(self._lastData)
-				self.lastAuthed = time.time()
+				self._lastAuthed = time.time()
 				return True
 		except:
 			pass
@@ -134,18 +143,13 @@ class GCDialer(object):
 
 	def getCallbackNumbers(self):
 		"""
-		@returns a dictionary mapping call back numbers to descriptions
+		@returns a dictionary mapping call back numbers to descriptions. These results
+		are cached for 30 minutes.
 		"""
-		retval = {}
-	
-		try:
-			self._lastData = self._browser.download(GCDialer._forwardselectURL)
-			for match in GCDialer._callbackRe.finditer(self._lastData):
-				retval[match.group(1)] = match.group(2)
-		except:
-			pass
+		if time.time() - self._lastAuthed < 1800 or self.isAuthed():
+			return self._callbackNumbers
 
-		return retval
+		return {}
 
 	def setCallbackNumber(self, callbacknumber):
 		"""
