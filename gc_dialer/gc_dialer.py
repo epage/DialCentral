@@ -20,6 +20,9 @@ import gtk
 import gc
 #import hildon
 
+import doctest
+import optparse
+
 from gcbackend import GCDialer
 
 
@@ -286,7 +289,6 @@ class Dialpad(object):
 
 
 def run_doctest():
-	import doctest
 	failureCount, testCount = doctest.testmod()
 	if not failureCount:
 		print "Tests Successful"
@@ -305,9 +307,7 @@ def run_dialpad():
 
 
 if __name__ == "__main__":
-	from optparse import OptionParser
-
-	parser = OptionParser()
+	parser = optparse.OptionParser()
 	parser.add_option("-t", "--test", action="store_true", dest="test", help="Run tests")
 	(options, args) = parser.parse_args()
 
