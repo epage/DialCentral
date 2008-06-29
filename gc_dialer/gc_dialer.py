@@ -9,7 +9,6 @@ bergman@merctech.com
 """
 
 
-from __future__ import with_statement
 import sys
 import os
 import re
@@ -50,11 +49,12 @@ def makepretty(phonenumber):
 	 pretty numbers:
 		if phonenumber begins with 0:
 			...-(...)-...-....
-		else
-			if phonenumber is 13 digits:
-				(...)-...-....
-			else if phonenumber is 10 digits:
-				...-....
+		if phonenumber begins with 1: ( for gizmo callback numbers )
+			1 (...)-...-....
+		if phonenumber is 13 digits:
+			(...)-...-....
+		if phonenumber is 10 digits:
+			...-....
 	>>> makepretty("12")
 	'12'
 	>>> makepretty("1234567")
@@ -82,7 +82,9 @@ def makepretty(phonenumber):
 		return prettynumber
 	elif len(phonenumber) <= 7:
 		prettynumber = "%s-%s" % (phonenumber[0:3], phonenumber[3:])
-	elif 7 < len(phonenumber):
+	elif len(phonenumber) > 8 and phonenumber[0] == 1:
+		prettynumber = "1 (%s)-%s-%s" %(phonenumber[1:4], phonenumber[4:7], phonenumber[7:]) 
+	elif len(phonenumber) > 7:
 		prettynumber = "(%s)-%s-%s" % (phonenumber[0:3], phonenumber[3:6], phonenumber[6:])
 	return prettynumber
 
