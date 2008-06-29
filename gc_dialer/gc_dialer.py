@@ -178,7 +178,7 @@ class Dialpad(object):
 					self.gcd.setSaneCallback()
 				self.setAccountNumber()
 		except:
-			pass
+			self.setAccountNumber()
 
 		return False
 
@@ -200,9 +200,7 @@ class Dialpad(object):
 
 		return False
 
-#	def reduce_memory(self):
 #		re.purge()
-#		num = gc.collect()
 #		#print "collect %d objects" % ( num )
 
 	def on_recentview_row_activated(self, treeview, path, view_column):
@@ -216,9 +214,9 @@ class Dialpad(object):
 
 	def on_notebook_switch_page(self, notebook, page, page_num):
 		if page_num == 1 and (time.time() - self.recenttime) > 300:
-			self.populate_recentview()
+			gobject.idle_add(self.populate_recentview)
 		elif page_num ==2 and self.callbackNeedsSetup:
-			self.setupCallbackCombo()
+			gobject.idle_add(self.setupCallbackCombo)
 
 	def populate_recentview(self):
 		print "Populating"
@@ -227,8 +225,13 @@ class Dialpad(object):
 			self.recentmodel.append(item)
 		self.recenttime = time.time()
 
+		return False
+
 	def on_clearcookies_clicked(self, data=None):
 		self.gcd.reset()
+		self.callbackNeedsSetup = True
+		self.recenttime = 0.0
+	
 		# re-run the inital grandcentral setup
 		gobject.idle_add(self.init_grandcentral)
 
@@ -248,7 +251,7 @@ class Dialpad(object):
 		if self.gcd.validate(text) and text != self.gcd.getCallbackNumber():
 			self.gcd.setCallbackNumber(text)
 			self.wTree.get_object("callbackentry").set_text(self.wTree.get_object("callbackentry").get_text())
-		self.reduce_memory()
+		#self.reduce_memory()
 
 	def attemptLogin(self, times = 1):
 		if self.isHildon:
