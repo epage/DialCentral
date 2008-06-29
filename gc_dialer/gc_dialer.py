@@ -141,6 +141,11 @@ class Dialpad(object):
 		self.isHildon = False
 		#if True:
 		try:
+			#self.osso = osso.Context("gc_dialer", "0.6.0", False)
+			#device = osso.DeviceState(self.osso)
+			#device.set_device_state_callback(self.on_device_state_change, None)
+			#abook.init_with_name("gc_dialer", self.osso)
+			#self.ebook = evo.open_addressbook("default")
 			self.app = hildon.Program()
 			self.wTree.get_object("callbackentry").set_property('hildon-input-mode', 1|(1 << 4))
 			self.isHildon = True
@@ -282,6 +287,13 @@ class Dialpad(object):
 		self.recentmodel.clear()
 		self.recenttime = 0.0
 		self.reduce_memory()
+	
+	#def on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
+	#	"""
+	#	@todo Might be useful to do something when going in offline mode or low memory
+	#	@note Hildon specific
+	#	"""
+	#	pass
 
 	def setNumber(self, number):
 		self.phonenumber = makeugly(number)
