@@ -90,7 +90,7 @@ def makepretty(phonenumber):
 		return prettynumber
 	elif len(phonenumber) <= 7:
 		prettynumber = "%s-%s" % (phonenumber[0:3], phonenumber[3:])
-	elif len(phonenumber) > 8 and phonenumber[0] == 1:
+	elif len(phonenumber) > 8 and phonenumber[0] == "1":
 		prettynumber = "1 (%s)-%s-%s" %(phonenumber[1:4], phonenumber[4:7], phonenumber[7:]) 
 	elif len(phonenumber) > 7:
 		prettynumber = "(%s)-%s-%s" % (phonenumber[0:3], phonenumber[3:6], phonenumber[6:])
@@ -163,7 +163,8 @@ class Dialpad(object):
 		# Defer initalization of recent view
 		self.gcd = GCDialer()
 
-		gobject.idle_add(self.init_grandcentral)
+		#gobject.idle_add(self.init_grandcentral)
+		self.init_grandcentral()
 		gobject.idle_add(self.init_recentview)
 
 		#self.reduce_memory()
@@ -176,10 +177,11 @@ class Dialpad(object):
 			if self.gcd.isAuthed():
 				if self.gcd.getCallbackNumber() is None:
 					self.gcd.setSaneCallback()
-				self.setAccountNumber()
 		except:
-			self.setAccountNumber()
-
+			pass
+		
+		self.setAccountNumber()
+		print "exit init_gc"
 		return False
 
 	def init_recentview(self):
@@ -199,9 +201,6 @@ class Dialpad(object):
 		self.recentviewselection.set_mode(gtk.SELECTION_SINGLE)
 
 		return False
-
-#		re.purge()
-#		#print "collect %d objects" % ( num )
 
 	def on_recentview_row_activated(self, treeview, path, view_column):
 		model, itr = self.recentviewselection.get_selected()
@@ -233,7 +232,7 @@ class Dialpad(object):
 		self.recenttime = 0.0
 	
 		# re-run the inital grandcentral setup
-		gobject.idle_add(self.init_grandcentral)
+		self.init_grandcentral()
 
 	def setupCallbackCombo(self):
 		combobox = self.wTree.get_object("callbackcombo")
@@ -274,10 +273,12 @@ class Dialpad(object):
 				self.wTree.get_object("passwordentry").set_text("")
 			print "Attempting login"
 			self.gcd.login(username, password)
+			print "hiding dialog"
 			dialog.hide()
-			times -= 1
+			times = times - 1
 
 		if self.isHildon:
+			print "destroy dialog"
 			dialog.destroy()
 
 		return False

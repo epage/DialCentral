@@ -120,6 +120,7 @@ class GCDialer(object):
 		3) anything with computer in the name
 		4) the first value
 		"""
+		print "setSaneCallback"
 		numbers = self.getCallbackNumbers()
 
 		for number, description in numbers.iteritems():
@@ -146,6 +147,7 @@ class GCDialer(object):
 		@returns a dictionary mapping call back numbers to descriptions. These results
 		are cached for 30 minutes.
 		"""
+		print "getCallbackNumbers"
 		if time.time() - self._lastAuthed < 1800 or self.isAuthed():
 			return self._callbackNumbers
 
@@ -156,6 +158,7 @@ class GCDialer(object):
 		set the number that grandcental calls
 		this should be a proper 10 digit number
 		"""
+		print "setCallbackNumber %s" % (callbacknumber)
 		try:
 			callbackPostData = urllib.urlencode({'a_t' : self._accessToken, 'default_number' : callbacknumber })
 			self._lastData = self._browser.download(GCDialer._setforwardURL, callbackPostData)
@@ -170,6 +173,7 @@ class GCDialer(object):
 		return None
 
 	def reset(self):
+		self._lastAuthed = 0.0
 		self._browser.cookies.clear()
 		self._browser.cookies.save()
 
