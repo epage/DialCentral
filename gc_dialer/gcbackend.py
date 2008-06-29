@@ -20,7 +20,7 @@ class GCDialer(object):
 	the functions include login, setting up a callback number, and initalting a callback
 	"""
 
-	_wgetOKstrRe	= re.compile("This may take a few seconds", re.M)	# string from Grandcentral.com on successful dial
+	_gcDialingStrRe	= re.compile("This may take a few seconds", re.M)	# string from Grandcentral.com on successful dial
 	_validateRe	= re.compile("^[0-9]{10,}$")
 	_accessTokenRe	= re.compile(r"""<input type="hidden" name="a_t" [^>]*value="(.*)"/>""")
 	_isLoginPageRe	= re.compile(r"""<form method="post" action="https://www.grandcentral.com/mobile/account/login">""")
@@ -36,9 +36,8 @@ class GCDialer(object):
 
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
-
 		self._msg = ""
-		if cookieFile == None:
+		if cookieFile is None:
 			cookieFile = os.path.join(os.path.expanduser("~"), ".gc_dialer_cookies.txt")
 		self._browser = MozillaEmulator(None, 0)
 		self._browser.cookies.filename = cookieFile
@@ -51,8 +50,7 @@ class GCDialer(object):
 		self._accountNum = None
 
 	def grabToken(self, data):
-		# Pull the magic cookie from the datastream
-
+		"Pull the magic cookie from the datastream"
 		atGroup = GCDialer._accessTokenRe.search(data)
 		try:
 			self._accessToken = atGroup.group(1)
@@ -73,7 +71,6 @@ class GCDialer(object):
 		Attempts to detect a current session and pull the
 		auth token ( a_t ) from the page
 		"""
-
 		self._lastData = self._browser.download(GCDialer._forwardselectURL)
 		self._browser.cookies.save()
 		if GCDialer._isLoginPageRe.search(self._lastData) is None:
@@ -85,7 +82,6 @@ class GCDialer(object):
 		"""
 		Attempt to login to grandcentral
 		"""
-
 		if self.isAuthed():
 			return
 
@@ -101,29 +97,31 @@ class GCDialer(object):
 		3) anything with computer in the name
 		4) the first value
 		"""
-
 		numbers = self.getCallbackNumbers()
 
-		for k, v in numbers.iteritems():
-			if not re.compile(r"""1747""").match(k) is None:
-				self.setCallbackNumber(k)
+		for number, description in numbers.iteritems():
+			if not re.compile(r"""1747""").match(number) is None:
+				self.setCallbackNumber(number)
 				return
 
-		for k, v in numbers.iteritems():
-			if not re.compile(r"""gizmo""", re.I).search(v) is None:
-				self.setCallbackNumber(k)
+		for number, description in numbers.iteritems():
+			if not re.compile(r"""gizmo""", re.I).search(description) is None:
+				self.setCallbackNumber(number)
 				return
 
-		for k, v in numbers.iteritems():
-			if not re.compile(r"""computer""", re.I).search(v) is None:
-				self.setCallbackNumber(k)
+		for number, description in numbers.iteritems():
+			if not re.compile(r"""computer""", re.I).search(description) is None:
+				self.setCallbackNumber(number)
 				return
 
-		for k, v in numbers.iteritems():
-			self.setCallbackNumber(k)
+		for number, description in numbers.iteritems():
+			self.setCallbackNumber(number)
 			return
 
 	def getCallbackNumbers(self):
+		"""
+		@returns a dictionary mapping call back numbers to descriptions
+		"""
 		retval = {}
 
 		self._lastData = self._browser.download(GCDialer._forwardselectURL)
@@ -137,7 +135,6 @@ class GCDialer(object):
 		set the number that grandcental calls
 		this should be a proper 10 digit number
 		"""
-
 		callbackPostData = urllib.urlencode({'a_t' : self._accessToken, 'default_number' : callbacknumber })
 		self._lastData = self._browser.download(GCDialer._setforwardURL, callbackPostData)
 		self._browser.cookies.save()
@@ -156,14 +153,12 @@ class GCDialer(object):
 		"""
 		Can this number be called ( syntax validation only )
 		"""
-
 		return GCDialer._validateRe.match(number) is not None
 
 	def dial(self, number):
 		"""
 		This is the main function responsible for initating the callback
 		"""
-
 		# If the number is not valid throw exception
 		if self.validate(number) is False:
 			raise ValueError('number is not valid')
@@ -178,17 +173,16 @@ class GCDialer(object):
 
 		self._lastData = self._browser.download(
 			GCDialer._clicktocallURL % (self._accessToken, number),
-			None, {'Referer' : 'http://www.grandcentral.com/mobile/messages'} )
+			None, {'Referer' : 'http://www.grandcentral.com/mobile/messages'}
+		)
 
-		if GCDialer._wgetOKstrRe.search(self._lastData) != None:
+		if GCDialer._gcDialingStrRe.search(self._lastData) is not None:
 			return True
 		else:
 			return False
 
 	def get_recent(self):
-		retval = []
 		self._lastData = self._browser.download(GCDialer._inboxallURL)
 		for match in self._inboxRe.finditer(self._lastData):
 			#print "type: %s date: %s person: %s number: %s" % (match.group(1), match.group(2), match.group(3), match.group(4))
-			retval.append([match.group(4), "%s on %s from/to %s - %s" % (match.group(1).capitalize(), match.group(2), match.group(3), match.group(4))])
-		return retval
+			yield (match.group(4), "%s on %s from/to %s - %s" % (match.group(1).capitalize(), match.group(2), match.group(3), match.group(4)))

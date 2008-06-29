@@ -72,13 +72,13 @@ def makepretty(phonenumber):
 
 	if phonenumber[0] == "0":
 		prettynumber = ""
-		prettynumber += "+" + phonenumber[0:3]
+		prettynumber += "+%s" % phonenumber[0:3]
 		if 3 < len(phonenumber):
-			prettynumber += "-(" + phonenumber[3:6] + ")"
+			prettynumber += "-(%s)" % phonenumber[3:6]
 			if 6 < len(phonenumber):
-				prettynumber += "-" + phonenumber[6:9]
+				prettynumber += "-%s" % phonenumber[6:9]
 				if 9 < len(phonenumber):
-					prettynumber += "-" + phonenumber[9:]
+					prettynumber += "-%s" % phonenumber[9:]
 		return prettynumber
 	elif len(phonenumber) <= 7:
 		prettynumber = "%s-%s" % (phonenumber[0:3], phonenumber[3:])
@@ -104,6 +104,9 @@ class Dialpad(object):
 			if os.path.isfile(path):
 				self.wTree.add_from_file(path)
 				break
+		else:
+			self.ErrPopUp("Cannot find gc_dialer.xml")
+			sys.exit(1)#@todo Is this the best way to force a quit on error?
 
 		self.window = self.wTree.get_object("Dialpad")
 		#Get the buffer associated with the number display
@@ -135,11 +138,11 @@ class Dialpad(object):
 		except:
 			print "No hildon"
 
-		if (self.window):
+		if self.window:
 			self.window.connect("destroy", gtk.main_quit)
 			self.window.show_all()
 
-		dic = {
+		callbackMapping = {
 			# Process signals from buttons
 			"on_digit_clicked"  : self.on_digit_clicked,
 			"on_dial_clicked"    : self.on_dial_clicked,
@@ -150,7 +153,7 @@ class Dialpad(object):
 			"on_recentview_row_activated" : self.on_recentview_row_activated,
 			"on_back_clicked" : self.Backspace
 		}
-		self.wTree.connect_signals(dic)
+		self.wTree.connect_signals(callbackMapping)
 
 		self.attemptLogin(3)
 		if self.gcd.getCallbackNumber() is None:
@@ -194,8 +197,8 @@ class Dialpad(object):
 		self.callbacklist = gtk.ListStore(gobject.TYPE_STRING)
 		combobox.set_model(self.callbacklist)
 		combobox.set_text_column(0)
-		for k, v in self.gcd.getCallbackNumbers().iteritems():
-			self.callbacklist.append([makepretty(k)] )
+		for number, description in self.gcd.getCallbackNumbers().iteritems():
+			self.callbacklist.append([makepretty(number)] )
 
 		self.wTree.get_object("callbackentry").set_text(makepretty(self.gcd.getCallbackNumber()))
 
@@ -213,20 +216,22 @@ class Dialpad(object):
 		else:
 			dialog = self.wTree.get_object("login_dialog")
 
-		while ( (times > 0) and (self.gcd.isAuthed() is False) ):
-			if dialog.run() == gtk.RESPONSE_OK:
-				if self.isHildon:
-					username = dialog.get_username()
-					password = dialog.get_password()
-				else:
-					username = self.wTree.get_object("usernameentry").get_text()
-					password = self.wTree.get_object("passwordentry").get_text()
-					self.wTree.get_object("passwordentry").set_text("")
-				self.gcd.login(username, password)
-				dialog.hide()
-				times = times - 1
-			else:
+		while (0 < times) and not self.gcd.isAuthed():
+			if dialog.run() != gtk.RESPONSE_OK:
 				times = 0
+				continue
+
+			if self.isHildon:
+				username = dialog.get_username()
+				password = dialog.get_password()
+			else:
+				username = self.wTree.get_object("usernameentry").get_text()
+				password = self.wTree.get_object("passwordentry").get_text()
+				self.wTree.get_object("passwordentry").set_text("")
+			print "Attempting login"
+			self.gcd.login(username, password)
+			dialog.hide()
+			times -= 1
 
 		if self.isHildon:
 			dialog.destroy()

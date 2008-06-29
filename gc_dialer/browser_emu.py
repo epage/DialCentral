@@ -41,6 +41,7 @@ import urllib2
 #import mimetypes
 import cookielib
 
+
 class MozillaEmulator(object):
 
 	def __init__(self,cacher={},trycount=0):
@@ -109,6 +110,7 @@ class MozillaEmulator(object):
 		@return: The raw HTML page data, unless fd was specified. When fd
 			was given, the return value is undefined.
 		"""
+		print "Performing download of %s" % url
 		if trycount is None:
 			trycount = self.trycount
 		cnt = 0
