@@ -166,11 +166,10 @@ class Dialpad(object):
 		gobject.idle_add(self.init_grandcentral)
 		gobject.idle_add(self.init_recentview)
 
-		self.reduce_memory()
+		#self.reduce_memory()
 
 	def init_grandcentral(self):
 		""" deferred initalization of the grandcentral info """
-		print "GC init"
 		
 		try:
 			self.attemptLogin(2)
@@ -185,7 +184,6 @@ class Dialpad(object):
 
 	def init_recentview(self):
 		""" deferred initalization of the recent view treeview """
-		print "RV init"
 
 		recentview = self.wTree.get_object("recentview")
 		recentview.set_model(self.recentmodel)
@@ -202,10 +200,10 @@ class Dialpad(object):
 
 		return False
 
-	def reduce_memory(self):
-		re.purge()
-		num = gc.collect()
-		#print "collect %d objects" % ( num )
+#	def reduce_memory(self):
+#		re.purge()
+#		num = gc.collect()
+#		#print "collect %d objects" % ( num )
 
 	def on_recentview_row_activated(self, treeview, path, view_column):
 		model, itr = self.recentviewselection.get_selected()
@@ -231,7 +229,8 @@ class Dialpad(object):
 
 	def on_clearcookies_clicked(self, data=None):
 		self.gcd.reset()
-		self.attemptLogin(3)
+		# re-run the inital grandcentral setup
+		gobject.idle_add(self.init_grandcentral)
 
 	def setupCallbackCombo(self):
 		combobox = self.wTree.get_object("callbackcombo")
@@ -316,7 +315,7 @@ class Dialpad(object):
 
 		self.recentmodel.clear()
 		self.recenttime = 0.0
-		self.reduce_memory()
+		#self.reduce_memory()
 	
 	#def on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
 	#	"""
