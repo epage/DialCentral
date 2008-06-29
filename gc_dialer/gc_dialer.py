@@ -138,7 +138,9 @@ class Dialpad(object):
 			#abook.init_with_name("gc_dialer", self.osso)
 			#self.ebook = evo.open_addressbook("default")
 			self.app = hildon.Program()
-			self.wTree.get_object("callbackentry").set_property('hildon-input-mode', 1|(1 << 4))
+			self.wTree.get_object("callbackentry").set_property('hildon-input-mode', (1 << 4))
+			self.wTree.get_object("usernameentry").set_property('hildon-input-mode', 7)
+			self.wTree.get_object("passwordentry").set_property('hildon-input-mode', 7)
 			self.isHildon = True
 		except:
 			print "No hildon"
@@ -163,8 +165,9 @@ class Dialpad(object):
 		# Defer initalization of recent view
 		self.gcd = GCDialer()
 
-		#gobject.idle_add(self.init_grandcentral)
-		self.init_grandcentral()
+		self.attemptLogin(2)
+		gobject.idle_add(self.init_grandcentral)
+		#self.init_grandcentral()
 		gobject.idle_add(self.init_recentview)
 
 		#self.reduce_memory()
@@ -173,7 +176,7 @@ class Dialpad(object):
 		""" deferred initalization of the grandcentral info """
 		
 		try:
-			self.attemptLogin(2)
+			#self.attemptLogin(2)
 			if self.gcd.isAuthed():
 				if self.gcd.getCallbackNumber() is None:
 					self.gcd.setSaneCallback()
@@ -232,7 +235,8 @@ class Dialpad(object):
 		self.recenttime = 0.0
 	
 		# re-run the inital grandcentral setup
-		self.init_grandcentral()
+		self.attemptLogin(2)
+		gobject.idle_add(self.init_grandcentral)
 
 	def setupCallbackCombo(self):
 		combobox = self.wTree.get_object("callbackcombo")
@@ -253,33 +257,33 @@ class Dialpad(object):
 		#self.reduce_memory()
 
 	def attemptLogin(self, times = 1):
-		if self.isHildon:
-			dialog = hildon.LoginDialog(self.window)
-			dialog.set_message("Grandcentral Login")
-		else:
-			dialog = self.wTree.get_object("login_dialog")
+		#if self.isHildon:
+		#	dialog = hildon.LoginDialog(self.window)
+		#	dialog.set_message("Grandcentral Login")
+		#else:
+		dialog = self.wTree.get_object("login_dialog")
 
 		while (0 < times) and not self.gcd.isAuthed():
 			if dialog.run() != gtk.RESPONSE_OK:
 				times = 0
 				continue
 
-			if self.isHildon:
-				username = dialog.get_username()
-				password = dialog.get_password()
-			else:
-				username = self.wTree.get_object("usernameentry").get_text()
-				password = self.wTree.get_object("passwordentry").get_text()
-				self.wTree.get_object("passwordentry").set_text("")
+			#if self.isHildon:
+			#	username = dialog.get_username()
+			#	password = dialog.get_password()
+			#else:
+			username = self.wTree.get_object("usernameentry").get_text()
+			password = self.wTree.get_object("passwordentry").get_text()
+			self.wTree.get_object("passwordentry").set_text("")
 			print "Attempting login"
 			self.gcd.login(username, password)
 			print "hiding dialog"
 			dialog.hide()
 			times = times - 1
 
-		if self.isHildon:
-			print "destroy dialog"
-			dialog.destroy()
+		#if self.isHildon:
+		#	print "destroy dialog"
+		#	dialog.destroy()
 
 		return False
 
