@@ -10,6 +10,7 @@ Copyright 2008 GPLv2
 import os
 import re
 import urllib
+import time
 
 from browser_emu import MozillaEmulator
 
@@ -48,6 +49,7 @@ class GCDialer(object):
 		self._lastData = ""
 		self._accessToken = None
 		self._accountNum = None
+		self._lastAuthed = 0.0
 
 	def grabToken(self, data):
 		"Pull the magic cookie from the datastream"
@@ -66,28 +68,40 @@ class GCDialer(object):
 	def getAccountNumber(self):
 		return self._accountNum
 
-	def isAuthed(self):
+	def isAuthed(self, force = False):
 		"""
 		Attempts to detect a current session and pull the
-		auth token ( a_t ) from the page
+		auth token ( a_t ) from the page.  Once logged in
+		try not to reauth more than once a minute.
 		"""
-		self._lastData = self._browser.download(GCDialer._forwardselectURL)
-		self._browser.cookies.save()
-		if GCDialer._isLoginPageRe.search(self._lastData) is None:
-			self.grabToken(self._lastData)
+	
+		if time.time() - self._lastAuthed < 60 and not force:
 			return True
+
+		try:	
+			self._lastData = self._browser.download(GCDialer._forwardselectURL)
+			self._browser.cookies.save()
+			if GCDialer._isLoginPageRe.search(self._lastData) is None:
+				self.grabToken(self._lastData)
+				self.lastAuthed = time.time()
+				return True
+		except:
+			pass
 		return False
 
 	def login(self, username, password):
 		"""
 		Attempt to login to grandcentral
 		"""
-		if self.isAuthed():
-			return
-
-		loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
-		self._lastData = self._browser.download(GCDialer._loginURL, loginPostData)
-		return self.isAuthed()
+		try:
+			if self.isAuthed():
+				return
+			loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
+			self._lastData = self._browser.download(GCDialer._loginURL, loginPostData)
+			return self.isAuthed()
+		except:
+			pass
+		return False
 
 	def setSaneCallback(self):
 		"""
@@ -123,10 +137,13 @@ class GCDialer(object):
 		@returns a dictionary mapping call back numbers to descriptions
 		"""
 		retval = {}
-
-		self._lastData = self._browser.download(GCDialer._forwardselectURL)
-		for match in GCDialer._callbackRe.finditer(self._lastData):
-			retval[match.group(1)] = match.group(2)
+	
+		try:
+			self._lastData = self._browser.download(GCDialer._forwardselectURL)
+			for match in GCDialer._callbackRe.finditer(self._lastData):
+				retval[match.group(1)] = match.group(2)
+		except:
+			pass
 
 		return retval
 
@@ -135,9 +152,12 @@ class GCDialer(object):
 		set the number that grandcental calls
 		this should be a proper 10 digit number
 		"""
-		callbackPostData = urllib.urlencode({'a_t' : self._accessToken, 'default_number' : callbacknumber })
-		self._lastData = self._browser.download(GCDialer._setforwardURL, callbackPostData)
-		self._browser.cookies.save()
+		try:
+			callbackPostData = urllib.urlencode({'a_t' : self._accessToken, 'default_number' : callbacknumber })
+			self._lastData = self._browser.download(GCDialer._setforwardURL, callbackPostData)
+			self._browser.cookies.save()
+		except:
+			pass
 
 	def getCallbackNumber(self):
 		for c in self._browser.cookies:
@@ -171,18 +191,25 @@ class GCDialer(object):
 		if len(number) == 11 and number[0] == 1:
 			number = number[1:]
 
-		self._lastData = self._browser.download(
-			GCDialer._clicktocallURL % (self._accessToken, number),
-			None, {'Referer' : 'http://www.grandcentral.com/mobile/messages'}
-		)
+		try:
+			self._lastData = self._browser.download(
+				GCDialer._clicktocallURL % (self._accessToken, number),
+				None, {'Referer' : 'http://www.grandcentral.com/mobile/messages'} )
 
-		if GCDialer._gcDialingStrRe.search(self._lastData) is not None:
-			return True
-		else:
-			return False
+			if GCDialer._gcDialingStrRe.search(self._lastData) is not None:
+				return True
+			else:
+				return False
+		except:
+			pass
+		return False
 
 	def get_recent(self):
-		self._lastData = self._browser.download(GCDialer._inboxallURL)
-		for match in self._inboxRe.finditer(self._lastData):
-			#print "type: %s date: %s person: %s number: %s" % (match.group(1), match.group(2), match.group(3), match.group(4))
-			yield (match.group(4), "%s on %s from/to %s - %s" % (match.group(1).capitalize(), match.group(2), match.group(3), match.group(4)))
+		try:
+			retval = []
+			self._lastData = self._browser.download(GCDialer._inboxallURL)
+			for match in self._inboxRe.finditer(self._lastData):
+				retval.append([match.group(4), "%s on %s from/to %s - %s" % (match.group(1).capitalize(), match.group(2), match.group(3), match.group(4))])
+			return retval
+		except:
+			return []
