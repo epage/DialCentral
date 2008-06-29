@@ -35,7 +35,7 @@ cp gc_dialer.xml     build/usr/local/lib
 sed -i 's/^[ \t]*//;s/[ \t]*$//;s/GtkWindow/HildonWindow/' build/usr/local/lib/gc_dialer.xml
 
 echo "#!/usr/bin/python" > build/usr/local/bin/gc_dialer.py
-echo "from __future__ import with_statement" >> build/usr/local/bin/gc_dialer.py
+#echo "from __future__ import with_statement" >> build/usr/local/bin/gc_dialer.py
 cat gc_dialer.py gcbackend.py browser_emu.py | grep -e '^import ' | sort -u >> build/usr/local/bin/gc_dialer.py
 echo "import hildon" >> build/usr/local/bin/gc_dialer.py
 cat browser_emu.py gcbackend.py gc_dialer.py | grep -v 'import ' | grep -v "#!" >> build/usr/local/bin/gc_dialer.py
