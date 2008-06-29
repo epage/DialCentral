@@ -32,10 +32,10 @@ TODO:
 - should have a method to save/load cookies
 """
 
-from __future__ import with_statement
+#from __future__ import with_statement
 
 import os
-import md5
+#import md5
 import urllib
 import urllib2
 #import mimetypes
@@ -123,39 +123,39 @@ class MozillaEmulator(object):
 				self.cookies.extract_cookies(openerdirector,req)
 				if only_head:
 					return openerdirector
-				if openerdirector.headers.has_key('content-length'):
-					length = long(openerdirector.headers['content-length'])
-				else:
-					length = 0
-				dlength = 0
-				if fd:
-					while True:
-						data = openerdirector.read(1024)
-						dlength += len(data)
-						fd.write(data)
-						if onprogress:
-							onprogress(length,dlength)
-						if not data:
-							break
-				else:
-					data = ''
-					while True:
-						newdata = openerdirector.read(1024)
-						dlength += len(newdata)
-						data += newdata
-						if onprogress:
-							onprogress(length,dlength)
-						if not newdata:
-							break
-					#data = openerdirector.read()
-					if not (self.cacher is None):
-						self.cacher[key] = data
+				#if openerdirector.headers.has_key('content-length'):
+				#	length = long(openerdirector.headers['content-length'])
+				#else:
+				#	length = 0
+				#dlength = 0
+				#if fd:
+				#	while True:
+				#		data = openerdirector.read(1024)
+				#		dlength += len(data)
+				#		fd.write(data)
+				#		if onprogress:
+				#			onprogress(length,dlength)
+				#		if not data:
+				#			break
+				#else:
+				#	data = ''
+				#	while True:
+				#		newdata = openerdirector.read(1024)
+				#		dlength += len(newdata)
+				#		data += newdata
+				#		if onprogress:
+				#			onprogress(length,dlength)
+				#		if not newdata:
+				#			break
+				#		#data = openerdirector.read()
+				#	if not (self.cacher is None):
+				#		self.cacher[key] = data
 				#try:
 				#	d2= GzipFile(fileobj=cStringIO.StringIO(data)).read()
 				#	data = d2
 				#except IOError:
 				#	pass
-				return data
+				return opendirector.read()
 			except urllib2.URLError:
 				cnt += 1
 				if (trycount > -1) and (trycount < cnt):
