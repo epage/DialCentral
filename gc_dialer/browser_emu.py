@@ -157,7 +157,7 @@ class MozillaEmulator(object):
 				#	data = d2
 				#except IOError:
 				#	pass
-				return opendirector.read()
+				return openerdirector.read()
 			except urllib2.URLError:
 				cnt += 1
 				if (trycount > -1) and (trycount < cnt):
