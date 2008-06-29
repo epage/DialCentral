@@ -103,9 +103,12 @@ class Dialpad(object):
 		self.phonenumber = ""
 		self.prettynumber = ""
 		self.areacode = "518"
-		self.gcd = GCDialer()
 		self.clipboard = gtk.clipboard_get()
 		self.wTree = gtk.Builder()
+		self.recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self.recentviewselection = None
+		self.callbackNeedsSetup = True
+		self.recenttime = 0.0
 
 		for path in [ './gc_dialer.xml',
 				'../lib/gc_dialer.xml',
@@ -115,30 +118,18 @@ class Dialpad(object):
 				break
 		else:
 			self.ErrPopUp("Cannot find gc_dialer.xml")
-			sys.exit(1)#@todo Is this the best way to force a quit on error?
+			gtk.main_quit()
+			return
 
-		self.window = self.wTree.get_object("Dialpad")
+
 		#Get the buffer associated with the number display
 		self.numberdisplay = self.wTree.get_object("numberdisplay")
 		self.setNumber("")
-
-		self.recentview = self.wTree.get_object("recentview")
-		self.recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
-		self.recentview.set_model(self.recentmodel)
-		textrenderer = gtk.CellRendererText()
-
-		# Add the column to the treeview
-		column = gtk.TreeViewColumn("Calls", textrenderer, text=1)
-		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self.recentview.append_column(column)
-
-		self.recentviewselection = self.recentview.get_selection()
-		self.recentviewselection.set_mode(gtk.SELECTION_SINGLE)
-		self.recenttime = 0.0
-
 		self.notebook = self.wTree.get_object("notebook")
 
 		self.isHildon = False
+
+		self.window = self.wTree.get_object("Dialpad")
 		#if True:
 		try:
 			#self.osso = osso.Context("gc_dialer", "0.6.0", False)
@@ -169,13 +160,47 @@ class Dialpad(object):
 		}
 		self.wTree.connect_signals(callbackMapping)
 
-		self.attemptLogin(3)
-		if self.gcd.getCallbackNumber() is None:
-			self.gcd.setSaneCallback()
+		# Defer initalization of recent view
+		self.gcd = GCDialer()
 
-		self.setAccountNumber()
-		self.setupCallbackCombo()
+		gobject.idle_add(self.init_grandcentral)
+		gobject.idle_add(self.init_recentview)
+
 		self.reduce_memory()
+
+	def init_grandcentral(self):
+		""" deferred initalization of the grandcentral info """
+		print "GC init"
+		
+		try:
+			self.attemptLogin(2)
+			if self.gcd.isAuthed():
+				if self.gcd.getCallbackNumber() is None:
+					self.gcd.setSaneCallback()
+				self.setAccountNumber()
+		except:
+			pass
+
+		return False
+
+	def init_recentview(self):
+		""" deferred initalization of the recent view treeview """
+		print "RV init"
+
+		recentview = self.wTree.get_object("recentview")
+		recentview.set_model(self.recentmodel)
+		textrenderer = gtk.CellRendererText()
+
+		# Add the column to the treeview
+		column = gtk.TreeViewColumn("Calls", textrenderer, text=1)
+		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+
+		recentview.append_column(column)
+
+		self.recentviewselection = recentview.get_selection()
+		self.recentviewselection.set_mode(gtk.SELECTION_SINGLE)
+
+		return False
 
 	def reduce_memory(self):
 		re.purge()
@@ -194,6 +219,8 @@ class Dialpad(object):
 	def on_notebook_switch_page(self, notebook, page, page_num):
 		if page_num == 1 and (time.time() - self.recenttime) > 300:
 			self.populate_recentview()
+		elif page_num ==2 and self.callbackNeedsSetup:
+			self.setupCallbackCombo()
 
 	def populate_recentview(self):
 		print "Populating"
@@ -215,6 +242,7 @@ class Dialpad(object):
 			self.callbacklist.append([makepretty(number)] )
 
 		self.wTree.get_object("callbackentry").set_text(makepretty(self.gcd.getCallbackNumber()))
+		self.callbackNeedsSetup = False
 
 	def on_callbackentry_changed(self, data=None):
 		text = makeugly(self.wTree.get_object("callbackentry").get_text())
@@ -249,6 +277,8 @@ class Dialpad(object):
 
 		if self.isHildon:
 			dialog.destroy()
+
+		return False
 
 	def ErrPopUp(self, msg):
 		error_dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, msg)
