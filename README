@@ -1,0 +1,5 @@
+Building a package
+===================
+Run
+	./build_script.sh
+which will create a "./build/..." heirarchy.  Move this structure to somewhere on the tablet, then run pypackager. 
