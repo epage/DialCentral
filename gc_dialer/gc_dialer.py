@@ -104,6 +104,7 @@ class Dialpad(object):
 		self.prettynumber = ""
 		self.areacode = "518"
 		self.gcd = GCDialer()
+		self.clipboard = gtk.clipboard_get()
 		self.wTree = gtk.Builder()
 
 		for path in [ './gc_dialer.xml',
@@ -254,6 +255,11 @@ class Dialpad(object):
 		self.error_dialog = error_dialog
 		error_dialog.run()
 
+	def on_paste(self, data=None):
+		contents = self.clipboard.wait_for_text()
+		phoneNumber = re.sub('\D', '', contents)
+		self.setNumber(phoneNumber)
+	
 	def on_loginbutton_clicked(self, data=None):
 		self.wTree.get_object("login_dialog").response(gtk.RESPONSE_OK)
 
@@ -311,15 +317,21 @@ def run_dialpad():
 	sys.exit(1)
 
 
+class DummyOptions(object):
+	def __init__(self):
+		self.test = False
+
+
 if __name__ == "__main__":
 	try:
 		parser = optparse.OptionParser()
 		parser.add_option("-t", "--test", action="store_true", dest="test", help="Run tests")
 		(options, args) = parser.parse_args()
-
-		if options.test:
-			run_doctest()
-		else:
-			run_dialpad()
 	except:
+		args = []
+		options = DummyOptions()
+
+	if options.test:
+		run_doctest()
+	else:
 		run_dialpad()

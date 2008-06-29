@@ -206,10 +206,8 @@ class GCDialer(object):
 
 	def get_recent(self):
 		try:
-			retval = []
 			self._lastData = self._browser.download(GCDialer._inboxallURL)
 			for match in self._inboxRe.finditer(self._lastData):
-				retval.append([match.group(4), "%s on %s from/to %s - %s" % (match.group(1).capitalize(), match.group(2), match.group(3), match.group(4))])
-			return retval
+				yield (match.group(4), "%s on %s from/to %s - %s" % (match.group(1).capitalize(), match.group(2), match.group(3), match.group(4)))
 		except:
-			return []
+			pass
