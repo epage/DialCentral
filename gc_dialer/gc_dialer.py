@@ -20,8 +20,11 @@ import gtk
 import gc
 #import hildon
 
-import doctest
-import optparse
+try:
+	import doctest
+	import optparse
+except:
+	pass
 
 from gcbackend import GCDialer
 
@@ -309,11 +312,14 @@ def run_dialpad():
 
 
 if __name__ == "__main__":
-	parser = optparse.OptionParser()
-	parser.add_option("-t", "--test", action="store_true", dest="test", help="Run tests")
-	(options, args) = parser.parse_args()
+	try:
+		parser = optparse.OptionParser()
+		parser.add_option("-t", "--test", action="store_true", dest="test", help="Run tests")
+		(options, args) = parser.parse_args()
 
-	if options.test:
-		run_doctest()
-	else:
+		if options.test:
+			run_doctest()
+		else:
+			run_dialpad()
+	except:
 		run_dialpad()
