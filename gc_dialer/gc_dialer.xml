@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<!--Generated with glade3 3.4.4 on Sat Jun 28 00:20:36 2008 -->
+<!--Generated with glade3 3.4.4 on Sat Jun 28 22:23:49 2008 -->
 <interface>
   <object class="GtkWindow" id="Dialpad">
     <property name="width_request">400</property>
-    <property name="height_request">300</property>
+    <property name="height_request">350</property>
     <property name="title" translatable="yes">Dialer</property>
     <child>
       <object class="GtkNotebook" id="notebook">
@@ -20,7 +20,7 @@
               <object class="GtkLabel" id="numberdisplay">
                 <property name="height_request">50</property>
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">&lt;span size="30000" weight="bold"&gt;(518) 555-1212&lt;/span&gt;</property>
+                <property name="label" translatable="yes">&lt;span size="35000" weight="bold"&gt;(518) 555-1212&lt;/span&gt;</property>
                 <property name="use_markup">True</property>
                 <property name="justify">GTK_JUSTIFY_CENTER</property>
               </object>
@@ -36,150 +36,65 @@
                 <property name="n_columns">3</property>
                 <property name="homogeneous">True</property>
                 <child>
-                  <object class="GtkButton" id="digit1">
+                  <object class="GtkButton" id="dial">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">1</property>
+                    <property name="has_default">True</property>
                     <property name="focus_on_click">False</property>
-                    <signal handler="on_digit_clicked" name="clicked"/>
-                    <accelerator key="1" modifiers="" signal="clicked"/>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkButton" id="digit2">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">2 ABC</property>
-                    <property name="focus_on_click">False</property>
-                    <signal handler="on_digit_clicked" name="clicked"/>
-                    <accelerator key="c" modifiers="" signal="clicked"/>
-                    <accelerator key="b" modifiers="" signal="clicked"/>
-                    <accelerator key="a" modifiers="" signal="clicked"/>
-                    <accelerator key="2" modifiers="" signal="clicked"/>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="digit3">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">3 DEF</property>
-                    <property name="focus_on_click">False</property>
-                    <signal handler="on_digit_clicked" name="clicked"/>
-                    <accelerator key="f" modifiers="" signal="clicked"/>
-                    <accelerator key="e" modifiers="" signal="clicked"/>
-                    <accelerator key="d" modifiers="" signal="clicked"/>
-                    <accelerator key="3" modifiers="" signal="clicked"/>
+                    <signal handler="on_dial_clicked" name="clicked"/>
+                    <accelerator key="Return" modifiers="" signal="clicked"/>
+                    <child>
+                      <object class="GtkHBox" id="hbox1">
+                        <property name="visible">True</property>
+                        <child>
+                          <object class="GtkImage" id="image1">
+                            <property name="visible">True</property>
+                            <property name="xalign">1</property>
+                            <property name="stock">gtk-yes</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label8">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="xpad">5</property>
+                            <property name="label" translatable="yes">&lt;span size="17000" weight="bold"&gt;Dial&lt;/span&gt;</property>
+                            <property name="use_markup">True</property>
+                          </object>
+                          <packing>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="left_attach">2</property>
                     <property name="right_attach">3</property>
+                    <property name="top_attach">3</property>
+                    <property name="bottom_attach">4</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="digit4">
+                  <object class="GtkButton" id="digit0">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">4 GHI</property>
                     <property name="focus_on_click">False</property>
                     <signal handler="on_digit_clicked" name="clicked"/>
-                    <accelerator key="i" modifiers="" signal="clicked"/>
-                    <accelerator key="h" modifiers="" signal="clicked"/>
-                    <accelerator key="g" modifiers="" signal="clicked"/>
-                    <accelerator key="4" modifiers="" signal="clicked"/>
-                  </object>
-                  <packing>
-                    <property name="top_attach">1</property>
-                    <property name="bottom_attach">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="digit5">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">5 JKL</property>
-                    <property name="focus_on_click">False</property>
-                    <signal handler="on_digit_clicked" name="clicked"/>
-                    <accelerator key="l" modifiers="" signal="clicked"/>
-                    <accelerator key="k" modifiers="" signal="clicked"/>
-                    <accelerator key="j" modifiers="" signal="clicked"/>
-                    <accelerator key="5" modifiers="" signal="clicked"/>
+                    <accelerator key="0" modifiers="" signal="clicked"/>
+                    <child>
+                      <object class="GtkLabel" id="label19">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">&lt;span size="33000" weight="bold"&gt;0&lt;/span&gt;
+&lt;span size="9000"&gt;&lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
                     <property name="right_attach">2</property>
-                    <property name="top_attach">1</property>
-                    <property name="bottom_attach">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="digit6">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">6 MNO</property>
-                    <property name="focus_on_click">False</property>
-                    <signal handler="on_digit_clicked" name="clicked"/>
-                    <accelerator key="o" modifiers="" signal="clicked"/>
-                    <accelerator key="n" modifiers="" signal="clicked"/>
-                    <accelerator key="m" modifiers="" signal="clicked"/>
-                    <accelerator key="6" modifiers="" signal="clicked"/>
-                  </object>
-                  <packing>
-                    <property name="left_attach">2</property>
-                    <property name="right_attach">3</property>
-                    <property name="top_attach">1</property>
-                    <property name="bottom_attach">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="digit7">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">7 PQRS</property>
-                    <property name="focus_on_click">False</property>
-                    <signal handler="on_digit_clicked" name="clicked"/>
-                    <accelerator key="s" modifiers="" signal="clicked"/>
-                    <accelerator key="r" modifiers="" signal="clicked"/>
-                    <accelerator key="q" modifiers="" signal="clicked"/>
-                    <accelerator key="p" modifiers="" signal="clicked"/>
-                    <accelerator key="7" modifiers="" signal="clicked"/>
-                  </object>
-                  <packing>
-                    <property name="top_attach">2</property>
-                    <property name="bottom_attach">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="digit8">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">8 TUV</property>
-                    <property name="focus_on_click">False</property>
-                    <signal handler="on_digit_clicked" name="clicked"/>
-                    <accelerator key="v" modifiers="" signal="clicked"/>
-                    <accelerator key="u" modifiers="" signal="clicked"/>
-                    <accelerator key="t" modifiers="" signal="clicked"/>
-                    <accelerator key="8" modifiers="" signal="clicked"/>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                    <property name="top_attach">2</property>
-                    <property name="bottom_attach">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="digit9">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">9 WXYZ</property>
-                    <property name="focus_on_click">False</property>
-                    <signal handler="on_digit_clicked" name="clicked"/>
-                    <accelerator key="z" modifiers="" signal="clicked"/>
-                    <accelerator key="y" modifiers="" signal="clicked"/>
-                    <accelerator key="x" modifiers="" signal="clicked"/>
-                    <accelerator key="w" modifiers="" signal="clicked"/>
-                    <accelerator key="9" modifiers="" signal="clicked"/>
-                  </object>
-                  <packing>
-                    <property name="left_attach">2</property>
-                    <property name="right_attach">3</property>
-                    <property name="top_attach">2</property>
-                    <property name="bottom_attach">3</property>
+                    <property name="top_attach">3</property>
+                    <property name="bottom_attach">4</property>
                   </packing>
                 </child>
                 <child>
@@ -203,7 +118,8 @@
                             <property name="visible">True</property>
                             <property name="xalign">0</property>
                             <property name="xpad">5</property>
-                            <property name="label" translatable="yes">Back</property>
+                            <property name="label" translatable="yes">&lt;span size="17000" weight="Bold"&gt;Back&lt;/span&gt;</property>
+                            <property name="use_markup">True</property>
                           </object>
                           <packing>
                             <property name="position">1</property>
@@ -218,56 +134,222 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="digit0">
+                  <object class="GtkButton" id="digit9">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">0</property>
                     <property name="focus_on_click">False</property>
                     <signal handler="on_digit_clicked" name="clicked"/>
-                    <accelerator key="0" modifiers="" signal="clicked"/>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                    <property name="top_attach">3</property>
-                    <property name="bottom_attach">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="dial">
-                    <property name="visible">True</property>
-                    <property name="focus_on_click">False</property>
-                    <signal handler="on_dial_clicked" name="clicked"/>
-                    <accelerator key="Return" modifiers="" signal="clicked"/>
+                    <accelerator key="9" modifiers="" signal="clicked"/>
+                    <accelerator key="w" modifiers="" signal="clicked"/>
+                    <accelerator key="x" modifiers="" signal="clicked"/>
+                    <accelerator key="y" modifiers="" signal="clicked"/>
+                    <accelerator key="z" modifiers="" signal="clicked"/>
                     <child>
-                      <object class="GtkHBox" id="hbox1">
+                      <object class="GtkLabel" id="label18">
                         <property name="visible">True</property>
-                        <child>
-                          <object class="GtkImage" id="image1">
-                            <property name="visible">True</property>
-                            <property name="xalign">1</property>
-                            <property name="stock">gtk-yes</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="label8">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="xpad">5</property>
-                            <property name="label" translatable="yes">Dial</property>
-                          </object>
-                          <packing>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
+                        <property name="label" translatable="yes">&lt;span size="30000" weight="bold"&gt;9&lt;/span&gt;
+&lt;span size="12000"&gt;WXYZ&lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
                       </object>
                     </child>
                   </object>
                   <packing>
                     <property name="left_attach">2</property>
                     <property name="right_attach">3</property>
-                    <property name="top_attach">3</property>
-                    <property name="bottom_attach">4</property>
+                    <property name="top_attach">2</property>
+                    <property name="bottom_attach">3</property>
                   </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="digit8">
+                    <property name="visible">True</property>
+                    <property name="focus_on_click">False</property>
+                    <signal handler="on_digit_clicked" name="clicked"/>
+                    <accelerator key="8" modifiers="" signal="clicked"/>
+                    <accelerator key="t" modifiers="" signal="clicked"/>
+                    <accelerator key="u" modifiers="" signal="clicked"/>
+                    <accelerator key="v" modifiers="" signal="clicked"/>
+                    <child>
+                      <object class="GtkLabel" id="label17">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">&lt;span size="30000" weight="bold"&gt;8&lt;/span&gt;
+&lt;span size="12000"&gt;TUV&lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                    <property name="top_attach">2</property>
+                    <property name="bottom_attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="digit7">
+                    <property name="visible">True</property>
+                    <property name="focus_on_click">False</property>
+                    <signal handler="on_digit_clicked" name="clicked"/>
+                    <accelerator key="7" modifiers="" signal="clicked"/>
+                    <accelerator key="p" modifiers="" signal="clicked"/>
+                    <accelerator key="q" modifiers="" signal="clicked"/>
+                    <accelerator key="r" modifiers="" signal="clicked"/>
+                    <accelerator key="s" modifiers="" signal="clicked"/>
+                    <child>
+                      <object class="GtkLabel" id="label16">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">&lt;span size="30000" weight="bold"&gt;7&lt;/span&gt;
+&lt;span size="12000"&gt;PQRS&lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="top_attach">2</property>
+                    <property name="bottom_attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="digit6">
+                    <property name="visible">True</property>
+                    <property name="focus_on_click">False</property>
+                    <signal handler="on_digit_clicked" name="clicked"/>
+                    <accelerator key="6" modifiers="" signal="clicked"/>
+                    <accelerator key="m" modifiers="" signal="clicked"/>
+                    <accelerator key="n" modifiers="" signal="clicked"/>
+                    <accelerator key="o" modifiers="" signal="clicked"/>
+                    <child>
+                      <object class="GtkLabel" id="label15">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">&lt;span size="30000" weight="bold"&gt;6&lt;/span&gt;
+&lt;span size="12000"&gt;MNO&lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">2</property>
+                    <property name="right_attach">3</property>
+                    <property name="top_attach">1</property>
+                    <property name="bottom_attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="digit5">
+                    <property name="visible">True</property>
+                    <property name="focus_on_click">False</property>
+                    <signal handler="on_digit_clicked" name="clicked"/>
+                    <accelerator key="5" modifiers="" signal="clicked"/>
+                    <accelerator key="j" modifiers="" signal="clicked"/>
+                    <accelerator key="k" modifiers="" signal="clicked"/>
+                    <accelerator key="l" modifiers="" signal="clicked"/>
+                    <child>
+                      <object class="GtkLabel" id="label14">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">&lt;span size="30000" weight="bold"&gt;5&lt;/span&gt;
+&lt;span size="12000"&gt;JKL&lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                    <property name="top_attach">1</property>
+                    <property name="bottom_attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="digit4">
+                    <property name="visible">True</property>
+                    <property name="focus_on_click">False</property>
+                    <signal handler="on_digit_clicked" name="clicked"/>
+                    <accelerator key="4" modifiers="" signal="clicked"/>
+                    <accelerator key="g" modifiers="" signal="clicked"/>
+                    <accelerator key="h" modifiers="" signal="clicked"/>
+                    <accelerator key="i" modifiers="" signal="clicked"/>
+                    <child>
+                      <object class="GtkLabel" id="label13">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">&lt;span size="30000" weight="bold"&gt;4&lt;/span&gt;
+&lt;span size="12000"&gt;GHI&lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="top_attach">1</property>
+                    <property name="bottom_attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="digit3">
+                    <property name="visible">True</property>
+                    <property name="focus_on_click">False</property>
+                    <signal handler="on_digit_clicked" name="clicked"/>
+                    <accelerator key="3" modifiers="" signal="clicked"/>
+                    <accelerator key="d" modifiers="" signal="clicked"/>
+                    <accelerator key="e" modifiers="" signal="clicked"/>
+                    <accelerator key="f" modifiers="" signal="clicked"/>
+                    <child>
+                      <object class="GtkLabel" id="label11">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">&lt;span size="30000" weight="bold" stretch="ultraexpanded"&gt;3&lt;/span&gt;
+&lt;span size="12000"&gt;DEF&lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">2</property>
+                    <property name="right_attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="digit2">
+                    <property name="visible">True</property>
+                    <property name="focus_on_click">False</property>
+                    <signal handler="on_digit_clicked" name="clicked"/>
+                    <accelerator key="2" modifiers="" signal="clicked"/>
+                    <accelerator key="a" modifiers="" signal="clicked"/>
+                    <accelerator key="b" modifiers="" signal="clicked"/>
+                    <accelerator key="c" modifiers="" signal="clicked"/>
+                    <child>
+                      <object class="GtkLabel" id="label10">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">&lt;span size="30000" weight="bold"&gt;2&lt;/span&gt;
+&lt;span size="12000"&gt;ABC&lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="digit1">
+                    <property name="visible">True</property>
+                    <property name="focus_on_click">False</property>
+                    <signal handler="on_digit_clicked" name="clicked"/>
+                    <accelerator key="1" modifiers="" signal="clicked"/>
+                    <child>
+                      <object class="GtkLabel" id="label12">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">&lt;span size="33000" weight="bold"&gt;1&lt;/span&gt;
+&lt;span size="9000"&gt;  &lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                      </object>
+                    </child>
+                  </object>
                 </child>
               </object>
               <packing>
@@ -337,35 +419,25 @@
               <placeholder/>
             </child>
             <child>
-              <object class="GtkComboBoxEntry" id="callbackcombo">
+              <object class="GtkLabel" id="label1">
                 <property name="visible">True</property>
-                <child internal-child="entry">
-                  <object class="GtkEntry" id="callbackentry">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <signal handler="on_callbackentry_changed" name="changed"/>
-                  </object>
-                </child>
+                <property name="xalign">1</property>
+                <property name="xpad">5</property>
+                <property name="label" translatable="yes">GrandCentral
+Number:</property>
+                <property name="justify">GTK_JUSTIFY_RIGHT</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="gcnumberlabel">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">&lt;span size="15000" weight="bold"&gt;(518) 555-1212&lt;/span&gt;</property>
+                <property name="use_markup">True</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">2</property>
-                <property name="top_attach">2</property>
-                <property name="bottom_attach">3</property>
-                <property name="x_options">GTK_FILL</property>
                 <property name="y_options"/>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label3">
-                <property name="visible">True</property>
-                <property name="xalign">1</property>
-                <property name="xpad">5</property>
-                <property name="label" translatable="yes">Callback Number:</property>
-              </object>
-              <packing>
-                <property name="top_attach">2</property>
-                <property name="bottom_attach">3</property>
               </packing>
             </child>
             <child>
@@ -386,26 +458,36 @@ must reauthenticate</property>
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="gcnumberlabel">
+              <object class="GtkLabel" id="label3">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">&lt;span size="15000" weight="bold"&gt;(518) 555-1212&lt;/span&gt;</property>
-                <property name="use_markup">True</property>
+                <property name="xalign">1</property>
+                <property name="xpad">5</property>
+                <property name="label" translatable="yes">Callback Number:</property>
+              </object>
+              <packing>
+                <property name="top_attach">2</property>
+                <property name="bottom_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxEntry" id="callbackcombo">
+                <property name="visible">True</property>
+                <child internal-child="entry">
+                  <object class="GtkEntry" id="callbackentry">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <signal handler="on_callbackentry_changed" name="changed"/>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">2</property>
+                <property name="top_attach">2</property>
+                <property name="bottom_attach">3</property>
+                <property name="x_options">GTK_FILL</property>
                 <property name="y_options"/>
               </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label1">
-                <property name="visible">True</property>
-                <property name="xalign">1</property>
-                <property name="xpad">5</property>
-                <property name="label" translatable="yes">GrandCentral
-Number:</property>
-                <property name="justify">GTK_JUSTIFY_RIGHT</property>
-              </object>
             </child>
           </object>
           <packing>
@@ -501,17 +583,14 @@ Copyright 2008</property>
             <property name="n_rows">2</property>
             <property name="n_columns">2</property>
             <child>
-              <object class="GtkLabel" id="label5">
+              <object class="GtkEntry" id="passwordentry">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">Username</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label6">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Password</property>
+                <property name="can_focus">True</property>
+                <property name="visibility">False</property>
               </object>
               <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">2</property>
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
               </packing>
@@ -527,17 +606,20 @@ Copyright 2008</property>
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="passwordentry">
+              <object class="GtkLabel" id="label6">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="visibility">False</property>
+                <property name="label" translatable="yes">Password</property>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
               </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label5">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Username</property>
+              </object>
             </child>
           </object>
           <packing>

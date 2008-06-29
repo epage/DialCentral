@@ -25,6 +25,8 @@ import optparse
 
 from gcbackend import GCDialer
 
+import socket
+socket.setdefaulttimeout(5)
 
 @contextlib.contextmanager
 def gtk_critical_section():
@@ -285,7 +287,7 @@ class Dialpad(object):
 		self.setNumber(self.phonenumber[:-1])
 
 	def on_digit_clicked(self, widget):
-		self.setNumber(self.phonenumber + re.sub('\D', '', widget.get_label()))
+		self.setNumber(self.phonenumber + widget.get_name()[5])
 
 
 def run_doctest():
