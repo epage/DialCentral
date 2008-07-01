@@ -37,9 +37,5 @@ sed -i 's/^[ \t]*//;s/[ \t]*$//;s/GtkWindow/HildonWindow/' build/usr/local/lib/g
 echo "#!/usr/bin/python" > build/usr/local/bin/gc_dialer.py
 #echo "from __future__ import with_statement" >> build/usr/local/bin/gc_dialer.py
 cat gc_dialer/gc_dialer.py gc_dialer/gcbackend.py gc_dialer/browser_emu.py | grep -e '^import ' | sort -u >> build/usr/local/bin/gc_dialer.py
-#echo "import hildon" >> build/usr/local/bin/gc_dialer.py
-#echo "import osso" >> build/usr/local/bin/gc_dialer.py
-#echo "import abook" >> build/usr/local/bin/gc_dialer.py
-#echo "import evolution.ebook as evo" >> build/usr/local/bin/gc_dialer.py
 cat gc_dialer/browser_emu.py gc_dialer/gcbackend.py gc_dialer/gc_dialer.py | grep -v 'browser_emu' | grep -v 'gcbackend' | grep -v "#!" >> build/usr/local/bin/gc_dialer.py
 chmod 755 build/usr/local/bin/gc_dialer.py

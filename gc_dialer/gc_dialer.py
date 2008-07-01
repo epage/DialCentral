@@ -24,6 +24,17 @@ except ImportError:
 	hildon = None
 
 try:
+	import osso
+	try:
+		import abook
+		import evolution.ebook as evobook
+	except ImportError:
+		abook = None
+		evobook = None
+except ImportError:
+	osso = None
+
+try:
 	import doctest
 	import optparse
 except ImportError:
@@ -132,18 +143,27 @@ class Dialpad(object):
 		self.notebook = self.wTree.get_object("notebook")
 
 		self.window = self.wTree.get_object("Dialpad")
-		if hildon:
-			#self.osso = osso.Context("gc_dialer", "0.6.0", False)
-			#device = osso.DeviceState(self.osso)
-			#device.set_device_state_callback(self.on_device_state_change, None)
-			#abook.init_with_name("gc_dialer", self.osso)
-			#self.ebook = evo.open_addressbook("default")
+		if hildon is not None:
 			self.app = hildon.Program()
 			self.window.set_title("Keypad")
 			self.app.add_window(self.window)
 			self.wTree.get_object("callbackentry").set_property('hildon-input-mode', (1 << 4))
 			self.wTree.get_object("usernameentry").set_property('hildon-input-mode', 7)
 			self.wTree.get_object("passwordentry").set_property('hildon-input-mode', 7)
+		else:
+			print "No Hildon"
+
+		if osso is not None:
+			self.osso = osso.Context("gc_dialer", "0.6.0", False)
+			device = osso.DeviceState(self.osso)
+			device.set_device_state_callback(self.on_device_state_change, None)
+			if abook is not None and evobook is not None:
+				abook.init_with_name("gc_dialer", self.osso)
+				self.ebook = evo.open_addressbook("default")
+			else:
+				print "No abook and No evolution address book support"
+		else:
+			print "No OSSO"
 
 		if self.window:
 			self.window.connect("destroy", gtk.main_quit)

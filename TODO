@@ -1,3 +1,9 @@
+770 Support
+	GTK Builder -> Glade
+	XML -> Glade File (Don't know how many of these matter, we might need to build a seperate glade file)
+		object -> widget
+		interface -> glade-interface
+		Differences in properties
 General Python/Maemo stuff
 	http://pymaemo.garage.maemo.org/documentation.html
 DBus
