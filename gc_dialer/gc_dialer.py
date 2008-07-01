@@ -20,14 +20,15 @@ import gtk
 import gc
 try:
 	import hildon
-except:
-	pass
+except ImportError:
+	hildon = None
 
 try:
 	import doctest
 	import optparse
-except:
-	pass
+except ImportError:
+	doctest = None
+	optparse = None
 
 from gcbackend import GCDialer
 
@@ -130,11 +131,8 @@ class Dialpad(object):
 		self.setNumber("")
 		self.notebook = self.wTree.get_object("notebook")
 
-		self.isHildon = False
-
 		self.window = self.wTree.get_object("Dialpad")
-		#if True:
-		try:
+		if hildon:
 			#self.osso = osso.Context("gc_dialer", "0.6.0", False)
 			#device = osso.DeviceState(self.osso)
 			#device.set_device_state_callback(self.on_device_state_change, None)
@@ -146,9 +144,6 @@ class Dialpad(object):
 			self.wTree.get_object("callbackentry").set_property('hildon-input-mode', (1 << 4))
 			self.wTree.get_object("usernameentry").set_property('hildon-input-mode', 7)
 			self.wTree.get_object("passwordentry").set_property('hildon-input-mode', 7)
-			self.isHildon = True
-		except:
-			print "No hildon"
 
 		if self.window:
 			self.window.connect("destroy", gtk.main_quit)
@@ -224,7 +219,7 @@ class Dialpad(object):
 			gobject.idle_add(self.populate_recentview)
 		elif page_num ==2 and self.callbackNeedsSetup:
 			gobject.idle_add(self.setupCallbackCombo)
-		if self.isHildon:
+		if hildon:
 			try:
 				self.window.set_title(self.notebook.get_tab_label(self.notebook.get_nth_page(page_num)).get_text())
 			except:
@@ -243,6 +238,8 @@ class Dialpad(object):
 		self.gcd.reset()
 		self.callbackNeedsSetup = True
 		self.recenttime = 0.0
+		self.recentmodel.clear()
+		self.wTree.get_object("callbackentry").set_text("")
 	
 		# re-run the inital grandcentral setup
 		self.attemptLogin(2)
@@ -382,10 +379,8 @@ class DummyOptions(object):
 
 
 if __name__ == "__main__":
-	try:
+	if hildon:
 		gtk.set_application_name("Dialer")
-	except:
-		pass
 
 	try:
 		parser = optparse.OptionParser()
