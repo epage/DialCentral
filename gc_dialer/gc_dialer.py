@@ -18,7 +18,10 @@ import contextlib
 import gobject
 import gtk
 import gc
-#import hildon
+try:
+	import hildon
+except:
+	pass
 
 try:
 	import doctest
@@ -67,10 +70,8 @@ def makepretty(phonenumber):
 	'12'
 	>>> makepretty("1234567")
 	'123-4567'
-	>>> makepretty("2345678901")
-	'(234)-567-8901'
-	>>> makepretty("12345678901")
-	'1 (234)-567-8901'
+	>>> makepretty("1234567890")
+	'(123)-456-7890'
 	>>> makepretty("01234567890")
 	'+012-(345)-678-90'
 	"""
@@ -140,6 +141,8 @@ class Dialpad(object):
 			#abook.init_with_name("gc_dialer", self.osso)
 			#self.ebook = evo.open_addressbook("default")
 			self.app = hildon.Program()
+			self.window.set_title("Keypad")
+			self.app.add_window(self.window)
 			self.wTree.get_object("callbackentry").set_property('hildon-input-mode', (1 << 4))
 			self.wTree.get_object("usernameentry").set_property('hildon-input-mode', 7)
 			self.wTree.get_object("passwordentry").set_property('hildon-input-mode', 7)
@@ -221,6 +224,11 @@ class Dialpad(object):
 			gobject.idle_add(self.populate_recentview)
 		elif page_num ==2 and self.callbackNeedsSetup:
 			gobject.idle_add(self.setupCallbackCombo)
+		if self.isHildon:
+			try:
+				self.window.set_title(self.notebook.get_tab_label(self.notebook.get_nth_page(page_num)).get_text())
+			except:
+				self.window.set_title("")
 
 	def populate_recentview(self):
 		print "Populating"
@@ -374,6 +382,11 @@ class DummyOptions(object):
 
 
 if __name__ == "__main__":
+	try:
+		gtk.set_application_name("Dialer")
+	except:
+		pass
+
 	try:
 		parser = optparse.OptionParser()
 		parser.add_option("-t", "--test", action="store_true", dest="test", help="Run tests")
