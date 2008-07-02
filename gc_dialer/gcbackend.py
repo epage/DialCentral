@@ -187,12 +187,15 @@ class GCDialer(object):
 		"""
 		This is the main function responsible for initating the callback
 		"""
+		self._msg = ""
+
 		# If the number is not valid throw exception
 		if self.validate(number) is False:
 			raise ValueError('number is not valid')
 
 		# No point if we don't have the magic cookie
 		if not self.isAuthed():
+			self._msg = "Not authenticated"
 			return False
 
 		# Strip leading 1 from 11 digit dialing
@@ -207,9 +210,12 @@ class GCDialer(object):
 			if GCDialer._gcDialingStrRe.search(self._lastData) is not None:
 				return True
 			else:
+				self._msg = "Grand Central returned an error"
 				return False
 		except:
 			pass
+	
+		self._msg = "Unknown Error"
 		return False
 
 	def get_recent(self):

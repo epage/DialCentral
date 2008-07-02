@@ -10,6 +10,7 @@ bergman@merctech.com
 
 
 import sys
+import gc
 import os
 import re
 import time
@@ -17,11 +18,20 @@ import threading
 import contextlib
 import gobject
 import gtk
-import gc
+
 try:
 	import hildon
 except ImportError:
 	hildon = None
+
+try:
+	if hasattr(gtk, "Builder"):
+		#detected that this is not a legacy system
+		raise ImportError 
+	#Legacy support
+	import gtk.glade
+except ImportError:
+	gtk.glade = None
 
 try:
 	import osso
@@ -121,7 +131,6 @@ class Dialpad(object):
 		self.prettynumber = ""
 		self.areacode = "518"
 		self.clipboard = gtk.clipboard_get()
-		self.wTree = gtk.Builder()
 		self.recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self.recentviewselection = None
 		self.callbackNeedsSetup = True
@@ -131,7 +140,12 @@ class Dialpad(object):
 				'../lib/gc_dialer.xml',
 				'/usr/local/lib/gc_dialer.xml' ]:
 			if os.path.isfile(path):
-				self.wTree.add_from_file(path)
+				if gtk.glade is None:
+					self.wTree = gtk.Builder()
+					self.wTree.add_from_file(path)
+				else:
+					self.wTree = gtk.glade.XML(path)
+					self.wTree.get_object = self.wTree.get_widget
 				break
 		else:
 			self.ErrPopUp("Cannot find gc_dialer.xml")
@@ -345,7 +359,13 @@ class Dialpad(object):
 		#	#add default area code
 		#	self.phonenumber = self.areacode + self.phonenumber
 
-		if self.gcd.dial(self.phonenumber) is False:
+		try:
+			callSuccess = self.gcd.dial(self.phonenumber)
+		except ValueError, e:
+			self.gcd._msg = e.message
+			callSuccess = False
+
+		if not callSuccess:
 			self.ErrPopUp(self.gcd._msg)
 		else:
 			self.setNumber("")

@@ -1,5 +1,21 @@
 #!/bin/sh
 
+PLATFORM="$1"
+if [ "$PLATFORM" != "desktop" -a "$PLATFORM" != "os2007" -a "$PLATFORM" != "os2008" ]; then
+	echo "Invalid platform parameter, defaulting to OS 2008"
+	PLATFORM="os2008"
+else
+	echo "Building for $PLATFORM"
+fi
+
+LEGACY_GLADE="0"
+if [ "$PLATFORM" = "os2007" ]; then
+	LEGACY_GLADE="1"
+fi
+BUILD_BASE=./build-$PLATFORM
+
+
+
 # Create PyPackager directory structure from the original files
 # Please make sure the following files are in this directory before
 # running this script
@@ -13,29 +29,42 @@
 # gcbackend.py
 # browser_emu.py
 
-# The script creates the directories and concatenates the .py into a
-# single python script
 
-mkdir -p build/usr/share/icons/hicolor/scalable/hildon
-mkdir -p build/usr/share/icons/hicolor/26x26/hildon
-mkdir -p build/usr/share/icons/hicolor/64x64/hildon
-mkdir -p build/usr/share/applications/hildon
-mkdir -p build/usr/local/bin
-mkdir -p build/usr/local/lib
+mkdir -p $BUILD_BASE/usr/share/icons/hicolor/scalable/hildon
+mkdir -p $BUILD_BASE/usr/share/icons/hicolor/26x26/hildon
+mkdir -p $BUILD_BASE/usr/share/icons/hicolor/64x64/hildon
+mkdir -p $BUILD_BASE/usr/share/applications/hildon
+mkdir -p $BUILD_BASE/usr/local/bin
+mkdir -p $BUILD_BASE/usr/local/lib
 
-cp gc_dialer/gc_dialer_256.png build/usr/share/icons/hicolor/scalable/hildon/gc_dialer.png
-cp gc_dialer/gc_dialer_64.png  build/usr/share/icons/hicolor/64x64/hildon/gc_dialer.png
-cp gc_dialer/gc_dialer_26.png  build/usr/share/icons/hicolor/26x26/hildon/gc_dialer.png
+cp gc_dialer/gc_dialer_256.png $BUILD_BASE/usr/share/icons/hicolor/scalable/hildon/gc_dialer.png
+cp gc_dialer/gc_dialer_64.png  $BUILD_BASE/usr/share/icons/hicolor/64x64/hildon/gc_dialer.png
+cp gc_dialer/gc_dialer_26.png  $BUILD_BASE/usr/share/icons/hicolor/26x26/hildon/gc_dialer.png
 
-cp gc_dialer/gc_dialer.desktop build/usr/share/applications/hildon
+cp gc_dialer/gc_dialer.desktop $BUILD_BASE/usr/share/applications/hildon
 
-cp gc_dialer/gc_dialer.xml     build/usr/local/lib
+cp gc_dialer/gc_dialer.xml     $BUILD_BASE/usr/local/lib
 
-# Compress whitespace for 30% savings, make sure we are a HildonWindow
-sed -i 's/^[ \t]*//;s/[ \t]*$//;s/GtkWindow/HildonWindow/' build/usr/local/lib/gc_dialer.xml
 
-echo "#!/usr/bin/python" > build/usr/local/bin/gc_dialer.py
-#echo "from __future__ import with_statement" >> build/usr/local/bin/gc_dialer.py
-cat gc_dialer/gc_dialer.py gc_dialer/gcbackend.py gc_dialer/browser_emu.py | grep -e '^import ' | sort -u >> build/usr/local/bin/gc_dialer.py
-cat gc_dialer/browser_emu.py gc_dialer/gcbackend.py gc_dialer/gc_dialer.py | grep -v 'browser_emu' | grep -v 'gcbackend' | grep -v "#!" >> build/usr/local/bin/gc_dialer.py
-chmod 755 build/usr/local/bin/gc_dialer.py
+#Construct the program by cat-ing all the python files together
+echo "#!/usr/bin/python" > $BUILD_BASE/usr/local/bin/gc_dialer.py
+#echo "from __future__ import with_statement" >> $BUILD_BASE/usr/local/bin/gc_dialer.py
+cat gc_dialer/gc_dialer.py gc_dialer/gcbackend.py gc_dialer/browser_emu.py | grep -e '^import ' | sort -u >> $BUILD_BASE/usr/local/bin/gc_dialer.py
+cat gc_dialer/browser_emu.py gc_dialer/gcbackend.py gc_dialer/gc_dialer.py | grep -v 'browser_emu' | grep -v 'gcbackend' | grep -v "#!" >> $BUILD_BASE/usr/local/bin/gc_dialer.py
+chmod 755 $BUILD_BASE/usr/local/bin/gc_dialer.py
+
+
+
+#Perform platform specific work
+if [ "$PLATFORM" != "desktop" ]; then
+	echo "	Generic Maemo Support"
+	# Compress whitespace for 30% savings, make sure we are a HildonWindow
+	sed -i 's/^[ \t]*//;s/[ \t]*$//;s/GtkWindow/HildonWindow/' $BUILD_BASE/usr/local/lib/gc_dialer.xml
+fi
+
+if [ "$LEGACY_GLADE" = "1" ]; then
+	echo "	Legacy version of Glade"
+	sed -i 's/interface/glade-interface/;s/object/widget/' $BUILD_BASE/usr/local/lib/gc_dialer.xml
+	sed -i 's/get_object/get_widget/;s/connect_signals/signal_autoconnect/' $BUILD_BASE/usr/local/bin/gc_dialer.py
+fi
+
