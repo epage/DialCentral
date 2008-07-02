@@ -158,7 +158,7 @@ class Dialpad(object):
 		if osso is not None:
 			self.osso = osso.Context("gc_dialer", "0.6.0", False)
 			device = osso.DeviceState(self.osso)
-			device.set_device_state_callback(self.on_device_state_change, None)
+			device.set_device_state_callback(self.on_device_state_change, 0)
 			if abook is not None and evobook is not None:
 				abook.init_with_name("gc_dialer", self.osso)
 				self.ebook = evo.open_addressbook("default")
