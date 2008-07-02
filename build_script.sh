@@ -43,7 +43,7 @@ cp gc_dialer/gc_dialer_26.png  $BUILD_BASE/usr/share/icons/hicolor/26x26/hildon/
 
 cp gc_dialer/gc_dialer.desktop $BUILD_BASE/usr/share/applications/hildon
 
-cp gc_dialer/gc_dialer.xml     $BUILD_BASE/usr/local/lib
+cp gc_dialer/gc_dialer.glade     $BUILD_BASE/usr/local/lib
 
 
 #Construct the program by cat-ing all the python files together
@@ -59,13 +59,13 @@ chmod 755 $BUILD_BASE/usr/local/bin/gc_dialer.py
 if [ "$PLATFORM" != "desktop" ]; then
 	echo "	Generic Maemo Support"
 	# Compress whitespace for 30% savings, make sure we are a HildonWindow
-	sed -i 's/^[ \t]*//;s/[ \t]*$//;s/GtkWindow/HildonWindow/' $BUILD_BASE/usr/local/lib/gc_dialer.xml
+	sed -i 's/^[ \t]*//;s/[ \t]*$//;s/GtkWindow/HildonWindow/' $BUILD_BASE/usr/local/lib/gc_dialer.glade
 fi
 
-if [ "$LEGACY_GLADE" = "1" ]; then
-	echo "	Legacy version of Glade"
-	sed -i 's/interface/glade-interface/;s/object/widget/' $BUILD_BASE/usr/local/lib/gc_dialer.xml
-	#sed -ri 's/(<property name="tab_expand">True<\/property>)/\<property name="type"\>tab\<\/property\>\1/' $BUILD_BASE/usr/local/lib/gc_dialer.xml
-	sed -i 's/get_object/get_widget/;s/connect_signals/signal_autoconnect/' $BUILD_BASE/usr/local/bin/gc_dialer.py
-fi
+#if [ "$LEGACY_GLADE" = "1" ]; then
+#	echo "	Legacy version of Glade"
+#	sed -i 's/interface/glade-interface/;s/object/widget/' $BUILD_BASE/usr/local/lib/gc_dialer.xml
+#	#sed -ri 's/(<property name="tab_expand">True<\/property>)/\<property name="type"\>tab\<\/property\>\1/' $BUILD_BASE/usr/local/lib/gc_dialer.xml
+#	sed -i 's/get_object/get_widget/;s/connect_signals/signal_autoconnect/' $BUILD_BASE/usr/local/bin/gc_dialer.py
+#fi
 

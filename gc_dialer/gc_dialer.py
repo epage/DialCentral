@@ -10,7 +10,7 @@ bergman@merctech.com
 
 
 import sys
-import gc
+#import gc
 import os
 import re
 import time
@@ -18,20 +18,21 @@ import threading
 import contextlib
 import gobject
 import gtk
+import gtk.glade
 
 try:
 	import hildon
 except ImportError:
 	hildon = None
 
-try:
-	if hasattr(gtk, "Builder"):
-		#detected that this is not a legacy system
-		raise ImportError 
-	#Legacy support
-	import gtk.glade
-except ImportError:
-	gtk.glade = None
+#try:
+#	if hasattr(gtk, "Builder"):
+#		#detected that this is not a legacy system
+#		raise ImportError 
+#	#Legacy support
+#	import gtk.glade
+#except ImportError:
+#	gtk.glade = None
 
 try:
 	import osso
@@ -136,36 +137,36 @@ class Dialpad(object):
 		self.callbackNeedsSetup = True
 		self.recenttime = 0.0
 
-		for path in [ './gc_dialer.xml',
-				'../lib/gc_dialer.xml',
-				'/usr/local/lib/gc_dialer.xml' ]:
+		for path in [ './gc_dialer.glade',
+				'../lib/gc_dialer.glade',
+				'/usr/local/lib/gc_dialer.glade' ]:
 			if os.path.isfile(path):
-				if gtk.glade is None:
-					self.wTree = gtk.Builder()
-					self.wTree.add_from_file(path)
-				else:
-					self.wTree = gtk.glade.XML(path)
-					self.wTree.get_object = self.wTree.get_widget
+				#if gtk.glade is None:
+				#	self.wTree = gtk.Builder()
+				#	self.wTree.add_from_file(path)
+				#else:
+				self.wTree = gtk.glade.XML(path)
+				self.wTree.get_widget = self.wTree.get_widget
 				break
 		else:
-			self.ErrPopUp("Cannot find gc_dialer.xml")
+			self.ErrPopUp("Cannot find gc_dialer.glade")
 			gtk.main_quit()
 			return
 
 
 		#Get the buffer associated with the number display
-		self.numberdisplay = self.wTree.get_object("numberdisplay")
+		self.numberdisplay = self.wTree.get_widget("numberdisplay")
 		self.setNumber("")
-		self.notebook = self.wTree.get_object("notebook")
+		self.notebook = self.wTree.get_widget("notebook")
 
-		self.window = self.wTree.get_object("Dialpad")
+		self.window = self.wTree.get_widget("Dialpad")
 		if hildon is not None:
 			self.app = hildon.Program()
 			self.window.set_title("Keypad")
 			self.app.add_window(self.window)
-			self.wTree.get_object("callbackentry").set_property('hildon-input-mode', (1 << 4))
-			self.wTree.get_object("usernameentry").set_property('hildon-input-mode', 7)
-			self.wTree.get_object("passwordentry").set_property('hildon-input-mode', 7)
+			self.wTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
+			self.wTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
+			self.wTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
 		else:
 			print "No Hildon"
 
@@ -191,12 +192,13 @@ class Dialpad(object):
 			"on_dial_clicked"    : self.on_dial_clicked,
 			"on_loginbutton_clicked" : self.on_loginbutton_clicked,
 			"on_clearcookies_clicked" : self.on_clearcookies_clicked,
-			"on_callbackentry_changed" : self.on_callbackentry_changed,
+		#	"on_callbackentry_changed" : self.on_callbackentry_changed,
 			"on_notebook_switch_page" : self.on_notebook_switch_page,
 			"on_recentview_row_activated" : self.on_recentview_row_activated,
 			"on_back_clicked" : self.Backspace
 		}
-		self.wTree.connect_signals(callbackMapping)
+		self.wTree.signal_autoconnect(callbackMapping)
+		self.wTree.get_widget("callbackcombo").get_child().connect("changed", self.on_callbackentry_changed)
 
 		# Defer initalization of recent view
 		self.gcd = GCDialer()
@@ -226,7 +228,7 @@ class Dialpad(object):
 	def init_recentview(self):
 		""" deferred initalization of the recent view treeview """
 
-		recentview = self.wTree.get_object("recentview")
+		recentview = self.wTree.get_widget("recentview")
 		recentview.set_model(self.recentmodel)
 		textrenderer = gtk.CellRendererText()
 
@@ -275,28 +277,28 @@ class Dialpad(object):
 		self.callbackNeedsSetup = True
 		self.recenttime = 0.0
 		self.recentmodel.clear()
-		self.wTree.get_object("callbackentry").set_text("")
+		self.wTree.get_widget("callbackcombo").get_child().set_text("")
 	
 		# re-run the inital grandcentral setup
 		self.attemptLogin(2)
 		gobject.idle_add(self.init_grandcentral)
 
 	def setupCallbackCombo(self):
-		combobox = self.wTree.get_object("callbackcombo")
+		combobox = self.wTree.get_widget("callbackcombo")
 		self.callbacklist = gtk.ListStore(gobject.TYPE_STRING)
 		combobox.set_model(self.callbacklist)
 		combobox.set_text_column(0)
 		for number, description in self.gcd.getCallbackNumbers().iteritems():
 			self.callbacklist.append([makepretty(number)] )
 
-		self.wTree.get_object("callbackentry").set_text(makepretty(self.gcd.getCallbackNumber()))
+		self.wTree.get_widget("callbackcombo").get_child().set_text(makepretty(self.gcd.getCallbackNumber()))
 		self.callbackNeedsSetup = False
 
 	def on_callbackentry_changed(self, data=None):
-		text = makeugly(self.wTree.get_object("callbackentry").get_text())
+		text = makeugly(self.wTree.get_widget("callbackcombo").get_child().get_text())
 		if self.gcd.validate(text) and text != self.gcd.getCallbackNumber():
 			self.gcd.setCallbackNumber(text)
-			self.wTree.get_object("callbackentry").set_text(self.wTree.get_object("callbackentry").get_text())
+			#self.wTree.get_widget("callbackentry").set_text(self.wTree.get_object("callbackentry").get_text())
 		#self.reduce_memory()
 
 	def attemptLogin(self, times = 1):
@@ -304,7 +306,7 @@ class Dialpad(object):
 		#	dialog = hildon.LoginDialog(self.window)
 		#	dialog.set_message("Grandcentral Login")
 		#else:
-		dialog = self.wTree.get_object("login_dialog")
+		dialog = self.wTree.get_widget("login_dialog")
 
 		while (0 < times) and not self.gcd.isAuthed():
 			if dialog.run() != gtk.RESPONSE_OK:
@@ -315,9 +317,9 @@ class Dialpad(object):
 			#	username = dialog.get_username()
 			#	password = dialog.get_password()
 			#else:
-			username = self.wTree.get_object("usernameentry").get_text()
-			password = self.wTree.get_object("passwordentry").get_text()
-			self.wTree.get_object("passwordentry").set_text("")
+			username = self.wTree.get_widget("usernameentry").get_text()
+			password = self.wTree.get_widget("passwordentry").get_text()
+			self.wTree.get_widget("passwordentry").set_text("")
 			print "Attempting login"
 			self.gcd.login(username, password)
 			print "hiding dialog"
@@ -346,7 +348,7 @@ class Dialpad(object):
 		self.setNumber(phoneNumber)
 	
 	def on_loginbutton_clicked(self, data=None):
-		self.wTree.get_object("login_dialog").response(gtk.RESPONSE_OK)
+		self.wTree.get_widget("login_dialog").response(gtk.RESPONSE_OK)
 
 	def on_dial_clicked(self, widget):
 		self.attemptLogin(3)
@@ -388,7 +390,7 @@ class Dialpad(object):
 
 	def setAccountNumber(self):
 		accountnumber = self.gcd.getAccountNumber()
-		self.wTree.get_object("gcnumberlabel").set_label("<span size='23000' weight='bold'>%s</span>" % (accountnumber))
+		self.wTree.get_widget("gcnumberlabel").set_label("<span size='23000' weight='bold'>%s</span>" % (accountnumber))
 
 	def Backspace(self, widget):
 		self.setNumber(self.phonenumber[:-1])
@@ -407,7 +409,7 @@ def run_doctest():
 
 
 def run_dialpad():
-	gc.set_threshold(50, 3, 3)
+	#gc.set_threshold(50, 3, 3)
 	gtk.gdk.threads_init()
 	title = 'Dialpad'
 	handle = Dialpad()
