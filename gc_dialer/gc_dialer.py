@@ -354,12 +354,12 @@ class Dialpad(object):
 		self.recenttime = 0.0
 		#self.reduce_memory()
 	
-	#def on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
-	#	"""
-	#	@todo Might be useful to do something when going in offline mode or low memory
-	#	@note Hildon specific
-	#	"""
-	#	pass
+	def on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
+		"""
+		@todo Might be useful to do something when going in offline mode or low memory
+		@note Hildon specific
+		"""
+		pass
 
 	def setNumber(self, number):
 		self.phonenumber = makeugly(number)
