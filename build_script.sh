@@ -65,6 +65,7 @@ fi
 if [ "$LEGACY_GLADE" = "1" ]; then
 	echo "	Legacy version of Glade"
 	sed -i 's/interface/glade-interface/;s/object/widget/' $BUILD_BASE/usr/local/lib/gc_dialer.xml
+	#sed -ri 's/(<property name="tab_expand">True<\/property>)/\<property name="type"\>tab\<\/property\>\1/' $BUILD_BASE/usr/local/lib/gc_dialer.xml
 	sed -i 's/get_object/get_widget/;s/connect_signals/signal_autoconnect/' $BUILD_BASE/usr/local/bin/gc_dialer.py
 fi
 
