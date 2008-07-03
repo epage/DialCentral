@@ -528,7 +528,7 @@ must reauthenticate</property>
           <widget class="GtkVBox" id="vbox1">
             <property name="visible">True</property>
             <child>
-              <widget class="GtkLabel" id="label2">
+              <widget class="GtkLabel" id="about_title">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">&lt;span size="20000" weight="bold"&gt;GrandCentral Dialer&lt;/span&gt;
 Copyright 2008</property>
@@ -537,7 +537,7 @@ Copyright 2008</property>
               </widget>
             </child>
             <child>
-              <widget class="GtkLabel" id="label4">
+              <widget class="GtkLabel" id="about_description">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">GUI front-end to initiate outbound call from Grandcentral.com, typically with Grancentral configured to connect the outbound call to a VOIP number accessible via Gizmo on the Internet Tablet.</property>
                 <property name="wrap">True</property>
@@ -547,7 +547,7 @@ Copyright 2008</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="label7">
+              <widget class="GtkLabel" id="about_authors">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">Authors: Mark Bergman &lt;bergman@merctech.com&gt;, Eric Warnke &lt;ericew@gmail.com&gt;</property>
                 <property name="wrap">True</property>

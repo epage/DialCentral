@@ -127,6 +127,10 @@ def makepretty(phonenumber):
 
 class Dialpad(object):
 
+	__app_name__ = "gc_dialer"
+	__version__ = "0.7.0"
+
+
 	def __init__(self):
 		self.phonenumber = ""
 		self.prettynumber = ""
@@ -146,13 +150,13 @@ class Dialpad(object):
 				#	self.wTree.add_from_file(path)
 				#else:
 				self.wTree = gtk.glade.XML(path)
-				self.wTree.get_widget = self.wTree.get_widget
 				break
 		else:
 			self.ErrPopUp("Cannot find gc_dialer.glade")
 			gtk.main_quit()
 			return
 
+		self.wTree.get_widget("about_title").set_label(self.wTree.get_widget("about_title").get_label()+"\nVersion "+Dialpad.__version__)
 
 		#Get the buffer associated with the number display
 		self.numberdisplay = self.wTree.get_widget("numberdisplay")
@@ -171,11 +175,11 @@ class Dialpad(object):
 			print "No Hildon"
 
 		if osso is not None:
-			self.osso = osso.Context("gc_dialer", "0.6.0", False)
+			self.osso = osso.Context(__name__, Dialpad.__version__, False)
 			device = osso.DeviceState(self.osso)
 			device.set_device_state_callback(self.on_device_state_change, 0)
 			if abook is not None and evobook is not None:
-				abook.init_with_name("gc_dialer", self.osso)
+				abook.init_with_name(__name__, self.osso)
 				self.ebook = evo.open_addressbook("default")
 			else:
 				print "No abook and No evolution address book support"
