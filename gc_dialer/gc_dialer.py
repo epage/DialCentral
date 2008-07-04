@@ -161,7 +161,13 @@ class Dialpad(object):
 		self.notebook = self.wTree.get_widget("notebook")
 
 		self.window = self.wTree.get_widget("Dialpad")
-		if hildon is not None:
+
+		global hildon
+		self.app = None
+		if hildon is not None and isinstance(self.window, gtk.Window):
+			warnings.warn("Hildon installed but glade file not updated to work with hildon", UserWarning, 2)
+			hildon = None
+		elif hildon is not None:
 			self.app = hildon.Program()
 			self.window.set_title("Keypad")
 			self.app.add_window(self.window)
