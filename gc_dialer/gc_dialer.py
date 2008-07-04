@@ -205,7 +205,7 @@ class Dialpad(object):
 			"on_clearcookies_clicked" : self.on_clearcookies_clicked,
 			"on_notebook_switch_page" : self.on_notebook_switch_page,
 			"on_recentview_row_activated" : self.on_recentview_row_activated,
-			"on_back_clicked" : self.Backspace
+			"on_back_clicked" : self.on_backspace
 		}
 		self.wTree.signal_autoconnect(callbackMapping)
 		self.wTree.get_widget("callbackcombo").get_child().connect("changed", self.on_callbackentry_changed)
@@ -214,10 +214,10 @@ class Dialpad(object):
 		self.gcd = GCDialer()
 
 		self.attemptLogin(2)
-		gobject.idle_add(self.init_grandcentral)
-		gobject.idle_add(self.init_recentview)
+		gobject.idle_add(self._init_grandcentral)
+		gobject.idle_add(self._init_recent_view)
 
-	def init_grandcentral(self):
+	def _init_grandcentral(self):
 		""" deferred initalization of the grandcentral info """
 		
 		try:
@@ -231,7 +231,7 @@ class Dialpad(object):
 		print "exit init_gc"
 		return False
 
-	def init_recentview(self):
+	def _init_recent_view(self):
 		""" deferred initalization of the recent view treeview """
 
 		recentview = self.wTree.get_widget("recentview")
@@ -249,47 +249,7 @@ class Dialpad(object):
 
 		return False
 
-	def on_recentview_row_activated(self, treeview, path, view_column):
-		model, itr = self.recentviewselection.get_selected()
-		if not itr:
-			return
-
-		self.setNumber(self.recentmodel.get_value(itr, 0))
-		self.notebook.set_current_page(0)
-		self.recentviewselection.unselect_all()
-
-	def on_notebook_switch_page(self, notebook, page, page_num):
-		if page_num == 1 and (time.time() - self.recenttime) > 300:
-			gobject.idle_add(self.populate_recentview)
-		elif page_num ==2 and self.callbackNeedsSetup:
-			gobject.idle_add(self.setupCallbackCombo)
-		if hildon:
-			try:
-				self.window.set_title(self.notebook.get_tab_label(self.notebook.get_nth_page(page_num)).get_text())
-			except:
-				self.window.set_title("")
-
-	def populate_recentview(self):
-		print "Populating"
-		self.recentmodel.clear()
-		for item in self.gcd.get_recent():
-			self.recentmodel.append(item)
-		self.recenttime = time.time()
-
-		return False
-
-	def on_clearcookies_clicked(self, data=None):
-		self.gcd.reset()
-		self.callbackNeedsSetup = True
-		self.recenttime = 0.0
-		self.recentmodel.clear()
-		self.wTree.get_widget("callbackcombo").get_child().set_text("")
-	
-		# re-run the inital grandcentral setup
-		self.attemptLogin(2)
-		gobject.idle_add(self.init_grandcentral)
-
-	def setupCallbackCombo(self):
+	def _setupCallbackCombo(self):
 		combobox = self.wTree.get_widget("callbackcombo")
 		self.callbacklist = gtk.ListStore(gobject.TYPE_STRING)
 		combobox.set_model(self.callbacklist)
@@ -300,10 +260,14 @@ class Dialpad(object):
 		self.wTree.get_widget("callbackcombo").get_child().set_text(makepretty(self.gcd.getCallbackNumber()))
 		self.callbackNeedsSetup = False
 
-	def on_callbackentry_changed(self, data=None):
-		text = makeugly(self.wTree.get_widget("callbackcombo").get_child().get_text())
-		if self.gcd.validate(text) and text != self.gcd.getCallbackNumber():
-			self.gcd.setCallbackNumber(text)
+	def populate_recentview(self):
+		print "Populating"
+		self.recentmodel.clear()
+		for item in self.gcd.get_recent():
+			self.recentmodel.append(item)
+		self.recenttime = time.time()
+
+		return False
 
 	def attemptLogin(self, times = 1):
 		dialog = self.wTree.get_widget("login_dialog")
@@ -331,41 +295,17 @@ class Dialpad(object):
 			editor.about_dialog = None
 			dialog.destroy()
 		error_dialog.connect("response", close, self)
-		self.error_dialog = error_dialog
 		error_dialog.run()
 
-	def on_paste(self, data=None):
-		contents = self.clipboard.wait_for_text()
-		phoneNumber = re.sub('\D', '', contents)
-		self.setNumber(phoneNumber)
-	
-	def on_loginbutton_clicked(self, data=None):
-		self.wTree.get_widget("login_dialog").response(gtk.RESPONSE_OK)
+	def setNumber(self, number):
+		self.phonenumber = makeugly(number)
+		self.prettynumber = makepretty(self.phonenumber)
+		self.numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % ( self.prettynumber ) )
 
-	def on_loginclose_clicked(self, data=None):
-		sys.exit(0)
+	def setAccountNumber(self):
+		accountnumber = self.gcd.getAccountNumber()
+		self.wTree.get_widget("gcnumberlabel").set_label("<span size='23000' weight='bold'>%s</span>" % (accountnumber))
 
-	def on_dial_clicked(self, widget):
-		self.attemptLogin(3)
-
-		if not self.gcd.isAuthed() or self.gcd.getCallbackNumber() == "":
-			self.ErrPopUp("Backend link with grandcentral is not working, please try again")
-			return
-
-		try:
-			callSuccess = self.gcd.dial(self.phonenumber)
-		except ValueError, e:
-			self.gcd._msg = e.message
-			callSuccess = False
-
-		if not callSuccess:
-			self.ErrPopUp(self.gcd._msg)
-		else:
-			self.setNumber("")
-
-		self.recentmodel.clear()
-		self.recenttime = 0.0
-	
 	def on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
 		"""
 		For shutdown or save_unsaved_data, our only state is cookies and I think the cookie manager handles that for us.
@@ -392,20 +332,79 @@ class Dialpad(object):
 		elif status == conic.STATUS_DISCONNECTED:
 			self.window.set_sensitive(False)
 
-	def setNumber(self, number):
-		self.phonenumber = makeugly(number)
-		self.prettynumber = makepretty(self.phonenumber)
-		self.numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % ( self.prettynumber ) )
+	def on_loginbutton_clicked(self, data=None):
+		self.wTree.get_widget("login_dialog").response(gtk.RESPONSE_OK)
 
-	def setAccountNumber(self):
-		accountnumber = self.gcd.getAccountNumber()
-		self.wTree.get_widget("gcnumberlabel").set_label("<span size='23000' weight='bold'>%s</span>" % (accountnumber))
+	def on_loginclose_clicked(self, data=None):
+		sys.exit(0)
 
-	def Backspace(self, widget):
-		self.setNumber(self.phonenumber[:-1])
+	def on_clearcookies_clicked(self, data=None):
+		self.gcd.reset()
+		self.callbackNeedsSetup = True
+		self.recenttime = 0.0
+		self.recentmodel.clear()
+		self.wTree.get_widget("callbackcombo").get_child().set_text("")
+	
+		# re-run the inital grandcentral setup
+		self.attemptLogin(2)
+		gobject.idle_add(self._init_grandcentral)
 
+	def on_callbackentry_changed(self, data=None):
+		text = makeugly(self.wTree.get_widget("callbackcombo").get_child().get_text())
+		if self.gcd.validate(text) and text != self.gcd.getCallbackNumber():
+			self.gcd.setCallbackNumber(text)
+
+	def on_recentview_row_activated(self, treeview, path, view_column):
+		model, itr = self.recentviewselection.get_selected()
+		if not itr:
+			return
+
+		self.setNumber(self.recentmodel.get_value(itr, 0))
+		self.notebook.set_current_page(0)
+		self.recentviewselection.unselect_all()
+
+	def on_notebook_switch_page(self, notebook, page, page_num):
+		if page_num == 1 and (time.time() - self.recenttime) > 300:
+			gobject.idle_add(self.populate_recentview)
+		elif page_num ==2 and self.callbackNeedsSetup:
+			gobject.idle_add(self._setupCallbackCombo)
+		if hildon:
+			try:
+				self.window.set_title(self.notebook.get_tab_label(self.notebook.get_nth_page(page_num)).get_text())
+			except:
+				self.window.set_title("")
+
+	def on_dial_clicked(self, widget):
+		self.attemptLogin(3)
+
+		if not self.gcd.isAuthed() or self.gcd.getCallbackNumber() == "":
+			self.ErrPopUp("Backend link with grandcentral is not working, please try again")
+			return
+
+		try:
+			callSuccess = self.gcd.dial(self.phonenumber)
+		except ValueError, e:
+			self.gcd._msg = e.message
+			callSuccess = False
+
+		if not callSuccess:
+			self.ErrPopUp(self.gcd._msg)
+		else:
+			self.setNumber("")
+
+		self.recentmodel.clear()
+		self.recenttime = 0.0
+	
+	def on_paste(self, data=None):
+		contents = self.clipboard.wait_for_text()
+		phoneNumber = re.sub('\D', '', contents)
+		self.setNumber(phoneNumber)
+	
 	def on_digit_clicked(self, widget):
 		self.setNumber(self.phonenumber + widget.get_name()[5])
+
+	def on_backspace(self, widget):
+		self.setNumber(self.phonenumber[:-1])
 
 
 def run_doctest():
