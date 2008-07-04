@@ -38,14 +38,14 @@ class GCDialer(object):
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
 		self._msg = ""
+
+		self._browser = MozillaEmulator(None, 0)
 		if cookieFile is None:
 			cookieFile = os.path.join(os.path.expanduser("~"), ".gc_dialer_cookies.txt")
-		self._browser = MozillaEmulator(None, 0)
 		self._browser.cookies.filename = cookieFile
 		if os.path.isfile(cookieFile):
 			self._browser.cookies.load()
-		#else:
-		#	self._browser.cookies.save()
+
 		self._lastData = ""
 		self._accessToken = None
 		self._accountNum = None
@@ -82,7 +82,6 @@ class GCDialer(object):
 		auth token ( a_t ) from the page.  Once logged in
 		try not to reauth more than once a minute.
 		"""
-	
 
 		if time.time() - self._lastAuthed < 60 and not force:
 			return True

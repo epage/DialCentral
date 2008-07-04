@@ -27,15 +27,6 @@ try:
 except ImportError:
 	hildon = None
 
-#try:
-#	if hasattr(gtk, "Builder"):
-#		#detected that this is not a legacy system
-#		raise ImportError 
-#	#Legacy support
-#	import gtk.glade
-#except ImportError:
-#	gtk.glade = None
-
 try:
 	import osso
 	try:
@@ -142,10 +133,6 @@ class Dialpad(object):
 				'../lib/gc_dialer.glade',
 				'/usr/local/lib/gc_dialer.glade' ]:
 			if os.path.isfile(path):
-				#if gtk.glade is None:
-				#	self.wTree = gtk.Builder()
-				#	self.wTree.add_from_file(path)
-				#else:
 				self.wTree = gtk.glade.XML(path)
 				break
 		else:
@@ -200,7 +187,6 @@ class Dialpad(object):
 			"on_loginbutton_clicked" : self.on_loginbutton_clicked,
 			"on_loginclose_clicked" : self.on_loginclose_clicked,
 			"on_clearcookies_clicked" : self.on_clearcookies_clicked,
-		#	"on_callbackentry_changed" : self.on_callbackentry_changed,
 			"on_notebook_switch_page" : self.on_notebook_switch_page,
 			"on_recentview_row_activated" : self.on_recentview_row_activated,
 			"on_back_clicked" : self.Backspace
@@ -213,16 +199,12 @@ class Dialpad(object):
 
 		self.attemptLogin(2)
 		gobject.idle_add(self.init_grandcentral)
-		#self.init_grandcentral()
 		gobject.idle_add(self.init_recentview)
-
-		#self.reduce_memory()
 
 	def init_grandcentral(self):
 		""" deferred initalization of the grandcentral info """
 		
 		try:
-			#self.attemptLogin(2)
 			if self.gcd.isAuthed():
 				if self.gcd.getCallbackNumber() is None:
 					self.gcd.setSaneCallback()
@@ -306,14 +288,8 @@ class Dialpad(object):
 		text = makeugly(self.wTree.get_widget("callbackcombo").get_child().get_text())
 		if self.gcd.validate(text) and text != self.gcd.getCallbackNumber():
 			self.gcd.setCallbackNumber(text)
-			#self.wTree.get_widget("callbackentry").set_text(self.wTree.get_object("callbackentry").get_text())
-		#self.reduce_memory()
 
 	def attemptLogin(self, times = 1):
-		#if self.isHildon:
-		#	dialog = hildon.LoginDialog(self.window)
-		#	dialog.set_message("Grandcentral Login")
-		#else:
 		dialog = self.wTree.get_widget("login_dialog")
 
 		while (0 < times) and not self.gcd.isAuthed():
@@ -321,10 +297,6 @@ class Dialpad(object):
 				times = 0
 				continue
 
-			#if self.isHildon:
-			#	username = dialog.get_username()
-			#	password = dialog.get_password()
-			#else:
 			username = self.wTree.get_widget("usernameentry").get_text()
 			password = self.wTree.get_widget("passwordentry").get_text()
 			self.wTree.get_widget("passwordentry").set_text("")
@@ -333,10 +305,6 @@ class Dialpad(object):
 			print "hiding dialog"
 			dialog.hide()
 			times = times - 1
-
-		#if self.isHildon:
-		#	print "destroy dialog"
-		#	dialog.destroy()
 
 		return False
 
@@ -368,10 +336,6 @@ class Dialpad(object):
 			self.ErrPopUp("Backend link with grandcentral is not working, please try again")
 			return
 
-		#if len(self.phonenumber) == 7:
-		#	#add default area code
-		#	self.phonenumber = self.areacode + self.phonenumber
-
 		try:
 			callSuccess = self.gcd.dial(self.phonenumber)
 		except ValueError, e:
@@ -385,7 +349,6 @@ class Dialpad(object):
 
 		self.recentmodel.clear()
 		self.recenttime = 0.0
-		#self.reduce_memory()
 	
 	def on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
 		"""
@@ -402,10 +365,6 @@ class Dialpad(object):
 			self.gcd.clear_caches()
 			re.purge()
 			gc.collect()
-
-		#if offline (how do I tell this? the message somehow?)
-		#	disable the gui?
-		#	disable clearing of caches and when they click dial, request to connect?
 
 	def setNumber(self, number):
 		self.phonenumber = makeugly(number)
@@ -433,12 +392,11 @@ def run_doctest():
 
 
 def run_dialpad():
-	#gc.set_threshold(50, 3, 3)
 	gtk.gdk.threads_init()
 	title = 'Dialpad'
 	handle = Dialpad()
 	gtk.main()
-	sys.exit(1)
+	sys.exit(0)
 
 
 class DummyOptions(object):
