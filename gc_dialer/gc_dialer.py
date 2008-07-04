@@ -38,6 +38,11 @@ except ImportError:
 	osso = None
 
 try:
+	import conic
+except ImportError:
+	conic = None
+
+try:
 	import doctest
 	import optparse
 except ImportError:
@@ -116,6 +121,7 @@ class Dialpad(object):
 
 	__app_name__ = "gc_dialer"
 	__version__ = "0.7.0"
+	__app_magic__ = 0xdeadbeef
 
 	_glade_files = [
 		'./gc_dialer.glade',
@@ -166,6 +172,8 @@ class Dialpad(object):
 		else:
 			warnings.warn("No Hildon", UserWarning, 2)
 
+		self.osso = None
+		self.ebook = None
 		if osso is not None:
 			self.osso = osso.Context(__name__, Dialpad.__version__, False)
 			device = osso.DeviceState(self.osso)
@@ -177,6 +185,12 @@ class Dialpad(object):
 				warnings.warn("No abook and No evolution address book support", UserWarning, 2)
 		else:
 			warnings.warn("No OSSO", UserWarning, 2)
+
+		self.connection = None
+		if conic is not None:
+			self.connection = conic.Connection()
+			self.connection.connect("connection-event", on_connection_change, Dialpad.__app_magic__)
+			self.connection.request_connection(conic.CONNECT_FLAG_NONE)
 
 		if self.window:
 			self.window.connect("destroy", gtk.main_quit)
@@ -357,16 +371,26 @@ class Dialpad(object):
 		For shutdown or save_unsaved_data, our only state is cookies and I think the cookie manager handles that for us.
 		For system_inactivity, we have no background tasks to pause
 
-		@todo Might be useful to do something when going in offline mode or low memory
 		@note Hildon specific
 		"""
-		if shutdown or save_unsaved_data:
-			pass
-
 		if memory_low:
 			self.gcd.clear_caches()
 			re.purge()
 			gc.collect()
+
+	def on_connection_change(self, connection, event, magicIdentifier):
+		"""
+		@note Hildon specific
+		"""
+		status = event.get_status()
+		error = event.get_error()
+		iap_id = event.get_iap_id()
+		bearer = event.get_bearer_type()
+
+		if status == conic.STATUS_CONNECTED:
+			self.window.set_sensitive(True)
+		elif status == conic.STATUS_DISCONNECTED:
+			self.window.set_sensitive(False)
 
 	def setNumber(self, number):
 		self.phonenumber = makeugly(number)
