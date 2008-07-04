@@ -7,7 +7,6 @@ User Contacts
 	https://garage.maemo.org/svn/pymaemo/packages/python-abook/trunk/tests/ especially contact_get_iter amd filter_model
 	http://pymaemo.garage.maemo.org/documentation/api/abook/index.html
 Clip board
-	http://maemo.org/maemo_release_documentation/maemo4.1.x/node8.html#SECTION00880000000000000000
-	http://www.pygtk.org/docs/pygtk/class-gtkclipboard.html
+	Implemented, just need something in the GUI to use it
 Internet Connection
-	http://maemo.org/api_refs/4.1/libconic-0.16/
+	Implemented in primitive form, just disabling/enabling the entire GUI
