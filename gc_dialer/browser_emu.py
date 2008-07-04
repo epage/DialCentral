@@ -36,6 +36,7 @@ import os
 import urllib
 import urllib2
 import cookielib
+import warnings
 
 
 class MozillaEmulator(object):
@@ -102,7 +103,7 @@ class MozillaEmulator(object):
 		@return: The raw HTML page data, unless fd was specified. When fd
 			was given, the return value is undefined.
 		"""
-		print "Performing download of %s" % url
+		warnings.warn("Performing download of %s" % url, UserWarning, 2)
 		if trycount is None:
 			trycount = self.trycount
 		cnt = 0

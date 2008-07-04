@@ -46,7 +46,6 @@ class GCDialer(object):
 		if os.path.isfile(cookieFile):
 			self._browser.cookies.load()
 
-		self._lastData = ""
 		self._accessToken = None
 		self._accountNum = None
 		self._callbackNumbers = {}
@@ -87,10 +86,10 @@ class GCDialer(object):
 			return True
 
 		try:	
-			self._lastData = self._browser.download(GCDialer._forwardselectURL)
+			forwardSelectionPage = self._browser.download(GCDialer._forwardselectURL)
 			self._browser.cookies.save()
-			if GCDialer._isLoginPageRe.search(self._lastData) is None:
-				self.grabToken(self._lastData)
+			if GCDialer._isLoginPageRe.search(forwardSelectionPage) is None:
+				self.grabToken(forwardSelectionPage)
 				self._lastAuthed = time.time()
 				return True
 		except:
@@ -105,7 +104,7 @@ class GCDialer(object):
 			if self.isAuthed():
 				return
 			loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
-			self._lastData = self._browser.download(GCDialer._loginURL, loginPostData)
+			loginSuccessOrFailurePage = self._browser.download(GCDialer._loginURL, loginPostData)
 			return self.isAuthed()
 		except:
 			pass
@@ -160,7 +159,7 @@ class GCDialer(object):
 		print "setCallbackNumber %s" % (callbacknumber)
 		try:
 			callbackPostData = urllib.urlencode({'a_t' : self._accessToken, 'default_number' : callbacknumber })
-			self._lastData = self._browser.download(GCDialer._setforwardURL, callbackPostData)
+			callbackSetPage = self._browser.download(GCDialer._setforwardURL, callbackPostData)
 			self._browser.cookies.save()
 		except:
 			pass
@@ -208,11 +207,11 @@ class GCDialer(object):
 			number = number[1:]
 
 		try:
-			self._lastData = self._browser.download(
+			callSuccessPage = self._browser.download(
 				GCDialer._clicktocallURL % (self._accessToken, number),
 				None, {'Referer' : 'http://www.grandcentral.com/mobile/messages'} )
 
-			if GCDialer._gcDialingStrRe.search(self._lastData) is not None:
+			if GCDialer._gcDialingStrRe.search(callSuccessPage) is not None:
 				return True
 			else:
 				self._msg = "Grand Central returned an error"
@@ -225,8 +224,8 @@ class GCDialer(object):
 
 	def get_recent(self):
 		try:
-			self._lastData = self._browser.download(GCDialer._inboxallURL)
-			for match in self._inboxRe.finditer(self._lastData):
+			recentCallsPage = self._browser.download(GCDialer._inboxallURL)
+			for match in self._inboxRe.finditer(recentCallsPage):
 				yield (match.group(4), "%s on %s from/to %s - %s" % (match.group(1).capitalize(), match.group(2), match.group(3), match.group(4)))
 		except:
 			pass

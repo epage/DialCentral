@@ -15,7 +15,6 @@ import os
 import threading
 import time
 import re
-
 import warnings
 
 import gobject
@@ -118,6 +117,11 @@ class Dialpad(object):
 	__app_name__ = "gc_dialer"
 	__version__ = "0.7.0"
 
+	_glade_files = [
+		'./gc_dialer.glade',
+		'../lib/gc_dialer.glade',
+		'/usr/local/lib/gc_dialer.glade',
+	]
 
 	def __init__(self):
 		self.phonenumber = ""
@@ -129,9 +133,7 @@ class Dialpad(object):
 		self.callbackNeedsSetup = True
 		self.recenttime = 0.0
 
-		for path in [ './gc_dialer.glade',
-				'../lib/gc_dialer.glade',
-				'/usr/local/lib/gc_dialer.glade' ]:
+		for path in Dialpad._glade_files:
 			if os.path.isfile(path):
 				self.wTree = gtk.glade.XML(path)
 				break
