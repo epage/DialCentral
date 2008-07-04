@@ -172,6 +172,12 @@ class GCDialer(object):
 				return c.value
 		return None
 
+	def clear_caches(self):
+		"""
+		@todo Fill this in
+		"""
+		pass
+
 	def reset(self):
 		self._lastAuthed = 0.0
 		self._browser.cookies.clear()

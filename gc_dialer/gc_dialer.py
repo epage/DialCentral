@@ -383,10 +383,23 @@ class Dialpad(object):
 	
 	def on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
 		"""
+		For shutdown or save_unsaved_data, our only state is cookies and I think the cookie manager handles that for us.
+		For system_inactivity, we have no background tasks to pause
+
 		@todo Might be useful to do something when going in offline mode or low memory
 		@note Hildon specific
 		"""
-		pass
+		if shutdown or save_unsaved_data:
+			pass
+
+		if memory_low:
+			self.gcd.clear_caches()
+			re.purge()
+			gc.collect()
+
+		#if offline (how do I tell this? the message somehow?)
+		#	disable the gui?
+		#	disable clearing of caches and when they click dial, request to connect?
 
 	def setNumber(self, number):
 		self.phonenumber = makeugly(number)

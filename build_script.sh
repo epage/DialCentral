@@ -47,7 +47,7 @@ cp gc_dialer/gc_dialer.glade     $BUILD_BASE/usr/local/lib
 
 
 #Construct the program by cat-ing all the python files together
-echo "#!/usr/bin/python" > $BUILD_BASE/usr/local/bin/gc_dialer.py
+echo "#!/usr/bin/python2.5" > $BUILD_BASE/usr/local/bin/gc_dialer.py
 #echo "from __future__ import with_statement" >> $BUILD_BASE/usr/local/bin/gc_dialer.py
 cat gc_dialer/gc_dialer.py gc_dialer/gcbackend.py gc_dialer/browser_emu.py | grep -e '^import ' | sort -u >> $BUILD_BASE/usr/local/bin/gc_dialer.py
 cat gc_dialer/browser_emu.py gc_dialer/gcbackend.py gc_dialer/gc_dialer.py | grep -v 'browser_emu' | grep -v 'gcbackend' | grep -v "#!" >> $BUILD_BASE/usr/local/bin/gc_dialer.py
