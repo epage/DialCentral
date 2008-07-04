@@ -51,30 +51,6 @@ class GCDialer(object):
 		self._callbackNumbers = {}
 		self._lastAuthed = 0.0
 
-	def grabToken(self, data):
-		"Pull the magic cookie from the datastream"
-		atGroup = GCDialer._accessTokenRe.search(data)
-		try:
-			self._accessToken = atGroup.group(1)
-		except:
-			pass
-
-		anGroup = GCDialer._accountNumRe.search(data)
-		try:
-			self._accountNum = anGroup.group(1)
-		except:
-			pass
-
-		self._callbackNumbers = {}
-		try:
-			for match in GCDialer._callbackRe.finditer(data):
-				self._callbackNumbers[match.group(1)] = match.group(2)
-		except:
-			pass
-
-	def getAccountNumber(self):
-		return self._accountNum
-
 	def isAuthed(self, force = False):
 		"""
 		Attempts to detect a current session and pull the
@@ -89,7 +65,7 @@ class GCDialer(object):
 			forwardSelectionPage = self._browser.download(GCDialer._forwardselectURL)
 			self._browser.cookies.save()
 			if GCDialer._isLoginPageRe.search(forwardSelectionPage) is None:
-				self.grabToken(forwardSelectionPage)
+				self._grabToken(forwardSelectionPage)
 				self._lastAuthed = time.time()
 				return True
 		except:
@@ -109,6 +85,61 @@ class GCDialer(object):
 		except:
 			pass
 		return False
+
+	def dial(self, number):
+		"""
+		This is the main function responsible for initating the callback
+		"""
+		self._msg = ""
+
+		# If the number is not valid throw exception
+		if self.validate(number) is False:
+			raise ValueError('number is not valid')
+
+		# No point if we don't have the magic cookie
+		if not self.isAuthed():
+			self._msg = "Not authenticated"
+			return False
+
+		# Strip leading 1 from 11 digit dialing
+		if len(number) == 11 and number[0] == 1:
+			number = number[1:]
+
+		try:
+			callSuccessPage = self._browser.download(
+				GCDialer._clicktocallURL % (self._accessToken, number),
+				None, {'Referer' : 'http://www.grandcentral.com/mobile/messages'} )
+
+			if GCDialer._gcDialingStrRe.search(callSuccessPage) is not None:
+				return True
+			else:
+				self._msg = "Grand Central returned an error"
+				return False
+		except:
+			pass
+	
+		self._msg = "Unknown Error"
+		return False
+
+	def clear_caches(self):
+		"""
+		@todo Fill this in
+		"""
+		pass
+
+	def reset(self):
+		self._lastAuthed = 0.0
+		self._browser.cookies.clear()
+		self._browser.cookies.save()
+
+	def getAccountNumber(self):
+		return self._accountNum
+
+	def validate(self, number):
+		"""
+		Can this number be called ( syntax validation only )
+		"""
+		return GCDialer._validateRe.match(number) is not None
 
 	def setSaneCallback(self):
 		"""
@@ -170,62 +201,31 @@ class GCDialer(object):
 				return c.value
 		return None
 
-	def clear_caches(self):
-		"""
-		@todo Fill this in
-		"""
-		pass
-
-	def reset(self):
-		self._lastAuthed = 0.0
-		self._browser.cookies.clear()
-		self._browser.cookies.save()
-
-	def validate(self, number):
-		"""
-		Can this number be called ( syntax validation only )
-		"""
-		return GCDialer._validateRe.match(number) is not None
-
-	def dial(self, number):
-		"""
-		This is the main function responsible for initating the callback
-		"""
-		self._msg = ""
-
-		# If the number is not valid throw exception
-		if self.validate(number) is False:
-			raise ValueError('number is not valid')
-
-		# No point if we don't have the magic cookie
-		if not self.isAuthed():
-			self._msg = "Not authenticated"
-			return False
-
-		# Strip leading 1 from 11 digit dialing
-		if len(number) == 11 and number[0] == 1:
-			number = number[1:]
-
-		try:
-			callSuccessPage = self._browser.download(
-				GCDialer._clicktocallURL % (self._accessToken, number),
-				None, {'Referer' : 'http://www.grandcentral.com/mobile/messages'} )
-
-			if GCDialer._gcDialingStrRe.search(callSuccessPage) is not None:
-				return True
-			else:
-				self._msg = "Grand Central returned an error"
-				return False
-		except:
-			pass
-	
-		self._msg = "Unknown Error"
-		return False
-
 	def get_recent(self):
 		try:
 			recentCallsPage = self._browser.download(GCDialer._inboxallURL)
 			for match in self._inboxRe.finditer(recentCallsPage):
 				yield (match.group(4), "%s on %s from/to %s - %s" % (match.group(1).capitalize(), match.group(2), match.group(3), match.group(4)))
+		except:
+			pass
+
+	def _grabToken(self, data):
+		"Pull the magic cookie from the datastream"
+		atGroup = GCDialer._accessTokenRe.search(data)
+		try:
+			self._accessToken = atGroup.group(1)
+		except:
+			pass
+
+		anGroup = GCDialer._accountNumRe.search(data)
+		try:
+			self._accountNum = anGroup.group(1)
+		except:
+			pass
+
+		self._callbackNumbers = {}
+		try:
+			for match in GCDialer._callbackRe.finditer(data):
+				self._callbackNumbers[match.group(1)] = match.group(2)
 		except:
 			pass

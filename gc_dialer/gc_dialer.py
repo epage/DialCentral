@@ -177,7 +177,7 @@ class Dialpad(object):
 		if osso is not None:
 			self.osso = osso.Context(__name__, Dialpad.__version__, False)
 			device = osso.DeviceState(self.osso)
-			device.set_device_state_callback(self.on_device_state_change, 0)
+			device.set_device_state_callback(self._on_device_state_change, 0)
 			if abook is not None and evobook is not None:
 				abook.init_with_name(__name__, self.osso)
 				self.ebook = evo.open_addressbook("default")
@@ -189,7 +189,7 @@ class Dialpad(object):
 		self.connection = None
 		if conic is not None:
 			self.connection = conic.Connection()
-			self.connection.connect("connection-event", on_connection_change, Dialpad.__app_magic__)
+			self.connection.connect("connection-event", _on_connection_change, Dialpad.__app_magic__)
 			self.connection.request_connection(conic.CONNECT_FLAG_NONE)
 
 		if self.window:
@@ -198,17 +198,17 @@ class Dialpad(object):
 
 		callbackMapping = {
 			# Process signals from buttons
-			"on_digit_clicked"  : self.on_digit_clicked,
-			"on_dial_clicked"    : self.on_dial_clicked,
-			"on_loginbutton_clicked" : self.on_loginbutton_clicked,
-			"on_loginclose_clicked" : self.on_loginclose_clicked,
-			"on_clearcookies_clicked" : self.on_clearcookies_clicked,
-			"on_notebook_switch_page" : self.on_notebook_switch_page,
-			"on_recentview_row_activated" : self.on_recentview_row_activated,
-			"on_back_clicked" : self.on_backspace
+			"on_digit_clicked"  : self._on_digit_clicked,
+			"on_dial_clicked"    : self._on_dial_clicked,
+			"on_loginbutton_clicked" : self._on_loginbutton_clicked,
+			"on_loginclose_clicked" : self._on_loginclose_clicked,
+			"on_clearcookies_clicked" : self._on_clearcookies_clicked,
+			"on_notebook_switch_page" : self._on_notebook_switch_page,
+			"on_recentview_row_activated" : self._on_recentview_row_activated,
+			"on_back_clicked" : self._on_backspace
 		}
 		self.wTree.signal_autoconnect(callbackMapping)
-		self.wTree.get_widget("callbackcombo").get_child().connect("changed", self.on_callbackentry_changed)
+		self.wTree.get_widget("callbackcombo").get_child().connect("changed", self._on_callbackentry_changed)
 
 		# Defer initalization of recent view
 		self.gcd = GCDialer()
@@ -306,7 +306,7 @@ class Dialpad(object):
 		accountnumber = self.gcd.getAccountNumber()
 		self.wTree.get_widget("gcnumberlabel").set_label("<span size='23000' weight='bold'>%s</span>" % (accountnumber))
 
-	def on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
+	def _on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
 		"""
 		For shutdown or save_unsaved_data, our only state is cookies and I think the cookie manager handles that for us.
 		For system_inactivity, we have no background tasks to pause
@@ -318,7 +318,7 @@ class Dialpad(object):
 			re.purge()
 			gc.collect()
 
-	def on_connection_change(self, connection, event, magicIdentifier):
+	def _on_connection_change(self, connection, event, magicIdentifier):
 		"""
 		@note Hildon specific
 		"""
@@ -332,13 +332,13 @@ class Dialpad(object):
 		elif status == conic.STATUS_DISCONNECTED:
 			self.window.set_sensitive(False)
 
-	def on_loginbutton_clicked(self, data=None):
+	def _on_loginbutton_clicked(self, data=None):
 		self.wTree.get_widget("login_dialog").response(gtk.RESPONSE_OK)
 
-	def on_loginclose_clicked(self, data=None):
+	def _on_loginclose_clicked(self, data=None):
 		sys.exit(0)
 
-	def on_clearcookies_clicked(self, data=None):
+	def _on_clearcookies_clicked(self, data=None):
 		self.gcd.reset()
 		self.callbackNeedsSetup = True
 		self.recenttime = 0.0
@@ -349,12 +349,12 @@ class Dialpad(object):
 		self.attemptLogin(2)
 		gobject.idle_add(self._init_grandcentral)
 
-	def on_callbackentry_changed(self, data=None):
+	def _on_callbackentry_changed(self, data=None):
 		text = makeugly(self.wTree.get_widget("callbackcombo").get_child().get_text())
 		if self.gcd.validate(text) and text != self.gcd.getCallbackNumber():
 			self.gcd.setCallbackNumber(text)
 
-	def on_recentview_row_activated(self, treeview, path, view_column):
+	def _on_recentview_row_activated(self, treeview, path, view_column):
 		model, itr = self.recentviewselection.get_selected()
 		if not itr:
 			return
@@ -363,7 +363,7 @@ class Dialpad(object):
 		self.notebook.set_current_page(0)
 		self.recentviewselection.unselect_all()
 
-	def on_notebook_switch_page(self, notebook, page, page_num):
+	def _on_notebook_switch_page(self, notebook, page, page_num):
 		if page_num == 1 and (time.time() - self.recenttime) > 300:
 			gobject.idle_add(self.populate_recentview)
 		elif page_num ==2 and self.callbackNeedsSetup:
@@ -374,7 +374,7 @@ class Dialpad(object):
 			except:
 				self.window.set_title("")
 
-	def on_dial_clicked(self, widget):
+	def _on_dial_clicked(self, widget):
 		self.attemptLogin(3)
 
 		if not self.gcd.isAuthed() or self.gcd.getCallbackNumber() == "":
@@ -395,15 +395,15 @@ class Dialpad(object):
 		self.recentmodel.clear()
 		self.recenttime = 0.0
 	
-	def on_paste(self, data=None):
+	def _on_paste(self, data=None):
 		contents = self.clipboard.wait_for_text()
 		phoneNumber = re.sub('\D', '', contents)
 		self.setNumber(phoneNumber)
 	
-	def on_digit_clicked(self, widget):
+	def _on_digit_clicked(self, widget):
 		self.setNumber(self.phonenumber + widget.get_name()[5])
 
-	def on_backspace(self, widget):
+	def _on_backspace(self, widget):
 		self.setNumber(self.phonenumber[:-1])
 
 
