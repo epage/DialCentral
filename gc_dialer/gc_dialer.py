@@ -10,11 +10,14 @@ bergman@merctech.com
 
 
 import sys
-#import gc
+import gc
 import os
-import re
-import time
 import threading
+import time
+import re
+
+import warnings
+
 import gobject
 import gtk
 import gtk.glade
@@ -166,7 +169,7 @@ class Dialpad(object):
 			self.wTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
 			self.wTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
 		else:
-			print "No Hildon"
+			warnings.warn("No Hildon", UserWarning, 2)
 
 		if osso is not None:
 			self.osso = osso.Context(__name__, Dialpad.__version__, False)
@@ -176,9 +179,9 @@ class Dialpad(object):
 				abook.init_with_name(__name__, self.osso)
 				self.ebook = evo.open_addressbook("default")
 			else:
-				print "No abook and No evolution address book support"
+				warnings.warn("No abook and No evolution address book support", UserWarning, 2)
 		else:
-			print "No OSSO"
+			warnings.warn("No OSSO", UserWarning, 2)
 
 		if self.window:
 			self.window.connect("destroy", gtk.main_quit)
