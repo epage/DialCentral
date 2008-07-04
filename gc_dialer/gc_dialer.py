@@ -15,7 +15,6 @@ import os
 import re
 import time
 import threading
-import contextlib
 import gobject
 import gtk
 import gtk.glade
@@ -55,14 +54,9 @@ except ImportError:
 from gcbackend import GCDialer
 
 import socket
-socket.setdefaulttimeout(5)
 
-@contextlib.contextmanager
-def gtk_critical_section():
-	#The API changed and I hope these are the right calls
-	gtk.gdk.threads_enter()
-	yield
-	gtk.gdk.threads_leave()
+
+socket.setdefaulttimeout(5)
 
 
 def makeugly(prettynumber):
@@ -195,6 +189,7 @@ class Dialpad(object):
 			"on_digit_clicked"  : self.on_digit_clicked,
 			"on_dial_clicked"    : self.on_dial_clicked,
 			"on_loginbutton_clicked" : self.on_loginbutton_clicked,
+			"on_loginclose_clicked" : self.on_loginclose_clicked,
 			"on_clearcookies_clicked" : self.on_clearcookies_clicked,
 		#	"on_callbackentry_changed" : self.on_callbackentry_changed,
 			"on_notebook_switch_page" : self.on_notebook_switch_page,
@@ -353,6 +348,9 @@ class Dialpad(object):
 	
 	def on_loginbutton_clicked(self, data=None):
 		self.wTree.get_widget("login_dialog").response(gtk.RESPONSE_OK)
+
+	def on_loginclose_clicked(self, data=None):
+		sys.exit(0)
 
 	def on_dial_clicked(self, widget):
 		self.attemptLogin(3)

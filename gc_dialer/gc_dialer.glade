@@ -658,6 +658,16 @@ Copyright 2008</property>
                 <signal name="clicked" handler="on_loginbutton_clicked"/>
               </widget>
             </child>
+            <child>
+              <widget class="GtkButton" id="closebutton">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="response_id">0</property>
+                <signal name="clicked" handler="on_loginclose_clicked"/>
+              </widget>
+            </child>
           </widget>
           <packing>
             <property name="expand">False</property>
