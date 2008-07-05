@@ -189,8 +189,10 @@ class Dialpad(object):
 		self.connection = None
 		if conic is not None:
 			self.connection = conic.Connection()
-			self.connection.connect("connection-event", _on_connection_change, Dialpad.__app_magic__)
+			self.connection.connect("connection-event", self._on_connection_change, Dialpad.__app_magic__)
 			self.connection.request_connection(conic.CONNECT_FLAG_NONE)
+		else:
+			warnings.warn("No Internet Connectivity API ", UserWarning, 2)
 
 		if self.window:
 			self.window.connect("destroy", gtk.main_quit)
