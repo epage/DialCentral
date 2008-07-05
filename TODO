@@ -2,11 +2,22 @@ General Python/Maemo stuff
 	http://pymaemo.garage.maemo.org/documentation.html
 DBus
 	http://dbus.freedesktop.org/doc/dbus-python/doc/tutorial.html
+
 User Contacts
 	http://maemo.org/maemo_release_documentation/maemo4.1.x/node8.html#SECTION00870000000000000000
 	https://garage.maemo.org/svn/pymaemo/packages/python-abook/trunk/tests/ especially contact_get_iter amd filter_model
 	http://pymaemo.garage.maemo.org/documentation/api/abook/index.html
+
+	Maybe support different backends?
+		GMail http://libgmail.sourceforge.net/
+		Grand Central
+		Maemo
+		GPE
+
 Clip board
 	Implemented, just need something in the GUI to use it
+
 Internet Connection
-	Implemented in primitive form, just disabling/enabling the entire GUI
+	Look into being a bit more advanced, beyond just enabling/disabling the GUI
+
+Keep callbacks to a minimum amount of blocking I/O
