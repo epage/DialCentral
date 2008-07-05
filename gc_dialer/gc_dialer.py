@@ -175,11 +175,11 @@ class Dialpad(object):
 		self.osso = None
 		self.ebook = None
 		if osso is not None:
-			self.osso = osso.Context(Dialpad.__name__, Dialpad.__version__, False)
+			self.osso = osso.Context(Dialpad.__app_name__, Dialpad.__version__, False)
 			device = osso.DeviceState(self.osso)
 			device.set_device_state_callback(self._on_device_state_change, 0)
 			if abook is not None and evobook is not None:
-				abook.init_with_name(Dialpad.__name__, self.osso)
+				abook.init_with_name(Dialpad.__app_name__, self.osso)
 				self.ebook = evo.open_addressbook("default")
 			else:
 				warnings.warn("No abook and No evolution address book support", UserWarning, 2)
