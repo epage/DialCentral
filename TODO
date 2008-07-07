@@ -1,8 +1,5 @@
-General Python/Maemo stuff
-	http://pymaemo.garage.maemo.org/documentation.html
-DBus
-	http://dbus.freedesktop.org/doc/dbus-python/doc/tutorial.html
-
+Ideas
+=================
 User Contacts
 	http://maemo.org/maemo_release_documentation/maemo4.1.x/node8.html#SECTION00870000000000000000
 	https://garage.maemo.org/svn/pymaemo/packages/python-abook/trunk/tests/ especially contact_get_iter amd filter_model
@@ -19,5 +16,18 @@ Clip board
 
 Internet Connection
 	Look into being a bit more advanced, beyond just enabling/disabling the GUI
+	Possible Approach:
+		Defer login
+		While not logged in or device is offline, disable the GUI
+		Don't attempt to login if not online
 
 Keep callbacks to a minimum amount of blocking I/O
+
+Implement cache clearing on gcbackend.py
+
+Notes
+=================
+General Python/Maemo stuff
+	http://pymaemo.garage.maemo.org/documentation.html
+DBus
+	http://dbus.freedesktop.org/doc/dbus-python/doc/tutorial.html
