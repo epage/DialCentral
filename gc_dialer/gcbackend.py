@@ -61,15 +61,13 @@ class GCDialer(object):
 		if time.time() - self._lastAuthed < 60 and not force:
 			return True
 
-		try:	
-			forwardSelectionPage = self._browser.download(GCDialer._forwardselectURL)
-			self._browser.cookies.save()
-			if GCDialer._isLoginPageRe.search(forwardSelectionPage) is None:
-				self._grabToken(forwardSelectionPage)
-				self._lastAuthed = time.time()
-				return True
-		except:
-			pass
+		forwardSelectionPage = self._browser.download(GCDialer._forwardselectURL)
+		self._browser.cookies.save()
+		if GCDialer._isLoginPageRe.search(forwardSelectionPage) is None:
+			self._grabToken(forwardSelectionPage)
+			self._lastAuthed = time.time()
+			return True
+
 		return False
 
 	def login(self, username, password):
@@ -77,15 +75,11 @@ class GCDialer(object):
 		Attempt to login to grandcentral
 		@returns Whether login was successful or not
 		"""
-		try:
-			if self.isAuthed():
-				return True
-			loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
-			loginSuccessOrFailurePage = self._browser.download(GCDialer._loginURL, loginPostData)
-			return self.isAuthed()
-		except:
-			pass
-		return False
+		if self.isAuthed():
+			return True
+		loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
+		loginSuccessOrFailurePage = self._browser.download(GCDialer._loginURL, loginPostData)
+		return self.isAuthed()
 
 	def dial(self, number):
 		"""
@@ -106,18 +100,15 @@ class GCDialer(object):
 		if len(number) == 11 and number[0] == 1:
 			number = number[1:]
 
-		try:
-			callSuccessPage = self._browser.download(
-				GCDialer._clicktocallURL % (self._accessToken, number),
-				None, {'Referer' : 'http://www.grandcentral.com/mobile/messages'} )
+		callSuccessPage = self._browser.download(
+			GCDialer._clicktocallURL % (self._accessToken, number),
+			None, {'Referer' : 'http://www.grandcentral.com/mobile/messages'} )
 
-			if GCDialer._gcDialingStrRe.search(callSuccessPage) is not None:
-				return True
-			else:
-				self._msg = "Grand Central returned an error"
-				return False
-		except:
-			pass
+		if GCDialer._gcDialingStrRe.search(callSuccessPage) is not None:
+			return True
+		else:
+			self._msg = "Grand Central returned an error"
+			return False
 	
 		self._msg = "Unknown Error"
 		return False
@@ -189,12 +180,9 @@ class GCDialer(object):
 		@param callbacknumber should be a proper 10 digit number
 		"""
 		print "setCallbackNumber %s" % (callbacknumber)
-		try:
-			callbackPostData = urllib.urlencode({'a_t' : self._accessToken, 'default_number' : callbacknumber })
-			callbackSetPage = self._browser.download(GCDialer._setforwardURL, callbackPostData)
-			self._browser.cookies.save()
-		except:
-			pass
+		callbackPostData = urllib.urlencode({'a_t' : self._accessToken, 'default_number' : callbacknumber })
+		callbackSetPage = self._browser.download(GCDialer._setforwardURL, callbackPostData)
+		self._browser.cookies.save()
 
 	def getCallbackNumber(self):
 		"""
@@ -209,34 +197,22 @@ class GCDialer(object):
 		"""
 		@returns Iterable of (personsName, phoneNumber, date, action)
 		"""
-		try:
-			recentCallsPage = self._browser.download(GCDialer._inboxallURL)
-			for match in self._inboxRe.finditer(recentCallsPage):
-				phoneNumber = match.group(4)
-				action = match.group(1)
-				date = match.group(2)
-				personsName = match.group(3)
-				yield personsName, phoneNumber, date, action
-		except:
-			pass
+		recentCallsPage = self._browser.download(GCDialer._inboxallURL)
+		for match in self._inboxRe.finditer(recentCallsPage):
+			phoneNumber = match.group(4)
+			action = match.group(1)
+			date = match.group(2)
+			personsName = match.group(3)
+			yield personsName, phoneNumber, date, action
 
 	def _grabToken(self, data):
 		"Pull the magic cookie from the datastream"
 		atGroup = GCDialer._accessTokenRe.search(data)
-		try:
-			self._accessToken = atGroup.group(1)
-		except:
-			pass
+		self._accessToken = atGroup.group(1)
 
 		anGroup = GCDialer._accountNumRe.search(data)
-		try:
-			self._accountNum = anGroup.group(1)
-		except:
-			pass
+		self._accountNum = anGroup.group(1)
 
 		self._callbackNumbers = {}
-		try:
-			for match in GCDialer._callbackRe.finditer(data):
-				self._callbackNumbers[match.group(1)] = match.group(2)
-		except:
-			pass
+		for match in GCDialer._callbackRe.finditer(data):
+			self._callbackNumbers[match.group(1)] = match.group(2)

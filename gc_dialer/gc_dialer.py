@@ -223,21 +223,18 @@ class Dialpad(object):
 		gobject.idle_add(self._init_recent_view)
 
 	def _init_grandcentral(self):
-		""" deferred initalization of the grandcentral info """
+		""" Deferred initalization of the grandcentral info """
 		
-		try:
-			if self._gcBackend.isAuthed():
-				if self._gcBackend.getCallbackNumber() is None:
-					self._gcBackend.setSaneCallback()
-		except:
-			pass
+		if self._gcBackend.isAuthed():
+			if self._gcBackend.getCallbackNumber() is None:
+				self._gcBackend.setSaneCallback()
 		
 		self.setAccountNumber()
 		print "exit init_gc"
 		return False
 
 	def _init_recent_view(self):
-		""" deferred initalization of the recent view treeview """
+		""" Deferred initalization of the recent view treeview """
 
 		recentview = self._widgetTree.get_widget("recentview")
 		recentview.set_model(self._recentmodel)
@@ -381,10 +378,7 @@ class Dialpad(object):
 			gobject.idle_add(self._setupCallbackCombo)
 
 		if hildon:
-			try:
-				self._window.set_title(self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text())
-			except:
-				self._window.set_title("")
+			self._window.set_title(self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text())
 
 	def _on_dial_clicked(self, widget):
 		"""
@@ -445,14 +439,14 @@ class DummyOptions(object):
 
 
 if __name__ == "__main__":
-	if hildon:
+	if hildon is not None:
 		gtk.set_application_name("Dialer")
 
-	try:
+	if optparse is not None:
 		parser = optparse.OptionParser()
 		parser.add_option("-t", "--test", action="store_true", dest="test", help="Run tests")
 		(options, args) = parser.parse_args()
-	except:
+	else:
 		args = []
 		options = DummyOptions()
 
