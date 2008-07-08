@@ -23,6 +23,9 @@ Internet Connection
 
 Keep callbacks to a minimum amount of blocking I/O
 
+Re-examine all use of add_idle
+	I dont think its a thread but idle processing in mainloop, so it could block for long execution
+
 Implement cache clearing on gcbackend.py
 
 Notes

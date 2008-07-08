@@ -53,9 +53,9 @@ class GCDialer(object):
 
 	def isAuthed(self, force = False):
 		"""
-		Attempts to detect a current session and pull the
-		auth token ( a_t ) from the page.  Once logged in
-		try not to reauth more than once a minute.
+		Attempts to detect a current session and pull the auth token ( a_t ) from the page.
+		@note Once logged in try not to reauth more than once a minute.
+		@returns If authenticated
 		"""
 
 		if time.time() - self._lastAuthed < 60 and not force:
@@ -75,10 +75,11 @@ class GCDialer(object):
 	def login(self, username, password):
 		"""
 		Attempt to login to grandcentral
+		@returns Whether login was successful or not
 		"""
 		try:
 			if self.isAuthed():
-				return
+				return True
 			loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
 			loginSuccessOrFailurePage = self._browser.download(GCDialer._loginURL, loginPostData)
 			return self.isAuthed()
@@ -133,11 +134,14 @@ class GCDialer(object):
 		self._browser.cookies.save()
 
 	def getAccountNumber(self):
+		"""
+		@returns The grand central phone number
+		"""
 		return self._accountNum
 
 	def validate(self, number):
 		"""
-		Can this number be called ( syntax validation only )
+		@returns If This number be called ( syntax validation only )
 		"""
 		return GCDialer._validateRe.match(number) is not None
 
@@ -173,8 +177,8 @@ class GCDialer(object):
 
 	def getCallbackNumbers(self):
 		"""
-		@returns a dictionary mapping call back numbers to descriptions. These results
-		are cached for 30 minutes.
+		@returns a dictionary mapping call back numbers to descriptions
+		@note These results are cached for 30 minutes.
 		"""
 		print "getCallbackNumbers"
 		if time.time() - self._lastAuthed < 1800 or self.isAuthed():
@@ -184,8 +188,8 @@ class GCDialer(object):
 
 	def setCallbackNumber(self, callbacknumber):
 		"""
-		set the number that grandcental calls
-		this should be a proper 10 digit number
+		Set the number that grandcental calls
+		@param callbacknumber should be a proper 10 digit number
 		"""
 		print "setCallbackNumber %s" % (callbacknumber)
 		try:
@@ -196,12 +200,18 @@ class GCDialer(object):
 			pass
 
 	def getCallbackNumber(self):
+		"""
+		@returns Current callback number or None
+		"""
 		for c in self._browser.cookies:
 			if c.name == "pda_forwarding_number":
 				return c.value
 		return None
 
 	def get_recent(self):
+		"""
+		@returns Iterable of (Phone Number, Description)
+		"""
 		try:
 			recentCallsPage = self._browser.download(GCDialer._inboxallURL)
 			for match in self._inboxRe.finditer(recentCallsPage):
