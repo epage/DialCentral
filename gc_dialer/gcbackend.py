@@ -123,9 +123,6 @@ class GCDialer(object):
 		return False
 
 	def clear_caches(self):
-		"""
-		@todo Fill this in
-		"""
 		pass
 
 	def reset(self):
@@ -210,12 +207,16 @@ class GCDialer(object):
 
 	def get_recent(self):
 		"""
-		@returns Iterable of (Phone Number, Description)
+		@returns Iterable of (personsName, phoneNumber, date, action)
 		"""
 		try:
 			recentCallsPage = self._browser.download(GCDialer._inboxallURL)
 			for match in self._inboxRe.finditer(recentCallsPage):
-				yield (match.group(4), "%s on %s from/to %s - %s" % (match.group(1).capitalize(), match.group(2), match.group(3), match.group(4)))
+				phoneNumber = match.group(4)
+				action = match.group(1)
+				date = match.group(2)
+				personsName = match.group(3)
+				yield personsName, phoneNumber, date, action
 		except:
 			pass
 

@@ -268,7 +268,8 @@ class Dialpad(object):
 	def populate_recentview(self):
 		print "Populating"
 		self._recentmodel.clear()
-		for item in self._gcBackend.get_recent():
+		for personsName, phoneNumber, date, action in self._gcBackend.get_recent():
+			item = (phoneNumber, "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber))
 			self._recentmodel.append(item)
 		self._recenttime = time.time()
 
