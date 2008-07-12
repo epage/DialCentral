@@ -4,6 +4,7 @@ SOURCE=$(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/br
 OBJ=$(SOURCE:.py=.pyc)
 TEST_PATH=./tests
 TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
+PYPACKAGE_FILE=./support/GrandcentralDialer.pypackager
 
 PLATFORM=desktop
 ifeq ($(PLATFORM),os2007)
@@ -46,22 +47,24 @@ build: $(BUILD_BIN)
 	cp $(SOURCE_PATH)/gc_dialer.glade $(BUILD_PATH)
 
 package: build
-	mkdir -p $(PACKAGE_PATH)/usr/share/icons/hicolor/scalable/hildon
-	mkdir -p $(PACKAGE_PATH)/usr/share/icons/hicolor/26x26/hildon
-	mkdir -p $(PACKAGE_PATH)/usr/share/icons/hicolor/64x64/hildon
-	mkdir -p $(PACKAGE_PATH)/usr/share/applications/hildon
-	mkdir -p $(PACKAGE_PATH)/usr/local/lib
-	mkdir -p $(PACKAGE_PATH)/usr/local/bin
+	mkdir -p $(PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon
+	mkdir -p $(PACKAGE_PATH)/build/usr/share/icons/hicolor/26x26/hildon
+	mkdir -p $(PACKAGE_PATH)/build/usr/share/icons/hicolor/64x64/hildon
+	mkdir -p $(PACKAGE_PATH)/build/usr/share/applications/hildon
+	mkdir -p $(PACKAGE_PATH)/build/usr/local/lib
+	mkdir -p $(PACKAGE_PATH)/build/usr/local/bin
 
-	cp $(BUILD_PATH)/gc_dialer_256.png $(PACKAGE_PATH)/usr/share/icons/hicolor/scalable/hildon/gc_dialer.png
-	cp $(BUILD_PATH)/gc_dialer_64.png $(PACKAGE_PATH)/usr/share/icons/hicolor/64x64/hildon/gc_dialer.png
-	cp $(BUILD_PATH)/gc_dialer_26.png $(PACKAGE_PATH)/usr/share/icons/hicolor/26x26/hildon/gc_dialer.png
+	cp $(BUILD_PATH)/gc_dialer_256.png $(PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon/gc_dialer.png
+	cp $(BUILD_PATH)/gc_dialer_64.png $(PACKAGE_PATH)/build/usr/share/icons/hicolor/64x64/hildon/gc_dialer.png
+	cp $(BUILD_PATH)/gc_dialer_26.png $(PACKAGE_PATH)/build/usr/share/icons/hicolor/26x26/hildon/gc_dialer.png
 
-	cp $(BUILD_PATH)/gc_dialer.desktop $(PACKAGE_PATH)/usr/share/applications/hildon
+	cp $(BUILD_PATH)/gc_dialer.desktop $(PACKAGE_PATH)/build/usr/share/applications/hildon
 
-	cp $(BUILD_PATH)/gc_dialer.glade $(PACKAGE_PATH)/usr/local/lib
+	cp $(BUILD_PATH)/gc_dialer.glade $(PACKAGE_PATH)/build/usr/local/lib
 	
-	cp $(BUILD_BIN) $(PACKAGE_PATH)/usr/local/bin
+	cp $(BUILD_BIN) $(PACKAGE_PATH)/build/usr/local/bin
+
+	cp $(PYPACKAGE_FILE) $(PACKAGE_PATH)
 
 clean:
 	rm -Rf $(PACKAGE_PATH) $(BUILD_PATH)

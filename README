@@ -2,7 +2,7 @@ Building a package
 ===================
 Run
 	./build_script.sh PLATFORM
-which will create a "./build-PLATFORM/..." heirarchy.  Move this structure to somewhere on the tablet, then run pypackager. 
+which will create a "./pkg-PLATFORM/..." heirarchy.  Move this structure to somewhere on the tablet, then run pypackager. 
 
 Supported PLATFORMs include
 	desktop
