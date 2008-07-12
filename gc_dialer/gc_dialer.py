@@ -162,6 +162,7 @@ class Dialpad(object):
 
 		global hildon
 		self._app = None
+		self._isFullScreen = False
 		if hildon is not None and isinstance(self._window, gtk.Window):
 			warnings.warn("Hildon installed but glade file not updated to work with hildon", UserWarning, 2)
 			hildon = None
@@ -172,6 +173,16 @@ class Dialpad(object):
 			self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
 			self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
 			self._widgetTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
+
+			gtkMenu = self._widgetTree.get_widget("menubar1")
+			menu = gtk.Menu()
+			for child in gtkMenu.get_children():
+				child.reparent(menu)
+			self._window.set_menu(menu)
+			gtkMenu.destroy()
+
+			self._window.connect("key-press-event", self._on_key_press)
+			self._window.connect("window-state-event", self._on_window_state_change)
 		else:
 			warnings.warn("No Hildon", UserWarning, 2)
 
@@ -183,7 +194,7 @@ class Dialpad(object):
 			device.set_device_state_callback(self._on_device_state_change, 0)
 			if abook is not None and evobook is not None:
 				abook.init_with_name(Dialpad.__app_name__, self._osso)
-				self._ebook = evo.open_addressbook("default")
+				self._ebook = evobook.open_addressbook("default")
 			else:
 				warnings.warn("No abook and No evolution address book support", UserWarning, 2)
 		else:
@@ -339,6 +350,25 @@ class Dialpad(object):
 		elif status == conic.STATUS_DISCONNECTED:
 			self._window.set_sensitive(False)
 			self._deviceIsOnline = False
+
+	def _on_window_state_change(self, widget, event, *args):
+		"""
+		@note Hildon specific
+		"""
+		if event.new_window_state & gtk.gdk.WINDOW_STATE_FULLSCREEN:
+			self._isFullScreen = True
+		else:
+			self._isFullScreen = False
+
+	def _on_key_press(self, widget, event, *args):
+		"""
+		@note Hildon specific
+		"""
+		if event.keyval == gtk.keysyms.F6:
+			if self._isFullScreen:
+				self._window.unfullscreen()
+			else:
+				self._window.fullscreen()
 
 	def _on_loginbutton_clicked(self, data=None):
 		self._widgetTree.get_widget("login_dialog").response(gtk.RESPONSE_OK)
