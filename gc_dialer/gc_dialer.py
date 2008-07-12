@@ -57,19 +57,19 @@ import socket
 socket.setdefaulttimeout(5)
 
 
-def makeugly(prettynumber):
+def make_ugly(prettynumber):
 	"""
 	function to take a phone number and strip out all non-numeric
 	characters
 
-	>>> makeugly("+012-(345)-678-90")
+	>>> make_ugly("+012-(345)-678-90")
 	'01234567890'
 	"""
 	uglynumber = re.sub('\D', '', prettynumber)
 	return uglynumber
 
 
-def makepretty(phonenumber):
+def make_pretty(phonenumber):
 	"""
 	Function to take a phone number and return the pretty version
 	pretty numbers:
@@ -81,15 +81,15 @@ def makepretty(phonenumber):
 			(...)-...-....
 		if phonenumber is 10 digits:
 			...-....
-	>>> makepretty("12")
+	>>> make_pretty("12")
 	'12'
-	>>> makepretty("1234567")
+	>>> make_pretty("1234567")
 	'123-4567'
-	>>> makepretty("2345678901")
+	>>> make_pretty("2345678901")
 	'(234)-567-8901'
-	>>> makepretty("12345678901")
+	>>> make_pretty("12345678901")
 	'1 (234)-567-8901'
-	>>> makepretty("01234567890")
+	>>> make_pretty("01234567890")
 	'+012-(345)-678-90'
 	"""
 	if phonenumber is None:
@@ -155,7 +155,7 @@ class Dialpad(object):
 
 		#Get the buffer associated with the number display
 		self._numberdisplay = self._widgetTree.get_widget("numberdisplay")
-		self.setNumber("")
+		self.set_number("")
 		self._notebook = self._widgetTree.get_widget("notebook")
 
 		self._window = self._widgetTree.get_widget("Dialpad")
@@ -218,7 +218,7 @@ class Dialpad(object):
 
 		self._gcBackend = GCDialer()
 
-		self.attemptLogin(2)
+		self.attempt_login(2)
 		gobject.idle_add(self._init_grandcentral)
 		# Defer initalization of recent view
 		gobject.idle_add(self._init_recent_view)
@@ -226,12 +226,11 @@ class Dialpad(object):
 	def _init_grandcentral(self):
 		""" Deferred initalization of the grandcentral info """
 
-		if self._gcBackend.isAuthed():
-			if self._gcBackend.getCallbackNumber() is None:
-				self._gcBackend.setSaneCallback()
-			self.setAccountNumber()
+		if self._gcBackend.is_authed():
+			if self._gcBackend.get_callback_number() is None:
+				self._gcBackend.set_sane_callback()
+			self.set_account_number()
 
-		print "exit init_gc"
 		return False
 
 	def _init_recent_view(self):
@@ -252,19 +251,18 @@ class Dialpad(object):
 
 		return False
 
-	def _setupCallbackCombo(self):
+	def _setup_callback_combo(self):
 		combobox = self._widgetTree.get_widget("callbackcombo")
 		self.callbacklist = gtk.ListStore(gobject.TYPE_STRING)
 		combobox.set_model(self.callbacklist)
 		combobox.set_text_column(0)
-		for number, description in self._gcBackend.getCallbackNumbers().iteritems():
-			self.callbacklist.append([makepretty(number)] )
+		for number, description in self._gcBackend.get_callback_numbers().iteritems():
+			self.callbacklist.append([make_pretty(number)] )
 
-		self._widgetTree.get_widget("callbackcombo").get_child().set_text(makepretty(self._gcBackend.getCallbackNumber()))
+		self._widgetTree.get_widget("callbackcombo").get_child().set_text(make_pretty(self._gcBackend.get_callback_number()))
 		self._callbackNeedsSetup = False
 
 	def populate_recentview(self):
-		print "Populating"
 		self._recentmodel.clear()
 		for personsName, phoneNumber, date, action in self._gcBackend.get_recent():
 			item = (phoneNumber, "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber))
@@ -273,23 +271,24 @@ class Dialpad(object):
 
 		return False
 
-	def attemptLogin(self, times = 1):
+	def attempt_login(self, times = 1):
+		assert 0 < times, "That was pointless having 0 or less login attempts"
 		dialog = self._widgetTree.get_widget("login_dialog")
 
-		while (0 < times) and not self._gcBackend.isAuthed():
-			userResponse = dialog.run()
-			if userResponse != gtk.RESPONSE_OK:
-				times = 0
-				continue
+		while (0 < times) and not self._gcBackend.is_authed():
+			dialog.run()
 
 			username = self._widgetTree.get_widget("usernameentry").get_text()
 			password = self._widgetTree.get_widget("passwordentry").get_text()
 			self._widgetTree.get_widget("passwordentry").set_text("")
-			print "Attempting login"
-			self._gcBackend.login(username, password)
-			print "hiding dialog"
+
+			loggedIn = self._gcBackend.login(username, password)
 			dialog.hide()
+			if loggedIn:
+				return True
 			times -= 1
+
+		return False
 
 	def display_error_message(self, msg):
 		error_dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, msg)
@@ -300,13 +299,13 @@ class Dialpad(object):
 		error_dialog.connect("response", close, self)
 		error_dialog.run()
 
-	def setNumber(self, number):
-		self._phonenumber = makeugly(number)
-		self._prettynumber = makepretty(self._phonenumber)
+	def set_number(self, number):
+		self._phonenumber = make_ugly(number)
+		self._prettynumber = make_pretty(self._phonenumber)
 		self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % ( self._prettynumber ) )
 
-	def setAccountNumber(self):
-		accountnumber = self._gcBackend.getAccountNumber()
+	def set_account_number(self):
+		accountnumber = self._gcBackend.get_account_number()
 		self._widgetTree.get_widget("gcnumberlabel").set_label("<span size='23000' weight='bold'>%s</span>" % (accountnumber))
 
 	def _on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
@@ -351,23 +350,23 @@ class Dialpad(object):
 		self._widgetTree.get_widget("callbackcombo").get_child().set_text("")
 
 		# re-run the inital grandcentral setup
-		self.attemptLogin(2)
+		self.attempt_login(2)
 		gobject.idle_add(self._init_grandcentral)
 
 	def _on_callbackentry_changed(self, data=None):
 		"""
 		@todo Potential blocking on web access, maybe we should defer this or put up a dialog?
 		"""
-		text = makeugly(self._widgetTree.get_widget("callbackcombo").get_child().get_text())
-		if self._gcBackend.is_valid_syntax(text) and text != self._gcBackend.getCallbackNumber():
-			self._gcBackend.setCallbackNumber(text)
+		text = make_ugly(self._widgetTree.get_widget("callbackcombo").get_child().get_text())
+		if self._gcBackend.is_valid_syntax(text) and text != self._gcBackend.get_callback_number():
+			self._gcBackend.set_callback_number(text)
 
 	def _on_recentview_row_activated(self, treeview, path, view_column):
 		model, itr = self._recentviewselection.get_selected()
 		if not itr:
 			return
 
-		self.setNumber(self._recentmodel.get_value(itr, 0))
+		self.set_number(self._recentmodel.get_value(itr, 0))
 		self._notebook.set_current_page(0)
 		self._recentviewselection.unselect_all()
 
@@ -375,7 +374,7 @@ class Dialpad(object):
 		if page_num == 1 and (time.time() - self._recenttime) > 300:
 			gobject.idle_add(self.populate_recentview)
 		elif page_num ==2 and self._callbackNeedsSetup:
-			gobject.idle_add(self._setupCallbackCombo)
+			gobject.idle_add(self._setup_callback_combo)
 
 		if hildon:
 			self._window.set_title(self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text())
@@ -384,8 +383,8 @@ class Dialpad(object):
 		"""
 		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
 		"""
-		loggedIn = self.attemptLogin(2)
-		if not loggedIn or not self._gcBackend.isAuthed() or self._gcBackend.getCallbackNumber() == "":
+		loggedIn = self.attempt_login(2)
+		if not loggedIn or not self._gcBackend.is_authed() or self._gcBackend.get_callback_number() == "":
 			self.display_error_message("Backend link with grandcentral is not working, please try again")
 			return
 
@@ -398,7 +397,7 @@ class Dialpad(object):
 		if not callSuccess:
 			self.display_error_message(self._gcBackend._msg)
 		else:
-			self.setNumber("")
+			self.set_number("")
 
 		self._recentmodel.clear()
 		self._recenttime = 0.0
@@ -406,13 +405,13 @@ class Dialpad(object):
 	def _on_paste(self, data=None):
 		contents = self._clipboard.wait_for_text()
 		phoneNumber = re.sub('\D', '', contents)
-		self.setNumber(phoneNumber)
+		self.set_number(phoneNumber)
 
 	def _on_digit_clicked(self, widget):
-		self.setNumber(self._phonenumber + widget.get_name()[5])
+		self.set_number(self._phonenumber + widget.get_name()[5])
 
 	def _on_backspace(self, widget):
-		self.setNumber(self._phonenumber[:-1])
+		self.set_number(self._phonenumber[:-1])
 
 
 def run_doctest():

@@ -55,7 +55,7 @@ class GCDialer(object):
 		self._callbackNumbers = {}
 		self._lastAuthed = 0.0
 
-	def isAuthed(self, force = False):
+	def is_authed(self, force = False):
 		"""
 		Attempts to detect a current session and pull the auth token ( a_t ) from the page.
 		@note Once logged in try not to reauth more than once a minute.
@@ -73,7 +73,7 @@ class GCDialer(object):
 
 		self._browser.cookies.save()
 		if GCDialer._isLoginPageRe.search(forwardSelectionPage) is None:
-			self._grabToken(forwardSelectionPage)
+			self._grab_token(forwardSelectionPage)
 			self._lastAuthed = time.time()
 			return True
 
@@ -84,7 +84,7 @@ class GCDialer(object):
 		Attempt to login to grandcentral
 		@returns Whether login was successful or not
 		"""
-		if self.isAuthed():
+		if self.is_authed():
 			return True
 
 		loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
@@ -95,7 +95,7 @@ class GCDialer(object):
 			warnings.warn("%s is not accesible" % GCDialer._loginURL, UserWarning, 2)
 			return False
 
-		return self.isAuthed()
+		return self.is_authed()
 
 	def dial(self, number):
 		"""
@@ -108,7 +108,7 @@ class GCDialer(object):
 			raise ValueError('number is not valid')
 
 		# No point if we don't have the magic cookie
-		if not self.isAuthed():
+		if not self.is_authed():
 			self._msg = "Not authenticated"
 			return False
 
@@ -149,14 +149,13 @@ class GCDialer(object):
 		"""
 		return _validateRe.match(number) is not None
 
-
-	def getAccountNumber(self):
+	def get_account_number(self):
 		"""
 		@returns The grand central phone number
 		"""
 		return self._accountNum
 
-	def setSaneCallback(self):
+	def set_sane_callback(self):
 		"""
 		Try to set a sane default callback number on these preferences
 		1) 1747 numbers ( Gizmo )
@@ -164,46 +163,42 @@ class GCDialer(object):
 		3) anything with computer in the name
 		4) the first value
 		"""
-		print "setSaneCallback"
-		numbers = self.getCallbackNumbers()
+		numbers = self.get_callback_numbers()
 
 		for number, description in numbers.iteritems():
 			if not re.compile(r"""1747""").match(number) is None:
-				self.setCallbackNumber(number)
+				self.set_callback_number(number)
 				return
 
 		for number, description in numbers.iteritems():
 			if not re.compile(r"""gizmo""", re.I).search(description) is None:
-				self.setCallbackNumber(number)
+				self.set_callback_number(number)
 				return
 
 		for number, description in numbers.iteritems():
 			if not re.compile(r"""computer""", re.I).search(description) is None:
-				self.setCallbackNumber(number)
+				self.set_callback_number(number)
 				return
 
 		for number, description in numbers.iteritems():
-			self.setCallbackNumber(number)
+			self.set_callback_number(number)
 			return
 
-	def getCallbackNumbers(self):
+	def get_callback_numbers(self):
 		"""
 		@returns a dictionary mapping call back numbers to descriptions
 		@note These results are cached for 30 minutes.
 		"""
-		print "getCallbackNumbers"
-		if time.time() - self._lastAuthed < 1800 or self.isAuthed():
+		if time.time() - self._lastAuthed < 1800 or self.is_authed():
 			return self._callbackNumbers
 
 		return {}
 
-	def setCallbackNumber(self, callbacknumber):
+	def set_callback_number(self, callbacknumber):
 		"""
 		Set the number that grandcental calls
 		@param callbacknumber should be a proper 10 digit number
 		"""
-		print "setCallbackNumber %s" % (callbacknumber)
-
 		callbackPostData = urllib.urlencode({'a_t' : self._accessToken, 'default_number' : callbacknumber })
 		try:
 			callbackSetPage = self._browser.download(GCDialer._setforwardURL, callbackPostData)
@@ -214,7 +209,7 @@ class GCDialer(object):
 		self._browser.cookies.save()
 		return True
 
-	def getCallbackNumber(self):
+	def get_callback_number(self):
 		"""
 		@returns Current callback number or None
 		"""
@@ -240,7 +235,7 @@ class GCDialer(object):
 			personsName = match.group(3)
 			yield personsName, phoneNumber, date, action
 
-	def _grabToken(self, data):
+	def _grab_token(self, data):
 		"Pull the magic cookie from the datastream"
 		atGroup = GCDialer._accessTokenRe.search(data)
 		self._accessToken = atGroup.group(1)
