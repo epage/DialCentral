@@ -197,24 +197,28 @@ class Dialpad(object):
 		else:
 			warnings.warn("No Internet Connectivity API ", UserWarning, 2)
 
-		if self._window:
-			self._window.connect("destroy", gtk.main_quit)
-			self._window.show_all()
-
 		callbackMapping = {
 			# Process signals from buttons
 			"on_loginbutton_clicked": self._on_loginbutton_clicked,
 			"on_loginclose_clicked": self._on_loginclose_clicked,
 
-			"on_digit_clicked": self._on_digit_clicked,
-			"on_dial_clicked": self._on_dial_clicked,
+			"on_dialpad_quit": (lambda data: gtk.main_quit()),
+			"on_paste": self._on_paste,
+			"on_clear_number": self._on_clear_number,
+
 			"on_clearcookies_clicked": self._on_clearcookies_clicked,
 			"on_notebook_switch_page": self._on_notebook_switch_page,
 			"on_recentview_row_activated": self._on_recentview_row_activated,
-			"on_back_clicked": self._on_backspace
+
+			"on_digit_clicked": self._on_digit_clicked,
+			"on_back_clicked": self._on_backspace,
+			"on_dial_clicked": self._on_dial_clicked,
 		}
 		self._widgetTree.signal_autoconnect(callbackMapping)
-		self._widgetTree.get_widget("callbackcombo").get_child().connect("changed", self._on_callbackentry_changed)
+
+		if self._window:
+			self._window.connect("destroy", gtk.main_quit)
+			self._window.show_all()
 
 		self._gcBackend = GCDialer()
 
@@ -406,6 +410,9 @@ class Dialpad(object):
 		contents = self._clipboard.wait_for_text()
 		phoneNumber = re.sub('\D', '', contents)
 		self.set_number(phoneNumber)
+
+	def _on_clear_number(self, data=None):
+		self.set_number("")
 
 	def _on_digit_clicked(self, widget):
 		self.set_number(self._phonenumber + widget.get_name()[5])
