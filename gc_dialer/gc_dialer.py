@@ -216,11 +216,11 @@ class Dialpad(object):
 		self._widgetTree.signal_autoconnect(callbackMapping)
 		self._widgetTree.get_widget("callbackcombo").get_child().connect("changed", self._on_callbackentry_changed)
 
-		# Defer initalization of recent view
 		self._gcBackend = GCDialer()
 
-		self.attemptLogin(2) #@todo maybe we should disable the GUI and defer this?
+		self.attemptLogin(2)
 		gobject.idle_add(self._init_grandcentral)
+		# Defer initalization of recent view
 		gobject.idle_add(self._init_recent_view)
 
 	def _init_grandcentral(self):
@@ -277,7 +277,8 @@ class Dialpad(object):
 		dialog = self._widgetTree.get_widget("login_dialog")
 
 		while (0 < times) and not self._gcBackend.isAuthed():
-			if dialog.run() != gtk.RESPONSE_OK:
+			userResponse = dialog.run()
+			if userResponse != gtk.RESPONSE_OK:
 				times = 0
 				continue
 
@@ -288,7 +289,7 @@ class Dialpad(object):
 			self._gcBackend.login(username, password)
 			print "hiding dialog"
 			dialog.hide()
-			times = times - 1
+			times -= 1
 
 		return False
 
@@ -360,7 +361,7 @@ class Dialpad(object):
 		@todo Potential blocking on web access, maybe we should defer this or put up a dialog?
 		"""
 		text = makeugly(self._widgetTree.get_widget("callbackcombo").get_child().get_text())
-		if self._gcBackend.validate(text) and text != self._gcBackend.getCallbackNumber():
+		if self._gcBackend.is_valid_syntax(text) and text != self._gcBackend.getCallbackNumber():
 			self._gcBackend.setCallbackNumber(text)
 
 	def _on_recentview_row_activated(self, treeview, path, view_column):

@@ -18,13 +18,6 @@ from browser_emu import MozillaEmulator
 _validateRe = re.compile("^[0-9]{10,}$")
 
 
-def is_valid_syntax(number):
-	"""
-	@returns If This number be called ( syntax validation only )
-	"""
-	return _validateRe.match(number) is not None
-
-
 class GCDialer(object):
 	"""
 	This class encapsulates all of the knowledge necessary to interace with the grandcentral servers
@@ -97,7 +90,7 @@ class GCDialer(object):
 		self._msg = ""
 
 		# If the number is not valid throw exception
-		if not is_valid_syntax(number):
+		if not self.is_valid_syntax(number):
 			raise ValueError('number is not valid')
 
 		# No point if we don't have the magic cookie
@@ -129,6 +122,13 @@ class GCDialer(object):
 		self._lastAuthed = 0.0
 		self._browser.cookies.clear()
 		self._browser.cookies.save()
+
+	def is_valid_syntax(self, number):
+		"""
+		@returns If This number be called ( syntax validation only )
+		"""
+		return _validateRe.match(number) is not None
+
 
 	def getAccountNumber(self):
 		"""
