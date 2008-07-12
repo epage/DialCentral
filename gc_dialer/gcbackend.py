@@ -10,7 +10,9 @@ Copyright 2008 GPLv2
 import os
 import re
 import urllib
+import urllib2
 import time
+import warnings
 
 from browser_emu import MozillaEmulator
 
@@ -63,7 +65,12 @@ class GCDialer(object):
 		if time.time() - self._lastAuthed < 60 and not force:
 			return True
 
-		forwardSelectionPage = self._browser.download(GCDialer._forwardselectURL)
+		try:
+			forwardSelectionPage = self._browser.download(GCDialer._forwardselectURL)
+		except urllib2.URLError, e:
+			warnings.warn("%s is not accesible" % GCDialer._forwardselectURL, UserWarning, 2)
+			return False
+
 		self._browser.cookies.save()
 		if GCDialer._isLoginPageRe.search(forwardSelectionPage) is None:
 			self._grabToken(forwardSelectionPage)
@@ -79,8 +86,15 @@ class GCDialer(object):
 		"""
 		if self.isAuthed():
 			return True
+
 		loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
-		loginSuccessOrFailurePage = self._browser.download(GCDialer._loginURL, loginPostData)
+
+		try:
+			loginSuccessOrFailurePage = self._browser.download(GCDialer._loginURL, loginPostData)
+		except urllib2.URLError, e:
+			warnings.warn("%s is not accesible" % GCDialer._loginURL, UserWarning, 2)
+			return False
+
 		return self.isAuthed()
 
 	def dial(self, number):
@@ -102,9 +116,15 @@ class GCDialer(object):
 		if len(number) == 11 and number[0] == 1:
 			number = number[1:]
 
-		callSuccessPage = self._browser.download(
-			GCDialer._clicktocallURL % (self._accessToken, number),
-			None, {'Referer' : 'http://www.grandcentral.com/mobile/messages'} )
+		try:
+			callSuccessPage = self._browser.download(
+				GCDialer._clicktocallURL % (self._accessToken, number),
+				None,
+				{'Referer' : 'http://www.grandcentral.com/mobile/messages'}
+			)
+		except urllib2.URLError, e:
+			warnings.warn("%s is not accesible" % GCDialer._clicktocallURL, UserWarning, 2)
+			return False
 
 		if GCDialer._gcDialingStrRe.search(callSuccessPage) is not None:
 			return True
@@ -183,9 +203,16 @@ class GCDialer(object):
 		@param callbacknumber should be a proper 10 digit number
 		"""
 		print "setCallbackNumber %s" % (callbacknumber)
+
 		callbackPostData = urllib.urlencode({'a_t' : self._accessToken, 'default_number' : callbacknumber })
-		callbackSetPage = self._browser.download(GCDialer._setforwardURL, callbackPostData)
+		try:
+			callbackSetPage = self._browser.download(GCDialer._setforwardURL, callbackPostData)
+		except urllib2.URLError, e:
+			warnings.warn("%s is not accesible" % GCDialer._setforwardURL, UserWarning, 2)
+			return False
+
 		self._browser.cookies.save()
+		return True
 
 	def getCallbackNumber(self):
 		"""
@@ -200,7 +227,12 @@ class GCDialer(object):
 		"""
 		@returns Iterable of (personsName, phoneNumber, date, action)
 		"""
-		recentCallsPage = self._browser.download(GCDialer._inboxallURL)
+		try:
+			recentCallsPage = self._browser.download(GCDialer._inboxallURL)
+		except urllib2.URLError, e:
+			warnings.warn("%s is not accesible" % GCDialer._inboxallURL, UserWarning, 2)
+			return
+
 		for match in self._inboxRe.finditer(recentCallsPage):
 			phoneNumber = match.group(4)
 			action = match.group(1)

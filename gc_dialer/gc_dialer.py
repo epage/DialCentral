@@ -147,7 +147,7 @@ class Dialpad(object):
 				self._widgetTree = gtk.glade.XML(path)
 				break
 		else:
-			self.ErrPopUp("Cannot find gc_dialer.glade")
+			self.display_error_message("Cannot find gc_dialer.glade")
 			gtk.main_quit()
 			return
 
@@ -229,8 +229,8 @@ class Dialpad(object):
 		if self._gcBackend.isAuthed():
 			if self._gcBackend.getCallbackNumber() is None:
 				self._gcBackend.setSaneCallback()
+			self.setAccountNumber()
 
-		self.setAccountNumber()
 		print "exit init_gc"
 		return False
 
@@ -291,9 +291,7 @@ class Dialpad(object):
 			dialog.hide()
 			times -= 1
 
-		return False
-
-	def ErrPopUp(self, msg):
+	def display_error_message(self, msg):
 		error_dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, msg)
 
 		def close(dialog, response, editor):
@@ -386,10 +384,9 @@ class Dialpad(object):
 		"""
 		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
 		"""
-		self.attemptLogin(3)
-
-		if not self._gcBackend.isAuthed() or self._gcBackend.getCallbackNumber() == "":
-			self.ErrPopUp("Backend link with grandcentral is not working, please try again")
+		loggedIn = self.attemptLogin(2)
+		if not loggedIn or not self._gcBackend.isAuthed() or self._gcBackend.getCallbackNumber() == "":
+			self.display_error_message("Backend link with grandcentral is not working, please try again")
 			return
 
 		try:
@@ -399,7 +396,7 @@ class Dialpad(object):
 			callSuccess = False
 
 		if not callSuccess:
-			self.ErrPopUp(self._gcBackend._msg)
+			self.display_error_message(self._gcBackend._msg)
 		else:
 			self.setNumber("")
 
