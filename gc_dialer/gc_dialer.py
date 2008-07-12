@@ -72,7 +72,7 @@ def makeugly(prettynumber):
 def makepretty(phonenumber):
 	"""
 	Function to take a phone number and return the pretty version
-	 pretty numbers:
+	pretty numbers:
 		if phonenumber begins with 0:
 			...-(...)-...-....
 		if phonenumber begins with 1: ( for gizmo callback numbers )
@@ -87,7 +87,7 @@ def makepretty(phonenumber):
 	'123-4567'
 	>>> makepretty("2345678901")
 	'(234)-567-8901'
-	>>> makepretty("12345678901") 	 
+	>>> makepretty("12345678901")
 	'1 (234)-567-8901'
 	>>> makepretty("01234567890")
 	'+012-(345)-678-90'
@@ -111,7 +111,7 @@ def makepretty(phonenumber):
 	elif len(phonenumber) <= 7:
 		prettynumber = "%s-%s" % (phonenumber[0:3], phonenumber[3:])
 	elif len(phonenumber) > 8 and phonenumber[0] == "1":
-		prettynumber = "1 (%s)-%s-%s" %(phonenumber[1:4], phonenumber[4:7], phonenumber[7:]) 
+		prettynumber = "1 (%s)-%s-%s" % (phonenumber[1:4], phonenumber[4:7], phonenumber[7:])
 	elif len(phonenumber) > 7:
 		prettynumber = "(%s)-%s-%s" % (phonenumber[0:3], phonenumber[3:6], phonenumber[6:])
 	return prettynumber
@@ -203,14 +203,15 @@ class Dialpad(object):
 
 		callbackMapping = {
 			# Process signals from buttons
-			"on_digit_clicked"  : self._on_digit_clicked,
-			"on_dial_clicked"    : self._on_dial_clicked,
-			"on_loginbutton_clicked" : self._on_loginbutton_clicked,
-			"on_loginclose_clicked" : self._on_loginclose_clicked,
-			"on_clearcookies_clicked" : self._on_clearcookies_clicked,
-			"on_notebook_switch_page" : self._on_notebook_switch_page,
-			"on_recentview_row_activated" : self._on_recentview_row_activated,
-			"on_back_clicked" : self._on_backspace
+			"on_loginbutton_clicked": self._on_loginbutton_clicked,
+			"on_loginclose_clicked": self._on_loginclose_clicked,
+
+			"on_digit_clicked": self._on_digit_clicked,
+			"on_dial_clicked": self._on_dial_clicked,
+			"on_clearcookies_clicked": self._on_clearcookies_clicked,
+			"on_notebook_switch_page": self._on_notebook_switch_page,
+			"on_recentview_row_activated": self._on_recentview_row_activated,
+			"on_back_clicked": self._on_backspace
 		}
 		self._widgetTree.signal_autoconnect(callbackMapping)
 		self._widgetTree.get_widget("callbackcombo").get_child().connect("changed", self._on_callbackentry_changed)
@@ -224,11 +225,11 @@ class Dialpad(object):
 
 	def _init_grandcentral(self):
 		""" Deferred initalization of the grandcentral info """
-		
+
 		if self._gcBackend.isAuthed():
 			if self._gcBackend.getCallbackNumber() is None:
 				self._gcBackend.setSaneCallback()
-		
+
 		self.setAccountNumber()
 		print "exit init_gc"
 		return False
@@ -349,7 +350,7 @@ class Dialpad(object):
 		self._recenttime = 0.0
 		self._recentmodel.clear()
 		self._widgetTree.get_widget("callbackcombo").get_child().set_text("")
-	
+
 		# re-run the inital grandcentral setup
 		self.attemptLogin(2)
 		gobject.idle_add(self._init_grandcentral)
@@ -403,12 +404,12 @@ class Dialpad(object):
 
 		self._recentmodel.clear()
 		self._recenttime = 0.0
-	
+
 	def _on_paste(self, data=None):
 		contents = self._clipboard.wait_for_text()
 		phoneNumber = re.sub('\D', '', contents)
 		self.setNumber(phoneNumber)
-	
+
 	def _on_digit_clicked(self, widget):
 		self.setNumber(self._phonenumber + widget.get_name()[5])
 
@@ -434,6 +435,7 @@ def run_dialpad():
 
 
 class DummyOptions(object):
+
 	def __init__(self):
 		self.test = False
 

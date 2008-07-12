@@ -15,25 +15,34 @@ import time
 from browser_emu import MozillaEmulator
 
 
+_validateRe = re.compile("^[0-9]{10,}$")
+
+
+def is_valid_syntax(number):
+	"""
+	@returns If This number be called ( syntax validation only )
+	"""
+	return _validateRe.match(number) is not None
+
+
 class GCDialer(object):
 	"""
 	This class encapsulates all of the knowledge necessary to interace with the grandcentral servers
 	the functions include login, setting up a callback number, and initalting a callback
 	"""
 
-	_gcDialingStrRe	= re.compile("This may take a few seconds", re.M)	# string from Grandcentral.com on successful dial
-	_validateRe	= re.compile("^[0-9]{10,}$")
-	_accessTokenRe	= re.compile(r"""<input type="hidden" name="a_t" [^>]*value="(.*)"/>""")
-	_isLoginPageRe	= re.compile(r"""<form method="post" action="https://www.grandcentral.com/mobile/account/login">""")
-	_callbackRe	= re.compile(r"""name="default_number" value="(\d+)" />\s+(.*)\s$""", re.M)
-	_accountNumRe	= re.compile(r"""<img src="/images/mobile/inbox_logo.gif" alt="GrandCentral" />\s*(.{14})\s*&nbsp""", re.M)
-	_inboxRe	= re.compile(r"""<td>.*?(voicemail|received|missed|call return).*?</td>\s+<td>\s+<font size="2">\s+(.*?)\s+&nbsp;\|&nbsp;\s+<a href="/mobile/contacts/.*?">(.*?)\s?</a>\s+<br/>\s+(.*?)\s?<a href=""", re.S)
+	_gcDialingStrRe = re.compile("This may take a few seconds", re.M) # string from Grandcentral.com on successful dial
+	_accessTokenRe = re.compile(r"""<input type="hidden" name="a_t" [^>]*value="(.*)"/>""")
+	_isLoginPageRe = re.compile(r"""<form method="post" action="https://www.grandcentral.com/mobile/account/login">""")
+	_callbackRe = re.compile(r"""name="default_number" value="(\d+)" />\s+(.*)\s$""", re.M)
+	_accountNumRe = re.compile(r"""<img src="/images/mobile/inbox_logo.gif" alt="GrandCentral" />\s*(.{14})\s*&nbsp""", re.M)
+	_inboxRe = re.compile(r"""<td>.*?(voicemail|received|missed|call return).*?</td>\s+<td>\s+<font size="2">\s+(.*?)\s+&nbsp;\|&nbsp;\s+<a href="/mobile/contacts/.*?">(.*?)\s?</a>\s+<br/>\s+(.*?)\s?<a href=""", re.S)
 
-	_forwardselectURL	= "http://www.grandcentral.com/mobile/settings/forwarding_select"
-	_loginURL		= "https://www.grandcentral.com/mobile/account/login"
-	_setforwardURL		= "http://www.grandcentral.com/mobile/settings/set_forwarding?from=settings"
-	_clicktocallURL		= "http://www.grandcentral.com/mobile/calls/click_to_call?a_t=%s&destno=%s"
-	_inboxallURL		= "http://www.grandcentral.com/mobile/messages/inbox?types=all"
+	_forwardselectURL = "http://www.grandcentral.com/mobile/settings/forwarding_select"
+	_loginURL = "https://www.grandcentral.com/mobile/account/login"
+	_setforwardURL = "http://www.grandcentral.com/mobile/settings/set_forwarding?from=settings"
+	_clicktocallURL = "http://www.grandcentral.com/mobile/calls/click_to_call?a_t=%s&destno=%s"
+	_inboxallURL = "http://www.grandcentral.com/mobile/messages/inbox?types=all"
 
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
@@ -88,7 +97,7 @@ class GCDialer(object):
 		self._msg = ""
 
 		# If the number is not valid throw exception
-		if self.validate(number) is False:
+		if not is_valid_syntax(number):
 			raise ValueError('number is not valid')
 
 		# No point if we don't have the magic cookie
@@ -109,7 +118,7 @@ class GCDialer(object):
 		else:
 			self._msg = "Grand Central returned an error"
 			return False
-	
+
 		self._msg = "Unknown Error"
 		return False
 
@@ -126,12 +135,6 @@ class GCDialer(object):
 		@returns The grand central phone number
 		"""
 		return self._accountNum
-
-	def validate(self, number):
-		"""
-		@returns If This number be called ( syntax validation only )
-		"""
-		return GCDialer._validateRe.match(number) is not None
 
 	def setSaneCallback(self):
 		"""
