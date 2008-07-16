@@ -303,7 +303,7 @@ class Dialpad(object):
 				return True
 			times -= 1
 
-		return False
+		return self._gcBackend.is_authed()
 
 	def display_error_message(self, msg):
 		error_dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, msg)
@@ -420,6 +420,7 @@ class Dialpad(object):
 		loggedIn = self.attempt_login(2)
 		if not loggedIn or not self._gcBackend.is_authed() or self._gcBackend.get_callback_number() == "":
 			self.display_error_message("Backend link with grandcentral is not working, please try again")
+			warnings.warn("Backend Status: Logged in? %s, Authenticated? %s, Callback=%s" % (loggedIn, self._gcBackend.is_authed(), self._gcBackend.get_callback_number()), UserWarning, 2)
 			return
 
 		try:
