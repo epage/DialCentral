@@ -226,6 +226,7 @@ class Dialpad(object):
 			"on_dial_clicked": self._on_dial_clicked,
 		}
 		self._widgetTree.signal_autoconnect(callbackMapping)
+		self._widgetTree.get_widget("callbackcombo").get_child().connect("changed", self._on_callbackentry_changed)
 
 		if self._window:
 			self._window.connect("destroy", gtk.main_quit)
@@ -286,11 +287,14 @@ class Dialpad(object):
 
 		return False
 
-	def attempt_login(self, times = 1):
-		assert 0 < times, "That was pointless having 0 or less login attempts"
+	def attempt_login(self, numOfAttempts = 1):
+		assert 0 < numOfAttempts, "That was pointless having 0 or less login attempts"
 		dialog = self._widgetTree.get_widget("login_dialog")
 
-		while (0 < times) and not self._gcBackend.is_authed():
+		if self._gcBackend.is_authed():
+			return True
+
+		for i in range(numOfAttempts):
 			dialog.run()
 
 			username = self._widgetTree.get_widget("usernameentry").get_text()
@@ -301,9 +305,8 @@ class Dialpad(object):
 			dialog.hide()
 			if loggedIn:
 				return True
-			times -= 1
 
-		return self._gcBackend.is_authed()
+		return False
 
 	def display_error_message(self, msg):
 		error_dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, msg)
@@ -392,8 +395,12 @@ class Dialpad(object):
 		@todo Potential blocking on web access, maybe we should defer this or put up a dialog?
 		"""
 		text = make_ugly(self._widgetTree.get_widget("callbackcombo").get_child().get_text())
-		if self._gcBackend.is_valid_syntax(text) and text != self._gcBackend.get_callback_number():
+		if not self._gcBackend.is_valid_syntax(text):
+			warnings.warn("%s is not a valid callback number" % text, UserWarning, 2)
+		elif text != self._gcBackend.get_callback_number():
 			self._gcBackend.set_callback_number(text)
+		else:
+			warnings.warn("Callback number already is %s" % self._gcBackend.get_callback_number(), UserWarning, 2)
 
 	def _on_recentview_row_activated(self, treeview, path, view_column):
 		model, itr = self._recentviewselection.get_selected()
