@@ -41,7 +41,7 @@ import warnings
 
 class MozillaEmulator(object):
 
-	def __init__(self,cacher={},trycount=0):
+	def __init__(self, cacher=None, trycount=0):
 		"""Create a new MozillaEmulator object.
 
 		@param cacher: A dictionary like object, that can cache search results on a storage device.
@@ -49,18 +49,23 @@ class MozillaEmulator(object):
 			You can also put None here to disable caching completely.
 		@param trycount: The download() method will retry the operation if it fails. You can specify -1 for infinite retrying.
 			 A value of 0 means no retrying. A value of 1 means one retry. etc."""
+		if cacher is None:
+			cacher = {}
 		self.cacher = cacher
 		self.cookies = cookielib.LWPCookieJar()
 		self.debug = False
 		self.trycount = trycount
 
-	def build_opener(self,url,postdata=None,extraheaders={},forbid_redirect=False):
+	def build_opener(self, url, postdata=None, extraheaders=None, forbid_redirect=False):
+		if extraheaders is None:
+			extraheaders = {}
+
 		txheaders = {
 			'Accept':'text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png',
 			'Accept-Language':'en,en-us;q=0.5',
 			'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
 		}
-		for key,value in extraheaders.iteritems():
+		for key, value in extraheaders.iteritems():
 			txheaders[key] = value
 		req = urllib2.Request(url, postdata, txheaders)
 		self.cookies.add_cookie_header(req)
@@ -72,14 +77,14 @@ class MozillaEmulator(object):
 		http_handler = urllib2.HTTPHandler(debuglevel=self.debug)
 		https_handler = urllib2.HTTPSHandler(debuglevel=self.debug)
 
-		u = urllib2.build_opener(http_handler,https_handler,urllib2.HTTPCookieProcessor(self.cookies),redirector)
+		u = urllib2.build_opener(http_handler, https_handler, urllib2.HTTPCookieProcessor(self.cookies), redirector)
 		u.addheaders = [('User-Agent','Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.7.8) Gecko/20050511 Firefox/1.0.4')]
 		if not postdata is None:
 			req.add_data(postdata)
-		return (req,u)
+		return (req, u)
 
-	def download(self,url,postdata=None,extraheaders={},forbid_redirect=False,
-			trycount=None,fd=None,onprogress=None,only_head=False):
+	def download(self, url, postdata=None, extraheaders=None, forbid_redirect=False,
+			trycount=None, fd=None, onprogress=None, only_head=False):
 		"""Download an URL with GET or POST methods.
 
 		@param postdata: It can be a string that will be POST-ed to the URL.
@@ -104,18 +109,21 @@ class MozillaEmulator(object):
 			was given, the return value is undefined.
 		"""
 		warnings.warn("Performing download of %s" % url, UserWarning, 2)
+
+		if extraheaders is None:
+			extraheaders = {}
 		if trycount is None:
 			trycount = self.trycount
 		cnt = 0
 		while True:
 			try:
-				req,u = self.build_opener(url,postdata,extraheaders,forbid_redirect)
+				req, u = self.build_opener(url, postdata, extraheaders, forbid_redirect)
 				openerdirector = u.open(req)
 				if self.debug:
-					print req.get_method(),url
-					print openerdirector.code,openerdirector.msg
+					print req.get_method(), url
+					print openerdirector.code, openerdirector.msg
 					print openerdirector.headers
-				self.cookies.extract_cookies(openerdirector,req)
+				self.cookies.extract_cookies(openerdirector, req)
 				if only_head:
 					return openerdirector
 				return openerdirector.read()
@@ -125,7 +133,7 @@ class MozillaEmulator(object):
 					raise
 				# Retry :-)
 				if self.debug:
-					print "MozillaEmulator: urllib2.URLError, retryting ",cnt
+					print "MozillaEmulator: urllib2.URLError, retryting ", cnt
 
 
 class HTTPNoRedirector(urllib2.HTTPRedirectHandler):
@@ -133,7 +141,7 @@ class HTTPNoRedirector(urllib2.HTTPRedirectHandler):
 
 	def http_error_302(self, req, fp, code, msg, headers):
 		e = urllib2.HTTPError(req.get_full_url(), code, msg, headers, fp)
-		if e.code in (301,302):
+		if e.code in (301, 302):
 			if 'location' in headers:
 				newurl = headers.getheaders('location')[0]
 			elif 'uri' in headers:
