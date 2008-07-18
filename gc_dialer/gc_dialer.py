@@ -199,9 +199,9 @@ class Dialpad(object):
 		self._recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._recentviewselection = None
 
+		self._contactstime = 0.0
 		self._contactsmodel = gtk.ListStore(gtk.gdk.Pixbuf, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._contactsviewselection = None
-		self._contactsNeedSetup = True
 
 		for path in Dialpad._glade_files:
 			if os.path.isfile(path):
@@ -393,8 +393,8 @@ class Dialpad(object):
 		for personsName, phoneNumber, date, action in self._gcBackend.get_recent():
 			item = (phoneNumber, "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber))
 			self._recentmodel.append(item)
-		self._recenttime = time.time()
 
+		self._recenttime = time.time()
 		return False
 
 	def populate_contactsview(self):
@@ -414,7 +414,7 @@ class Dialpad(object):
 		contactsview.set_model(self._contactsmodel)
 		contactsview.thaw_child_notify()
 
-		self._contactsNeedSetup = False
+		self._contactstime = time.time()
 		return False
 
 	def attempt_login(self, numOfAttempts = 1):
@@ -513,6 +513,7 @@ class Dialpad(object):
 		self._gcBackend.reset()
 		self._callbackNeedsSetup = True
 		self._recenttime = 0.0
+		self._contactstime = 0.0
 		self._recentmodel.clear()
 		self._widgetTree.get_widget("callbackcombo").get_child().set_text("")
 
@@ -564,7 +565,7 @@ class Dialpad(object):
 		self._contactsviewselection.unselect_all()
 
 	def _on_notebook_switch_page(self, notebook, page, page_num):
-		if page_num == 1 and self._contactsNeedSetup:
+		if page_num == 1 and 300 < (time.time() - self._contactstime):
 			gobject.idle_add(self.populate_contactsview)
 		elif page_num == 2 and 300 < (time.time() - self._recenttime):
 			gobject.idle_add(self.populate_recentview)
