@@ -16,6 +16,7 @@ PACKAGE_PATH=./pkg-$(PLATFORM)
 BUILD_PATH=./build-$(PLATFORM)
 BUILD_BIN=$(BUILD_PATH)/gc_dialer.py
 
+DEBUGGER=winpdb
 UNIT_TEST=nosetests -w $(TEST_PATH)
 STYLE_TEST=../../Python/tools/pep8.py --ignore=W191
 LINT=pylint --rcfile=./support/pylint.rc
@@ -23,9 +24,15 @@ COVERAGE_TEST=figleaf
 PROFILER=pyprofiler
 CTAGS=ctags-exuberant
 
-.PHONY: all test lint tags build package clean
+.PHONY: all run debug test lint tags build package clean
 
 all: test tags package
+
+run: $(SOURCE)
+	cd $(SOURCE_PATH) ; ./gc_dialer.py
+
+debug: $(SOURCE)
+	cd $(SOURCE_PATH) ; $(DEBUGGER) ./gc_dialer.py
 
 test: $(SOURCE)
 	cd $(SOURCE_PATH) ; ./gc_dialer.py -t
@@ -42,6 +49,8 @@ build: $(BUILD_BIN)
 	cp $(SOURCE_PATH)/gc_dialer_64.png $(BUILD_PATH)
 	cp $(SOURCE_PATH)/gc_dialer_26.png $(BUILD_PATH)
 
+	cp $(SOURCE_PATH)/gc.png $(BUILD_PATH)
+
 	cp $(SOURCE_PATH)/gc_dialer.desktop $(BUILD_PATH)
 
 	cp $(SOURCE_PATH)/gc_dialer.glade $(BUILD_PATH)
@@ -57,6 +66,8 @@ package: build
 	cp $(BUILD_PATH)/gc_dialer_256.png $(PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon/gc_dialer.png
 	cp $(BUILD_PATH)/gc_dialer_64.png $(PACKAGE_PATH)/build/usr/share/icons/hicolor/64x64/hildon/gc_dialer.png
 	cp $(BUILD_PATH)/gc_dialer_26.png $(PACKAGE_PATH)/build/usr/share/icons/hicolor/26x26/hildon/gc_dialer.png
+
+	cp $(BUILD_PATH)/gc.png $(PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon/gc.png
 
 	cp $(BUILD_PATH)/gc_dialer.desktop $(PACKAGE_PATH)/build/usr/share/applications/hildon
 
