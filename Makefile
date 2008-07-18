@@ -72,7 +72,10 @@ package: build
 	cp $(BUILD_PATH)/gc_dialer.desktop $(PACKAGE_PATH)/build/usr/share/applications/hildon
 
 	cp $(BUILD_PATH)/gc_dialer.glade $(PACKAGE_PATH)/build/usr/local/lib
-	
+ifneq ($(PLATFORM),desktop)
+	sed -i 's/^[ \t]*//;s/GtkWindow/HildonWindow/' $(PACKAGE_PATH)/build/usr/local/lib/gc_dialer.glade
+endif
+
 	cp $(BUILD_BIN) $(PACKAGE_PATH)/build/usr/local/bin
 
 	cp $(PYPACKAGE_FILE) $(PACKAGE_PATH)
