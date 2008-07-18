@@ -17,9 +17,6 @@ import warnings
 from browser_emu import MozillaEmulator
 
 
-_validateRe = re.compile("^[0-9]{10,}$")
-
-
 class GCDialer(object):
 	"""
 	This class encapsulates all of the knowledge necessary to interace with the grandcentral servers
@@ -32,12 +29,20 @@ class GCDialer(object):
 	_callbackRe = re.compile(r"""name="default_number" value="(\d+)" />\s+(.*)\s$""", re.M)
 	_accountNumRe = re.compile(r"""<img src="/images/mobile/inbox_logo.gif" alt="GrandCentral" />\s*(.{14})\s*&nbsp""", re.M)
 	_inboxRe = re.compile(r"""<td>.*?(voicemail|received|missed|call return).*?</td>\s+<td>\s+<font size="2">\s+(.*?)\s+&nbsp;\|&nbsp;\s+<a href="/mobile/contacts/.*?">(.*?)\s?</a>\s+<br/>\s+(.*?)\s?<a href=""", re.S)
+	_contactsRe = re.compile(r"""<a href="/mobile/contacts/detail/(\d+)">(.*?)</a>""", re.S)
+	_contactsNextRe = re.compile(r""".*<a href="/mobile/contacts(\?page=\d+)">Next</a>""", re.S)
+	_contactDetailGroupRe	= re.compile(r"""Group:\s*(\w*)""", re.S)
+	_contactDetailPhoneRe	= re.compile(r"""(\w+):[0-9\-\(\) \t]*?<a href="/mobile/calls/click_to_call\?destno=(\d+).*?">call</a>""", re.S)
+
+	_validateRe = re.compile("^[0-9]{10,}$")
 
 	_forwardselectURL = "http://www.grandcentral.com/mobile/settings/forwarding_select"
 	_loginURL = "https://www.grandcentral.com/mobile/account/login"
 	_setforwardURL = "http://www.grandcentral.com/mobile/settings/set_forwarding?from=settings"
 	_clicktocallURL = "http://www.grandcentral.com/mobile/calls/click_to_call?a_t=%s&destno=%s"
 	_inboxallURL = "http://www.grandcentral.com/mobile/messages/inbox?types=all"
+	_contactsURL = "http://www.grandcentral.com/mobile/contacts"
+	_contactDetailURL = "http://www.grandcentral.com/mobile/contacts/detail"
 
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
@@ -147,7 +152,7 @@ class GCDialer(object):
 		"""
 		@returns If This number be called ( syntax validation only )
 		"""
-		return _validateRe.match(number) is not None
+		return self._validateRe.match(number) is not None
 
 	def get_account_number(self):
 		"""
@@ -234,6 +239,27 @@ class GCDialer(object):
 			date = match.group(2)
 			personsName = match.group(3)
 			yield personsName, phoneNumber, date, action
+
+	def get_contacts(self):
+		contactsPagesUrls = [GCDialer._contactsURL]
+		for contactsPageUrl in contactsPagesUrls:
+			print contactsPageUrl
+			contactsPage = self._browser.download(contactsPageUrl)
+			for contact_match in self._contactsRe.finditer(contactsPage):
+				contactId = contact_match.group(1)
+				contactName = contact_match.group(2)
+				yield contactId, contactName
+			next_match = self._contactsNextRe.match(contactsPage)
+			if next_match is not None:
+				newContactsPageUrl = self._contactsURL + next_match.group(1)
+				contactsPagesUrls.append(newContactsPageUrl)
+	
+	def get_contact_details(self, contactId):
+		detailPage = self._browser.download(GCDialer._contactDetailURL + '/' + contactId)
+		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
+			phoneType = detail_match.group(1)
+			phoneNumber = detail_match.group(2)
+			yield (phoneType, phoneNumber)
 
 	def _grab_token(self, data):
 		"Pull the magic cookie from the datastream"

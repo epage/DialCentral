@@ -117,6 +117,62 @@ def make_pretty(phonenumber):
 	return prettynumber
 
 
+class PhoneTypeSelector(object):
+
+	def __init__(self, widgetTree, gcBackend):
+		self._gcBackend = gcBackend
+		self._widgetTree = widgetTree
+		self._dialog = self._widgetTree.get_widget("phonetype_dialog")
+
+		self._selectButton = self._widgetTree.get_widget("select_button")
+		self._selectButton.connect("clicked", self._on_phonetype_select)
+
+		self._cancelButton = self._widgetTree.get_widget("cancel_button")
+		self._cancelButton.connect("clicked", self._on_phonetype_cancel)
+
+		self._typemodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self._typeviewselection = None
+
+		typeview = self._widgetTree.get_widget("phonetypes")
+		typeview.connect("row-activated", self._on_phonetype_select)
+		typeview.set_model(self._typemodel)
+		textrenderer = gtk.CellRendererText()
+
+		# Add the column to the treeview
+		column = gtk.TreeViewColumn("Phone Numbers", textrenderer, text=1)
+		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+
+		typeview.append_column(column)
+
+		self._typeviewselection = typeview.get_selection()
+		self._typeviewselection.set_mode(gtk.SELECTION_SINGLE)
+
+	def run(self, contactDetails):
+		self._typemodel.clear()
+
+		for phoneType, phoneNumber in contactDetails:
+			self._typemodel.append((phoneNumber, "%s - %s" % (make_pretty(phoneNumber), phoneType)))
+
+		userResponse = self._dialog.run()
+
+		if userResponse == gtk.RESPONSE_OK:
+			model, itr = self._typeviewselection.get_selected()
+			if itr:
+				phoneNumber = self._typemodel.get_value(itr, 0)
+		else:
+			phoneNumber = ""
+
+		self._typeviewselection.unselect_all()
+		self._dialog.hide()
+		return phoneNumber
+	
+	def _on_phonetype_select(self, *args):
+		self._dialog.response(gtk.RESPONSE_OK)
+
+	def _on_phonetype_cancel(self, *args):
+		self._dialog.response(gtk.RESPONSE_CANCEL)
+
+
 class Dialpad(object):
 
 	__app_name__ = "gc_dialer"
@@ -138,9 +194,14 @@ class Dialpad(object):
 
 		self._deviceIsOnline = True
 		self._callbackNeedsSetup = True
+
 		self._recenttime = 0.0
 		self._recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._recentviewselection = None
+
+		self._contactsmodel = gtk.ListStore(gtk.gdk.Pixbuf, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self._contactsviewselection = None
+		self._contactsNeedSetup = True
 
 		for path in Dialpad._glade_files:
 			if os.path.isfile(path):
@@ -151,7 +212,8 @@ class Dialpad(object):
 			gtk.main_quit()
 			return
 
-		self._widgetTree.get_widget("about_title").set_label(self._widgetTree.get_widget("about_title").get_label()+"\nVersion "+Dialpad.__version__)
+		aboutHeader = self._widgetTree.get_widget("about_title")
+		aboutHeader.set_label("%s\nVersion %s" % (aboutHeader.get_label(), Dialpad.__version__))
 
 		#Get the buffer associated with the number display
 		self._numberdisplay = self._widgetTree.get_widget("numberdisplay")
@@ -220,6 +282,7 @@ class Dialpad(object):
 			"on_clearcookies_clicked": self._on_clearcookies_clicked,
 			"on_notebook_switch_page": self._on_notebook_switch_page,
 			"on_recentview_row_activated": self._on_recentview_row_activated,
+			"on_contactsview_row_activated" : self._on_contactsview_row_activated,
 
 			"on_digit_clicked": self._on_digit_clicked,
 			"on_back_clicked": self._on_backspace,
@@ -234,10 +297,11 @@ class Dialpad(object):
 
 		self._gcBackend = GCDialer()
 
+		self._phoneTypeSelector = PhoneTypeSelector(self._widgetTree, self._gcBackend)
 		self.attempt_login(2)
 		gobject.idle_add(self._init_grandcentral)
-		# Defer initalization of recent view
 		gobject.idle_add(self._init_recent_view)
+		gobject.idle_add(self._init_contacts_view)
 
 	def _init_grandcentral(self):
 		""" Deferred initalization of the grandcentral info """
@@ -267,6 +331,51 @@ class Dialpad(object):
 
 		return False
 
+	def _init_contacts_view(self):
+		""" deferred initalization of the contacts view treeview """
+
+		contactsview = self._widgetTree.get_widget("contactsview")
+		contactsview.set_model(self._contactsmodel)
+
+		# Add the column to the treeview
+		column = gtk.TreeViewColumn("Contact")
+
+		iconrenderer = gtk.CellRendererPixbuf()
+		column.pack_start(iconrenderer, expand=False)
+		column.add_attribute(iconrenderer, 'pixbuf', 0)
+
+		textrenderer = gtk.CellRendererText()
+		column.pack_start(textrenderer, expand=True)
+		column.add_attribute(textrenderer, 'text', 1)
+
+		textrenderer = gtk.CellRendererText()
+		column.pack_start(textrenderer, expand=True)
+		column.add_attribute(textrenderer, 'text', 4)
+
+		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		column.set_sort_column_id(1)
+		column.set_visible(True)
+		contactsview.append_column(column)
+
+		#textrenderer = gtk.CellRendererText()
+		#column = gtk.TreeViewColumn("Location", textrenderer, text=2)
+		#column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		#column.set_sort_column_id(2)
+		#column.set_visible(True)
+		#contactsview.append_column(column)
+
+		#textrenderer = gtk.CellRendererText()
+		#column = gtk.TreeViewColumn("Phone", textrenderer, text=3)
+		#column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		#column.set_sort_column_id(3)
+		#column.set_visible(True)
+		#contactsview.append_column(column)
+
+		self._contactsviewselection = contactsview.get_selection()
+		self._contactsviewselection.set_mode(gtk.SELECTION_SINGLE)
+
+		return False
+
 	def _setup_callback_combo(self):
 		combobox = self._widgetTree.get_widget("callbackcombo")
 		self.callbacklist = gtk.ListStore(gobject.TYPE_STRING)
@@ -280,11 +389,32 @@ class Dialpad(object):
 
 	def populate_recentview(self):
 		self._recentmodel.clear()
+
 		for personsName, phoneNumber, date, action in self._gcBackend.get_recent():
 			item = (phoneNumber, "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber))
 			self._recentmodel.append(item)
 		self._recenttime = time.time()
 
+		return False
+
+	def populate_contactsview(self):
+		self._contactsmodel.clear()
+
+		# completely disable updating the treeview while we populate the data
+		contactsview = self._widgetTree.get_widget("contactsview")
+		contactsview.freeze_child_notify()
+		contactsview.set_model(None)
+
+        # get gc icon
+		gc_icon = gtk.gdk.pixbuf_new_from_file_at_size('gc.png', 16, 16)
+		for contactId, contactName in self._gcBackend.get_contacts():
+			self._contactsmodel.append((gc_icon,) + (contactName, "", contactId) + ("",))
+
+		# restart the treeview data rendering
+		contactsview.set_model(self._contactsmodel)
+		contactsview.thaw_child_notify()
+
+		self._contactsNeedSetup = False
 		return False
 
 	def attempt_login(self, numOfAttempts = 1):
@@ -373,13 +503,13 @@ class Dialpad(object):
 			else:
 				self._window.fullscreen()
 
-	def _on_loginbutton_clicked(self, data=None):
+	def _on_loginbutton_clicked(self, *args):
 		self._widgetTree.get_widget("login_dialog").response(gtk.RESPONSE_OK)
 
-	def _on_loginclose_clicked(self, data=None):
+	def _on_loginclose_clicked(self, *args):
 		sys.exit(0)
 
-	def _on_clearcookies_clicked(self, data=None):
+	def _on_clearcookies_clicked(self, *args):
 		self._gcBackend.reset()
 		self._callbackNeedsSetup = True
 		self._recenttime = 0.0
@@ -390,7 +520,7 @@ class Dialpad(object):
 		self.attempt_login(2)
 		gobject.idle_add(self._init_grandcentral)
 
-	def _on_callbackentry_changed(self, data=None):
+	def _on_callbackentry_changed(self, *args):
 		"""
 		@todo Potential blocking on web access, maybe we should defer this or put up a dialog?
 		"""
@@ -411,10 +541,34 @@ class Dialpad(object):
 		self._notebook.set_current_page(0)
 		self._recentviewselection.unselect_all()
 
+	def _on_contactsview_row_activated(self, treeview, path, view_column):
+		model, itr = self._contactsviewselection.get_selected()
+		if not itr:
+			return
+
+		contactId = self._contactsmodel.get_value(itr, 3)
+		contactDetails = self._gcBackend.get_contact_details(contactId)
+		contactDetails = [phoneNumber for phoneNumber in contactDetails]
+
+		if len(contactDetails) == 0:
+			phoneNumber = ""
+		elif len(contactDetails) == 1:
+			phoneNumber = contactDetails[0][1]
+		else:
+			phoneNumber = self._phoneTypeSelector.run(contactDetails)
+
+		if 0 < len(phoneNumber):
+			self.set_number(phoneNumber)
+			self._notebook.set_current_page(0)
+
+		self._contactsviewselection.unselect_all()
+
 	def _on_notebook_switch_page(self, notebook, page, page_num):
-		if page_num == 1 and (time.time() - self._recenttime) > 300:
+		if page_num == 1 and self._contactsNeedSetup:
+			gobject.idle_add(self.populate_contactsview)
+		elif page_num == 2 and 300 < (time.time() - self._recenttime):
 			gobject.idle_add(self.populate_recentview)
-		elif page_num ==2 and self._callbackNeedsSetup:
+		elif page_num == 3 and self._callbackNeedsSetup:
 			gobject.idle_add(self._setup_callback_combo)
 
 		if hildon:
@@ -444,12 +598,12 @@ class Dialpad(object):
 		self._recentmodel.clear()
 		self._recenttime = 0.0
 
-	def _on_paste(self, data=None):
+	def _on_paste(self, *args):
 		contents = self._clipboard.wait_for_text()
 		phoneNumber = re.sub('\D', '', contents)
 		self.set_number(phoneNumber)
 
-	def _on_clear_number(self, data=None):
+	def _on_clear_number(self, *args):
 		self.set_number("")
 
 	def _on_digit_clicked(self, widget):
@@ -489,12 +643,12 @@ if __name__ == "__main__":
 	if optparse is not None:
 		parser = optparse.OptionParser()
 		parser.add_option("-t", "--test", action="store_true", dest="test", help="Run tests")
-		(options, args) = parser.parse_args()
+		(commandOptions, commandArgs) = parser.parse_args()
 	else:
-		args = []
-		options = DummyOptions()
+		commandOptions = DummyOptions()
+		commandArgs = []
 
-	if options.test:
+	if commandOptions.test:
 		run_doctest()
 	else:
 		run_dialpad()
