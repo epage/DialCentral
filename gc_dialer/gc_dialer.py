@@ -406,7 +406,7 @@ class Dialpad(object):
 		contactsview.set_model(None)
 
         # get gc icon
-		gc_icon = gtk.gdk.pixbuf_new_from_file_at_size('gc.png', 16, 16)
+		gc_icon = gtk.gdk.pixbuf_new_from_file_at_size('gc_contact.png', 16, 16)
 		for contactId, contactName in self._gcBackend.get_contacts():
 			self._contactsmodel.append((gc_icon,) + (contactName, "", contactId) + ("",))
 
