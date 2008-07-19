@@ -1,5 +1,5 @@
 PROJECT_NAME=gc_dialer
-SOURCE_PATH=gc_dialer
+SOURCE_PATH=src
 SOURCE=$(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/browser_emu.py
 OBJ=$(SOURCE:.py=.pyc)
 LINT_STATS_PATH=~/.pylint.d
@@ -92,8 +92,8 @@ $(BUILD_BIN): $(SOURCE)
 	#Construct the program by cat-ing all the python files together
 	echo "#!/usr/bin/python2.5" > $(BUILD_BIN)
 	#echo "from __future__ import with_statement" >> $(PACKAGE_PATH)/usr/local/bin/gc_dialer.py
-	cat gc_dialer/gc_dialer.py gc_dialer/gcbackend.py gc_dialer/browser_emu.py | grep -e '^import ' | sort -u >> $(BUILD_BIN)
-	cat gc_dialer/browser_emu.py gc_dialer/gcbackend.py gc_dialer/gc_dialer.py | grep -v 'browser_emu' | grep -v 'gcbackend' | grep -v "#!" >> $(BUILD_BIN)
+	cat $(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/browser_emu.py | grep -e '^import ' | sort -u >> $(BUILD_BIN)
+	cat $(SOURCE_PATH)/browser_emu.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/gc_dialer.py | grep -v 'browser_emu' | grep -v 'gcbackend' | grep -v "#!" >> $(BUILD_BIN)
 	chmod 755 $(BUILD_BIN)
 
 $(TAG_FILE): $(SOURCE)
