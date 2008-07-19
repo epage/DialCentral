@@ -1,7 +1,9 @@
 PROJECT_NAME=gc_dialer
-SOURCE_PATH=./gc_dialer
+SOURCE_PATH=gc_dialer
 SOURCE=$(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/browser_emu.py
 OBJ=$(SOURCE:.py=.pyc)
+LINT_STATS_PATH=~/.pylint.d
+LINT_STATS=$(foreach file, $(addsuffix 1.stats,$(subst /,.,$(basename $(SOURCE)))), $(LINT_STATS_PATH)/$(file) )
 TEST_PATH=./tests
 TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
 PYPACKAGE_FILE=./support/GrandcentralDialer.pypackager
@@ -37,8 +39,7 @@ debug: $(SOURCE)
 test: $(SOURCE)
 	cd $(SOURCE_PATH) ; ./gc_dialer.py -t
 
-lint: $(SOURCE_PATH)
-	$(foreach file, $(SOURCE_PATH), $(LINT) $(file) ; )
+lint: $(LINT_STATS)
 
 tags: $(TAG_FILE) 
 
@@ -83,6 +84,7 @@ endif
 clean:
 	rm -Rf $(PACKAGE_PATH) $(BUILD_PATH)
 	rm -Rf $(OBJ)
+	rm -Rf $(LINT_STATS_PATH)/*
 
 $(BUILD_BIN): $(SOURCE)
 	mkdir -p $(dir $(BUILD_BIN))
@@ -98,3 +100,14 @@ $(TAG_FILE): $(SOURCE)
 	mkdir -p $(dir $(TAG_FILE))
 	$(CTAGS) -o $(TAG_FILE) $(SOURCE)
 
+%1.stats: $(SOURCE)
+	@ #DESIRED DEPENDENCY: $(subst .,/,$(notdir $*)).py
+	@ #DESIRED COMMAND: $(LINT) $<
+	@ $(LINT) $(subst .,/,$(notdir $*)).py
+	@# echo $*
+	@# echo $?
+
+#Makefile Debugging
+#Target to print any variable, can be added to the dependencies of any other target
+#Userfule flags for make, -d, -p, -n
+print-%: ; @$(error $* is $($*) ($(value $*)) (from $(origin $*)))

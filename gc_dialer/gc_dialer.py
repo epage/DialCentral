@@ -298,6 +298,7 @@ class Dialpad(object):
 		self._gcBackend = GCDialer()
 
 		self._phoneTypeSelector = PhoneTypeSelector(self._widgetTree, self._gcBackend)
+
 		self.attempt_login(2)
 		gobject.idle_add(self._init_grandcentral)
 		gobject.idle_add(self._init_recent_view)
@@ -382,9 +383,9 @@ class Dialpad(object):
 		combobox.set_model(self.callbacklist)
 		combobox.set_text_column(0)
 		for number, description in self._gcBackend.get_callback_numbers().iteritems():
-			self.callbacklist.append([make_pretty(number)] )
+			self.callbacklist.append([make_pretty(number)])
 
-		self._widgetTree.get_widget("callbackcombo").get_child().set_text(make_pretty(self._gcBackend.get_callback_number()))
+		combobox.get_child().set_text(make_pretty(self._gcBackend.get_callback_number()))
 		self._callbackNeedsSetup = False
 
 	def populate_recentview(self):
@@ -405,7 +406,7 @@ class Dialpad(object):
 		contactsview.freeze_child_notify()
 		contactsview.set_model(None)
 
-        # get gc icon
+		# get gc icon
 		gc_icon = gtk.gdk.pixbuf_new_from_file_at_size('gc_contact.png', 16, 16)
 		for contactId, contactName in self._gcBackend.get_contacts():
 			self._contactsmodel.append((gc_icon,) + (contactName, "", contactId) + ("",))
@@ -507,6 +508,7 @@ class Dialpad(object):
 		self._widgetTree.get_widget("login_dialog").response(gtk.RESPONSE_OK)
 
 	def _on_loginclose_clicked(self, *args):
+		gtk.main_quit()
 		sys.exit(0)
 
 	def _on_clearcookies_clicked(self, *args):
@@ -628,7 +630,6 @@ def run_dialpad():
 	title = 'Dialpad'
 	handle = Dialpad()
 	gtk.main()
-	sys.exit(0)
 
 
 class DummyOptions(object):
