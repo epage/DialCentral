@@ -301,19 +301,8 @@ class Dialpad(object):
 
 		if not self._gcBackend.is_authed():
 			self.attempt_login(2)
-		gobject.idle_add(self._init_grandcentral)
 		gobject.idle_add(self._init_recent_view)
 		gobject.idle_add(self._init_contacts_view)
-
-	def _init_grandcentral(self):
-		""" Deferred initalization of the grandcentral info """
-
-		if self._gcBackend.is_authed():
-			if self._gcBackend.get_callback_number() is None:
-				self._gcBackend.set_sane_callback()
-			self.set_account_number()
-
-		return False
 
 	def _init_recent_view(self):
 		""" Deferred initalization of the recent view treeview """
@@ -436,6 +425,9 @@ class Dialpad(object):
 			loggedIn = self._gcBackend.login(username, password)
 			dialog.hide()
 			if loggedIn:
+				if self._gcBackend.get_callback_number() is None:
+					self._gcBackend.set_sane_callback()
+				self.set_account_number()
 				return True
 
 		return False
@@ -522,7 +514,6 @@ class Dialpad(object):
 
 		# re-run the inital grandcentral setup
 		self.attempt_login(2)
-		gobject.idle_add(self._init_grandcentral)
 		gobject.idle_add(self._setup_callback_combo)
 
 	def _on_callbackentry_changed(self, *args):
