@@ -243,12 +243,12 @@ class GCDialer(object):
 	def get_contacts(self):
 		contactsPagesUrls = [GCDialer._contactsURL]
 		for contactsPageUrl in contactsPagesUrls:
-			print contactsPageUrl
 			contactsPage = self._browser.download(contactsPageUrl)
 			for contact_match in self._contactsRe.finditer(contactsPage):
 				contactId = contact_match.group(1)
 				contactName = contact_match.group(2)
 				yield contactId, contactName
+
 			next_match = self._contactsNextRe.match(contactsPage)
 			if next_match is not None:
 				newContactsPageUrl = self._contactsURL + next_match.group(1)

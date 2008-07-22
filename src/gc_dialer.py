@@ -299,7 +299,8 @@ class Dialpad(object):
 
 		self._phoneTypeSelector = PhoneTypeSelector(self._widgetTree, self._gcBackend)
 
-		self.attempt_login(2)
+		if not self._gcBackend.is_authed():
+			self.attempt_login(2)
 		gobject.idle_add(self._init_grandcentral)
 		gobject.idle_add(self._init_recent_view)
 		gobject.idle_add(self._init_contacts_view)
@@ -419,11 +420,11 @@ class Dialpad(object):
 		return False
 
 	def attempt_login(self, numOfAttempts = 1):
+		"""
+		@note Assumes that you are already logged in
+		"""
 		assert 0 < numOfAttempts, "That was pointless having 0 or less login attempts"
 		dialog = self._widgetTree.get_widget("login_dialog")
-
-		if self._gcBackend.is_authed():
-			return True
 
 		for i in range(numOfAttempts):
 			dialog.run()
@@ -581,7 +582,9 @@ class Dialpad(object):
 		"""
 		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
 		"""
-		loggedIn = self.attempt_login(2)
+		if not self._gcBackend.is_authed():
+			loggedIn = self.attempt_login(2)
+
 		if not loggedIn or not self._gcBackend.is_authed() or self._gcBackend.get_callback_number() == "":
 			self.display_error_message("Backend link with grandcentral is not working, please try again")
 			warnings.warn("Backend Status: Logged in? %s, Authenticated? %s, Callback=%s" % (loggedIn, self._gcBackend.is_authed(), self._gcBackend.get_callback_number()), UserWarning, 2)
