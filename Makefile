@@ -7,6 +7,7 @@ LINT_STATS=$(foreach file, $(addsuffix 1.stats,$(subst /,.,$(basename $(SOURCE))
 TEST_PATH=./tests
 TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
 PYPACKAGE_FILE=./support/GrandcentralDialer.pypackager
+SDK_DISPLAY=:2
 
 PLATFORM=desktop
 ifeq ($(PLATFORM),os2007)
@@ -38,6 +39,16 @@ debug: $(SOURCE)
 
 test: $(SOURCE)
 	cd $(SOURCE_PATH) ; ./gc_dialer.py -t
+
+xephyr:
+	 Xephyr $(SDK_DISPLAY) -host-cursor -screen 800x480x16 -dpi 96 -ac
+
+sdk_start:
+	export DISPLAY=$(SDK_DISPLAY)
+	af-sb-ini.sh start
+
+sdk_stop:
+	af-sb-ini.sh stop
 
 lint: $(LINT_STATS)
 
