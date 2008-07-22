@@ -523,6 +523,7 @@ class Dialpad(object):
 		# re-run the inital grandcentral setup
 		self.attempt_login(2)
 		gobject.idle_add(self._init_grandcentral)
+		gobject.idle_add(self._setup_callback_combo)
 
 	def _on_callbackentry_changed(self, *args):
 		"""
