@@ -102,6 +102,11 @@ class GCDialer(object):
 
 		return self.is_authed()
 
+	def logout(self):
+		self._lastAuthed = 0.0
+		self._browser.cookies.clear()
+		self._browser.cookies.save()
+
 	def dial(self, number):
 		"""
 		This is the main function responsible for initating the callback
@@ -142,11 +147,6 @@ class GCDialer(object):
 
 	def clear_caches(self):
 		pass
-
-	def reset(self):
-		self._lastAuthed = 0.0
-		self._browser.cookies.clear()
-		self._browser.cookies.save()
 
 	def is_valid_syntax(self, number):
 		"""
@@ -244,6 +244,9 @@ class GCDialer(object):
 			yield personsName, phoneNumber, date, action
 
 	def get_contacts(self):
+		"""
+		@returns Iterable of (contact id, contact name)
+		"""
 		contactsPagesUrls = [GCDialer._contactsURL]
 		for contactsPageUrl in contactsPagesUrls:
 			contactsPage = self._browser.download(contactsPageUrl)
@@ -258,6 +261,9 @@ class GCDialer(object):
 				contactsPagesUrls.append(newContactsPageUrl)
 	
 	def get_contact_details(self, contactId):
+		"""
+		@returns Iterable of (Phone Type, Phone Number)
+		"""
 		detailPage = self._browser.download(GCDialer._contactDetailURL + '/' + contactId)
 		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
 			phoneType = detail_match.group(1)

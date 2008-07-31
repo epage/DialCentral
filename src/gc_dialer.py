@@ -118,6 +118,9 @@ def make_pretty(phonenumber):
 
 
 def make_idler(func):
+	"""
+	Decorator that makes a generator-function into a function that will continue execution on next call
+	"""
 	a = []
 
 	def callable(*args, **kwds):
@@ -471,11 +474,17 @@ class Dialpad(object):
 		error_dialog.run()
 
 	def set_number(self, number):
+		"""
+		Set the callback phonenumber
+		"""
 		self._phonenumber = make_ugly(number)
 		self._prettynumber = make_pretty(self._phonenumber)
 		self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % ( self._prettynumber ) )
 
 	def set_account_number(self):
+		"""
+		Displays current account number
+		"""
 		accountnumber = self._gcBackend.get_account_number()
 		self._widgetTree.get_widget("gcnumberlabel").set_label("<span size='23000' weight='bold'>%s</span>" % (accountnumber))
 
@@ -537,7 +546,7 @@ class Dialpad(object):
 		sys.exit(0)
 
 	def _on_clearcookies_clicked(self, *args):
-		self._gcBackend.reset()
+		self._gcBackend.logout()
 		self._callbackNeedsSetup = True
 		self._recenttime = 0.0
 		self._contactstime = 0.0
