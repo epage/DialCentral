@@ -61,8 +61,8 @@ class MozillaEmulator(object):
 			extraheaders = {}
 
 		txheaders = {
-			'Accept':'text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png',
-			'Accept-Language':'en,en-us;q=0.5',
+			'Accept': 'text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png',
+			'Accept-Language': 'en,en-us;q=0.5',
 			'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
 		}
 		for key, value in extraheaders.iteritems():
@@ -77,8 +77,16 @@ class MozillaEmulator(object):
 		http_handler = urllib2.HTTPHandler(debuglevel=self.debug)
 		https_handler = urllib2.HTTPSHandler(debuglevel=self.debug)
 
-		u = urllib2.build_opener(http_handler, https_handler, urllib2.HTTPCookieProcessor(self.cookies), redirector)
-		u.addheaders = [('User-Agent','Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.7.8) Gecko/20050511 Firefox/1.0.4')]
+		u = urllib2.build_opener(
+			http_handler,
+			https_handler,
+			urllib2.HTTPCookieProcessor(self.cookies),
+			redirector
+		)
+		u.addheaders = [(
+			'User-Agent',
+			'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.7.8) Gecko/20050511 Firefox/1.0.4'
+		)]
 		if not postdata is None:
 			req.add_data(postdata)
 		return (req, u)

@@ -296,7 +296,8 @@ notes=FIXME,XXX,TODO
 [FORMAT]
 
 # Maximum number of characters on a single line.
-max-line-length=80
+# @note Limiting this to the most extreme cases
+max-line-length=100
 
 # Maximum number of lines in a module
 max-module-lines=1000

@@ -219,7 +219,13 @@ class Dialpad(object):
 		self._recentviewselection = None
 
 		self._contactstime = 0.0
-		self._contactsmodel = gtk.ListStore(gtk.gdk.Pixbuf, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self._contactsmodel = gtk.ListStore(
+			gtk.gdk.Pixbuf,
+			gobject.TYPE_STRING,
+			gobject.TYPE_STRING,
+			gobject.TYPE_STRING,
+			gobject.TYPE_STRING
+		)
 		self._contactsviewselection = None
 
 		for path in Dialpad._glade_files:
@@ -320,6 +326,8 @@ class Dialpad(object):
 
 		if not self._gcBackend.is_authed():
 			self.attempt_login(2)
+		else:
+			self.set_account_number()
 		gobject.idle_add(self._idly_init_recent_view)
 		gobject.idle_add(self._idly_init_contacts_view)
 
@@ -401,7 +409,8 @@ class Dialpad(object):
 		self._recentmodel.clear()
 
 		for personsName, phoneNumber, date, action in self._gcBackend.get_recent():
-			item = (phoneNumber, "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber))
+			description = "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber)
+			item = (phoneNumber, description)
 			self._recentmodel.append(item)
 
 		self._recenttime = time.time()
@@ -591,7 +600,8 @@ class Dialpad(object):
 			gobject.idle_add(self._idly_setup_callback_combo)
 
 		if hildon:
-			self._window.set_title(self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text())
+			hildonTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
+			self._window.set_title(hildonTitle)
 
 	def _on_dial_clicked(self, widget):
 		"""

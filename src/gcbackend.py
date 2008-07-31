@@ -23,7 +23,7 @@ class GCDialer(object):
 	the functions include login, setting up a callback number, and initalting a callback
 	"""
 
-	_gcDialingStrRe = re.compile("This may take a few seconds", re.M) # string from Grandcentral.com on successful dial
+	_gcDialingStrRe = re.compile("This may take a few seconds", re.M)
 	_accessTokenRe = re.compile(r"""<input type="hidden" name="a_t" [^>]*value="(.*)"/>""")
 	_isLoginPageRe = re.compile(r"""<form method="post" action="https://www.grandcentral.com/mobile/account/login">""")
 	_callbackRe = re.compile(r"""name="default_number" value="(\d+)" />\s+(.*)\s$""", re.M)
@@ -204,7 +204,10 @@ class GCDialer(object):
 		Set the number that grandcental calls
 		@param callbacknumber should be a proper 10 digit number
 		"""
-		callbackPostData = urllib.urlencode({'a_t' : self._accessToken, 'default_number' : callbacknumber })
+		callbackPostData = urllib.urlencode({
+			'a_t': self._accessToken,
+			'default_number': callbacknumber
+		})
 		try:
 			callbackSetPage = self._browser.download(GCDialer._setforwardURL, callbackPostData)
 		except urllib2.URLError, e:
