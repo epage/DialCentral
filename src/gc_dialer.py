@@ -117,6 +117,25 @@ def make_pretty(phonenumber):
 	return prettynumber
 
 
+def make_idler(func):
+	a = []
+
+	def callable(*args, **kwds):
+		if not a:
+			a.append(func(*args, **kwds))
+		try:
+			a[0].next()
+			return True
+		except StopIteration:
+			return False
+	
+	callable.__name__ = func.__name__
+	callable.__doc__ = func.__doc__
+	callable.__dict__.update(func.__dict__)
+
+	return callable
+
+
 class PhoneTypeSelector(object):
 
 	def __init__(self, widgetTree, gcBackend):
@@ -275,7 +294,7 @@ class Dialpad(object):
 			"on_loginbutton_clicked": self._on_loginbutton_clicked,
 			"on_loginclose_clicked": self._on_loginclose_clicked,
 
-			"on_dialpad_quit": (lambda data: gtk.main_quit()),
+			"on_dialpad_quit": self._on_close,
 			"on_paste": self._on_paste,
 			"on_clear_number": self._on_clear_number,
 
@@ -301,10 +320,10 @@ class Dialpad(object):
 
 		if not self._gcBackend.is_authed():
 			self.attempt_login(2)
-		gobject.idle_add(self._init_recent_view)
-		gobject.idle_add(self._init_contacts_view)
+		gobject.idle_add(self._idly_init_recent_view)
+		gobject.idle_add(self._idly_init_contacts_view)
 
-	def _init_recent_view(self):
+	def _idly_init_recent_view(self):
 		""" Deferred initalization of the recent view treeview """
 
 		recentview = self._widgetTree.get_widget("recentview")
@@ -322,7 +341,7 @@ class Dialpad(object):
 
 		return False
 
-	def _init_contacts_view(self):
+	def _idly_init_contacts_view(self):
 		""" deferred initalization of the contacts view treeview """
 
 		contactsview = self._widgetTree.get_widget("contactsview")
@@ -367,7 +386,7 @@ class Dialpad(object):
 
 		return False
 
-	def _setup_callback_combo(self):
+	def _idly_setup_callback_combo(self):
 		combobox = self._widgetTree.get_widget("callbackcombo")
 		self.callbacklist = gtk.ListStore(gobject.TYPE_STRING)
 		combobox.set_model(self.callbacklist)
@@ -378,7 +397,7 @@ class Dialpad(object):
 		combobox.get_child().set_text(make_pretty(self._gcBackend.get_callback_number()))
 		self._callbackNeedsSetup = False
 
-	def populate_recentview(self):
+	def _idly_populate_recentview(self):
 		self._recentmodel.clear()
 
 		for personsName, phoneNumber, date, action in self._gcBackend.get_recent():
@@ -388,7 +407,8 @@ class Dialpad(object):
 		self._recenttime = time.time()
 		return False
 
-	def populate_contactsview(self):
+	@make_idler
+	def _idly_populate_contactsview(self):
 		self._contactsmodel.clear()
 
 		# completely disable updating the treeview while we populate the data
@@ -400,13 +420,13 @@ class Dialpad(object):
 		gc_icon = gtk.gdk.pixbuf_new_from_file_at_size('gc_contact.png', 16, 16)
 		for contactId, contactName in self._gcBackend.get_contacts():
 			self._contactsmodel.append((gc_icon,) + (contactName, "", contactId) + ("",))
+			yield
 
 		# restart the treeview data rendering
 		contactsview.set_model(self._contactsmodel)
 		contactsview.thaw_child_notify()
 
 		self._contactstime = time.time()
-		return False
 
 	def attempt_login(self, numOfAttempts = 1):
 		"""
@@ -449,6 +469,9 @@ class Dialpad(object):
 	def set_account_number(self):
 		accountnumber = self._gcBackend.get_account_number()
 		self._widgetTree.get_widget("gcnumberlabel").set_label("<span size='23000' weight='bold'>%s</span>" % (accountnumber))
+
+	def _on_close(self, *args):
+		gtk.main_quit()
 
 	def _on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
 		"""
@@ -501,7 +524,7 @@ class Dialpad(object):
 		self._widgetTree.get_widget("login_dialog").response(gtk.RESPONSE_OK)
 
 	def _on_loginclose_clicked(self, *args):
-		gtk.main_quit()
+		self._on_close()
 		sys.exit(0)
 
 	def _on_clearcookies_clicked(self, *args):
@@ -514,7 +537,7 @@ class Dialpad(object):
 
 		# re-run the inital grandcentral setup
 		self.attempt_login(2)
-		gobject.idle_add(self._setup_callback_combo)
+		gobject.idle_add(self._idly_setup_callback_combo)
 
 	def _on_callbackentry_changed(self, *args):
 		"""
@@ -561,11 +584,11 @@ class Dialpad(object):
 
 	def _on_notebook_switch_page(self, notebook, page, page_num):
 		if page_num == 1 and 300 < (time.time() - self._contactstime):
-			gobject.idle_add(self.populate_contactsview)
+			gobject.idle_add(self._idly_populate_contactsview)
 		elif page_num == 2 and 300 < (time.time() - self._recenttime):
-			gobject.idle_add(self.populate_recentview)
+			gobject.idle_add(self._idly_populate_recentview)
 		elif page_num == 3 and self._callbackNeedsSetup:
-			gobject.idle_add(self._setup_callback_combo)
+			gobject.idle_add(self._idly_setup_callback_combo)
 
 		if hildon:
 			self._window.set_title(self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text())
@@ -574,7 +597,8 @@ class Dialpad(object):
 		"""
 		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
 		"""
-		if not self._gcBackend.is_authed():
+		loggedIn = self._gcBackend.is_authed()
+		if not loggedIn:
 			loggedIn = self.attempt_login(2)
 
 		if not loggedIn or not self._gcBackend.is_authed() or self._gcBackend.get_callback_number() == "":
