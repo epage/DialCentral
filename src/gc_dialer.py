@@ -197,6 +197,7 @@ class PhoneTypeSelector(object):
 
 class Dialpad(object):
 
+	__pretty_app_name__ = "Dialer"
 	__app_name__ = "gc_dialer"
 	__version__ = "0.7.0"
 	__app_magic__ = 0xdeadbeef
@@ -272,7 +273,7 @@ class Dialpad(object):
 			hildon = None
 		elif hildon is not None:
 			self._app = hildon.Program()
-			self._window.set_title("Keypad")
+			self._window.set_title("%s - Keypad", self.__pretty_app_name__)
 			self._app.add_window(self._window)
 			self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
 			self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
@@ -633,7 +634,7 @@ class Dialpad(object):
 
 		if hildon:
 			hildonTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
-			self._window.set_title(hildonTitle)
+			self._window.set_title("%s - %s", (self.__pretty_app_name__, hildonTitle))
 
 	def _on_dial_clicked(self, widget):
 		"""
