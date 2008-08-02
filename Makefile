@@ -30,9 +30,9 @@ COVERAGE_TEST=figleaf
 PROFILER=pyprofiler
 CTAGS=ctags-exuberant
 
-.PHONY: all run debug test lint tags build pre_package hand_package clean
+.PHONY: all run debug test lint tags build package clean
 
-all: test tags hand_package
+all: test tags package
 
 run: $(SOURCE)
 	cd $(SOURCE_PATH) ; ./gc_dialer.py
@@ -57,7 +57,11 @@ lint: $(LINT_STATS)
 
 tags: $(TAG_FILE) 
 
-build: $(BUILD_BIN)
+build: $(BUILD_PATH)
+
+package: $(DEB_PACKAGE)
+
+$(BUILD_PATH): $(BUILD_BIN)
 	mkdir -p $(BUILD_PATH)
 
 	cp $(SOURCE_PATH)/gc_dialer_256.png $(BUILD_PATH)
@@ -70,7 +74,7 @@ build: $(BUILD_BIN)
 
 	cp $(SOURCE_PATH)/gc_dialer.glade $(BUILD_PATH)
 
-pre_package: build
+$(PRE_PACKAGE_PATH): $(BUILD_PATH)
 	mkdir -p $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon
 	mkdir -p $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/26x26/hildon
 	mkdir -p $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/64x64/hildon
@@ -99,9 +103,7 @@ ifeq ($(PLATFORM),desktop)
 	sed -i 's/, python2.5-hildon//' $(PRE_PACKAGE_PATH)/build/DEBIAN/control
 endif
 
-hand_package: $(DEB_PACKAGE)
-
-$(DEB_PACKAGE): pre_package
+$(DEB_PACKAGE): $(PRE_PACKAGE_PATH)
 	mkdir -p $(PACKAGE_PATH)
 	dpkg-deb -b $(PRE_PACKAGE_PATH)/build/ $(DEB_PACKAGE)
 
