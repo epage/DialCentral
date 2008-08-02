@@ -268,12 +268,12 @@ class Dialpad(object):
 		global hildon
 		self._app = None
 		self._isFullScreen = False
-		if hildon is not None and isinstance(self._window, gtk.Window):
+		if hildon is not None and self._window is gtk.Window:
 			warnings.warn("Hildon installed but glade file not updated to work with hildon", UserWarning, 2)
 			hildon = None
 		elif hildon is not None:
 			self._app = hildon.Program()
-			self._window.set_title("%s - Keypad", self.__pretty_app_name__)
+			self._window.set_title("%s - Keypad" % self.__pretty_app_name__)
 			self._app.add_window(self._window)
 			self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
 			self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
@@ -634,7 +634,7 @@ class Dialpad(object):
 
 		if hildon:
 			hildonTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
-			self._window.set_title("%s - %s", (self.__pretty_app_name__, hildonTitle))
+			self._window.set_title("%s - %s" % (self.__pretty_app_name__, hildonTitle))
 
 	def _on_dial_clicked(self, widget):
 		"""
