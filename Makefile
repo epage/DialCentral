@@ -7,6 +7,7 @@ LINT_STATS=$(foreach file, $(addsuffix 1.stats,$(subst /,.,$(basename $(SOURCE))
 TEST_PATH=./tests
 TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
 PYPACKAGE_FILE=./support/GrandcentralDialer.pypackager
+DEB_METADATA=./support/DEBIAN
 SDK_DISPLAY=:2
 
 PLATFORM=desktop
@@ -15,9 +16,11 @@ ifeq ($(PLATFORM),os2007)
 else
 	LEGACY_GLADE=0
 endif
-PACKAGE_PATH=./pkg-$(PLATFORM)
+PRE_PACKAGE_PATH=./pkg-$(PLATFORM)
+PACKAGE_PATH=./deb-$(PLATFORM)
 BUILD_PATH=./build-$(PLATFORM)
 BUILD_BIN=$(BUILD_PATH)/gc_dialer.py
+DEB_PACKAGE=$(PACKAGE_PATH)/$(PROJECT_NAME)-0.7.2-$(PLATFORM).deb
 
 DEBUGGER=winpdb
 UNIT_TEST=nosetests -w $(TEST_PATH)
@@ -27,9 +30,9 @@ COVERAGE_TEST=figleaf
 PROFILER=pyprofiler
 CTAGS=ctags-exuberant
 
-.PHONY: all run debug test lint tags build package clean
+.PHONY: all run debug test lint tags build pre_package hand_package clean
 
-all: test tags package
+all: test tags hand_package
 
 run: $(SOURCE)
 	cd $(SOURCE_PATH) ; ./gc_dialer.py
@@ -67,33 +70,44 @@ build: $(BUILD_BIN)
 
 	cp $(SOURCE_PATH)/gc_dialer.glade $(BUILD_PATH)
 
-package: build
-	mkdir -p $(PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon
-	mkdir -p $(PACKAGE_PATH)/build/usr/share/icons/hicolor/26x26/hildon
-	mkdir -p $(PACKAGE_PATH)/build/usr/share/icons/hicolor/64x64/hildon
-	mkdir -p $(PACKAGE_PATH)/build/usr/share/applications/hildon
-	mkdir -p $(PACKAGE_PATH)/build/usr/local/lib
-	mkdir -p $(PACKAGE_PATH)/build/usr/local/bin
+pre_package: build
+	mkdir -p $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon
+	mkdir -p $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/26x26/hildon
+	mkdir -p $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/64x64/hildon
+	mkdir -p $(PRE_PACKAGE_PATH)/build/usr/share/applications/hildon
+	mkdir -p $(PRE_PACKAGE_PATH)/build/usr/local/lib
+	mkdir -p $(PRE_PACKAGE_PATH)/build/usr/local/bin
 
-	cp $(BUILD_PATH)/gc_dialer_256.png $(PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon/gc_dialer.png
-	cp $(BUILD_PATH)/gc_dialer_64.png $(PACKAGE_PATH)/build/usr/share/icons/hicolor/64x64/hildon/gc_dialer.png
-	cp $(BUILD_PATH)/gc_dialer_26.png $(PACKAGE_PATH)/build/usr/share/icons/hicolor/26x26/hildon/gc_dialer.png
+	cp $(BUILD_PATH)/gc_dialer_256.png $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon/gc_dialer.png
+	cp $(BUILD_PATH)/gc_dialer_64.png $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/64x64/hildon/gc_dialer.png
+	cp $(BUILD_PATH)/gc_dialer_26.png $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/26x26/hildon/gc_dialer.png
 
-	cp $(BUILD_PATH)/gc_contact.png $(PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon/gc_contact.png
+	cp $(BUILD_PATH)/gc_contact.png $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon/gc_contact.png
 
-	cp $(BUILD_PATH)/gc_dialer.desktop $(PACKAGE_PATH)/build/usr/share/applications/hildon
+	cp $(BUILD_PATH)/gc_dialer.desktop $(PRE_PACKAGE_PATH)/build/usr/share/applications/hildon
 
-	cp $(BUILD_PATH)/gc_dialer.glade $(PACKAGE_PATH)/build/usr/local/lib
+	cp $(BUILD_PATH)/gc_dialer.glade $(PRE_PACKAGE_PATH)/build/usr/local/lib
 ifneq ($(PLATFORM),desktop)
-	sed -i 's/^[ \t]*//;s/GtkWindow/HildonWindow/' $(PACKAGE_PATH)/build/usr/local/lib/gc_dialer.glade
+	sed -i 's/^[ \t]*//;s/GtkWindow/HildonWindow/' $(PRE_PACKAGE_PATH)/build/usr/local/lib/gc_dialer.glade
 endif
 
-	cp $(BUILD_BIN) $(PACKAGE_PATH)/build/usr/local/bin
+	cp $(BUILD_BIN) $(PRE_PACKAGE_PATH)/build/usr/local/bin
 
-	cp $(PYPACKAGE_FILE) $(PACKAGE_PATH)
+	cp $(PYPACKAGE_FILE) $(PRE_PACKAGE_PATH)
+	cp -R $(DEB_METADATA) $(PRE_PACKAGE_PATH)/build/
+ifeq ($(PLATFORM),desktop)
+	sed -i 's/, python2.5-hildon//' $(PRE_PACKAGE_PATH)/build/DEBIAN/control
+endif
+
+hand_package: $(DEB_PACKAGE)
+
+$(DEB_PACKAGE): pre_package
+	mkdir -p $(PACKAGE_PATH)
+	dpkg-deb -b $(PRE_PACKAGE_PATH)/build/ $(DEB_PACKAGE)
 
 clean:
-	rm -Rf $(PACKAGE_PATH) $(BUILD_PATH)
+	rm -Rf $(PRE_PACKAGE_PATH) $(PACKAGE_PATH) $(BUILD_PATH)
+	rm -Rf $(DEB_PACKAGE)
 	rm -Rf $(OBJ)
 	rm -Rf $(LINT_STATS_PATH)/*
 
@@ -102,7 +116,7 @@ $(BUILD_BIN): $(SOURCE)
 
 	#Construct the program by cat-ing all the python files together
 	echo "#!/usr/bin/python2.5" > $(BUILD_BIN)
-	#echo "from __future__ import with_statement" >> $(PACKAGE_PATH)/usr/local/bin/gc_dialer.py
+	#echo "from __future__ import with_statement" >> $(PRE_PACKAGE_PATH)/usr/local/bin/gc_dialer.py
 	cat $(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/browser_emu.py | grep -e '^import ' | sort -u >> $(BUILD_BIN)
 	cat $(SOURCE_PATH)/browser_emu.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/gc_dialer.py | grep -v 'browser_emu' | grep -v 'gcbackend' | grep -v "#!" >> $(BUILD_BIN)
 	chmod 755 $(BUILD_BIN)
