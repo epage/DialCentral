@@ -2,14 +2,19 @@ Maintainer: Mark Bergman <bergman@mertech.com>
 Package: Dialer
 Section: user/Communication
 Priority: Optional
-Depends: python2.5, python2.5-hildon, python2.5-gtk2
-Version: 0.7
+Depends: python2.5, python2.5-gtk2
+Recommends: python2.5-hildon
+Version: 0.0.0
 Architecture: all
-Description: Python script that provides a telephone dial-pad in order to enter
- phone numbers to be dialed through Grandcentral.com.
- 
- Requirements:
- 	an account with Grandcentral
+Description: Python frontend to the private Google service Grandcentral
+ .
+ Features
+  * Dialing of custom numbers. 
+  * GrandCentral contact support. 
+  * Hildon integration where supported. 
+ .
+ Requirements
+  * An account with Grandcentral. 
 Maemo-Icon-26: 
  iVBORw0KGgoAAAANSUhEUgAAABcAAAAaCAYAAABctMd+AAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A
  /wD/oL2nkwAAAAlwSFlzAAAN1wAADdcBQiibeAAAAAd0SU1FB9gGHA8sCwKJ3H4AAAYHSURBVEjH
@@ -42,4 +47,4 @@ Maemo-Icon-26:
  2bPeWCz2x1Qq9XDbtm2lDoejVZZl0uk0siyTSqWYn5+PhMPhvk2bNmEYRigUCrW2t7efepzrX076
  2oPGX2oGAAAAAElFTkSuQmCC
  
-Installed-Size: 83
+Installed-Size: 0

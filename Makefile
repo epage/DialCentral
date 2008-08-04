@@ -101,8 +101,13 @@ endif
 	cp $(PYPACKAGE_FILE) $(PRE_PACKAGE_PATH)
 	cp -R $(DEB_METADATA) $(PRE_PACKAGE_PATH)/build/
 ifeq ($(PLATFORM),desktop)
-	sed -i 's/, python2.5-hildon//' $(PRE_PACKAGE_PATH)/build/DEBIAN/control
+	#sed -i 's/, python2.5-hildon//' $(PRE_PACKAGE_PATH)/build/DEBIAN/control
 endif
+	sed -i 's/Version: 0.0.0/Version: $(PROJECT_VERSION)/' $(PRE_PACKAGE_PATH)/build/DEBIAN/control
+	#Autoguess install size
+	#du -hs pkg-desktop/build/ | sed 's/K *.*//'
+	sed -i 's/Installed-Size: 0/Installed-Size: 196/' $(PRE_PACKAGE_PATH)/build/DEBIAN/control
+	cp LICENSE $(PRE_PACKAGE_PATH)/build/DEBIAN/copyright
 
 $(DEB_PACKAGE): $(PRE_PACKAGE_PATH)
 	mkdir -p $(PACKAGE_PATH)

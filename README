@@ -1,7 +1,7 @@
 Building a package
 ===================
 Run
-	make PLATFORM=...
+	make PLATFORM=... package
 which will create a "./pkg-.../..." heirarchy.  Move this structure to somewhere on the tablet, then run pypackager. 
 
 Supported PLATFORMs include
