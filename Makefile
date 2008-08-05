@@ -33,7 +33,7 @@ CTAGS=ctags-exuberant
 
 .PHONY: all run debug test lint tags build package clean
 
-all: test tags package
+all: test package
 
 run: $(SOURCE)
 	cd $(SOURCE_PATH) ; ./gc_dialer.py
@@ -123,7 +123,7 @@ $(BUILD_BIN): $(SOURCE)
 	mkdir -p $(dir $(BUILD_BIN))
 
 	#Construct the program by cat-ing all the python files together
-	echo "#!/usr/bin/python2.5" > $(BUILD_BIN)
+	echo "#!/usr/bin/python" > $(BUILD_BIN)
 	#echo "from __future__ import with_statement" >> $(PRE_PACKAGE_PATH)/usr/local/bin/gc_dialer.py
 	cat $(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/browser_emu.py | grep -e '^import ' | sort -u >> $(BUILD_BIN)
 	cat $(SOURCE_PATH)/browser_emu.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/gc_dialer.py | grep -v 'browser_emu' | grep -v 'gcbackend' | grep -v "#!" >> $(BUILD_BIN)

@@ -1,4 +1,4 @@
-#!/usr/bin/python2.5
+#!/usr/bin/python
 
 # GC Dialer - Front end for Google's Grand Central service.
 # Copyright (C) 2008  Mark Bergman bergman AT merctech DOT com
@@ -287,7 +287,6 @@ class Dialpad(object):
 			hildon = None
 		elif hildon is not None:
 			self._app = hildon.Program()
-			self._window.set_title("%s - Keypad" % self.__pretty_app_name__)
 			self._app.add_window(self._window)
 			self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
 			self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
@@ -304,6 +303,11 @@ class Dialpad(object):
 			self._window.connect("window-state-event", self._on_window_state_change)
 		else:
 			warnings.warn("No Hildon", UserWarning, 2)
+
+		if hildon is not None:
+			self._window.set_title("Keypad")
+		else:
+			self._window.set_title("%s - Keypad" % self.__pretty_app_name__)
 
 		self._osso = None
 		self._ebook = None
@@ -646,9 +650,11 @@ class Dialpad(object):
 		elif page_num == 3 and self._callbackNeedsSetup:
 			gobject.idle_add(self._idly_setup_callback_combo)
 
-		if hildon:
-			hildonTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
-			self._window.set_title("%s - %s" % (self.__pretty_app_name__, hildonTitle))
+		tabTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
+		if hildon is not None:
+			self._window.set_title(tabTitle)
+		else:
+			self._window.set_title("%s - %s" % (self.__pretty_app_name__, tabTitle))
 
 	def _on_dial_clicked(self, widget):
 		"""
@@ -716,7 +722,7 @@ class DummyOptions(object):
 
 if __name__ == "__main__":
 	if hildon is not None:
-		gtk.set_application_name("Dialer")
+		gtk.set_application_name(Dialpad.__pretty_app_name__)
 
 	if optparse is not None:
 		parser = optparse.OptionParser()
