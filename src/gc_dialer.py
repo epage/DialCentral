@@ -154,6 +154,30 @@ def make_idler(func):
 	return callable
 
 
+class DummyAddressBook(object):
+
+	def get_addressbooks(self):
+		"""
+		@returns Iterable of (Address Book Factory, Book Id, Book Name)
+		"""
+		yield self, None, "None"
+	
+	def open_addressbook(self, bookId):
+		return self
+
+	def get_contacts(self):
+		"""
+		@returns Iterable of (contact id, contact name)
+		"""
+		return
+
+	def get_contact_details(self, contactId):
+		"""
+		@returns Iterable of (Phone Type, Phone Number)
+		"""
+		return
+
+
 class PhoneTypeSelector(object):
 
 	def __init__(self, widgetTree, gcBackend):
