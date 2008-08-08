@@ -1,7 +1,7 @@
 PROJECT_NAME=gc_dialer
 PROJECT_VERSION=0.8.0
 SOURCE_PATH=src
-SOURCE=$(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/browser_emu.py
+SOURCE=$(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/evo_backend.py $(SOURCE_PATH)/gc_backend.py $(SOURCE_PATH)/browser_emu.py
 OBJ=$(SOURCE:.py=.pyc)
 LINT_STATS_PATH=~/.pylint.d
 LINT_STATS=$(foreach file, $(addsuffix 1.stats,$(subst /,.,$(basename $(SOURCE)))), $(LINT_STATS_PATH)/$(file) )
@@ -125,8 +125,8 @@ $(BUILD_BIN): $(SOURCE)
 	#Construct the program by cat-ing all the python files together
 	echo "#!/usr/bin/python" > $(BUILD_BIN)
 	#echo "from __future__ import with_statement" >> $(PRE_PACKAGE_PATH)/usr/local/bin/gc_dialer.py
-	cat $(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/browser_emu.py | grep -e '^import ' | sort -u >> $(BUILD_BIN)
-	cat $(SOURCE_PATH)/browser_emu.py $(SOURCE_PATH)/gcbackend.py $(SOURCE_PATH)/gc_dialer.py | grep -v 'browser_emu' | grep -v 'gcbackend' | grep -v "#!" >> $(BUILD_BIN)
+	cat $(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/evo_backend.py $(SOURCE_PATH)/gc_backend.py $(SOURCE_PATH)/browser_emu.py | grep -e '^import ' | sort -u >> $(BUILD_BIN)
+	cat $(SOURCE_PATH)/browser_emu.py $(SOURCE_PATH)/evo_backend.py $(SOURCE_PATH)/gc_backend.py $(SOURCE_PATH)/gc_dialer.py | grep -v 'browser_emu' | grep -v 'gc_backend' | grep -v "evo_backend"| grep -v "#!" >> $(BUILD_BIN)
 	chmod 755 $(BUILD_BIN)
 
 $(TAG_FILE): $(SOURCE)

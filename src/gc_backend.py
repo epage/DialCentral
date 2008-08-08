@@ -258,6 +258,15 @@ class GCDialer(object):
 			personsName = match.group(3)
 			yield personsName, phoneNumber, date, action
 
+	def get_addressbooks(self):
+		"""
+		@returns Iterable of (Address Book Factory, Book Id, Book Name)
+		"""
+		yield self, None, "Grand Central"
+	
+	def open_addressbook(self, bookId):
+		return self
+
 	def get_contacts(self):
 		"""
 		@returns Iterable of (contact id, contact name)

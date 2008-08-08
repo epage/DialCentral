@@ -63,7 +63,8 @@ except ImportError:
 	doctest = None
 	optparse = None
 
-from gcbackend import GCDialer
+from gc_backend import GCDialer
+from evo_backend import EvolutionAddressBook
 
 import socket
 
