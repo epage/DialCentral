@@ -178,6 +178,51 @@ class DummyAddressBook(object):
 		return
 
 
+class SettingsWindow(object):
+
+	def __init__(self, widgetTree, gcDialer):
+		self._gcDialer = gcDialer
+		self._widgetTree = widgetTree
+		self._dialog = self._widgetTree.get_widget("settings_dialog")
+
+		self._applyButton = self._widgetTree.get_widget("apply_settings")
+		self._applyButton.connect("clicked", self.custom_button_response(gtk.RESPONSE_OK))
+
+		self._cancelButton = self._widgetTree.get_widget("cancel_settings")
+		self._cancelButton.connect("clicked", self.custom_button_response(gtk.RESPONSE_CANCEL))
+
+		self._booksCombo = self._widgetTree.get_widget("addressbooks_combo")
+
+		self._booksList = gtk.ListStore(gobject.TYPE_STRING)
+		self._booksCombo.set_model(self._booksList)
+		self._booksCombo.set_text_column(0)
+		#for number, description in self._gcBackend.get_callback_numbers().iteritems():
+		#	self.callbacklist.append([make_pretty(number)])
+		#self._booksCombo.get_child().set_text()
+	
+	def custom_button_response(self, response):
+
+		def button_handler(*args, **kwds):
+			self._dialog.response(response)
+
+		return button_handler
+
+	def run(self, contactDetails):
+		self._typemodel.clear()
+
+		for phoneType, phoneNumber in contactDetails:
+			self._typemodel.append((phoneNumber, "%s - %s" % (make_pretty(phoneNumber), phoneType)))
+
+		self._dialog.run()
+
+		if userResponse == gtk.RESPONSE_OK:
+			pass
+		else:
+			pass
+
+		self._dialog.hide()
+
+
 class PhoneTypeSelector(object):
 
 	def __init__(self, widgetTree, gcBackend):
