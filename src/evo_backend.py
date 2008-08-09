@@ -30,6 +30,9 @@ except ImportError:
 
 
 class EvolutionAddressBook(object):
+	"""
+	@note Combined the factory and the addressbook for "simplicity" and "cutting down" the number of allocations/deallocations
+	"""
 
 	def __init__(self, bookId = None):
 		if not self.is_supported():

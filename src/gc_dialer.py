@@ -150,6 +150,9 @@ def make_idler(func):
 
 
 class DummyAddressBook(object):
+	"""
+	Minimal example of both an addressbook factory and an addressbook
+	"""
 
 	def get_addressbooks(self):
 		"""
@@ -178,6 +181,9 @@ class DummyAddressBook(object):
 
 
 class SettingsDialog(object):
+	"""
+	@todo Remove this.  Currently its only used for addressbooks and I want to make that a combo box on the contacts tab
+	"""
 
 	def __init__(self, widgetTree, gcDialer):
 		self._gcDialer = gcDialer
