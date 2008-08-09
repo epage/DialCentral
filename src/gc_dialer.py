@@ -180,76 +180,6 @@ class DummyAddressBook(object):
 		return []
 
 
-class SettingsDialog(object):
-	"""
-	@todo Remove this.  Currently its only used for addressbooks and I want to make that a combo box on the contacts tab
-	"""
-
-	def __init__(self, widgetTree, gcDialer):
-		self._gcDialer = gcDialer
-		self._widgetTree = widgetTree
-		self._dialog = self._widgetTree.get_widget("settings_dialog")
-
-		self._applyButton = self._widgetTree.get_widget("apply_settings")
-		self._applyButton.connect("clicked", self.custom_button_response(gtk.RESPONSE_OK))
-
-		self._cancelButton = self._widgetTree.get_widget("cancel_settings")
-		self._cancelButton.connect("clicked", self.custom_button_response(gtk.RESPONSE_CANCEL))
-
-		self._booksList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
-		for (factoryId, bookId), (factoryName, bookName) in self._gcDialer.get_addressbooks():
-			row = (str(factoryId), bookId, factoryName, bookName)
-			self._booksList.append(row)
-
-		self._booksView = self._widgetTree.get_widget("books_view")
-		self._booksView.set_model(self._booksList)
-
-		# Add the column to the treeview
-		column = gtk.TreeViewColumn("Addressbook")
-
-		textrenderer = gtk.CellRendererText()
-		column.pack_start(textrenderer, expand=False)
-		column.add_attribute(textrenderer, 'text', 2)
-
-		textrenderer = gtk.CellRendererText()
-		column.pack_start(textrenderer, expand=True)
-		column.add_attribute(textrenderer, 'text', 3)
-
-		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		column.set_sort_column_id(2)
-		column.set_visible(True)
-		self._booksView.append_column(column)
-
-		self._booksViewSelection = self._booksView.get_selection()
-		self._booksViewSelection.set_mode(gtk.SELECTION_SINGLE)
-		self.reset()
-	
-	def reset(self):
-		pass
-	
-	def custom_button_response(self, response):
-
-		def button_handler(*args, **kwds):
-			self._dialog.response(response)
-
-		return button_handler
-
-	def run(self):
-		userResponse = self._dialog.run()
-
-		if userResponse == gtk.RESPONSE_OK:
-			model, itr = self._booksViewSelection.get_selected()
-			if itr:
-				factoryId = int(self._booksList.get_value(itr, 0))
-				bookId = self._booksList.get_value(itr, 1)
-				self._gcDialer.open_addressbook(factoryId, bookId)
-				self._booksViewSelection.unselect_all()
-		else:
-			self.reset()
-
-		self._dialog.hide()
-
-
 class PhoneTypeSelector(object):
 
 	def __init__(self, widgetTree, gcBackend):
@@ -432,7 +362,6 @@ class Dialpad(object):
 			"on_dialpad_quit": self._on_close,
 			"on_paste": self._on_paste,
 			"on_clear_number": self._on_clear_number,
-			"on_settings": self._on_settings,
 
 			"on_clearcookies_clicked": self._on_clearcookies_clicked,
 			"on_notebook_switch_page": self._on_notebook_switch_page,
@@ -445,6 +374,7 @@ class Dialpad(object):
 		}
 		self._widgetTree.signal_autoconnect(callbackMapping)
 		self._widgetTree.get_widget("callbackcombo").get_child().connect("changed", self._on_callbackentry_changed)
+		self._widgetTree.get_widget("addressbook_combo").get_child().connect("changed", self._on_addressbook_entry_changed)
 
 		if self._window:
 			self._window.connect("destroy", gtk.main_quit)
@@ -460,8 +390,18 @@ class Dialpad(object):
 		self._addressBook = None
 		self.open_addressbook(*self.get_addressbooks().next()[0][0:2])
 
+		self._booksList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
+		for (factoryId, bookId), (factoryName, bookName) in self.get_addressbooks():
+			entryName = "%s: %s" % (factoryName, bookName) if factoryName else bookName
+			row = (str(factoryId), bookId, entryName)
+			self._booksList.append(row)
+
+		combobox = self._widgetTree.get_widget("addressbook_combo")
+		combobox.set_model(self._booksList)
+		combobox.set_text_column(2)
+		combobox.set_active(0)
+
 		self._phoneTypeSelector = PhoneTypeSelector(self._widgetTree, self._gcBackend)
-		self._settingsDialog = SettingsDialog(self._widgetTree, self)
 
 		if not self._gcBackend.is_authed():
 			self.attempt_login(2)
@@ -542,12 +482,13 @@ class Dialpad(object):
 		return False
 
 	def _idly_setup_callback_combo(self):
-		combobox = self._widgetTree.get_widget("callbackcombo")
 		self.callbacklist = gtk.ListStore(gobject.TYPE_STRING)
+		for number, description in self._gcBackend.get_callback_numbers().iteritems():
+			self.callbacklist.append((make_pretty(number),))
+
+		combobox = self._widgetTree.get_widget("callbackcombo")
 		combobox.set_model(self.callbacklist)
 		combobox.set_text_column(0)
-		for number, description in self._gcBackend.get_callback_numbers().iteritems():
-			self.callbacklist.append([make_pretty(number)])
 
 		combobox.get_child().set_text(make_pretty(self._gcBackend.get_callback_number()))
 		self._callbackNeedsSetup = False
@@ -688,9 +629,6 @@ class Dialpad(object):
 		else:
 			self._isFullScreen = False
 	
-	def _on_settings(self, *args, **kwds):
-		self._settingsDialog.run()
-
 	def _on_key_press(self, widget, event, *args):
 		"""
 		@note Hildon specific
@@ -740,6 +678,14 @@ class Dialpad(object):
 		self.set_number(self._recentmodel.get_value(itr, 0))
 		self._notebook.set_current_page(0)
 		self._recentviewselection.unselect_all()
+
+	def _on_addressbook_entry_changed(self, *args, **kwds):
+		combobox = self._widgetTree.get_widget("addressbook_combo")
+		itr = combobox.get_active_iter()
+
+		factoryId = int(self._booksList.get_value(itr, 0))
+		bookId = self._booksList.get_value(itr, 1)
+		self.open_addressbook(factoryId, bookId)
 
 	def _on_contactsview_row_activated(self, treeview, path, view_column):
 		model, itr = self._contactsviewselection.get_selected()
