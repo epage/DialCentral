@@ -42,12 +42,6 @@ except ImportError:
 
 try:
 	import osso
-	try:
-		import abook
-		import evolution.ebook as evobook
-	except ImportError:
-		abook = None
-		evobook = None
 except ImportError:
 	osso = None
 
@@ -412,11 +406,6 @@ class Dialpad(object):
 			self._osso = osso.Context(Dialpad.__app_name__, Dialpad.__version__, False)
 			device = osso.DeviceState(self._osso)
 			device.set_device_state_callback(self._on_device_state_change, 0)
-			if abook is not None and evobook is not None:
-				abook.init_with_name(Dialpad.__app_name__, self._osso)
-				self._ebook = evobook.open_addressbook("default")
-			else:
-				warnings.warn("No abook and No evolution address book support", UserWarning, 2)
 		else:
 			warnings.warn("No OSSO", UserWarning, 2)
 
