@@ -3,7 +3,7 @@ Package: Dialer
 Section: user/Communication
 Priority: Optional
 Depends: python2.5, python2.5-gtk2
-Recommends: python2.5-hildon python-evolution
+Recommends: python2.5-hildon, python-evolution
 Version: 0.0.0
 Architecture: all
 Description: Python frontend to the private Google service Grandcentral

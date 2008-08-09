@@ -70,8 +70,6 @@ $(BUILD_PATH): $(BUILD_BIN)
 	cp $(SOURCE_PATH)/gc_dialer_64.png $(BUILD_PATH)
 	cp $(SOURCE_PATH)/gc_dialer_26.png $(BUILD_PATH)
 
-	cp $(SOURCE_PATH)/gc_contact.png $(BUILD_PATH)
-
 	cp $(SOURCE_PATH)/gc_dialer.desktop $(BUILD_PATH)
 
 	cp $(SOURCE_PATH)/gc_dialer.glade $(BUILD_PATH)
@@ -87,8 +85,6 @@ $(PRE_PACKAGE_PATH): $(BUILD_PATH)
 	cp $(BUILD_PATH)/gc_dialer_256.png $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon/gc_dialer.png
 	cp $(BUILD_PATH)/gc_dialer_64.png $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/64x64/hildon/gc_dialer.png
 	cp $(BUILD_PATH)/gc_dialer_26.png $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/26x26/hildon/gc_dialer.png
-
-	cp $(BUILD_PATH)/gc_contact.png $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon/gc_contact.png
 
 	cp $(BUILD_PATH)/gc_dialer.desktop $(PRE_PACKAGE_PATH)/build/usr/share/applications/hildon
 

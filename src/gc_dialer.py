@@ -268,28 +268,8 @@ class Dialpad(object):
 		self._recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._recentviewselection = None
 
-		self._gcContactText = "GC"
-		try:
-			self._gcContactIcon = gtk.gdk.pixbuf_new_from_file_at_size('gc_contact.png', 16, 16)
-		except gobject.GError:
-			self._gcContactIcon = None
 		self._contactstime = 0.0
-		if self._gcContactIcon is not None:
-			self._contactsmodel = gtk.ListStore(
-				gtk.gdk.Pixbuf,
-				gobject.TYPE_STRING,
-				gobject.TYPE_STRING,
-				gobject.TYPE_STRING,
-				gobject.TYPE_STRING
-			)
-		else:
-			self._contactsmodel = gtk.ListStore(
-				gobject.TYPE_STRING,
-				gobject.TYPE_STRING,
-				gobject.TYPE_STRING,
-				gobject.TYPE_STRING,
-				gobject.TYPE_STRING
-			)
+		self._contactsmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._contactsviewselection = None
 
 		for path in Dialpad._glade_files:
@@ -450,16 +430,6 @@ class Dialpad(object):
 		# Add the column to the treeview
 		column = gtk.TreeViewColumn("Contact")
 
-		if self._gcContactIcon is not None:
-			iconrenderer = gtk.CellRendererPixbuf()
-			column.pack_start(iconrenderer, expand=False)
-			column.add_attribute(iconrenderer, 'pixbuf', 0)
-		else:
-			warnings.warn("Contact icon unavailable", UserWarning, 1)
-			textrenderer = gtk.CellRendererText()
-			column.pack_start(textrenderer, expand=False)
-			column.add_attribute(textrenderer, 'text', 0)
-
 		textrenderer = gtk.CellRendererText()
 		column.pack_start(textrenderer, expand=True)
 		column.add_attribute(textrenderer, 'text', 1)
@@ -524,11 +494,7 @@ class Dialpad(object):
 		contactsview.freeze_child_notify()
 		contactsview.set_model(None)
 
-		# get gc icon
-		if self._gcContactIcon is not None:
-			contactType = (self._gcContactIcon,)
-		else:
-			contactType = (self._addressBook.factory_short_name(),)
+		contactType = (self._addressBook.factory_short_name(),)
 		for contactId, contactName in self._addressBook.get_contacts():
 			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("",))
 			yield
