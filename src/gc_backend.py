@@ -267,7 +267,8 @@ class GCDialer(object):
 	def open_addressbook(self, bookId):
 		return self
 
-	def factory_name(self):
+	@staticmethod
+	def factory_name():
 		return "GC"
 
 	def get_contacts(self):

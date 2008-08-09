@@ -58,7 +58,8 @@ class EvolutionAddressBook(object):
 		self._book = evolution.ebook.open_addressbook(self._bookId)
 		return self
 
-	def factory_name(self):
+	@staticmethod
+	def factory_name():
 		return "Evo"
 
 	def get_contacts(self):

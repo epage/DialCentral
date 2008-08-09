@@ -160,7 +160,8 @@ class DummyAddressBook(object):
 	def open_addressbook(self, bookId):
 		return self
 
-	def factory_name(self):
+	@staticmethod
+	def factory_name():
 		return ""
 
 	def get_contacts(self):
