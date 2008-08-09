@@ -138,7 +138,7 @@ def make_idler(func):
 	"""
 	a = []
 
-	def callable(*args, **kwds):
+	def decorated_func(*args, **kwds):
 		if not a:
 			a.append(func(*args, **kwds))
 		try:
@@ -147,11 +147,11 @@ def make_idler(func):
 		except StopIteration:
 			return False
 	
-	callable.__name__ = func.__name__
-	callable.__doc__ = func.__doc__
-	callable.__dict__.update(func.__dict__)
+	decorated_func.__name__ = func.__name__
+	decorated_func.__doc__ = func.__doc__
+	decorated_func.__dict__.update(func.__dict__)
 
-	return callable
+	return decorated_func
 
 
 class DummyAddressBook(object):
@@ -208,12 +208,12 @@ class SettingsWindow(object):
 		return button_handler
 
 	def run(self, contactDetails):
-		self._typemodel.clear()
+		self._booksList.clear()
 
 		for phoneType, phoneNumber in contactDetails:
-			self._typemodel.append((phoneNumber, "%s - %s" % (make_pretty(phoneNumber), phoneType)))
+			self._booksList.append((phoneNumber, "%s - %s" % (make_pretty(phoneNumber), phoneType)))
 
-		self._dialog.run()
+		userResponse = self._dialog.run()
 
 		if userResponse == gtk.RESPONSE_OK:
 			pass
@@ -300,6 +300,7 @@ class Dialpad(object):
 		self._clipboard = gtk.clipboard_get()
 
 		self._deviceIsOnline = True
+		self.callbacklist = None
 		self._callbackNeedsSetup = True
 
 		self._recenttime = 0.0
@@ -427,6 +428,14 @@ class Dialpad(object):
 			self._window.show_all()
 
 		self._gcBackend = GCDialer()
+
+		self._addressBookFactories = [
+			DummyAddressBook(),
+			EvolutionAddressBook(),
+			self._gcBackend,
+		]
+		self._addressBook = None
+		self.open_addressbook(*self.get_addressbooks().next()[0:2])
 
 		self._phoneTypeSelector = PhoneTypeSelector(self._widgetTree, self._gcBackend)
 
@@ -584,6 +593,18 @@ class Dialpad(object):
 			dialog.destroy()
 		error_dialog.connect("response", close, self)
 		error_dialog.run()
+
+	def get_addressbooks(self):
+		"""
+		@returns Iterable of (Address Book Factory, Book Id, Book Name)
+		"""
+		for factory in self._addressBookFactories:
+			for bookFactory, bookId, bookName in factory.get_addressbooks():
+				yield bookFactory, bookId, bookName
+	
+	def open_addressbook(self, bookFactory, bookId):
+		self._addressBook = bookFactory.open_addressbook(bookId)
+		self._contactstime = 0
 
 	def set_number(self, number):
 		"""

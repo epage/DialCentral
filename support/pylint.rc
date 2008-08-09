@@ -53,9 +53,7 @@ load-plugins=
 #enable-msg=
 
 # Disable the message(s) with the given id(s).
-#Unused Arg, Missing Docstring
-disable-msg=W0613,C0111
-
+disable-msg=W0403,W0612,W0613,C0103,C0111,C0301
 
 [REPORTS]
 
