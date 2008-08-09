@@ -390,7 +390,7 @@ class Dialpad(object):
 			self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
 			self._widgetTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
 
-			gtkMenu = self._widgetTree.get_widget("menubar1")
+			gtkMenu = self._widgetTree.get_widget("dialpad_menubar")
 			menu = gtk.Menu()
 			for child in gtkMenu.get_children():
 				child.reparent(menu)
@@ -646,7 +646,7 @@ class Dialpad(object):
 		Displays current account number
 		"""
 		accountnumber = self._gcBackend.get_account_number()
-		self._widgetTree.get_widget("gcnumberlabel").set_label("<span size='23000' weight='bold'>%s</span>" % (accountnumber))
+		self._widgetTree.get_widget("gcnumber_display").set_label("<span size='23000' weight='bold'>%s</span>" % (accountnumber))
 
 	def _on_close(self, *args):
 		gtk.main_quit()

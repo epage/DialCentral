@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Sat Aug  9 10:42:47 2008 -->
+<!--Generated with glade3 3.4.5 on Sat Aug  9 15:57:47 2008 -->
 <glade-interface>
   <widget class="GtkWindow" id="Dialpad">
     <property name="width_request">400</property>
@@ -10,7 +10,7 @@
       <widget class="GtkVBox" id="vbox1">
         <property name="visible">True</property>
         <child>
-          <widget class="GtkMenuBar" id="menubar1">
+          <widget class="GtkMenuBar" id="dialpad_menubar">
             <property name="visible">True</property>
             <child>
               <widget class="GtkMenuItem" id="file_menu_item">
@@ -109,7 +109,7 @@
             <property name="homogeneous">True</property>
             <signal name="switch_page" handler="on_notebook_switch_page"/>
             <child>
-              <widget class="GtkVBox" id="vbox2">
+              <widget class="GtkVBox" id="keypad_vbox">
                 <property name="visible">True</property>
                 <child>
                   <widget class="GtkLabel" id="numberdisplay">
@@ -482,7 +482,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkScrolledWindow" id="scrolledwindow2">
+              <widget class="GtkScrolledWindow" id="contacts_scrolledwindow">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="hscrollbar_policy">GTK_POLICY_NEVER</property>
@@ -518,7 +518,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkScrolledWindow" id="scrolledwindow1">
+              <widget class="GtkScrolledWindow" id="recent_scrolledwindow">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="hscrollbar_policy">GTK_POLICY_NEVER</property>
@@ -584,7 +584,7 @@
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkLabel" id="label3">
+                  <widget class="GtkLabel" id="callback_number_label">
                     <property name="visible">True</property>
                     <property name="xalign">1</property>
                     <property name="xpad">5</property>
@@ -614,7 +614,7 @@ must reauthenticate</property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkLabel" id="gcnumberlabel">
+                  <widget class="GtkLabel" id="gcnumber_display">
                     <property name="visible">True</property>
                     <property name="label" translatable="yes">&lt;span size="15000" weight="bold"&gt;(518) 555-1212&lt;/span&gt;</property>
                     <property name="use_markup">True</property>
@@ -626,7 +626,7 @@ must reauthenticate</property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkLabel" id="label1">
+                  <widget class="GtkLabel" id="gcnumber_label">
                     <property name="visible">True</property>
                     <property name="xalign">1</property>
                     <property name="xpad">5</property>
@@ -655,7 +655,7 @@ Number:</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkVBox" id="vbox3">
+              <widget class="GtkVBox" id="about_vbox">
                 <property name="visible">True</property>
                 <child>
                   <widget class="GtkLabel" id="about_title">
@@ -759,7 +759,7 @@ Copyright 2008</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="label6">
+              <widget class="GtkLabel" id="password_label">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">Password</property>
               </widget>
@@ -769,7 +769,7 @@ Copyright 2008</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="label5">
+              <widget class="GtkLabel" id="username_label">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">Username</property>
               </widget>
