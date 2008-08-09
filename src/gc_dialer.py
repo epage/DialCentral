@@ -145,6 +145,7 @@ def make_idler(func):
 			a[0].next()
 			return True
 		except StopIteration:
+			del a[:]
 			return False
 	
 	decorated_func.__name__ = func.__name__
@@ -160,25 +161,28 @@ class DummyAddressBook(object):
 		"""
 		@returns Iterable of (Address Book Factory, Book Id, Book Name)
 		"""
-		yield self, None, "None"
+		yield self, "", "None"
 	
 	def open_addressbook(self, bookId):
 		return self
+
+	def factory_name(self):
+		return ""
 
 	def get_contacts(self):
 		"""
 		@returns Iterable of (contact id, contact name)
 		"""
-		return
+		return []
 
 	def get_contact_details(self, contactId):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)
 		"""
-		return
+		return []
 
 
-class SettingsWindow(object):
+class SettingsDialog(object):
 
 	def __init__(self, widgetTree, gcDialer):
 		self._gcDialer = gcDialer
@@ -191,14 +195,36 @@ class SettingsWindow(object):
 		self._cancelButton = self._widgetTree.get_widget("cancel_settings")
 		self._cancelButton.connect("clicked", self.custom_button_response(gtk.RESPONSE_CANCEL))
 
-		self._booksCombo = self._widgetTree.get_widget("addressbooks_combo")
+		self._booksList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
+		for (factoryId, bookId), (factoryName, bookName) in self._gcDialer.get_addressbooks():
+			row = (str(factoryId), bookId, factoryName, bookName)
+			self._booksList.append(row)
 
-		self._booksList = gtk.ListStore(gobject.TYPE_STRING)
-		self._booksCombo.set_model(self._booksList)
-		self._booksCombo.set_text_column(0)
-		#for number, description in self._gcBackend.get_callback_numbers().iteritems():
-		#	self.callbacklist.append([make_pretty(number)])
-		#self._booksCombo.get_child().set_text()
+		self._booksView = self._widgetTree.get_widget("books_view")
+		self._booksView.set_model(self._booksList)
+
+		# Add the column to the treeview
+		column = gtk.TreeViewColumn("Addressbook")
+
+		textrenderer = gtk.CellRendererText()
+		column.pack_start(textrenderer, expand=False)
+		column.add_attribute(textrenderer, 'text', 2)
+
+		textrenderer = gtk.CellRendererText()
+		column.pack_start(textrenderer, expand=True)
+		column.add_attribute(textrenderer, 'text', 3)
+
+		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		column.set_sort_column_id(2)
+		column.set_visible(True)
+		self._booksView.append_column(column)
+
+		self._booksViewSelection = self._booksView.get_selection()
+		self._booksViewSelection.set_mode(gtk.SELECTION_SINGLE)
+		self.reset()
+	
+	def reset(self):
+		pass
 	
 	def custom_button_response(self, response):
 
@@ -207,18 +233,18 @@ class SettingsWindow(object):
 
 		return button_handler
 
-	def run(self, contactDetails):
-		self._booksList.clear()
-
-		for phoneType, phoneNumber in contactDetails:
-			self._booksList.append((phoneNumber, "%s - %s" % (make_pretty(phoneNumber), phoneType)))
-
+	def run(self):
 		userResponse = self._dialog.run()
 
 		if userResponse == gtk.RESPONSE_OK:
-			pass
+			model, itr = self._booksViewSelection.get_selected()
+			if itr:
+				factoryId = int(self._booksList.get_value(itr, 0))
+				bookId = self._booksList.get_value(itr, 1)
+				self._gcDialer.open_addressbook(factoryId, bookId)
+				self._booksViewSelection.unselect_all()
 		else:
-			pass
+			self.reset()
 
 		self._dialog.hide()
 
@@ -410,6 +436,7 @@ class Dialpad(object):
 			"on_dialpad_quit": self._on_close,
 			"on_paste": self._on_paste,
 			"on_clear_number": self._on_clear_number,
+			"on_settings": self._on_settings,
 
 			"on_clearcookies_clicked": self._on_clearcookies_clicked,
 			"on_notebook_switch_page": self._on_notebook_switch_page,
@@ -435,9 +462,10 @@ class Dialpad(object):
 			self._gcBackend,
 		]
 		self._addressBook = None
-		self.open_addressbook(*self.get_addressbooks().next()[0:2])
+		self.open_addressbook(*self.get_addressbooks().next()[0][0:2])
 
 		self._phoneTypeSelector = PhoneTypeSelector(self._widgetTree, self._gcBackend)
+		self._settingsDialog = SettingsDialog(self._widgetTree, self)
 
 		if not self._gcBackend.is_authed():
 			self.attempt_login(2)
@@ -447,7 +475,9 @@ class Dialpad(object):
 		gobject.idle_add(self._idly_init_contacts_view)
 
 	def _idly_init_recent_view(self):
-		""" Deferred initalization of the recent view treeview """
+		"""
+		Deferred initalization of the recent view treeview
+		"""
 
 		recentview = self._widgetTree.get_widget("recentview")
 		recentview.set_model(self._recentmodel)
@@ -551,7 +581,7 @@ class Dialpad(object):
 			contactType = (self._gcContactIcon,)
 		else:
 			contactType = (self._gcContactText,)
-		for contactId, contactName in self._gcBackend.get_contacts():
+		for contactId, contactName in self._addressBook.get_contacts():
 			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("",))
 			yield
 
@@ -596,15 +626,16 @@ class Dialpad(object):
 
 	def get_addressbooks(self):
 		"""
-		@returns Iterable of (Address Book Factory, Book Id, Book Name)
+		@returns Iterable of ((Factory Id, Book Id), (Factory Name, Book Name))
 		"""
-		for factory in self._addressBookFactories:
+		for i, factory in enumerate(self._addressBookFactories):
 			for bookFactory, bookId, bookName in factory.get_addressbooks():
-				yield bookFactory, bookId, bookName
+				yield (i, bookId), (factory.factory_name(), bookName)
 	
-	def open_addressbook(self, bookFactory, bookId):
-		self._addressBook = bookFactory.open_addressbook(bookId)
+	def open_addressbook(self, bookFactoryId, bookId):
+		self._addressBook = self._addressBookFactories[bookFactoryId].open_addressbook(bookId)
 		self._contactstime = 0
+		gobject.idle_add(self._idly_populate_contactsview)
 
 	def set_number(self, number):
 		"""
@@ -612,7 +643,7 @@ class Dialpad(object):
 		"""
 		self._phonenumber = make_ugly(number)
 		self._prettynumber = make_pretty(self._phonenumber)
-		self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % ( self._prettynumber ) )
+		self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % (self._prettynumber))
 
 	def set_account_number(self):
 		"""
@@ -660,6 +691,9 @@ class Dialpad(object):
 			self._isFullScreen = True
 		else:
 			self._isFullScreen = False
+	
+	def _on_settings(self, *args, **kwds):
+		self._settingsDialog.run()
 
 	def _on_key_press(self, widget, event, *args):
 		"""
@@ -717,7 +751,7 @@ class Dialpad(object):
 			return
 
 		contactId = self._contactsmodel.get_value(itr, 3)
-		contactDetails = self._gcBackend.get_contact_details(contactId)
+		contactDetails = self._addressBook.get_contact_details(contactId)
 		contactDetails = [phoneNumber for phoneNumber in contactDetails]
 
 		if len(contactDetails) == 0:

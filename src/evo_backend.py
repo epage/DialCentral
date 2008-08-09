@@ -37,7 +37,7 @@ class EvolutionAddressBook(object):
 
 		self._phoneTypes = None
 		self._bookId = bookId if bookId is not None else self.get_addressbooks().next()[1]
-		self._book = evolution.ebook.open_addressbook(self._bookId[1])
+		self._book = evolution.ebook.open_addressbook(self._bookId)
 	
 	@classmethod
 	def is_supported(cls):
@@ -51,12 +51,15 @@ class EvolutionAddressBook(object):
 			return
 
 		for bookId in evolution.ebook.list_addressbooks():
-			yield self, bookId, bookId[0]
+			yield self, bookId[1], bookId[0]
 	
 	def open_addressbook(self, bookId):
 		self._bookId = bookId
-		self._book = evolution.ebook.open_addressbook(self._bookId[1])
+		self._book = evolution.ebook.open_addressbook(self._bookId)
 		return self
+
+	def factory_name(self):
+		return "Evo"
 
 	def get_contacts(self):
 		"""

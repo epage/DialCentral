@@ -26,7 +26,8 @@ DEB_PACKAGE=$(PACKAGE_PATH)/$(PROJECT_NAME)-$(PROJECT_VERSION)_$(PLATFORM).deb
 DEBUGGER=winpdb
 UNIT_TEST=nosetests -w $(TEST_PATH)
 STYLE_TEST=../../Python/tools/pep8.py --ignore=W191
-LINT=pylint --rcfile=./support/pylint.rc
+LINT_RC=./support/pylint.rc
+LINT=pylint --rcfile=$(LINT_RC)
 COVERAGE_TEST=figleaf
 PROFILER=pyprofiler
 CTAGS=ctags-exuberant
@@ -133,7 +134,7 @@ $(TAG_FILE): $(SOURCE)
 	mkdir -p $(dir $(TAG_FILE))
 	$(CTAGS) -o $(TAG_FILE) $(SOURCE)
 
-%1.stats: $(SOURCE)
+%1.stats: $(SOURCE) $(LINT_RC)
 	@ #DESIRED DEPENDENCY: $(subst .,/,$(notdir $*)).py
 	@ #DESIRED COMMAND: $(LINT) $<
 	@ $(LINT) $(subst .,/,$(notdir $*)).py
