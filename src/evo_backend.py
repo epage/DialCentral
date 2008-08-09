@@ -62,8 +62,12 @@ class EvolutionAddressBook(object):
 		return self
 
 	@staticmethod
-	def factory_name():
+	def factory_short_name():
 		return "Evo"
+
+	@staticmethod
+	def factory_name():
+		return "Evolution"
 
 	def get_contacts(self):
 		"""

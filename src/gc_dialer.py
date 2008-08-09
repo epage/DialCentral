@@ -164,6 +164,10 @@ class DummyAddressBook(object):
 		return self
 
 	@staticmethod
+	def factory_short_name():
+		return ""
+
+	@staticmethod
 	def factory_name():
 		return ""
 
@@ -392,7 +396,14 @@ class Dialpad(object):
 
 		self._booksList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
 		for (factoryId, bookId), (factoryName, bookName) in self.get_addressbooks():
-			entryName = "%s: %s" % (factoryName, bookName) if factoryName else bookName
+			if factoryName and bookName:
+				entryName = "%s: %s" % (factoryName, bookName) 
+			elif factoryName:
+				entryName = factoryName
+			elif bookName:
+				entryName = bookName
+			else:
+				entryName = "Bad name (%d)" % factoryId
 			row = (str(factoryId), bookId, entryName)
 			self._booksList.append(row)
 
@@ -517,7 +528,7 @@ class Dialpad(object):
 		if self._gcContactIcon is not None:
 			contactType = (self._gcContactIcon,)
 		else:
-			contactType = (self._gcContactText,)
+			contactType = (self._addressBook.factory_short_name(),)
 		for contactId, contactName in self._addressBook.get_contacts():
 			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("",))
 			yield

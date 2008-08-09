@@ -262,14 +262,18 @@ class GCDialer(object):
 		"""
 		@returns Iterable of (Address Book Factory, Book Id, Book Name)
 		"""
-		yield self, "", "Grand Central"
+		yield self, "", ""
 	
 	def open_addressbook(self, bookId):
 		return self
 
 	@staticmethod
-	def factory_name():
+	def factory_short_name():
 		return "GC"
+
+	@staticmethod
+	def factory_name():
+		return "Grand Central"
 
 	def get_contacts(self):
 		"""
