@@ -82,7 +82,7 @@ class GCDialer(object):
 		@returns If authenticated
 		"""
 
-		if time.time() - self._lastAuthed < 60 and not force:
+		if (time.time() - self._lastAuthed) < 60 and not force:
 			return True
 
 		try:

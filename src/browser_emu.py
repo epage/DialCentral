@@ -26,14 +26,8 @@ Optional steps:
 	- For testing, use a MozillaCacher instance - this will cache all pages and make testing quicker
 	- You can change user agent string in the build_opened method
 	- The "encode_multipart_formdata" function can be used alone to create POST data from a list of field values and files
-
-TODO:
-
-- should have a method to save/load cookies
 """
 
-import os
-import urllib
 import urllib2
 import cookielib
 import warnings
