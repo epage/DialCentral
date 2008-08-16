@@ -53,6 +53,10 @@ class EvolutionAddressBook(object):
 		if not self.is_supported():
 			return
 
+		if len(evolution.ebook.list_addressbooks()) == 0 and evolution.ebook.open_addressbook('default') is not None:
+			# It appears that Maemo's e-d-s does not always list the default addressbook, so we're faking it being listed
+			yield self, "default", "Maemo"
+
 		for bookId in evolution.ebook.list_addressbooks():
 			yield self, bookId[1], bookId[0]
 	
