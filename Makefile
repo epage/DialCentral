@@ -11,6 +11,7 @@ PYPACKAGE_FILE=./support/GrandcentralDialer.pypackager
 DEB_METADATA=./support/DEBIAN
 SDK_DISPLAY=:2
 
+PY_FAST_LAUNCH=1
 PLATFORM=desktop
 ifeq ($(PLATFORM),os2007)
 	LEGACY_GLADE=1
@@ -73,6 +74,9 @@ $(BUILD_PATH): $(BUILD_BIN)
 	cp $(SOURCE_PATH)/gc_dialer.desktop $(BUILD_PATH)
 
 	cp $(SOURCE_PATH)/gc_dialer.glade $(BUILD_PATH)
+ifneq ($(PLATFORM),desktop)
+	sed -i 's/^[ \t]*//;s/GtkWindow/HildonWindow/' $(BUILD_PATH)/gc_dialer.glade
+endif
 
 $(PRE_PACKAGE_PATH): $(BUILD_PATH)
 	mkdir -p $(PRE_PACKAGE_PATH)/build/usr/share/icons/hicolor/scalable/hildon
@@ -89,9 +93,6 @@ $(PRE_PACKAGE_PATH): $(BUILD_PATH)
 	cp $(BUILD_PATH)/gc_dialer.desktop $(PRE_PACKAGE_PATH)/build/usr/share/applications/hildon
 
 	cp $(BUILD_PATH)/gc_dialer.glade $(PRE_PACKAGE_PATH)/build/usr/local/lib
-ifneq ($(PLATFORM),desktop)
-	sed -i 's/^[ \t]*//;s/GtkWindow/HildonWindow/' $(PRE_PACKAGE_PATH)/build/usr/local/lib/gc_dialer.glade
-endif
 
 	cp $(BUILD_BIN) $(PRE_PACKAGE_PATH)/build/usr/local/bin
 
@@ -120,7 +121,11 @@ $(BUILD_BIN): $(SOURCE)
 	mkdir -p $(dir $(BUILD_BIN))
 
 	#Construct the program by cat-ing all the python files together
+ifeq ($(PY_FAST_LAUNCH),1)
 	echo "#!/usr/bin/python" > $(BUILD_BIN)
+else
+	echo "#!/usr/bin/python2.5" > $(BUILD_BIN)
+endif
 	#echo "from __future__ import with_statement" >> $(PRE_PACKAGE_PATH)/usr/local/bin/gc_dialer.py
 	cat $(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/evo_backend.py $(SOURCE_PATH)/gc_backend.py $(SOURCE_PATH)/browser_emu.py | grep -e '^import ' | sort -u >> $(BUILD_BIN)
 	cat $(SOURCE_PATH)/browser_emu.py $(SOURCE_PATH)/evo_backend.py $(SOURCE_PATH)/gc_backend.py $(SOURCE_PATH)/gc_dialer.py | grep -v 'browser_emu' | grep -v 'gc_backend' | grep -v "evo_backend"| grep -v "#!" >> $(BUILD_BIN)
