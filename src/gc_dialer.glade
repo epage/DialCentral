@@ -119,7 +119,6 @@
                     <child>
                       <widget class="GtkButton" id="dial">
                         <property name="visible">True</property>
-                        <property name="has_default">True</property>
                         <property name="focus_on_click">False</property>
                         <property name="response_id">0</property>
                         <signal name="clicked" handler="on_dial_clicked"/>
@@ -811,7 +810,6 @@ Copyright 2008</property>
               <widget class="GtkButton" id="closebutton">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
                 <property name="label" translatable="yes">Close</property>
                 <property name="response_id">0</property>
                 <signal name="clicked" handler="on_loginclose_clicked"/>
