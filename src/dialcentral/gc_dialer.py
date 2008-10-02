@@ -31,7 +31,6 @@ import warnings
 
 import gobject
 import gtk
-gtk.gdk.threads_init()
 import gtk.glade
 
 try:
@@ -39,12 +38,12 @@ try:
 except ImportError:
 	hildon = None
 
-
-"""
-This changes the default, system wide, socket timeout so that a hung server will not completly
-hork the application
-"""
 import socket
+
+
+gtk.gdk.threads_init()
+#This changes the default, system wide, socket timeout so that a hung server will not completly
+#hork the application
 socket.setdefaulttimeout(5)
 
 
@@ -410,8 +409,8 @@ class Dialpad(object):
 		combobox = self._widgetTree.get_widget("addressbook_combo")
 		combobox.set_model(self._booksList)
 		cell = gtk.CellRendererText()
- 		combobox.pack_start(cell, True)
- 		combobox.add_attribute(cell, 'text', 2)
+		combobox.pack_start(cell, True)
+		combobox.add_attribute(cell, 'text', 2)
 		combobox.set_active(0)
 		gtk.gdk.threads_leave()
 
@@ -422,9 +421,7 @@ class Dialpad(object):
 		self._init_contacts_view()
 		gtk.gdk.threads_leave()
 
-		"""
-		This is where the blocking can start
-		"""
+		#This is where the blocking can start
 		if self._gcBackend.is_authed():
 			gtk.gdk.threads_enter()
 			self.set_account_number(self._gcBackend.get_account_number())
@@ -550,7 +547,7 @@ class Dialpad(object):
 		for x in xrange(numOfAttempts):
 			gtk.gdk.threads_enter()
 
-	                dialog = self._widgetTree.get_widget("login_dialog")
+			dialog = self._widgetTree.get_widget("login_dialog")
 			dialog.set_transient_for(self._window)
 			dialog.set_default_response(0)
 			dialog.run()
@@ -567,8 +564,8 @@ class Dialpad(object):
 					self._gcBackend.set_sane_callback()
 				self.populate_callback_combo()
 				self.set_account_number(self._gcBackend.get_account_number())
-                        	gtk.gdk.threads_leave()
-                        	return True
+				gtk.gdk.threads_leave()
+				return True
 
 	def display_error_message(self, msg):
 		error_dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, msg)
@@ -635,7 +632,7 @@ class Dialpad(object):
 		if status == conic.STATUS_CONNECTED:
 			self._window.set_sensitive(True)
 			self._deviceIsOnline = True
-			threading.Thread(target=self.attempt_login,args=[2]).start()
+			threading.Thread(target=self.attempt_login, args=[2]).start()
 		elif status == conic.STATUS_DISCONNECTED:
 			self._window.set_sensitive(False)
 			self._deviceIsOnline = False
@@ -675,7 +672,7 @@ class Dialpad(object):
 		self.set_account_number("")
 
 		# re-run the inital grandcentral setup
-		threading.Thread(target=self.attempt_login,args=[2]).start()
+		threading.Thread(target=self.attempt_login, args=[2]).start()
 		#gobject.idle_add(self._idly_populate_callback_combo)
 
 	def _on_callbackentry_changed(self, *args):
@@ -773,6 +770,7 @@ class Dialpad(object):
 
 	def _on_paste(self, *args):
 		contents = self._clipboard.wait_for_text()
+		phoneNumber = make_ugly(contents)
 		self.set_number(phoneNumber)
 
 	def _on_clear_number(self, *args):
@@ -803,7 +801,7 @@ class Dialpad(object):
 		dlg.set_copyright("Copyright 2008 - LGPL")
 		dlg.set_comments("Dialer is designed to interface with your Google Grandcentral account.  This application is not affiliated with Google or Grandcentral in any way")
 		dlg.set_website("http://gc-dialer.garage.maemo.org/")
-		dlg.set_authors(["<z2n@merctech.com>","Eric Warnke <ericew@gmail.com>","Ed Page <edpage@byu.net>"])
+		dlg.set_authors(["<z2n@merctech.com>", "Eric Warnke <ericew@gmail.com>", "Ed Page <edpage@byu.net>"])
 		dlg.run()
 		dlg.destroy()
 	
