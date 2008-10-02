@@ -1,0 +1,30 @@
+Ideas
+=================
+User Contacts
+	It seems the evolution contact API used is specific to the desktop.  evolution.ebook combined with abook is what is needed for Maemo.
+	http://maemo.org/maemo_release_documentation/maemo4.1.x/node8.html#SECTION00870000000000000000
+	https://garage.maemo.org/svn/pymaemo/packages/python-abook/trunk/tests/ especially contact_get_iter amd filter_model
+	http://pymaemo.garage.maemo.org/documentation/api/abook/index.html
+
+	Other possible addressbooks
+		GMail http://libgmail.sourceforge.net/
+		GPE
+
+Internet Connection
+	Look into being a bit more advanced, beyond just enabling/disabling the GUI
+	Possible Approach:
+		Defer login
+		While not logged in or device is offline, disable the GUI
+		Don't attempt to login if not online
+
+Keep callbacks to a minimum amount of blocking I/O
+
+Re-examine all use of add_idle
+	I dont think its a thread but idle processing in mainloop, so it could block for long execution
+
+Notes
+=================
+General Python/Maemo stuff
+	http://pymaemo.garage.maemo.org/documentation.html
+DBus
+	http://dbus.freedesktop.org/doc/dbus-python/doc/tutorial.html
