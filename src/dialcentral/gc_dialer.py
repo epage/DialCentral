@@ -800,12 +800,15 @@ class Dialpad(object):
 		self._contactsviewselection.unselect_all()
 
 	def _on_notebook_switch_page(self, notebook, page, page_num):
-		if page_num == 1 and 300 < (time.time() - self._contactstime):
-			threading.Thread(target=self._idly_populate_contactsview).start()
-		elif page_num == 2 and 300 < (time.time() - self._recenttime):
-			threading.Thread(target=self._idly_populate_recentview).start()
-		#elif page_num == 3 and self._callbackNeedsSetup:
-		#	gobject.idle_add(self._idly_populate_callback_combo)
+		if page_num == 1:
+			if 300 < (time.time() - self._contactstime):
+				threading.Thread(target=self._idly_populate_contactsview).start()
+		elif page_num == 3:
+			if 300 < (time.time() - self._recenttime):
+				threading.Thread(target=self._idly_populate_recentview).start()
+		#elif page_num == 2:
+		#	self._callbackNeedsSetup::
+		#		gobject.idle_add(self._idly_populate_callback_combo)
 
 		tabTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
 		if hildon is not None:
