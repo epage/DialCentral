@@ -6,14 +6,11 @@ __appname__ = "dialcentral"
 __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Eric Warnke"
 __email__ = "ericew@gmail.com"
-__version__ = "0.8.0"
-__build__ = 9
+__version__ = "0.8.1"
+__build__ = 0
 __changelog__ = '''\
-0.8.0 - "Spit and polish"
- * Addressbook support
- * threaded networking for better interactivity
- * Hold down back to clear number
- * Standard about dialog
+0.8.1 - "Feed is for horses, so what about feedback?"
+ * Merged addressbook
  * many more smaller fixes
 '''
 
