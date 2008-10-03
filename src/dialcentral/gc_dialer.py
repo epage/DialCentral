@@ -206,8 +206,7 @@ class MergedAddressBook(object):
 		sortedContacts = self.__sort_contacts(contacts)
 		return sortedContacts
 
-	@staticmethod
-	def get_contact_details(contactId):
+	def get_contact_details(self, contactId):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)
 		"""
