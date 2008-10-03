@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# GC Dialer - Front end for Google's Grand Central service.
+# DialCentral - Front end for Google's Grand Central service.
 # Copyright (C) 2008  Eric Warnke ericew AT gmail DOT com
 # 
 # This library is free software; you can redistribute it and/or

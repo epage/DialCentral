@@ -1,6 +1,6 @@
 #!/usr/bin/python2.5
 
-# GC Dialer - Front end for Google's Grand Central service.
+# DialCentral - Front end for Google's Grand Central service.
 # Copyright (C) 2008  Mark Bergman bergman AT merctech DOT com
 # 
 # This library is free software; you can redistribute it and/or
@@ -19,7 +19,7 @@
 
 
 """
-Grandcentral Dialer
+DialCentral: A phone dialer using GrandCentral
 """
 
 import sys
