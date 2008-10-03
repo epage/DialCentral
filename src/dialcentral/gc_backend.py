@@ -31,6 +31,11 @@ import warnings
 
 from browser_emu import MozillaEmulator
 
+import socket
+
+
+socket.setdefaulttimeout(5)
+
 
 class GCDialer(object):
 	"""
@@ -268,7 +273,7 @@ class GCDialer(object):
 		return self
 
 	@staticmethod
-	def factory_short_name():
+	def contact_source_short_name(contactId):
 		return "GC"
 
 	@staticmethod

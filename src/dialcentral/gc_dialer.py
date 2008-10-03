@@ -146,7 +146,7 @@ class DummyAddressBook(object):
 		return self
 
 	@staticmethod
-	def factory_short_name():
+	def contact_source_short_name(contactId):
 		return ""
 
 	@staticmethod
@@ -166,6 +166,66 @@ class DummyAddressBook(object):
 		@returns Iterable of (Phone Type, Phone Number)
 		"""
 		return []
+
+
+class MergedAddressBook(object):
+	"""
+	Merger of all addressbooks
+	"""
+
+	def __init__(self, addressbooks, sorter = None):
+		self.__addressbooks = addressbooks
+		self.__sort_contacts = sorter if sorter is not None else self.null_sorter
+
+	def get_addressbooks(self):
+		"""
+		@returns Iterable of (Address Book Factory, Book Id, Book Name)
+		"""
+		yield self, "", ""
+	
+	def open_addressbook(self, bookId):
+		return self
+
+	def contact_source_short_name(self, contactId):
+		bookIndex, originalId = contactId.split("-", 1)
+		return self.__addressbooks[int(bookIndex)].contact_source_short_name(originalId)
+
+	@staticmethod
+	def factory_name():
+		return "All Contacts"
+
+	def get_contacts(self):
+		"""
+		@returns Iterable of (contact id, contact name)
+		"""
+		contacts = (
+			("-".join([str(bookIndex), contactId]), contactName)
+				for (bookIndex, addressbook) in enumerate(self.__addressbooks)
+					for (contactId, contactName) in addressbook.get_contacts()
+		)
+		sortedContacts = self.__sort_contacts(contacts)
+		return sortedContacts
+
+	@staticmethod
+	def get_contact_details(contactId):
+		"""
+		@returns Iterable of (Phone Type, Phone Number)
+		"""
+		bookIndex, originalId = contactId.split("-", 1)
+		return self.__addressbooks[int(bookIndex)].get_contact_details(originalId)
+
+	@staticmethod
+	def null_sorter(contacts):
+		return contacts
+
+	@staticmethod
+	def basic_lastname_sorter(contacts):
+		contactsWithKey = [
+			(contactName.rsplit(" ", 1)[-1], (contactId, contactName))
+				for (contactId, contactName) in contacts
+		]
+		contactsWithKey.sort()
+		return (contactData for (lastName, contactData) in contactsWithKey)
 
 
 class PhoneTypeSelector(object):
@@ -346,10 +406,12 @@ class Dialpad(object):
 		If something can be done after the UI loads, push it here so it's not blocking the UI
 		"""
 		
-		from gc_backend import GCDialer
-		from evo_backend import EvolutionAddressBook
+		import gc_backend
+		import evo_backend
+		import gmail_backend
+		import maemo_backend
 
-		self._gcBackend = GCDialer()
+		self._gcBackend = gc_backend.GCDialer()
 
 		try:
 			import osso
@@ -379,11 +441,14 @@ class Dialpad(object):
 			warnings.warn("No Internet Connectivity API ", UserWarning, 2)
 
 
-		self._addressBookFactories = [
+		addressBooks = [
 			self._gcBackend,
+			evo_backend.EvolutionAddressBook(),
 			DummyAddressBook(),
-			EvolutionAddressBook(),
 		]
+		mergedBook = MergedAddressBook(addressBooks, MergedAddressBook.basic_lastname_sorter)
+		self._addressBookFactories = list(addressBooks)
+		self._addressBookFactories.insert(0, mergedBook)
 		self._addressBook = None
 		self.open_addressbook(*self.get_addressbooks().next()[0][0:2])
 	
@@ -455,6 +520,13 @@ class Dialpad(object):
 		# Add the column to the treeview
 		column = gtk.TreeViewColumn("Contact")
 
+		#displayContactSource = False
+		displayContactSource = True
+		if displayContactSource:
+			textrenderer = gtk.CellRendererText()
+			column.pack_start(textrenderer, expand=False)
+			column.add_attribute(textrenderer, 'text', 0)
+
 		textrenderer = gtk.CellRendererText()
 		column.pack_start(textrenderer, expand=True)
 		column.add_attribute(textrenderer, 'text', 1)
@@ -520,8 +592,8 @@ class Dialpad(object):
 		contactsview.freeze_child_notify()
 		contactsview.set_model(None)
 
-		contactType = (self._addressBook.factory_short_name(),)
 		for contactId, contactName in self._addressBook.get_contacts():
+			contactType = (self._addressBook.contact_source_short_name(contactId),)
 			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("",))
 			yield
 
@@ -566,6 +638,8 @@ class Dialpad(object):
 				self.set_account_number(self._gcBackend.get_account_number())
 				gtk.gdk.threads_leave()
 				return True
+
+		return False
 
 	def display_error_message(self, msg):
 		error_dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, msg)

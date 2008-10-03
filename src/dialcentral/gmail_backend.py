@@ -19,42 +19,34 @@
 
 
 """
-Evolution Contact Support
+GMail Contacts Support
 """
 
 
+import warnings
+
+
 try:
-	import evolution
+	import libgmail
 except ImportError:
-	evolution = None
+	libgmail = None
 
 
-class EvolutionAddressBook(object):
+class GMailAddressBook(object):
 	"""
 	@note Combined the factory and the addressbook for "simplicity" and "cutting down" the number of allocations/deallocations
 	"""
 
-	def __init__(self, bookId = None):
+	def __init__(self, username, password):
 		if not self.is_supported():
 			return
 
-		self._phoneTypes = None
-		if bookId is not None:
-			self._bookId = bookId
-		else:
-			try:
-				self._bookId = [
-					bookData[1]
-						for bookData in self.get_addressbooks()
-				][0]
-			except IndexError:
-				global evolution
-				evolution = None
-		self._book = evolution.ebook.open_addressbook(self._bookId)
+		self._account = libgmail.GmailAccount(username, password)
+		self._gmailContacts = self._account.getContacts()
 	
 	@classmethod
 	def is_supported(cls):
-		return evolution is not None
+		return libgmail is not None
 
 	def get_addressbooks(self):
 		"""
@@ -63,25 +55,18 @@ class EvolutionAddressBook(object):
 		if not self.is_supported():
 			return
 
-		if len(evolution.ebook.list_addressbooks()) == 0 and evolution.ebook.open_addressbook('default') is not None:
-			# It appears that Maemo's e-d-s does not always list the default addressbook, so we're faking it being listed
-			yield self, "default", "Maemo"
-
-		for bookId in evolution.ebook.list_addressbooks():
-			yield self, bookId[1], bookId[0]
+		yield self, "", ""
 	
 	def open_addressbook(self, bookId):
-		self._bookId = bookId
-		self._book = evolution.ebook.open_addressbook(self._bookId)
 		return self
 
 	@staticmethod
 	def contact_source_short_name(contactId):
-		return "Evo"
+		return "G"
 
 	@staticmethod
 	def factory_name():
-		return "Evolution"
+		return "GMail"
 
 	def get_contacts(self):
 		"""
@@ -89,40 +74,31 @@ class EvolutionAddressBook(object):
 		"""
 		if not self.is_supported():
 			return
-
-		for contact in self._book.get_all_contacts():
-			yield str(contact.get_uid()), contact.props.full_name
+		pass
 	
 	def get_contact_details(self, contactId):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)
 		"""
-		contact = self._book.get_contact(int(contactId))
-
-		if self._phoneTypes is None and contact is not None:
-			self._phoneTypes = [pt for pt in dir(contact.props) if "phone" in pt.lower()]
-
-		for phoneType in self._phoneTypes:
-			phoneNumber = getattr(contact.props, phoneType)
-			if isinstance(phoneNumber, str):
-				yield phoneType, phoneNumber
+		pass
 
 
-def print_evobooks():
+def print_gbooks(username, password):
 	"""
 	Included here for debugging.
 
 	Either insert it into the code or launch python with the "-i" flag
 	"""
-	if not EvolutionAddressBook.is_supported():
-		print "No Evolution Support"
+	if not GMailAddressBook.is_supported():
+		print "No GMail Support"
 		return
 
-	eab = EvolutionAddressBook()
-	for book in eab.get_addressbooks():
-		eab = eab.open_addressbook(book[1])
+	gab = GMailAddressBook(username, password)
+	for book in gab.get_addressbooks():
+		gab = gab.open_addressbook(book[1])
 		print book
-		for contact in eab.get_contacts():
+		for contact in gab.get_contacts():
 			print "\t", contact
-			for details in eab.get_contact_details(contact[0]):
+			for details in gab.get_contact_details(contact[0]):
 				print "\t\t", details
+	print gab._gmailContacts
