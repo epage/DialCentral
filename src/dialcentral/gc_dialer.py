@@ -38,13 +38,11 @@ try:
 except ImportError:
 	hildon = None
 
-import socket
 
 
 gtk.gdk.threads_init()
 #This changes the default, system wide, socket timeout so that a hung server will not completly
 #hork the application
-socket.setdefaulttimeout(5)
 
 
 def make_ugly(prettynumber):
@@ -346,6 +344,8 @@ class Dialpad(object):
 			self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
 			self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
 			self._widgetTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
+			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('contacts_scrolledwindow'), True)
+			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('recent_scrolledwindow'), True)
 
 			gtkMenu = self._widgetTree.get_widget("dialpad_menubar")
 			menu = gtk.Menu()
