@@ -570,6 +570,7 @@ class Dialpad(object):
 		combobox.get_child().set_text(make_pretty(self._gcBackend.get_callback_number()))
 
 	def _idly_populate_recentview(self):
+		self._recenttime = time.time()
 		self._recentmodel.clear()
 
 		for personsName, phoneNumber, date, action in self._gcBackend.get_recent():
@@ -579,11 +580,10 @@ class Dialpad(object):
 			self._recentmodel.append(item)
 			gtk.gdk.threads_leave()
 
-		self._recenttime = time.time()
 		return False
 
-	@make_idler
 	def _idly_populate_contactsview(self):
+		self._contactstime = time.time()
 		self._contactsmodel.clear()
 
 		# completely disable updating the treeview while we populate the data
@@ -594,13 +594,11 @@ class Dialpad(object):
 		for contactId, contactName in self._addressBook.get_contacts():
 			contactType = (self._addressBook.contact_source_short_name(contactId),)
 			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("",))
-			yield
 
 		# restart the treeview data rendering
 		contactsview.set_model(self._contactsmodel)
 		contactsview.thaw_child_notify()
-
-		self._contactstime = time.time()
+		return False
 
 	def attempt_login(self, numOfAttempts = 1):
 		"""
@@ -660,7 +658,7 @@ class Dialpad(object):
 	def open_addressbook(self, bookFactoryId, bookId):
 		self._addressBook = self._addressBookFactories[bookFactoryId].open_addressbook(bookId)
 		self._contactstime = 0
-		gobject.idle_add(self._idly_populate_contactsview)
+		threading.Thread(target=self._idly_populate_contactsview).start()
 
 	def set_number(self, number):
 		"""
