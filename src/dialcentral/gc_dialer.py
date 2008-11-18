@@ -313,7 +313,7 @@ class Dialpad(object):
 		self._contactsviewselection = None
 
 		self._clearall_id = None
-		
+
 		for path in Dialpad._glade_files:
 			if os.path.isfile(path):
 				self._widgetTree = gtk.glade.XML(path)
@@ -404,7 +404,7 @@ class Dialpad(object):
 		"""
 		If something can be done after the UI loads, push it here so it's not blocking the UI
 		"""
-		
+
 		import gc_backend
 		import evo_backend
 		import gmail_backend
@@ -450,14 +450,14 @@ class Dialpad(object):
 		self._addressBookFactories.insert(0, mergedBook)
 		self._addressBook = None
 		self.open_addressbook(*self.get_addressbooks().next()[0][0:2])
-	
+
 		gtk.gdk.threads_enter()
 		self._booksList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
 		gtk.gdk.threads_leave()
 
 		for (factoryId, bookId), (factoryName, bookName) in self.get_addressbooks():
 			if factoryName and bookName:
-				entryName = "%s: %s" % (factoryName, bookName) 
+				entryName = "%s: %s" % (factoryName, bookName)
 			elif factoryName:
 				entryName = factoryName
 			elif bookName:
@@ -583,6 +583,7 @@ class Dialpad(object):
 		return False
 
 	def _idly_populate_contactsview(self):
+		#@todo Add a lock so only one code path can be in here at a time
 		self._contactstime = time.time()
 		self._contactsmodel.clear()
 
@@ -591,8 +592,9 @@ class Dialpad(object):
 		contactsview.freeze_child_notify()
 		contactsview.set_model(None)
 
-		for contactId, contactName in self._addressBook.get_contacts():
-			contactType = (self._addressBook.contact_source_short_name(contactId),)
+		addressBook = self._addressBook
+		for contactId, contactName in addressBook.get_contacts():
+			contactType = (addressBook.contact_source_short_name(contactId),)
 			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("",))
 
 		# restart the treeview data rendering
@@ -654,7 +656,7 @@ class Dialpad(object):
 		for i, factory in enumerate(self._addressBookFactories):
 			for bookFactory, bookId, bookName in factory.get_addressbooks():
 				yield (i, bookId), (factory.factory_name(), bookName)
-	
+
 	def open_addressbook(self, bookFactoryId, bookId):
 		self._addressBook = self._addressBookFactories[bookFactoryId].open_addressbook(bookId)
 		self._contactstime = 0
@@ -716,7 +718,7 @@ class Dialpad(object):
 			self._isFullScreen = True
 		else:
 			self._isFullScreen = False
-	
+
 	def _on_key_press(self, widget, event, *args):
 		"""
 		@note Hildon specific
