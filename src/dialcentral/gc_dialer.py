@@ -40,11 +40,6 @@ except ImportError:
 
 
 
-gtk.gdk.threads_init()
-#This changes the default, system wide, socket timeout so that a hung server will not completly
-#hork the application
-
-
 def make_ugly(prettynumber):
 	"""
 	function to take a phone number and strip out all non-numeric
@@ -121,7 +116,7 @@ def make_idler(func):
 		except StopIteration:
 			del a[:]
 			return False
-	
+
 	decorated_func.__name__ = func.__name__
 	decorated_func.__doc__ = func.__doc__
 	decorated_func.__dict__.update(func.__dict__)
@@ -139,7 +134,7 @@ class DummyAddressBook(object):
 		@returns Iterable of (Address Book Factory, Book Id, Book Name)
 		"""
 		yield self, "", "None"
-	
+
 	def open_addressbook(self, bookId):
 		return self
 
@@ -180,7 +175,7 @@ class MergedAddressBook(object):
 		@returns Iterable of (Address Book Factory, Book Id, Book Name)
 		"""
 		yield self, "", ""
-	
+
 	def open_addressbook(self, bookId):
 		return self
 
@@ -273,7 +268,7 @@ class PhoneTypeSelector(object):
 		self._typeviewselection.unselect_all()
 		self._dialog.hide()
 		return phoneNumber
-	
+
 	def _on_phonetype_select(self, *args):
 		self._dialog.response(gtk.RESPONSE_OK)
 
@@ -289,9 +284,9 @@ class Dialpad(object):
 	__app_magic__ = 0xdeadbeef
 
 	_glade_files = [
-		'./gc_dialer.glade',
-		'../lib/gc_dialer.glade',
 		'/usr/lib/dialcentral/gc_dialer.glade',
+		os.path.join(os.path.dirname(__file__), "gc_dialer.glade"),
+		os.path.join(os.path.dirname(__file__), "../lib/gc_dialer.glade"),
 	]
 
 	def __init__(self):
@@ -614,7 +609,7 @@ class Dialpad(object):
 
 		if self._gcBackend.is_authed():
 			return True
-		
+
 		for x in xrange(numOfAttempts):
 			gtk.gdk.threads_enter()
 
@@ -853,7 +848,7 @@ class Dialpad(object):
 		self.set_number("")
 
 	def _on_digit_clicked(self, widget):
-		self.set_number(self._phonenumber + widget.get_name()[5])
+		self.set_number(self._phonenumber + widget.get_name()[-1])
 
 	def _on_backspace(self, widget):
 		self.set_number(self._phonenumber[:-1])
@@ -880,7 +875,7 @@ class Dialpad(object):
 		dlg.set_authors(["<z2n@merctech.com>", "Eric Warnke <ericew@gmail.com>", "Ed Page <edpage@byu.net>"])
 		dlg.run()
 		dlg.destroy()
-	
+
 
 def run_doctest():
 	import doctest
