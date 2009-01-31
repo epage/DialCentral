@@ -392,7 +392,9 @@ class Dialpad(object):
 		self._widgetTree.get_widget("dial").grab_default()
 		self._widgetTree.get_widget("dial").grab_focus()
 
-		threading.Thread(target=self._idle_setup).start()
+		backgroundSetup = threading.Thread(target=self._idle_setup)
+		backgroundSetup.setDaemon(True)
+		backgroundSetup.start()
 
 
 	def _idle_setup(self):
@@ -655,7 +657,9 @@ class Dialpad(object):
 	def open_addressbook(self, bookFactoryId, bookId):
 		self._addressBook = self._addressBookFactories[bookFactoryId].open_addressbook(bookId)
 		self._contactstime = 0
-		threading.Thread(target=self._idly_populate_contactsview).start()
+		backgroundPopulate = threading.Thread(target=self._idly_populate_contactsview)
+		backgroundPopulate.setDaemon(True)
+		backgroundPopulate.start()
 
 	def set_number(self, number):
 		"""
@@ -700,7 +704,9 @@ class Dialpad(object):
 		if status == conic.STATUS_CONNECTED:
 			self._window.set_sensitive(True)
 			self._deviceIsOnline = True
-			threading.Thread(target=self.attempt_login, args=[2]).start()
+			backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
+			backgroundLogin.setDaemon(True)
+			backgroundLogin.start()
 		elif status == conic.STATUS_DISCONNECTED:
 			self._window.set_sensitive(False)
 			self._deviceIsOnline = False
@@ -740,8 +746,9 @@ class Dialpad(object):
 		self.set_account_number("")
 
 		# re-run the inital grandcentral setup
-		threading.Thread(target=self.attempt_login, args=[2]).start()
-		#gobject.idle_add(self._idly_populate_callback_combo)
+		backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
+		backgroundLogin.setDaemon(True)
+		backgroundLogin.start()
 
 	def _on_callbackentry_changed(self, *args):
 		"""
@@ -797,10 +804,14 @@ class Dialpad(object):
 	def _on_notebook_switch_page(self, notebook, page, page_num):
 		if page_num == 1:
 			if 300 < (time.time() - self._contactstime):
-				threading.Thread(target=self._idly_populate_contactsview).start()
+				backgroundPopulate = threading.Thread(target=self._idly_populate_contactsview)
+				backgroundPopulate.setDaemon(True)
+				backgroundPopulate.start()
 		elif page_num == 3:
 			if 300 < (time.time() - self._recenttime):
-				threading.Thread(target=self._idly_populate_recentview).start()
+				backgroundPopulate = threading.Thread(target=self._idly_populate_recentview)
+				backgroundPopulate.setDaemon(True)
+				backgroundPopulate.start()
 		#elif page_num == 2:
 		#	self._callbackNeedsSetup::
 		#		gobject.idle_add(self._idly_populate_callback_combo)
