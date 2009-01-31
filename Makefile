@@ -1,6 +1,6 @@
 PROJECT_NAME=dialcentral
 SOURCE_PATH=src
-SOURCE=$(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/evo_backend.py $(SOURCE_PATH)/gc_backend.py $(SOURCE_PATH)/browser_emu.py
+SOURCE=$(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/evo_backend.py $(SOURCE_PATH)/gc_backend.py $(SOURCE_PATH)/browser_emu.py $(SOURCE_PATH)/__init__.py
 OBJ=$(SOURCE:.py=.pyc)
 TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
 BUILD_PATH=./build/
@@ -36,7 +36,7 @@ package:
 	cp support/$(PROJECT_NAME).desktop $(BUILD_PATH)
 	cp support/icons/hicolor/26x26/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/26x26-$(PROJECT_NAME).png
 	cp support/icons/hicolor/64x64/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/64x64-$(PROJECT_NAME).png
-	cp support/icons/hicolor/scalable/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/scalable-$(PROJECT_NAME).png
+	cp support/icons/hicolor/scalable/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/scale-$(PROJECT_NAME).png
 	cp support/builddeb.py $(BUILD_PATH)
 
 lint:
