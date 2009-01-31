@@ -25,6 +25,7 @@ __changelog__ = '''\
  * many more smaller fixes
 '''
 
+
 __postinstall__ = '''#!/bin/sh
 
 gtk-update-icon-cache /usr/share/icons/hicolor
@@ -36,7 +37,6 @@ if __name__ == "__main__":
 		os.chdir(os.path.dirname(sys.argv[0]))
 	except:
 		pass
-
 
 	p = Py2deb(__appname__)
 	p.description = __description__
@@ -60,5 +60,7 @@ if __name__ == "__main__":
 	p["/usr/share/icons/hicolor/scalable/hildon"] = ["scale-dialcentral.png|dialcentral.png"]
 
 	print p
-	print p.generate(__version__, __build__, changelog=__changelog__, tar=True, dsc=True, changes=True, build=False, src=True)
-
+	print p.generate(
+		__version__, __build__, changelog=__changelog__,
+		tar=True, dsc=True, changes=True, build=False, src=True
+	)
