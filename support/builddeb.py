@@ -5,8 +5,8 @@ from py2deb import *
 
 __appname__ = "dialcentral"
 __description__ = "Simple interface to Google's GrandCentral(tm) service"
-__author__ = "Eric Warnke"
-__email__ = "ericew@gmail.com"
+__author__ = "Ed Page"
+__email__ = "eopage@byu.net"
 __version__ = "0.8.2"
 __build__ = 0
 __changelog__ = '''\
@@ -44,6 +44,7 @@ if __name__ == "__main__":
 	p.mail = __email__
 	p.license = "lgpl"
 	p.depends = "python2.5, python2.5-gtk2"
+	# p.section = "user/utilities"
 	p.section = "user/communication"
 	p.arch = "all"
 	p.urgency = "low"
