@@ -601,6 +601,8 @@ class Dialpad(object):
 
 	def attempt_login(self, numOfAttempts = 1):
 		"""
+		@todo Handle user notification better like attempting to login and failed login
+
 		@note Not meant to be called directly, but run as a seperate thread.
 		"""
 		assert 0 < numOfAttempts, "That was pointless having 0 or less login attempts"

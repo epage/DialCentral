@@ -51,7 +51,7 @@ class EvolutionAddressBook(object):
 				global evolution
 				evolution = None
 		self._book = evolution.ebook.open_addressbook(self._bookId)
-	
+
 	@classmethod
 	def is_supported(cls):
 		return evolution is not None
@@ -69,7 +69,7 @@ class EvolutionAddressBook(object):
 
 		for bookId in evolution.ebook.list_addressbooks():
 			yield self, bookId[1], bookId[0]
-	
+
 	def open_addressbook(self, bookId):
 		self._bookId = bookId
 		self._book = evolution.ebook.open_addressbook(self._bookId)
@@ -92,7 +92,7 @@ class EvolutionAddressBook(object):
 
 		for contact in self._book.get_all_contacts():
 			yield str(contact.get_uid()), contact.props.full_name
-	
+
 	def get_contact_details(self, contactId):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)
