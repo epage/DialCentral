@@ -404,8 +404,8 @@ class Dialpad(object):
 
 		import gc_backend
 		import evo_backend
-		import gmail_backend
-		import maemo_backend
+		# import gmail_backend
+		# import maemo_backend
 
 		self._gcBackend = gc_backend.GCDialer()
 
