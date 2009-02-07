@@ -8,7 +8,7 @@ __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
 __version__ = "0.8.2"
-__build__ = 0
+__build__ = 2
 __changelog__ = '''\
 0.8.2 - "Feed is for horses, so what about feedback?"
  * Merged addressbook
