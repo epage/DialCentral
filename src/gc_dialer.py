@@ -289,8 +289,10 @@ class Dialpad(object):
 		self._numberdisplay = widgetTree.get_widget("numberdisplay")
 		self._phonenumber = ""
 		self._prettynumber = ""
+		self._clearall_id = None
 
 		callbackMapping = {
+			"on_dial_clicked": self._on_dial_clicked,
 			"on_digit_clicked": self._on_digit_clicked,
 			"on_clear_number": self._on_clear_number,
 			"on_back_clicked": self._on_backspace,
@@ -314,6 +316,9 @@ class Dialpad(object):
 
 	def clear(self):
 		self.set_number("")
+
+	def _on_dial_clicked(self, widget):
+		self.dial(self.get_number())
 
 	def _on_clear_number(self, *args):
 		self.clear()
@@ -406,6 +411,71 @@ class AccountInfo(object):
 			self._backend.set_callback_number(text)
 
 
+class RecentCallsView(object):
+
+	def __init__(self, widgetTree, backend = None):
+		self._backend = backend
+		self._recenttime = 0.0
+		self._recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self._recentview = widgetTree.get_widget("recentview")
+		self._recentviewselection = None
+
+		callbackMapping = {
+			"on_recentview_row_activated": self._on_recentview_row_activated,
+		}
+		widgetTree.signal_autoconnect(callbackMapping)
+
+		self._init_recent_view()
+
+	def set_backend(self, backend):
+		self._backend = backend
+
+	def update(self):
+		if (time.time() - self._recenttime) < 300:
+			return
+		backgroundPopulate = threading.Thread(target=self._idly_populate_recentview)
+		backgroundPopulate.setDaemon(True)
+		backgroundPopulate.start()
+
+	def clear(self):
+		self._recenttime = 0.0
+		self._recentmodel.clear()
+
+	def _init_recent_view(self):
+		self._recentview.set_model(self._recentmodel)
+		textrenderer = gtk.CellRendererText()
+
+		# Add the column to the treeview
+		column = gtk.TreeViewColumn("Calls", textrenderer, text=1)
+		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+
+		self._recentview.append_column(column)
+
+		self._recentviewselection = self._recentview.get_selection()
+		self._recentviewselection.set_mode(gtk.SELECTION_SINGLE)
+
+	def _idly_populate_recentview(self):
+		self._recenttime = time.time()
+		self._recentmodel.clear()
+
+		for personsName, phoneNumber, date, action in self._backend.get_recent():
+			description = "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber)
+			item = (phoneNumber, description)
+			gtk.gdk.threads_enter()
+			self._recentmodel.append(item)
+			gtk.gdk.threads_leave()
+
+		return False
+
+	def _on_recentview_row_activated(self, treeview, path, view_column):
+		model, itr = self._recentviewselection.get_selected()
+		if not itr:
+			return
+
+		self.number_selected(self._recentmodel.get_value(itr, 0))
+		self._recentviewselection.unselect_all()
+
+
 class Dialcentral(object):
 
 	__pretty_app_name__ = "DialCentral"
@@ -430,15 +500,9 @@ class Dialcentral(object):
 
 		self._deviceIsOnline = True
 
-		self._recenttime = 0.0
-		self._recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
-		self._recentviewselection = None
-
 		self._contactstime = 0.0
 		self._contactsmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._contactsviewselection = None
-
-		self._clearall_id = None
 
 		for path in Dialcentral._glade_files:
 			if os.path.isfile(path):
@@ -452,10 +516,13 @@ class Dialcentral(object):
 		#Get the buffer associated with the number display
 		self._dialpad = Dialpad(self._widgetTree)
 		self._dialpad.set_number("")
+		self._dialpad.dial = self._on_dial_clicked
 		self._accountView = AccountInfo(self._widgetTree)
-		self._notebook = self._widgetTree.get_widget("notebook")
+		self._recentView = RecentCallsView(self._widgetTree)
+		self._recentView.number_selected = self._on_number_selected
 
 		self._window = self._widgetTree.get_widget("Dialpad")
+		self._notebook = self._widgetTree.get_widget("notebook")
 
 		global hildon
 		self._app = None
@@ -500,10 +567,8 @@ class Dialcentral(object):
 
 			"on_clearcookies_clicked": self._on_clearcookies_clicked,
 			"on_notebook_switch_page": self._on_notebook_switch_page,
-			"on_recentview_row_activated": self._on_recentview_row_activated,
 			"on_contactsview_row_activated" : self._on_contactsview_row_activated,
 
-			"on_dial_clicked": self._on_dial_clicked,
 			"on_addressbook_combo_changed": self._on_addressbook_combo_changed,
 			"on_about_activate": self._on_about_activate,
 		}
@@ -530,6 +595,7 @@ class Dialcentral(object):
 
 		self._gcBackend = gc_backend.GCDialer()
 		self._accountView.set_backend(self._gcBackend)
+		self._recentView.set_backend(self._gcBackend)
 
 		try:
 			import osso
@@ -600,7 +666,6 @@ class Dialcentral(object):
 		self._phoneTypeSelector = PhoneTypeSelector(self._widgetTree, self._gcBackend)
 
 		gtk.gdk.threads_enter()
-		self._init_recent_view()
 		self._init_contacts_view()
 		gtk.gdk.threads_leave()
 
@@ -611,22 +676,6 @@ class Dialcentral(object):
 			gtk.gdk.threads_leave()
 		else:
 			self.attempt_login(2)
-
-		return False
-
-	def _init_recent_view(self):
-		recentview = self._widgetTree.get_widget("recentview")
-		recentview.set_model(self._recentmodel)
-		textrenderer = gtk.CellRendererText()
-
-		# Add the column to the treeview
-		column = gtk.TreeViewColumn("Calls", textrenderer, text=1)
-		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-
-		recentview.append_column(column)
-
-		self._recentviewselection = recentview.get_selection()
-		self._recentviewselection.set_mode(gtk.SELECTION_SINGLE)
 
 		return False
 
@@ -657,35 +706,8 @@ class Dialcentral(object):
 		column.set_visible(True)
 		contactsview.append_column(column)
 
-		#textrenderer = gtk.CellRendererText()
-		#column = gtk.TreeViewColumn("Location", textrenderer, text=2)
-		#column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		#column.set_sort_column_id(2)
-		#column.set_visible(True)
-		#contactsview.append_column(column)
-
-		#textrenderer = gtk.CellRendererText()
-		#column = gtk.TreeViewColumn("Phone", textrenderer, text=3)
-		#column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		#column.set_sort_column_id(3)
-		#column.set_visible(True)
-		#contactsview.append_column(column)
-
 		self._contactsviewselection = contactsview.get_selection()
 		self._contactsviewselection.set_mode(gtk.SELECTION_SINGLE)
-
-		return False
-
-	def _idly_populate_recentview(self):
-		self._recenttime = time.time()
-		self._recentmodel.clear()
-
-		for personsName, phoneNumber, date, action in self._gcBackend.get_recent():
-			description = "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber)
-			item = (phoneNumber, description)
-			gtk.gdk.threads_enter()
-			self._recentmodel.append(item)
-			gtk.gdk.threads_leave()
 
 		return False
 
@@ -839,24 +861,14 @@ class Dialcentral(object):
 
 	def _on_clearcookies_clicked(self, *args):
 		self._gcBackend.logout()
-		self._recenttime = 0.0
 		self._contactstime = 0.0
-		self._recentmodel.clear()
 		self._accountView.clear()
+		self._recentView.clear()
 
 		# re-run the inital grandcentral setup
 		backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
 		backgroundLogin.setDaemon(True)
 		backgroundLogin.start()
-
-	def _on_recentview_row_activated(self, treeview, path, view_column):
-		model, itr = self._recentviewselection.get_selected()
-		if not itr:
-			return
-
-		self._dialpad.set_number(self._recentmodel.get_value(itr, 0))
-		self._notebook.set_current_page(0)
-		self._recentviewselection.unselect_all()
 
 	def _on_addressbook_combo_changed(self, *args, **kwds):
 		combobox = self._widgetTree.get_widget("addressbook_combo")
@@ -895,10 +907,7 @@ class Dialcentral(object):
 				backgroundPopulate.setDaemon(True)
 				backgroundPopulate.start()
 		elif page_num == 3:
-			if 300 < (time.time() - self._recenttime):
-				backgroundPopulate = threading.Thread(target=self._idly_populate_recentview)
-				backgroundPopulate.setDaemon(True)
-				backgroundPopulate.start()
+			self._recentView.update()
 		#elif page_num == 2:
 		#	self._callbackNeedsSetup::
 		#		gobject.idle_add(self._idly_populate_callback_combo)
@@ -909,7 +918,11 @@ class Dialcentral(object):
 		else:
 			self._window.set_title("%s - %s" % (self.__pretty_app_name__, tabTitle))
 
-	def _on_dial_clicked(self, widget):
+	def _on_number_selected(self, number):
+		self._dialpad.set_number(number)
+		self._notebook.set_current_page(0)
+
+	def _on_dial_clicked(self, number):
 		"""
 		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
 		"""
@@ -924,7 +937,7 @@ class Dialcentral(object):
 			return
 
 		try:
-			callSuccess = self._gcBackend.dial(self._dialpad.get_number())
+			callSuccess = self._gcBackend.dial(number)
 		except ValueError, e:
 			self._gcBackend._msg = e.message
 			callSuccess = False
@@ -932,10 +945,9 @@ class Dialcentral(object):
 		if not callSuccess:
 			self.display_error_message(self._gcBackend._msg)
 		else:
-			self._dialpad.set_number("")
+			self._dialpad.clear()
 
-		self._recentmodel.clear()
-		self._recenttime = 0.0
+		self._recentView.clear()
 
 	def _on_paste(self, *args):
 		contents = self._clipboard.wait_for_text()
