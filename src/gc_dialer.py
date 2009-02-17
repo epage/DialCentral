@@ -347,7 +347,7 @@ class AccountInfo(object):
 	def __init__(self, widgetTree, backend = None):
 		self._backend = backend
 
-		self._callbackList = None
+		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
 		self._accountViewNumberDisplay = widgetTree.get_widget("gcnumber_display")
 		self._callbackCombo = widgetTree.get_widget("callbackcombo")
 		if hildon is not None:
@@ -387,7 +387,7 @@ class AccountInfo(object):
 		if self._backend is None:
 			return
 
-		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
+		self._callbackList.clear()
 		for number, description in self._backend.get_callback_numbers().iteritems():
 			self._callbackList.append((make_pretty(number),))
 
@@ -426,6 +426,8 @@ class RecentCallsView(object):
 		widgetTree.signal_autoconnect(callbackMapping)
 
 		self._init_recent_view()
+		if hildon is not None:
+			hildon.hildon_helper_set_thumb_scrollbar(widgetTree.get_widget('recent_scrolledwindow'), True)
 
 	def set_backend(self, backend):
 		self._backend = backend
@@ -476,6 +478,175 @@ class RecentCallsView(object):
 		self._recentviewselection.unselect_all()
 
 
+class ContactsView(object):
+
+	def __init__(self, widgetTree, backend = None):
+		self._backend = backend
+
+		self._booksList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self._addressBook = None
+		self._addressBookFactories = []
+		self._combobox = widgetTree.get_widget("addressbook_combo")
+
+		self._contactstime = 0.0
+		self._contactsmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self._contactsviewselection = None
+		self._contactsview = widgetTree.get_widget("contactsview")
+
+		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
+
+		callbackMapping = {
+			"on_contactsview_row_activated" : self._on_contactsview_row_activated,
+			"on_addressbook_combo_changed": self._on_addressbook_combo_changed,
+		}
+		widgetTree.signal_autoconnect(callbackMapping)
+		if hildon is not None:
+			hildon.hildon_helper_set_thumb_scrollbar(widgetTree.get_widget('contacts_scrolledwindow'), True)
+
+		self._init_contacts_view()
+
+	def get_addressbooks(self):
+		"""
+		@returns Iterable of ((Factory Id, Book Id), (Factory Name, Book Name))
+		"""
+		for i, factory in enumerate(self._addressBookFactories):
+			for bookFactory, bookId, bookName in factory.get_addressbooks():
+				yield (i, bookId), (factory.factory_name(), bookName)
+
+	def open_addressbook(self, bookFactoryId, bookId):
+		self._addressBook = self._addressBookFactories[bookFactoryId].open_addressbook(bookId)
+		self._contactstime = 0
+		backgroundPopulate = threading.Thread(target=self._idly_populate_contactsview)
+		backgroundPopulate.setDaemon(True)
+		backgroundPopulate.start()
+
+	def set_backend(self, backend):
+		self._backend = backend
+
+	def update(self):
+		if (time.time() - self._contactstime) < 300:
+			return
+		backgroundPopulate = threading.Thread(target=self._idly_populate_contactsview)
+		backgroundPopulate.setDaemon(True)
+		backgroundPopulate.start()
+
+	def clear(self):
+		self._contactstime = 0.0
+		self._contactsmodel.clear()
+
+	def clear_caches(self):
+		for factory in self._addressBookFactories:
+			factory.clear_caches()
+		self._addressBook.clear_caches()
+
+	def append(self, book):
+		self._addressBookFactories.append(book)
+
+	def extend(self, books):
+		self._addressBookFactories.extend(books)
+
+	def _init_contacts_view(self):
+		self._contactsview.set_model(self._contactsmodel)
+
+		# Add the column to the treeview
+		column = gtk.TreeViewColumn("Contact")
+
+		#displayContactSource = False
+		displayContactSource = True
+		if displayContactSource:
+			textrenderer = gtk.CellRendererText()
+			column.pack_start(textrenderer, expand=False)
+			column.add_attribute(textrenderer, 'text', 0)
+
+		textrenderer = gtk.CellRendererText()
+		column.pack_start(textrenderer, expand=True)
+		column.add_attribute(textrenderer, 'text', 1)
+
+		textrenderer = gtk.CellRendererText()
+		column.pack_start(textrenderer, expand=True)
+		column.add_attribute(textrenderer, 'text', 4)
+
+		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		column.set_sort_column_id(1)
+		column.set_visible(True)
+		self._contactsview.append_column(column)
+
+		self._contactsviewselection = self._contactsview.get_selection()
+		self._contactsviewselection.set_mode(gtk.SELECTION_SINGLE)
+
+		return False
+
+	def _idly_populate_books(self):
+		self._booksList.clear()
+		for (factoryId, bookId), (factoryName, bookName) in self.get_addressbooks():
+			if factoryName and bookName:
+				entryName = "%s: %s" % (factoryName, bookName)
+			elif factoryName:
+				entryName = factoryName
+			elif bookName:
+				entryName = bookName
+			else:
+				entryName = "Bad name (%d)" % factoryId
+			row = (str(factoryId), bookId, entryName)
+			gtk.gdk.threads_enter()
+			self._booksList.append(row)
+			gtk.gdk.threads_leave()
+
+		gtk.gdk.threads_enter()
+		self._combobox.set_model(self._booksList)
+		cell = gtk.CellRendererText()
+		self._combobox.pack_start(cell, True)
+		self._combobox.add_attribute(cell, 'text', 2)
+		self._combobox.set_active(0)
+		gtk.gdk.threads_leave()
+
+	def _idly_populate_contactsview(self):
+		#@todo Add a lock so only one code path can be in here at a time
+		self.clear()
+
+		# completely disable updating the treeview while we populate the data
+		self._contactsview.freeze_child_notify()
+		self._contactsview.set_model(None)
+
+		addressBook = self._addressBook
+		for contactId, contactName in addressBook.get_contacts():
+			contactType = (addressBook.contact_source_short_name(contactId),)
+			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("",))
+
+		# restart the treeview data rendering
+		self._contactsview.set_model(self._contactsmodel)
+		self._contactsview.thaw_child_notify()
+		return False
+
+	def _on_addressbook_combo_changed(self, *args, **kwds):
+		itr = self._combobox.get_active_iter()
+
+		factoryId = int(self._booksList.get_value(itr, 0))
+		bookId = self._booksList.get_value(itr, 1)
+		self.open_addressbook(factoryId, bookId)
+
+	def _on_contactsview_row_activated(self, treeview, path, view_column):
+		model, itr = self._contactsviewselection.get_selected()
+		if not itr:
+			return
+
+		contactId = self._contactsmodel.get_value(itr, 3)
+		contactDetails = self._addressBook.get_contact_details(contactId)
+		contactDetails = [phoneNumber for phoneNumber in contactDetails]
+
+		if len(contactDetails) == 0:
+			phoneNumber = ""
+		elif len(contactDetails) == 1:
+			phoneNumber = contactDetails[0][1]
+		else:
+			phoneNumber = self._phoneTypeSelector.run(contactDetails)
+
+		if 0 < len(phoneNumber):
+			self.number_selected(phoneNumber)
+
+		self._contactsviewselection.unselect_all()
+
+
 class Dialcentral(object):
 
 	__pretty_app_name__ = "DialCentral"
@@ -484,25 +655,16 @@ class Dialcentral(object):
 	__app_magic__ = 0xdeadbeef
 
 	_glade_files = [
-		'/usr/lib/dialcentral/gc_dialer.glade',
-		os.path.join(os.path.dirname(__file__), "gc_dialer.glade"),
-		os.path.join(os.path.dirname(__file__), "../lib/gc_dialer.glade"),
+		'/usr/lib/dialcentral/dialcentral.glade',
+		os.path.join(os.path.dirname(__file__), "dialcentral.glade"),
+		os.path.join(os.path.dirname(__file__), "../lib/dialcentral.glade"),
 	]
 
 	def __init__(self):
 		self._gcBackend = None
-		self._booksList = None
-		self._addressBook = None
-		self._addressBookFactories = None
-		self._phoneTypeSelector = None
-
 		self._clipboard = gtk.clipboard_get()
 
 		self._deviceIsOnline = True
-
-		self._contactstime = 0.0
-		self._contactsmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
-		self._contactsviewselection = None
 
 		for path in Dialcentral._glade_files:
 			if os.path.isfile(path):
@@ -520,6 +682,8 @@ class Dialcentral(object):
 		self._accountView = AccountInfo(self._widgetTree)
 		self._recentView = RecentCallsView(self._widgetTree)
 		self._recentView.number_selected = self._on_number_selected
+		self._contactsView = ContactsView(self._widgetTree)
+		self._contactsView.number_selected = self._on_number_selected
 
 		self._window = self._widgetTree.get_widget("Dialpad")
 		self._notebook = self._widgetTree.get_widget("notebook")
@@ -537,8 +701,6 @@ class Dialcentral(object):
 			self._app.add_window(self._window)
 			self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
 			self._widgetTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
-			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('contacts_scrolledwindow'), True)
-			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('recent_scrolledwindow'), True)
 
 			gtkMenu = self._widgetTree.get_widget("dialpad_menubar")
 			menu = gtk.Menu()
@@ -567,9 +729,6 @@ class Dialcentral(object):
 
 			"on_clearcookies_clicked": self._on_clearcookies_clicked,
 			"on_notebook_switch_page": self._on_notebook_switch_page,
-			"on_contactsview_row_activated" : self._on_contactsview_row_activated,
-
-			"on_addressbook_combo_changed": self._on_addressbook_combo_changed,
 			"on_about_activate": self._on_about_activate,
 		}
 		self._widgetTree.signal_autoconnect(callbackMapping)
@@ -596,6 +755,7 @@ class Dialcentral(object):
 		self._gcBackend = gc_backend.GCDialer()
 		self._accountView.set_backend(self._gcBackend)
 		self._recentView.set_backend(self._gcBackend)
+		self._contactsView.set_backend(self._gcBackend)
 
 		try:
 			import osso
@@ -624,50 +784,16 @@ class Dialcentral(object):
 		else:
 			warnings.warn("No Internet Connectivity API ", UserWarning, 2)
 
-
 		addressBooks = [
 			self._gcBackend,
 			evo_backend.EvolutionAddressBook(),
 			DummyAddressBook(),
 		]
 		mergedBook = MergedAddressBook(addressBooks, MergedAddressBook.basic_lastname_sorter)
-		self._addressBookFactories = list(addressBooks)
-		self._addressBookFactories.insert(0, mergedBook)
-		self._addressBook = None
-		self.open_addressbook(*self.get_addressbooks().next()[0][0:2])
-
-		gtk.gdk.threads_enter()
-		self._booksList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
-		gtk.gdk.threads_leave()
-
-		for (factoryId, bookId), (factoryName, bookName) in self.get_addressbooks():
-			if factoryName and bookName:
-				entryName = "%s: %s" % (factoryName, bookName)
-			elif factoryName:
-				entryName = factoryName
-			elif bookName:
-				entryName = bookName
-			else:
-				entryName = "Bad name (%d)" % factoryId
-			row = (str(factoryId), bookId, entryName)
-			gtk.gdk.threads_enter()
-			self._booksList.append(row)
-			gtk.gdk.threads_leave()
-
-		gtk.gdk.threads_enter()
-		combobox = self._widgetTree.get_widget("addressbook_combo")
-		combobox.set_model(self._booksList)
-		cell = gtk.CellRendererText()
-		combobox.pack_start(cell, True)
-		combobox.add_attribute(cell, 'text', 2)
-		combobox.set_active(0)
-		gtk.gdk.threads_leave()
-
-		self._phoneTypeSelector = PhoneTypeSelector(self._widgetTree, self._gcBackend)
-
-		gtk.gdk.threads_enter()
-		self._init_contacts_view()
-		gtk.gdk.threads_leave()
+		self._contactsView.append(mergedBook)
+		self._contactsView.extend(addressBooks)
+		self._contactsView.open_addressbook(*self._contactsView.get_addressbooks().next()[0][0:2])
+		self._contactsView._idly_populate_books()
 
 		#This is where the blocking can start
 		if self._gcBackend.is_authed():
@@ -677,58 +803,6 @@ class Dialcentral(object):
 		else:
 			self.attempt_login(2)
 
-		return False
-
-	def _init_contacts_view(self):
-		contactsview = self._widgetTree.get_widget("contactsview")
-		contactsview.set_model(self._contactsmodel)
-
-		# Add the column to the treeview
-		column = gtk.TreeViewColumn("Contact")
-
-		#displayContactSource = False
-		displayContactSource = True
-		if displayContactSource:
-			textrenderer = gtk.CellRendererText()
-			column.pack_start(textrenderer, expand=False)
-			column.add_attribute(textrenderer, 'text', 0)
-
-		textrenderer = gtk.CellRendererText()
-		column.pack_start(textrenderer, expand=True)
-		column.add_attribute(textrenderer, 'text', 1)
-
-		textrenderer = gtk.CellRendererText()
-		column.pack_start(textrenderer, expand=True)
-		column.add_attribute(textrenderer, 'text', 4)
-
-		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		column.set_sort_column_id(1)
-		column.set_visible(True)
-		contactsview.append_column(column)
-
-		self._contactsviewselection = contactsview.get_selection()
-		self._contactsviewselection.set_mode(gtk.SELECTION_SINGLE)
-
-		return False
-
-	def _idly_populate_contactsview(self):
-		#@todo Add a lock so only one code path can be in here at a time
-		self._contactstime = time.time()
-		self._contactsmodel.clear()
-
-		# completely disable updating the treeview while we populate the data
-		contactsview = self._widgetTree.get_widget("contactsview")
-		contactsview.freeze_child_notify()
-		contactsview.set_model(None)
-
-		addressBook = self._addressBook
-		for contactId, contactName in addressBook.get_contacts():
-			contactType = (addressBook.contact_source_short_name(contactId),)
-			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("",))
-
-		# restart the treeview data rendering
-		contactsview.set_model(self._contactsmodel)
-		contactsview.thaw_child_notify()
 		return False
 
 	def attempt_login(self, numOfAttempts = 1):
@@ -779,21 +853,6 @@ class Dialcentral(object):
 		error_dialog.connect("response", close, self)
 		error_dialog.run()
 
-	def get_addressbooks(self):
-		"""
-		@returns Iterable of ((Factory Id, Book Id), (Factory Name, Book Name))
-		"""
-		for i, factory in enumerate(self._addressBookFactories):
-			for bookFactory, bookId, bookName in factory.get_addressbooks():
-				yield (i, bookId), (factory.factory_name(), bookName)
-
-	def open_addressbook(self, bookFactoryId, bookId):
-		self._addressBook = self._addressBookFactories[bookFactoryId].open_addressbook(bookId)
-		self._contactstime = 0
-		backgroundPopulate = threading.Thread(target=self._idly_populate_contactsview)
-		backgroundPopulate.setDaemon(True)
-		backgroundPopulate.start()
-
 	@staticmethod
 	def _on_close(*args, **kwds):
 		gtk.main_quit()
@@ -807,9 +866,7 @@ class Dialcentral(object):
 		"""
 		if memory_low:
 			self._gcBackend.clear_caches()
-			for factory in self._addressBookFactories:
-				factory.clear_caches()
-			self._addressBook.clear_caches()
+			self._contactsView.clear_caches()
 			gc.collect()
 
 	def _on_connection_change(self, connection, event, magicIdentifier):
@@ -861,51 +918,18 @@ class Dialcentral(object):
 
 	def _on_clearcookies_clicked(self, *args):
 		self._gcBackend.logout()
-		self._contactstime = 0.0
 		self._accountView.clear()
 		self._recentView.clear()
+		self._contactsView.clear()
 
 		# re-run the inital grandcentral setup
 		backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
 		backgroundLogin.setDaemon(True)
 		backgroundLogin.start()
 
-	def _on_addressbook_combo_changed(self, *args, **kwds):
-		combobox = self._widgetTree.get_widget("addressbook_combo")
-		itr = combobox.get_active_iter()
-
-		factoryId = int(self._booksList.get_value(itr, 0))
-		bookId = self._booksList.get_value(itr, 1)
-		self.open_addressbook(factoryId, bookId)
-
-	def _on_contactsview_row_activated(self, treeview, path, view_column):
-		model, itr = self._contactsviewselection.get_selected()
-		if not itr:
-			return
-
-		contactId = self._contactsmodel.get_value(itr, 3)
-		contactDetails = self._addressBook.get_contact_details(contactId)
-		contactDetails = [phoneNumber for phoneNumber in contactDetails]
-
-		if len(contactDetails) == 0:
-			phoneNumber = ""
-		elif len(contactDetails) == 1:
-			phoneNumber = contactDetails[0][1]
-		else:
-			phoneNumber = self._phoneTypeSelector.run(contactDetails)
-
-		if 0 < len(phoneNumber):
-			self._dialpad.set_number(phoneNumber)
-			self._notebook.set_current_page(0)
-
-		self._contactsviewselection.unselect_all()
-
 	def _on_notebook_switch_page(self, notebook, page, page_num):
 		if page_num == 1:
-			if 300 < (time.time() - self._contactstime):
-				backgroundPopulate = threading.Thread(target=self._idly_populate_contactsview)
-				backgroundPopulate.setDaemon(True)
-				backgroundPopulate.start()
+			self._contactsView.update()
 		elif page_num == 3:
 			self._recentView.update()
 		#elif page_num == 2:
