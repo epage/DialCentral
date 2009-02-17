@@ -293,7 +293,7 @@ class PhoneTypeSelector(object):
 		self._dialog.response(gtk.RESPONSE_CANCEL)
 
 
-class Dialpad(object):
+class Dialcentral(object):
 
 	__pretty_app_name__ = "DialCentral"
 	__app_name__ = "dialcentral"
@@ -326,7 +326,7 @@ class Dialpad(object):
 
 		self._clearall_id = None
 
-		for path in Dialpad._glade_files:
+		for path in Dialcentral._glade_files:
 			if os.path.isfile(path):
 				self._widgetTree = gtk.glade.XML(path)
 				break
@@ -439,7 +439,7 @@ class Dialpad(object):
 
 		self._osso = None
 		if osso is not None:
-			self._osso = osso.Context(Dialpad.__app_name__, Dialpad.__version__, False)
+			self._osso = osso.Context(Dialcentral.__app_name__, Dialcentral.__version__, False)
 			device = osso.DeviceState(self._osso)
 			device.set_device_state_callback(self._on_device_state_change, 0)
 		else:
@@ -448,7 +448,7 @@ class Dialpad(object):
 		self._connection = None
 		if conic is not None:
 			self._connection = conic.Connection()
-			self._connection.connect("connection-event", self._on_connection_change, Dialpad.__app_magic__)
+			self._connection.connect("connection-event", self._on_connection_change, Dialcentral.__app_magic__)
 			self._connection.request_connection(conic.CONNECT_FLAG_NONE)
 		else:
 			warnings.warn("No Internet Connectivity API ", UserWarning, 2)
@@ -924,9 +924,8 @@ def run_doctest():
 def run_dialpad():
 	gtk.gdk.threads_init()
 	if hildon is not None:
-		gtk.set_application_name(Dialpad.__pretty_app_name__)
-	title = 'Dialpad'
-	handle = Dialpad()
+		gtk.set_application_name(Dialcentral.__pretty_app_name__)
+	handle = Dialcentral()
 	gtk.main()
 
 
