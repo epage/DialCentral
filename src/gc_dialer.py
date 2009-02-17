@@ -293,6 +293,58 @@ class PhoneTypeSelector(object):
 		self._dialog.response(gtk.RESPONSE_CANCEL)
 
 
+class Dialpad(object):
+
+	def __init__(self, widgetTree):
+		self._numberdisplay = widgetTree.get_widget("numberdisplay")
+		self._phonenumber = ""
+		self._prettynumber = ""
+
+		callbackMapping = {
+			"on_digit_clicked": self._on_digit_clicked,
+			"on_clear_number": self._on_clear_number,
+			"on_back_clicked": self._on_backspace,
+			"on_back_pressed": self._on_back_pressed,
+			"on_back_released": self._on_back_released,
+		}
+		widgetTree.signal_autoconnect(callbackMapping)
+
+	def get_number(self):
+		return self._phonenumber
+
+	def set_number(self, number):
+		"""
+		Set the callback phonenumber
+		"""
+		self._phonenumber = make_ugly(number)
+		self._prettynumber = make_pretty(self._phonenumber)
+		self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % (self._prettynumber))
+
+	def clear(self):
+		self.set_number("")
+
+	def _on_clear_number(self, *args):
+		self.clear()
+
+	def _on_digit_clicked(self, widget):
+		self.set_number(self._phonenumber + widget.get_name()[-1])
+
+	def _on_backspace(self, widget):
+		self.set_number(self._phonenumber[:-1])
+
+	def _on_clearall(self):
+		self.clear()
+		return False
+
+	def _on_back_pressed(self, widget):
+		self._clearall_id = gobject.timeout_add(1000, self._on_clearall)
+
+	def _on_back_released(self, widget):
+		if self._clearall_id is not None:
+			gobject.source_remove(self._clearall_id)
+		self._clearall_id = None
+
+
 class Dialcentral(object):
 
 	__pretty_app_name__ = "DialCentral"
@@ -307,10 +359,6 @@ class Dialcentral(object):
 	]
 
 	def __init__(self):
-		self._phonenumber = ""
-		self._prettynumber = ""
-		self._areacode = "518"
-
 		self._clipboard = gtk.clipboard_get()
 
 		self._deviceIsOnline = True
@@ -336,8 +384,8 @@ class Dialcentral(object):
 			return
 
 		#Get the buffer associated with the number display
-		self._numberdisplay = self._widgetTree.get_widget("numberdisplay")
-		self.set_number("")
+		self._dialpad = Dialpad(self._widgetTree)
+		self._dialpad.set_number("")
 		self._notebook = self._widgetTree.get_widget("notebook")
 
 		self._window = self._widgetTree.get_widget("Dialpad")
@@ -383,18 +431,13 @@ class Dialcentral(object):
 
 			"on_dialpad_quit": self._on_close,
 			"on_paste": self._on_paste,
-			"on_clear_number": self._on_clear_number,
 
 			"on_clearcookies_clicked": self._on_clearcookies_clicked,
 			"on_notebook_switch_page": self._on_notebook_switch_page,
 			"on_recentview_row_activated": self._on_recentview_row_activated,
 			"on_contactsview_row_activated" : self._on_contactsview_row_activated,
 
-			"on_digit_clicked": self._on_digit_clicked,
-			"on_back_clicked": self._on_backspace,
 			"on_dial_clicked": self._on_dial_clicked,
-			"on_back_pressed": self._on_back_pressed,
-			"on_back_released": self._on_back_released,
 			"on_addressbook_combo_changed": self._on_addressbook_combo_changed,
 			"on_about_activate": self._on_about_activate,
 		}
@@ -680,14 +723,6 @@ class Dialcentral(object):
 		backgroundPopulate.setDaemon(True)
 		backgroundPopulate.start()
 
-	def set_number(self, number):
-		"""
-		Set the callback phonenumber
-		"""
-		self._phonenumber = make_ugly(number)
-		self._prettynumber = make_pretty(self._phonenumber)
-		self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % (self._prettynumber))
-
 	def set_account_number(self, number):
 		"""
 		Displays current account number
@@ -789,7 +824,7 @@ class Dialcentral(object):
 		if not itr:
 			return
 
-		self.set_number(self._recentmodel.get_value(itr, 0))
+		self._dialpad.set_number(self._recentmodel.get_value(itr, 0))
 		self._notebook.set_current_page(0)
 		self._recentviewselection.unselect_all()
 
@@ -818,7 +853,7 @@ class Dialcentral(object):
 			phoneNumber = self._phoneTypeSelector.run(contactDetails)
 
 		if 0 < len(phoneNumber):
-			self.set_number(phoneNumber)
+			self._dialpad.set_number(phoneNumber)
 			self._notebook.set_current_page(0)
 
 		self._contactsviewselection.unselect_all()
@@ -859,7 +894,7 @@ class Dialcentral(object):
 			return
 
 		try:
-			callSuccess = self._gcBackend.dial(self._phonenumber)
+			callSuccess = self._gcBackend.dial(self._dialpad.get_number())
 		except ValueError, e:
 			self._gcBackend._msg = e.message
 			callSuccess = False
@@ -867,7 +902,7 @@ class Dialcentral(object):
 		if not callSuccess:
 			self.display_error_message(self._gcBackend._msg)
 		else:
-			self.set_number("")
+			self._dialpad.set_number("")
 
 		self._recentmodel.clear()
 		self._recenttime = 0.0
@@ -875,28 +910,7 @@ class Dialcentral(object):
 	def _on_paste(self, *args):
 		contents = self._clipboard.wait_for_text()
 		phoneNumber = make_ugly(contents)
-		self.set_number(phoneNumber)
-
-	def _on_clear_number(self, *args):
-		self.set_number("")
-
-	def _on_digit_clicked(self, widget):
-		self.set_number(self._phonenumber + widget.get_name()[-1])
-
-	def _on_backspace(self, widget):
-		self.set_number(self._phonenumber[:-1])
-
-	def _on_clearall(self):
-		self.set_number("")
-		return False
-
-	def _on_back_pressed(self, widget):
-		self._clearall_id = gobject.timeout_add(1000, self._on_clearall)
-
-	def _on_back_released(self, widget):
-		if self._clearall_id is not None:
-			gobject.source_remove(self._clearall_id)
-		self._clearall_id = None
+		self._dialpad.set_number(phoneNumber)
 
 	def _on_about_activate(self, *args):
 		dlg = gtk.AboutDialog()
