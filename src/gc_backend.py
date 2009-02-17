@@ -80,6 +80,8 @@ class GCDialer(object):
 		self._callbackNumbers = {}
 		self._lastAuthed = 0.0
 
+		self.__contacts = None
+
 	def is_authed(self, force = False):
 		"""
 		Attempts to detect a current session and pull the auth token ( a_t ) from the page.
@@ -127,6 +129,8 @@ class GCDialer(object):
 		self._browser.cookies.clear()
 		self._browser.cookies.save()
 
+		self.clear_caches()
+
 	def dial(self, number):
 		"""
 		This is the main function responsible for initating the callback
@@ -166,7 +170,7 @@ class GCDialer(object):
 		return False
 
 	def clear_caches(self):
-		pass
+		self.__contacts = None
 
 	def is_valid_syntax(self, number):
 		"""
@@ -268,7 +272,7 @@ class GCDialer(object):
 		@returns Iterable of (Address Book Factory, Book Id, Book Name)
 		"""
 		yield self, "", ""
-	
+
 	def open_addressbook(self, bookId):
 		return self
 
@@ -284,19 +288,27 @@ class GCDialer(object):
 		"""
 		@returns Iterable of (contact id, contact name)
 		"""
-		contactsPagesUrls = [GCDialer._contactsURL]
-		for contactsPageUrl in contactsPagesUrls:
-			contactsPage = self._browser.download(contactsPageUrl)
-			for contact_match in self._contactsRe.finditer(contactsPage):
-				contactId = contact_match.group(1)
-				contactName = contact_match.group(2)
-				yield contactId, contactName
+		if self.__contacts is None:
+			self.__contacts = []
 
-			next_match = self._contactsNextRe.match(contactsPage)
-			if next_match is not None:
-				newContactsPageUrl = self._contactsURL + next_match.group(1)
-				contactsPagesUrls.append(newContactsPageUrl)
-	
+			contactsPagesUrls = [GCDialer._contactsURL]
+			for contactsPageUrl in contactsPagesUrls:
+				contactsPage = self._browser.download(contactsPageUrl)
+				for contact_match in self._contactsRe.finditer(contactsPage):
+					contactId = contact_match.group(1)
+					contactName = contact_match.group(2)
+					contact = contactId, contactName
+					self.__contacts.append(contact)
+					yield contact
+
+				next_match = self._contactsNextRe.match(contactsPage)
+				if next_match is not None:
+					newContactsPageUrl = self._contactsURL + next_match.group(1)
+					contactsPagesUrls.append(newContactsPageUrl)
+		else:
+			for contact in self.__contacts:
+				yield contact
+
 	def get_contact_details(self, contactId):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)

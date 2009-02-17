@@ -20,6 +20,8 @@
 
 """
 GMail Contacts Support
+
+@todo Look into the official API http://code.google.com/p/gdata-python-client/
 """
 
 

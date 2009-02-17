@@ -129,6 +129,9 @@ class DummyAddressBook(object):
 	Minimal example of both an addressbook factory and an addressbook
 	"""
 
+	def clear_caches(self):
+		pass
+
 	def get_addressbooks(self):
 		"""
 		@returns Iterable of (Address Book Factory, Book Id, Book Name)
@@ -169,6 +172,12 @@ class MergedAddressBook(object):
 	def __init__(self, addressbooks, sorter = None):
 		self.__addressbooks = addressbooks
 		self.__sort_contacts = sorter if sorter is not None else self.null_sorter
+		self.__contacts = None
+
+	def clear_caches(self):
+		for addressBook in self.__addressbooks:
+			addressBook.clear_caches()
+		self.__contacts = None
 
 	def get_addressbooks(self):
 		"""
@@ -191,13 +200,21 @@ class MergedAddressBook(object):
 		"""
 		@returns Iterable of (contact id, contact name)
 		"""
-		contacts = (
-			("-".join([str(bookIndex), contactId]), contactName)
-				for (bookIndex, addressbook) in enumerate(self.__addressbooks)
-					for (contactId, contactName) in addressbook.get_contacts()
-		)
-		sortedContacts = self.__sort_contacts(contacts)
-		return sortedContacts
+		if self.__contacts is None:
+			contacts = (
+				("-".join([str(bookIndex), contactId]), contactName)
+					for (bookIndex, addressbook) in enumerate(self.__addressbooks)
+						for (contactId, contactName) in addressbook.get_contacts()
+			)
+			sortedContacts = self.__sort_contacts(contacts)
+
+			self.__contacts = []
+			for contact in sortedContacts:
+				self.__contacts.append(contact)
+				yield contact
+		else:
+			for contact in self.__contacts:
+				yield contact
 
 	def get_contact_details(self, contactId):
 		"""
@@ -690,6 +707,9 @@ class Dialpad(object):
 		"""
 		if memory_low:
 			self._gcBackend.clear_caches()
+			for factory in self._addressBookFactories:
+				factory.clear_caches()
+			self._addressBook.clear_caches()
 			gc.collect()
 
 	def _on_connection_change(self, connection, event, magicIdentifier):
