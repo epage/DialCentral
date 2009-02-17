@@ -172,12 +172,10 @@ class MergedAddressBook(object):
 	def __init__(self, addressbooks, sorter = None):
 		self.__addressbooks = addressbooks
 		self.__sort_contacts = sorter if sorter is not None else self.null_sorter
-		self.__contacts = None
 
 	def clear_caches(self):
 		for addressBook in self.__addressbooks:
 			addressBook.clear_caches()
-		self.__contacts = None
 
 	def get_addressbooks(self):
 		"""
@@ -200,21 +198,13 @@ class MergedAddressBook(object):
 		"""
 		@returns Iterable of (contact id, contact name)
 		"""
-		if self.__contacts is None:
-			contacts = (
-				("-".join([str(bookIndex), contactId]), contactName)
-					for (bookIndex, addressbook) in enumerate(self.__addressbooks)
-						for (contactId, contactName) in addressbook.get_contacts()
-			)
-			sortedContacts = self.__sort_contacts(contacts)
-
-			self.__contacts = []
-			for contact in sortedContacts:
-				self.__contacts.append(contact)
-				yield contact
-		else:
-			for contact in self.__contacts:
-				yield contact
+		contacts = (
+			("-".join([str(bookIndex), contactId]), contactName)
+				for (bookIndex, addressbook) in enumerate(self.__addressbooks)
+					for (contactId, contactName) in addressbook.get_contacts()
+		)
+		sortedContacts = self.__sort_contacts(contacts)
+		return sortedContacts
 
 	def get_contact_details(self, contactId):
 		"""
@@ -308,6 +298,8 @@ class Dialpad(object):
 			"on_back_released": self._on_back_released,
 		}
 		widgetTree.signal_autoconnect(callbackMapping)
+		widgetTree.get_widget("dial").grab_default()
+		widgetTree.get_widget("dial").grab_focus()
 
 	def get_number(self):
 		return self._phonenumber
@@ -345,6 +337,75 @@ class Dialpad(object):
 		self._clearall_id = None
 
 
+class AccountInfo(object):
+
+	def __init__(self, widgetTree, backend = None):
+		self._backend = backend
+
+		self._callbackList = None
+		self._accountViewNumberDisplay = widgetTree.get_widget("gcnumber_display")
+		self._callbackCombo = widgetTree.get_widget("callbackcombo")
+		if hildon is not None:
+			self._callbackCombo.get_child().set_property('hildon-input-mode', (1 << 4))
+
+		callbackMapping = {
+		}
+		widgetTree.signal_autoconnect(callbackMapping)
+		self._callbackCombo.get_child().connect("changed", self._on_callbackentry_changed)
+
+		self.set_account_number("")
+
+	def set_backend(self, backend):
+		self._backend = backend
+
+	def get_selected_callback_number(self):
+		return make_ugly(self._callbackCombo.get_child().get_text())
+
+	def set_account_number(self, number):
+		"""
+		Displays current account number
+		"""
+		self._accountViewNumberDisplay.set_label("<span size='23000' weight='bold'>%s</span>" % (number))
+
+	def update(self):
+		if self._backend is None:
+			return
+
+		self.populate_callback_combo()
+		self.set_account_number(self._backend.get_account_number())
+
+	def clear(self):
+		self._callbackCombo.get_child().set_text("")
+		self.set_account_number("")
+
+	def populate_callback_combo(self):
+		if self._backend is None:
+			return
+
+		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
+		for number, description in self._backend.get_callback_numbers().iteritems():
+			self._callbackList.append((make_pretty(number),))
+
+		self._callbackCombo.set_model(self._callbackList)
+		self._callbackCombo.set_text_column(0)
+		self._callbackCombo.get_child().set_text(make_pretty(self._backend.get_callback_number()))
+
+	def _on_callbackentry_changed(self, *args):
+		"""
+		@todo Potential blocking on web access, maybe we should defer this or put up a dialog?
+		"""
+		if self._backend is None:
+			return
+
+		text = self.get_selected_callback_number()
+		if not self._backend.is_valid_syntax(text):
+			warnings.warn("%s is not a valid callback number" % text, UserWarning, 2)
+		elif text == self._backend.get_callback_number():
+			warnings.warn("Callback number already is %s" % self._backend.get_callback_number(), UserWarning, 2)
+		else:
+			self._backend.set_callback_number(text)
+
+
 class Dialcentral(object):
 
 	__pretty_app_name__ = "DialCentral"
@@ -359,10 +420,15 @@ class Dialcentral(object):
 	]
 
 	def __init__(self):
+		self._gcBackend = None
+		self._booksList = None
+		self._addressBook = None
+		self._addressBookFactories = None
+		self._phoneTypeSelector = None
+
 		self._clipboard = gtk.clipboard_get()
 
 		self._deviceIsOnline = True
-		self._callbackList = None
 
 		self._recenttime = 0.0
 		self._recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
@@ -386,6 +452,7 @@ class Dialcentral(object):
 		#Get the buffer associated with the number display
 		self._dialpad = Dialpad(self._widgetTree)
 		self._dialpad.set_number("")
+		self._accountView = AccountInfo(self._widgetTree)
 		self._notebook = self._widgetTree.get_widget("notebook")
 
 		self._window = self._widgetTree.get_widget("Dialpad")
@@ -401,7 +468,6 @@ class Dialcentral(object):
 			self._window = hildon.Window()
 			self._widgetTree.get_widget("vbox1").reparent(self._window)
 			self._app.add_window(self._window)
-			self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
 			self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
 			self._widgetTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
 			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('contacts_scrolledwindow'), True)
@@ -442,15 +508,10 @@ class Dialcentral(object):
 			"on_about_activate": self._on_about_activate,
 		}
 		self._widgetTree.signal_autoconnect(callbackMapping)
-		self._widgetTree.get_widget("callbackcombo").get_child().connect("changed", self._on_callbackentry_changed)
 
 		if self._window:
 			self._window.connect("destroy", gtk.main_quit)
 			self._window.show_all()
-
-		self.set_account_number("")
-		self._widgetTree.get_widget("dial").grab_default()
-		self._widgetTree.get_widget("dial").grab_focus()
 
 		backgroundSetup = threading.Thread(target=self._idle_setup)
 		backgroundSetup.setDaemon(True)
@@ -468,6 +529,7 @@ class Dialcentral(object):
 		# import maemo_backend
 
 		self._gcBackend = gc_backend.GCDialer()
+		self._accountView.set_backend(self._gcBackend)
 
 		try:
 			import osso
@@ -545,8 +607,7 @@ class Dialcentral(object):
 		#This is where the blocking can start
 		if self._gcBackend.is_authed():
 			gtk.gdk.threads_enter()
-			self.set_account_number(self._gcBackend.get_account_number())
-			self.populate_callback_combo()
+			self._accountView.update()
 			gtk.gdk.threads_leave()
 		else:
 			self.attempt_login(2)
@@ -615,17 +676,6 @@ class Dialcentral(object):
 
 		return False
 
-	def populate_callback_combo(self):
-		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
-		for number, description in self._gcBackend.get_callback_numbers().iteritems():
-			self._callbackList.append((make_pretty(number),))
-
-		combobox = self._widgetTree.get_widget("callbackcombo")
-		combobox.set_model(self._callbackList)
-		combobox.set_text_column(0)
-
-		combobox.get_child().set_text(make_pretty(self._gcBackend.get_callback_number()))
-
 	def _idly_populate_recentview(self):
 		self._recenttime = time.time()
 		self._recentmodel.clear()
@@ -692,8 +742,7 @@ class Dialcentral(object):
 				gtk.gdk.threads_enter()
 				if self._gcBackend.get_callback_number() is None:
 					self._gcBackend.set_sane_callback()
-				self.populate_callback_combo()
-				self.set_account_number(self._gcBackend.get_account_number())
+				self._accountView.update()
 				gtk.gdk.threads_leave()
 				return True
 
@@ -722,12 +771,6 @@ class Dialcentral(object):
 		backgroundPopulate = threading.Thread(target=self._idly_populate_contactsview)
 		backgroundPopulate.setDaemon(True)
 		backgroundPopulate.start()
-
-	def set_account_number(self, number):
-		"""
-		Displays current account number
-		"""
-		self._widgetTree.get_widget("gcnumber_display").set_label("<span size='23000' weight='bold'>%s</span>" % (number))
 
 	@staticmethod
 	def _on_close(*args, **kwds):
@@ -799,25 +842,12 @@ class Dialcentral(object):
 		self._recenttime = 0.0
 		self._contactstime = 0.0
 		self._recentmodel.clear()
-		self._widgetTree.get_widget("callbackcombo").get_child().set_text("")
-		self.set_account_number("")
+		self._accountView.clear()
 
 		# re-run the inital grandcentral setup
 		backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
 		backgroundLogin.setDaemon(True)
 		backgroundLogin.start()
-
-	def _on_callbackentry_changed(self, *args):
-		"""
-		@todo Potential blocking on web access, maybe we should defer this or put up a dialog?
-		"""
-		text = make_ugly(self._widgetTree.get_widget("callbackcombo").get_child().get_text())
-		if not self._gcBackend.is_valid_syntax(text):
-			warnings.warn("%s is not a valid callback number" % text, UserWarning, 2)
-		elif text == self._gcBackend.get_callback_number():
-			warnings.warn("Callback number already is %s" % self._gcBackend.get_callback_number(), UserWarning, 2)
-		else:
-			self._gcBackend.set_callback_number(text)
 
 	def _on_recentview_row_activated(self, treeview, path, view_column):
 		model, itr = self._recentviewselection.get_selected()
