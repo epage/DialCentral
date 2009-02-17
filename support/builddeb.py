@@ -11,6 +11,7 @@ __version__ = "0.8.4"
 __build__ = 0
 __changelog__ = '''\
 0.8.4 - ""
+ * Caching of contacts
 
 0.8.3 - "Extras Love"
  * Version bump fighting the extras autobuilder, I hope this works
