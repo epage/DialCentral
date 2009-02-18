@@ -303,6 +303,9 @@ class Dialpad(object):
 		widgetTree.get_widget("dial").grab_default()
 		widgetTree.get_widget("dial").grab_focus()
 
+	def dial(self, number):
+		raise NotImplementedError
+
 	def get_number(self):
 		return self._phonenumber
 
@@ -417,6 +420,9 @@ class RecentCallsView(object):
 		if hildon is not None:
 			hildon.hildon_helper_set_thumb_scrollbar(widgetTree.get_widget('recent_scrolledwindow'), True)
 
+	def number_selected(self, number):
+		raise NotImplementedError
+
 	def update(self):
 		if (time.time() - self._recenttime) < 300:
 			return
@@ -492,6 +498,9 @@ class ContactsView(object):
 			hildon.hildon_helper_set_thumb_scrollbar(widgetTree.get_widget('contacts_scrolledwindow'), True)
 
 		self._init_contacts_view()
+
+	def number_selected(self, number):
+		raise NotImplementedError
 
 	def get_addressbooks(self):
 		"""
@@ -747,13 +756,13 @@ class Dialcentral(object):
 		try:
 			self._dialpad = Dialpad(self._widgetTree)
 			self._dialpad.set_number("")
-			self._dialpad.dial = self._on_dial_clicked
 			self._accountView = AccountInfo(self._widgetTree, self._gcBackend)
 			self._recentView = RecentCallsView(self._widgetTree, self._gcBackend)
 			self._contactsView = ContactsView(self._widgetTree, self._gcBackend)
 		finally:
 			gtk.gdk.threads_leave()
 
+		self._dialpad.dial = self._on_dial_clicked
 		self._recentView.number_selected = self._on_number_selected
 		self._contactsView.number_selected = self._on_number_selected
 
