@@ -1,17 +1,18 @@
 PROJECT_NAME=dialcentral
 SOURCE_PATH=src
-SOURCE=$(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/evo_backend.py $(SOURCE_PATH)/gc_backend.py $(SOURCE_PATH)/browser_emu.py $(SOURCE_PATH)/__init__.py
+SOURCE=$(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/views.py $(SOURCE_PATH)/evo_backend.py $(SOURCE_PATH)/gc_backend.py $(SOURCE_PATH)/browser_emu.py $(SOURCE_PATH)/__init__.py
+PROGRAM=$(SOURCE_PATH)/$(PROJECT_NAME).py
 OBJ=$(SOURCE:.py=.pyc)
-TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
 BUILD_PATH=./build/
+TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
 
 DEBUGGER=winpdb
-UNIT_TEST=nosetests -w $(TEST_PATH)
+UNIT_TEST=nosetests --with-doctest -w .
 STYLE_TEST=../../Python/tools/pep8.py --ignore=W191
 LINT_RC=./support/pylint.rc
 LINT=pylint --rcfile=$(LINT_RC)
-COVERAGE_TEST=figleaf
-PROFILER=pyprofiler
+PROFILE_GEN=python -m cProfile -o .profile
+PROFILE_VIEW=python -m pstats .profile
 CTAGS=ctags-exuberant
 
 .PHONY: all run debug test lint tags package clean distclean
@@ -19,13 +20,17 @@ CTAGS=ctags-exuberant
 all: test package
 
 run: $(SOURCE)
-	cd $(SOURCE_PATH)/ ; ./gc_dialer.py
+	$(SOURCE_PATH)/gc_dialer.py
+
+profile: $(SOURCE)
+	$(PROFILE_GEN) $(PROGRAM)
+	$(PROFILE_VIEW)
 
 debug: $(SOURCE)
-	cd $(SOURCE_PATH)/ ; $(DEBUGGER) ./gc_dialer.py
+	$(DEBUGGER) $(PROGRAM)
 
 test: $(SOURCE)
-	cd $(SOURCE_PATH)/ ; ./gc_dialer.py -t
+	$(UNIT_TEST)
 
 package:
 	rm -Rf $(BUILD_PATH)
@@ -52,6 +57,10 @@ distclean:
 	rm -Rf $(OBJ)
 	rm -Rf $(BUILD_PATH)
 	rm -Rf $(TAG_FILE)
+	find $(SOURCE_PATH) -name "*.*~" | xargs rm -f
+	find $(SOURCE_PATH) -name "*.swp" | xargs rm -f
+	find $(SOURCE_PATH) -name "*.bak" | xargs rm -f
+	find $(SOURCE_PATH) -name ".*.swp" | xargs rm -f
 
 $(TAG_FILE): $(SOURCE)
 	mkdir -p $(dir $(TAG_FILE))

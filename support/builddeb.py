@@ -12,6 +12,7 @@ __build__ = 0
 __changelog__ = '''\
 0.8.4 - ""
  * Caching of contacts
+ * Refactoring to make working with the code easier
 
 0.8.3 - "Extras Love"
  * Version bump fighting the extras autobuilder, I hope this works
