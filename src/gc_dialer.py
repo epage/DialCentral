@@ -193,7 +193,7 @@ class Dialcentral(object):
 			evo_backend.EvolutionAddressBook(),
 			file_backend.FilesystemAddressBookFactory(fsContactsPath),
 		]
-		mergedBook = views.MergedAddressBook(addressBooks, views.MergedAddressBook.basic_lastname_sorter)
+		mergedBook = views.MergedAddressBook(addressBooks, views.MergedAddressBook.advanced_lastname_sorter)
 		self._contactsView.append(mergedBook)
 		self._contactsView.extend(addressBooks)
 		self._contactsView.open_addressbook(*self._contactsView.get_addressbooks().next()[0][0:2])

@@ -217,12 +217,86 @@ class MergedAddressBook(object):
 
 	@staticmethod
 	def null_sorter(contacts):
+		"""
+		Good for speed/low memory
+		"""
 		return contacts
 
 	@staticmethod
+	def basic_firtname_sorter(contacts):
+		"""
+		Expects names in "First Last" format
+		"""
+		contactsWithKey = [
+			(contactName.rsplit(" ", 1)[0], (contactId, contactName))
+				for (contactId, contactName) in contacts
+		]
+		contactsWithKey.sort()
+		return (contactData for (lastName, contactData) in contactsWithKey)
+
+	@staticmethod
 	def basic_lastname_sorter(contacts):
+		"""
+		Expects names in "First Last" format
+		"""
 		contactsWithKey = [
 			(contactName.rsplit(" ", 1)[-1], (contactId, contactName))
+				for (contactId, contactName) in contacts
+		]
+		contactsWithKey.sort()
+		return (contactData for (lastName, contactData) in contactsWithKey)
+
+	@staticmethod
+	def reversed_firtname_sorter(contacts):
+		"""
+		Expects names in "Last, First" format
+		"""
+		contactsWithKey = [
+			(contactName.split(", ", 1)[-1], (contactId, contactName))
+				for (contactId, contactName) in contacts
+		]
+		contactsWithKey.sort()
+		return (contactData for (lastName, contactData) in contactsWithKey)
+
+	@staticmethod
+	def reversed_lastname_sorter(contacts):
+		"""
+		Expects names in "Last, First" format
+		"""
+		contactsWithKey = [
+			(contactName.split(", ", 1)[0], (contactId, contactName))
+				for (contactId, contactName) in contacts
+		]
+		contactsWithKey.sort()
+		return (contactData for (lastName, contactData) in contactsWithKey)
+
+	@staticmethod
+	def guess_firstname(name):
+		if ", " in name:
+			return name.split(", ", 1)[-1]
+		else:
+			return name.rsplit(" ", 1)[0]
+
+	@staticmethod
+	def guess_lastname(name):
+		if ", " in name:
+			return name.split(", ", 1)[0]
+		else:
+			return name.rsplit(" ", 1)[-1]
+
+	@classmethod
+	def advanced_firtname_sorter(cls, contacts):
+		contactsWithKey = [
+			(cls.guess_firstname(contactName), (contactId, contactName))
+				for (contactId, contactName) in contacts
+		]
+		contactsWithKey.sort()
+		return (contactData for (lastName, contactData) in contactsWithKey)
+
+	@classmethod
+	def advanced_lastname_sorter(cls, contacts):
+		contactsWithKey = [
+			(cls.guess_lastname(contactName), (contactId, contactName))
 				for (contactId, contactName) in contacts
 		]
 		contactsWithKey.sort()
