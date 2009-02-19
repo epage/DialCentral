@@ -51,8 +51,8 @@ class GCDialer(object):
 	_inboxRe = re.compile(r"""<td>.*?(voicemail|received|missed|call return).*?</td>\s+<td>\s+<font size="2">\s+(.*?)\s+&nbsp;\|&nbsp;\s+<a href="/mobile/contacts/.*?">(.*?)\s?</a>\s+<br/>\s+(.*?)\s?<a href=""", re.S)
 	_contactsRe = re.compile(r"""<a href="/mobile/contacts/detail/(\d+)">(.*?)</a>""", re.S)
 	_contactsNextRe = re.compile(r""".*<a href="/mobile/contacts(\?page=\d+)">Next</a>""", re.S)
-	_contactDetailGroupRe	= re.compile(r"""Group:\s*(\w*)""", re.S)
-	_contactDetailPhoneRe	= re.compile(r"""(\w+):[0-9\-\(\) \t]*?<a href="/mobile/calls/click_to_call\?destno=(\d+).*?">call</a>""", re.S)
+	_contactDetailGroupRe = re.compile(r"""Group:\s*(\w*)""", re.S)
+	_contactDetailPhoneRe = re.compile(r"""(\w+):[0-9\-\(\) \t]*?<a href="/mobile/calls/click_to_call\?destno=(\d+).*?">call</a>""", re.S)
 
 	_validateRe = re.compile("^[0-9]{10,}$")
 
@@ -70,7 +70,7 @@ class GCDialer(object):
 
 		self._browser = MozillaEmulator(None, 0)
 		if cookieFile is None:
-			cookieFile = os.path.join(os.path.expanduser("~"), ".gc_dialer_cookies.txt")
+			cookieFile = os.path.join(os.path.expanduser("~"), ".gc_cookies.txt")
 		self._browser.cookies.filename = cookieFile
 		if os.path.isfile(cookieFile):
 			self._browser.cookies.load()

@@ -50,6 +50,8 @@ class Dialcentral(object):
 		os.path.join(os.path.dirname(__file__), "../lib/dialcentral.glade"),
 	]
 
+	_data_path = os.path.join(os.path.expanduser("~"), ".dialcentral")
+
 	def __init__(self):
 		self._gcBackend = None
 		self._clipboard = gtk.clipboard_get()
@@ -65,7 +67,7 @@ class Dialcentral(object):
 				self._widgetTree = gtk.glade.XML(path)
 				break
 		else:
-			self.display_error_message("Cannot find gc_dialer.glade")
+			self.display_error_message("Cannot find dialcentral.glade")
 			gtk.main_quit()
 			return
 
@@ -148,12 +150,19 @@ class Dialcentral(object):
 			warnings.warn("No Internet Connectivity API ", UserWarning, 2)
 
 		import gc_backend
+		import file_backend
 		import evo_backend
 		# import gmail_backend
 		# import maemo_backend
 		import views
 
-		self._gcBackend = gc_backend.GCDialer()
+		cookieFile = os.path.join(self._data_path, "cookies.txt")
+		try:
+			os.makedirs(os.path.dirname(cookieFile))
+		except OSError, e:
+			if e.errno != 17:
+				raise
+		self._gcBackend = gc_backend.GCDialer(cookieFile)
 		gtk.gdk.threads_enter()
 		try:
 			self._dialpad = views.Dialpad(self._widgetTree)
@@ -178,9 +187,11 @@ class Dialcentral(object):
 		else:
 			self.attempt_login(2)
 
+		fsContactsPath = os.path.join(self._data_path, "contacts")
 		addressBooks = [
 			self._gcBackend,
 			evo_backend.EvolutionAddressBook(),
+			file_backend.FilesystemAddressBookFactory(fsContactsPath),
 		]
 		mergedBook = views.MergedAddressBook(addressBooks, views.MergedAddressBook.basic_lastname_sorter)
 		self._contactsView.append(mergedBook)
