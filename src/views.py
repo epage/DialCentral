@@ -159,13 +159,15 @@ class MergedAddressBook(object):
 	Merger of all addressbooks
 	"""
 
-	def __init__(self, addressbooks, sorter = None):
-		self.__addressbooks = addressbooks
+	def __init__(self, addressbookFactories, sorter = None):
+		self.__addressbookFactories = addressbookFactories
+		self.__addressbooks = None
 		self.__sort_contacts = sorter if sorter is not None else self.null_sorter
 
 	def clear_caches(self):
-		for addressBook in self.__addressbooks:
-			addressBook.clear_caches()
+		self.__addressbooks = None
+		for factory in self.__addressbookFactories:
+			factory.clear_caches()
 
 	def get_addressbooks(self):
 		"""
@@ -177,6 +179,8 @@ class MergedAddressBook(object):
 		return self
 
 	def contact_source_short_name(self, contactId):
+		if self.__addressbooks is None:
+			return ""
 		bookIndex, originalId = contactId.split("-", 1)
 		return self.__addressbooks[int(bookIndex)].contact_source_short_name(originalId)
 
@@ -188,6 +192,12 @@ class MergedAddressBook(object):
 		"""
 		@returns Iterable of (contact id, contact name)
 		"""
+		if self.__addressbooks is None:
+			self.__addressbooks = list(
+				factory.open_addressbook(id)
+				for factory in self.__addressbookFactories
+				for (f, id, name) in factory.get_addressbooks()
+			)
 		contacts = (
 			("-".join([str(bookIndex), contactId]), contactName)
 				for (bookIndex, addressbook) in enumerate(self.__addressbooks)
@@ -200,6 +210,8 @@ class MergedAddressBook(object):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)
 		"""
+		if self.__addressbooks is None:
+			return []
 		bookIndex, originalId = contactId.split("-", 1)
 		return self.__addressbooks[int(bookIndex)].get_contact_details(originalId)
 
