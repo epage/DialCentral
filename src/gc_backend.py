@@ -66,8 +66,6 @@ class GCDialer(object):
 
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
-		self._msg = ""
-
 		self._browser = MozillaEmulator(None, 0)
 		if cookieFile is None:
 			cookieFile = os.path.join(os.path.expanduser("~"), ".gc_cookies.txt")
@@ -135,16 +133,13 @@ class GCDialer(object):
 		"""
 		This is the main function responsible for initating the callback
 		"""
-		self._msg = ""
-
 		# If the number is not valid throw exception
 		if not self.is_valid_syntax(number):
 			raise ValueError('number is not valid')
 
 		# No point if we don't have the magic cookie
 		if not self.is_authed():
-			self._msg = "Not authenticated"
-			return False
+			raise RunetimeError("Not Authenticated")
 
 		# Strip leading 1 from 11 digit dialing
 		if len(number) == 11 and number[0] == 1:
@@ -158,16 +153,12 @@ class GCDialer(object):
 			)
 		except urllib2.URLError, e:
 			warnings.warn("%s is not accesible" % GCDialer._clicktocallURL, UserWarning, 2)
-			return False
+			raise RunetimeError("%s is not accesible" % GCDialer._clicktocallURL)
 
-		if GCDialer._gcDialingStrRe.search(callSuccessPage) is not None:
-			return True
-		else:
-			self._msg = "Grand Central returned an error"
-			return False
+		if GCDialer._gcDialingStrRe.search(callSuccessPage) is None:
+			raise RuntimeError("Grand Central returned an error")
 
-		self._msg = "Unknown Error"
-		return False
+		return True
 
 	def clear_caches(self):
 		self.__contacts = None

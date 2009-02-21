@@ -368,18 +368,18 @@ class Dialcentral(object):
 			warnings.warn("Backend Status: Logged in? %s, Authenticated? %s, Callback=%s" % (loggedIn, self._gcBackend.is_authed(), self._gcBackend.get_callback_number()), UserWarning, 2)
 			return
 
+		dialed = False
 		try:
-			callSuccess = self._gcBackend.dial(number)
+			self._gcBackend.dial(number)
+			dialed = True
+		except RuntimeError, e:
+			self.display_error_message(e.message)
 		except ValueError, e:
-			self._gcBackend._msg = e.message
-			callSuccess = False
+			self.display_error_message(e.message)
 
-		if not callSuccess:
-			self.display_error_message(self._gcBackend._msg)
-		else:
+		if dialed:
 			self._dialpad.clear()
-
-		self._recentView.clear()
+			self._recentView.clear()
 
 	def _on_paste(self, *args):
 		contents = self._clipboard.wait_for_text()
