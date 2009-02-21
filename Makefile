@@ -1,6 +1,6 @@
 PROJECT_NAME=dialcentral
 SOURCE_PATH=src
-SOURCE=$(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/views.py $(SOURCE_PATH)/evo_backend.py $(SOURCE_PATH)/gc_backend.py $(SOURCE_PATH)/browser_emu.py $(SOURCE_PATH)/__init__.py
+SOURCE=$(SOURCE_PATH)/gc_dialer.py $(SOURCE_PATH)/views.py $(SOURCE_PATH)/file_backend.py $(SOURCE_PATH)/evo_backend.py $(SOURCE_PATH)/gc_backend.py $(SOURCE_PATH)/browser_emu.py $(SOURCE_PATH)/__init__.py
 PROGRAM=$(SOURCE_PATH)/$(PROJECT_NAME).py
 OBJ=$(SOURCE:.py=.pyc)
 BUILD_PATH=./build/
