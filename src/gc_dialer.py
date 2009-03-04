@@ -153,7 +153,7 @@ class Dialcentral(object):
 		import evo_backend
 		# import gmail_backend
 		# import maemo_backend
-		import views
+		import gc_views
 
 		cookieFile = os.path.join(self._data_path, "cookies.txt")
 		try:
@@ -164,11 +164,11 @@ class Dialcentral(object):
 		self._gcBackend = gc_backend.GCDialer(cookieFile)
 		gtk.gdk.threads_enter()
 		try:
-			self._dialpad = views.Dialpad(self._widgetTree)
+			self._dialpad = gc_views.Dialpad(self._widgetTree)
 			self._dialpad.set_number("")
-			self._accountView = views.AccountInfo(self._widgetTree, self._gcBackend)
-			self._recentView = views.RecentCallsView(self._widgetTree, self._gcBackend)
-			self._contactsView = views.ContactsView(self._widgetTree, self._gcBackend)
+			self._accountView = gc_views.AccountInfo(self._widgetTree, self._gcBackend)
+			self._recentView = gc_views.RecentCallsView(self._widgetTree, self._gcBackend)
+			self._contactsView = gc_views.ContactsView(self._widgetTree, self._gcBackend)
 		finally:
 			gtk.gdk.threads_leave()
 
@@ -192,7 +192,7 @@ class Dialcentral(object):
 			evo_backend.EvolutionAddressBook(),
 			file_backend.FilesystemAddressBookFactory(fsContactsPath),
 		]
-		mergedBook = views.MergedAddressBook(addressBooks, views.MergedAddressBook.advanced_lastname_sorter)
+		mergedBook = gc_views.MergedAddressBook(addressBooks, gc_views.MergedAddressBook.advanced_lastname_sorter)
 		self._contactsView.append(mergedBook)
 		self._contactsView.extend(addressBooks)
 		self._contactsView.open_addressbook(*self._contactsView.get_addressbooks().next()[0][0:2])
