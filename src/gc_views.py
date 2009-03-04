@@ -379,6 +379,12 @@ class Dialpad(object):
 		widgetTree.get_widget("dial").grab_default()
 		widgetTree.get_widget("dial").grab_focus()
 
+	def enable(self):
+		pass
+
+	def disable(self):
+		pass
+
 	def dial(self, number):
 		raise NotImplementedError
 
@@ -439,6 +445,12 @@ class AccountInfo(object):
 
 		self.set_account_number("")
 
+	def enable(self):
+		pass
+
+	def disable(self):
+		pass
+
 	def get_selected_callback_number(self):
 		return make_ugly(self._callbackCombo.get_child().get_text())
 
@@ -495,6 +507,12 @@ class RecentCallsView(object):
 		self._init_recent_view()
 		if hildon is not None:
 			hildon.hildon_helper_set_thumb_scrollbar(widgetTree.get_widget('recent_scrolledwindow'), True)
+
+	def enable(self):
+		pass
+
+	def disable(self):
+		pass
 
 	def number_selected(self, number):
 		raise NotImplementedError
@@ -574,6 +592,12 @@ class ContactsView(object):
 			hildon.hildon_helper_set_thumb_scrollbar(widgetTree.get_widget('contacts_scrolledwindow'), True)
 
 		self._init_contacts_view()
+
+	def enable(self):
+		pass
+
+	def disable(self):
+		pass
 
 	def number_selected(self, number):
 		raise NotImplementedError
