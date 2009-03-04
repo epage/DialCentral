@@ -120,7 +120,6 @@ class Dialcentral(object):
 		backgroundSetup.setDaemon(True)
 		backgroundSetup.start()
 
-
 	def _idle_setup(self):
 		"""
 		If something can be done after the UI loads, push it here so it's not blocking the UI
@@ -233,7 +232,7 @@ class Dialcentral(object):
 			try:
 				dialog = self._widgetTree.get_widget("login_dialog")
 				dialog.set_transient_for(self._window)
-				dialog.set_default_response(0)
+				dialog.set_default_response(gtk.RESPONSE_CLOSE)
 				dialog.run()
 
 				username = self._widgetTree.get_widget("usernameentry").get_text()
@@ -325,7 +324,6 @@ class Dialcentral(object):
 
 	def _on_loginclose_clicked(self, *args):
 		self._on_close()
-		sys.exit(0)
 
 	def _on_clearcookies_clicked(self, *args):
 		self._gcBackend.logout()
