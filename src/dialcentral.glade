@@ -616,7 +616,7 @@ Number:</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                     <property name="label" translatable="yes">Clear Account Information
-must reauthenticate</property>
+(must reauthenticate)</property>
                     <property name="response_id">0</property>
                     <signal name="clicked" handler="on_clearcookies_clicked"/>
                   </widget>
