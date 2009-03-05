@@ -76,9 +76,10 @@ class Dialcentral(object):
 			gtk.main_quit()
 			return
 
-		self._window = self._widgetTree.get_widget("Dialpad")
+		self._window = self._widgetTree.get_widget("mainWindow")
 		self._notebook = self._widgetTree.get_widget("notebook")
 		self._errorDisplay = gtk_toolbox.ErrorDisplay(self._widgetTree)
+		self._credentials = gtk_toolbox.LoginWindow(self._widgetTree)
 
 		self._app = None
 		self._isFullScreen = False
@@ -111,8 +112,6 @@ class Dialcentral(object):
 			self._window.set_title("%s - Keypad" % self.__pretty_app_name__)
 
 		callbackMapping = {
-			"on_loginbutton_clicked": self._on_loginbutton_clicked,
-			"on_loginclose_clicked": self._on_loginclose_clicked,
 			"on_dialpad_quit": self._on_close,
 		}
 		self._widgetTree.signal_autoconnect(callbackMapping)
@@ -245,15 +244,7 @@ class Dialcentral(object):
 				for x in xrange(numOfAttempts):
 					gtk.gdk.threads_enter()
 					try:
-						dialog = self._widgetTree.get_widget("login_dialog")
-						dialog.set_transient_for(self._window)
-						dialog.set_default_response(gtk.RESPONSE_CLOSE)
-						dialog.run()
-
-						username = self._widgetTree.get_widget("usernameentry").get_text()
-						password = self._widgetTree.get_widget("passwordentry").get_text()
-						self._widgetTree.get_widget("passwordentry").set_text("")
-						dialog.hide()
+						username, password = self._credentials.request_credentials()
 					finally:
 						gtk.gdk.threads_leave()
 
@@ -362,12 +353,6 @@ class Dialcentral(object):
 				self._window.unfullscreen()
 			else:
 				self._window.fullscreen()
-
-	def _on_loginbutton_clicked(self, *args):
-		self._widgetTree.get_widget("login_dialog").response(gtk.RESPONSE_OK)
-
-	def _on_loginclose_clicked(self, *args):
-		self._on_close()
 
 	def _on_clearcookies_clicked(self, *args):
 		self._gcBackend.logout()

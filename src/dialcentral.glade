@@ -2,7 +2,7 @@
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
 <!--Generated with glade3 3.4.5 on Wed Mar  4 20:08:42 2009 -->
 <glade-interface>
-  <widget class="GtkWindow" id="Dialpad">
+  <widget class="GtkWindow" id="mainWindow">
     <property name="default_width">800</property>
     <property name="default_height">480</property>
     <property name="title" translatable="yes">Dialer</property>
@@ -724,7 +724,7 @@ must reauthenticate</property>
       </widget>
     </child>
   </widget>
-  <widget class="GtkDialog" id="login_dialog">
+  <widget class="GtkDialog" id="loginDialog">
     <property name="border_width">5</property>
     <property name="title" translatable="yes">Grandcentral Login</property>
     <property name="resizable">False</property>
@@ -735,7 +735,7 @@ must reauthenticate</property>
     <property name="skip_taskbar_hint">True</property>
     <property name="skip_pager_hint">True</property>
     <property name="deletable">False</property>
-    <property name="transient_for">Dialpad</property>
+    <property name="transient_for">mainWindow</property>
     <property name="has_separator">False</property>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox1">
@@ -795,25 +795,27 @@ must reauthenticate</property>
             <property name="visible">True</property>
             <property name="layout_style">GTK_BUTTONBOX_END</property>
             <child>
+              <widget class="GtkButton" id="logins_close_button">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="label" translatable="yes">gtk-close</property>
+                <property name="use_stock">True</property>
+                <property name="response_id">0</property>
+                <signal name="clicked" handler="on_loginclose_clicked"/>
+              </widget>
+            </child>
+            <child>
               <widget class="GtkButton" id="loginbutton">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="can_default">True</property>
                 <property name="has_default">True</property>
                 <property name="receives_default">True</property>
-                <property name="label" translatable="yes">Login</property>
+                <property name="label" translatable="yes">gtk-ok</property>
+                <property name="use_stock">True</property>
                 <property name="response_id">0</property>
                 <signal name="clicked" handler="on_loginbutton_clicked"/>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkButton" id="closebutton">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="label" translatable="yes">Close</property>
-                <property name="response_id">0</property>
-                <signal name="clicked" handler="on_loginclose_clicked"/>
               </widget>
               <packing>
                 <property name="position">1</property>

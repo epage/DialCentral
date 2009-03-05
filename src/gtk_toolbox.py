@@ -27,16 +27,18 @@ class LoginWindow(object):
 		"""
 		if parentWindow is None:
 			parentWindow = self._parentWindow
-		self._dialog.set_transient_for(parentWindow)
-		self._dialog.set_default_response(gtk.RESPONSE_OK)
-		response = self._dialog.run()
-		if response != gtk.RESPONSE_OK:
-			raise StandardError("Login Cancelled")
+		try:
+			self._dialog.set_transient_for(parentWindow)
+			self._dialog.set_default_response(gtk.RESPONSE_OK)
+			response = self._dialog.run()
+			if response != gtk.RESPONSE_OK:
+				raise RuntimeError("Login Cancelled")
 
-		username = self._usernameEntry.get_text()
-		password = self._passwordEntry.get_text()
-		self._usernameEntry.set_text("")
-		self._dialog.hide()
+			username = self._usernameEntry.get_text()
+			password = self._passwordEntry.get_text()
+			self._passwordEntry.set_text("")
+		finally:
+			self._dialog.hide()
 		return username, password
 
 	def _on_loginbutton_clicked(self, *args):
