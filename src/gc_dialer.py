@@ -53,6 +53,8 @@ class Dialcentral(object):
 	_data_path = os.path.join(os.path.expanduser("~"), ".dialcentral")
 
 	def __init__(self):
+		self._connection = None
+		self._osso = None
 		self._gcBackend = None
 		self._clipboard = gtk.clipboard_get()
 
@@ -77,16 +79,16 @@ class Dialcentral(object):
 		global hildon
 		self._app = None
 		self._isFullScreen = False
-		if hildon is not None and self._window is gtk.Window:
-			warnings.warn("Hildon installed but glade file not updated to work with hildon", UserWarning, 2)
-			hildon = None
-		elif hildon is not None:
+		if hildon is not None:
 			self._app = hildon.Program()
 			self._window = hildon.Window()
 			self._widgetTree.get_widget("vbox1").reparent(self._window)
 			self._app.add_window(self._window)
 			self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
 			self._widgetTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
+			self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
+			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('recent_scrolledwindow'), True)
+			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('contacts_scrolledwindow'), True)
 
 			gtkMenu = self._widgetTree.get_widget("dialpad_menubar")
 			menu = gtk.Menu()
@@ -98,7 +100,7 @@ class Dialcentral(object):
 			self._window.connect("key-press-event", self._on_key_press)
 			self._window.connect("window-state-event", self._on_window_state_change)
 		else:
-			warnings.warn("No Hildon", UserWarning, 2)
+			pass # warnings.warn("No Hildon", UserWarning, 2)
 
 		if hildon is not None:
 			self._window.set_title("Keypad")
@@ -134,7 +136,7 @@ class Dialcentral(object):
 			device = osso.DeviceState(self._osso)
 			device.set_device_state_callback(self._on_device_state_change, 0)
 		else:
-			warnings.warn("No OSSO", UserWarning, 2)
+			pass # warnings.warn("No OSSO", UserWarning)
 
 		try:
 			import conic
@@ -146,7 +148,7 @@ class Dialcentral(object):
 			self._connection.connect("connection-event", self._on_connection_change, Dialcentral.__app_magic__)
 			self._connection.request_connection(conic.CONNECT_FLAG_NONE)
 		else:
-			warnings.warn("No Internet Connectivity API ", UserWarning, 2)
+			pass # warnings.warn("No Internet Connectivity API ", UserWarning)
 
 		import gc_backend
 		import file_backend
@@ -198,7 +200,10 @@ class Dialcentral(object):
 		self._contactsView.open_addressbook(*self._contactsView.get_addressbooks().next()[0][0:2])
 		gtk.gdk.threads_enter()
 		try:
-			self._contactsView._init_books_combo()
+			self._dialpad.enable()
+			self._accountView.enable()
+			self._recentView.enable()
+			self._contactsView.enable()
 		finally:
 			gtk.gdk.threads_leave()
 

@@ -139,7 +139,7 @@ class GCDialer(object):
 
 		# No point if we don't have the magic cookie
 		if not self.is_authed():
-			raise RunetimeError("Not Authenticated")
+			raise RuntimeError("Not Authenticated")
 
 		# Strip leading 1 from 11 digit dialing
 		if len(number) == 11 and number[0] == 1:
@@ -153,7 +153,7 @@ class GCDialer(object):
 			)
 		except urllib2.URLError, e:
 			warnings.warn("%s is not accesible" % GCDialer._clicktocallURL, UserWarning, 2)
-			raise RunetimeError("%s is not accesible" % GCDialer._clicktocallURL)
+			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
 
 		if GCDialer._gcDialingStrRe.search(callSuccessPage) is None:
 			raise RuntimeError("Grand Central returned an error")

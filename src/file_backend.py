@@ -91,11 +91,11 @@ class FilesystemAddressBookFactory(object):
 		"""
 		@returns Iterable of (Address Book Factory, Book Id, Book Name)
 		"""
-		for root, dirs, files in os.walk(self.__path):
-			for file in files:
-				name, ext = file.rsplit(".", 1)
+		for root, dirs, filenames in os.walk(self.__path):
+			for filename in filenames:
+				name, ext = filename.rsplit(".", 1)
 				if ext in self.FILETYPE_SUPPORT:
-					yield self, os.path.join(root, file), name
+					yield self, os.path.join(root, filename), name
 
 	def open_addressbook(self, bookId):
 		name, ext = bookId.rsplit(".", 1)
@@ -105,19 +105,3 @@ class FilesystemAddressBookFactory(object):
 	@staticmethod
 	def factory_name():
 		return "File"
-
-
-def print_books():
-	"""
-	Included here for debugging.
-
-	Either insert it into the code or launch python with the "-i" flag
-	"""
-	eab = FilesystemAddressBookFactory(os.path.expanduser("~/Desktop"))
-	for book in eab.get_addressbooks():
-		eab = eab.open_addressbook(book[1])
-		print book
-		for contact in eab.get_contacts():
-			print "\t", contact
-			for details in eab.get_contact_details(contact[0]):
-				print "\t\t", details

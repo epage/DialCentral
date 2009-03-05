@@ -110,7 +110,7 @@ class MozillaEmulator(object):
 		@return: The raw HTML page data, unless fd was specified. When fd
 			was given, the return value is undefined.
 		"""
-		warnings.warn("Performing download of %s" % url, UserWarning, 2)
+		# warnings.warn("Performing download of %s" % url, UserWarning, 2)
 
 		if extraheaders is None:
 			extraheaders = {}

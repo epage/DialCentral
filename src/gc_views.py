@@ -24,11 +24,6 @@ import warnings
 import gobject
 import gtk
 
-try:
-	import hildon
-except ImportError:
-	hildon = None
-
 
 def make_ugly(prettynumber):
 	"""
@@ -363,6 +358,7 @@ class Dialpad(object):
 
 	def __init__(self, widgetTree):
 		self._numberdisplay = widgetTree.get_widget("numberdisplay")
+		self._dialButton = widgetTree.get_widget("dial")
 		self._phonenumber = ""
 		self._prettynumber = ""
 		self._clearall_id = None
@@ -376,16 +372,17 @@ class Dialpad(object):
 			"on_back_released": self._on_back_released,
 		}
 		widgetTree.signal_autoconnect(callbackMapping)
-		widgetTree.get_widget("dial").grab_default()
-		widgetTree.get_widget("dial").grab_focus()
 
 	def enable(self):
-		pass
+		self._dialButton.grab_focus()
 
 	def disable(self):
 		pass
 
 	def dial(self, number):
+		"""
+		@note Actual dial function is patched in later
+		"""
 		raise NotImplementedError
 
 	def get_number(self):
@@ -435,21 +432,18 @@ class AccountInfo(object):
 		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
 		self._accountViewNumberDisplay = widgetTree.get_widget("gcnumber_display")
 		self._callbackCombo = widgetTree.get_widget("callbackcombo")
-		if hildon is not None:
-			self._callbackCombo.get_child().set_property('hildon-input-mode', (1 << 4))
-
-		callbackMapping = {
-		}
-		widgetTree.signal_autoconnect(callbackMapping)
-		self._callbackCombo.get_child().connect("changed", self._on_callbackentry_changed)
-
-		self.set_account_number("")
 
 	def enable(self):
-		pass
+		assert self._backend.is_authed()
+		self.set_account_number("")
+		self._callbackList.clear()
+		self.update()
+		self._callbackCombo.get_child().connect("changed", self._on_callbackentry_changed)
 
 	def disable(self):
-		pass
+		self._callbackCombo.get_child().disconnect("changed", self._on_callbackentry_changed)
+		self.clear()
+		self._callbackList.clear()
 
 	def get_selected_callback_number(self):
 		return make_ugly(self._callbackCombo.get_child().get_text())
@@ -498,23 +492,29 @@ class RecentCallsView(object):
 		self._recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._recentview = widgetTree.get_widget("recentview")
 		self._recentviewselection = None
-
-		callbackMapping = {
-			"on_recentview_row_activated": self._on_recentview_row_activated,
-		}
-		widgetTree.signal_autoconnect(callbackMapping)
-
-		self._init_recent_view()
-		if hildon is not None:
-			hildon.hildon_helper_set_thumb_scrollbar(widgetTree.get_widget('recent_scrolledwindow'), True)
+		textrenderer = gtk.CellRendererText()
+		self._recentviewColumn = gtk.TreeViewColumn("Calls", textrenderer, text=1)
+		self._recentviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 	def enable(self):
-		pass
+		assert self._backend.is_authed()
+		self._recentview.set_model(self._recentmodel)
+
+		self._recentview.append_column(self._recentviewColumn)
+		self._recentviewselection = self._recentview.get_selection()
+		self._recentviewselection.set_mode(gtk.SELECTION_SINGLE)
+
+		self._recentview.connect("row-activated", self._on_recentview_row_activated)
 
 	def disable(self):
-		pass
+		self._recentview.disconnect("row-activated", self._on_recentview_row_activated)
+		self._recentview.remove_column(self._recentviewColumn)
+		self._recentview.set_model(None)
 
 	def number_selected(self, number):
+		"""
+		@note Actual dial function is patched in later
+		"""
 		raise NotImplementedError
 
 	def update(self):
@@ -527,19 +527,6 @@ class RecentCallsView(object):
 	def clear(self):
 		self._recenttime = 0.0
 		self._recentmodel.clear()
-
-	def _init_recent_view(self):
-		self._recentview.set_model(self._recentmodel)
-		textrenderer = gtk.CellRendererText()
-
-		# Add the column to the treeview
-		column = gtk.TreeViewColumn("Calls", textrenderer, text=1)
-		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-
-		self._recentview.append_column(column)
-
-		self._recentviewselection = self._recentview.get_selection()
-		self._recentviewselection.set_mode(gtk.SELECTION_SINGLE)
 
 	def _idly_populate_recentview(self):
 		self._recenttime = time.time()
@@ -581,25 +568,65 @@ class ContactsView(object):
 		self._contactsviewselection = None
 		self._contactsview = widgetTree.get_widget("contactsview")
 
+		self._contactColumn = gtk.TreeViewColumn("Contact")
+		displayContactSource = True
+		if displayContactSource:
+			textrenderer = gtk.CellRendererText()
+			self._contactColumn.pack_start(textrenderer, expand=False)
+			self._contactColumn.add_attribute(textrenderer, 'text', 0)
+		textrenderer = gtk.CellRendererText()
+		self._contactColumn.pack_start(textrenderer, expand=True)
+		self._contactColumn.add_attribute(textrenderer, 'text', 1)
+		textrenderer = gtk.CellRendererText()
+		self._contactColumn.pack_start(textrenderer, expand=True)
+		self._contactColumn.add_attribute(textrenderer, 'text', 4)
+		self._contactColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._contactColumn.set_sort_column_id(1)
+		self._contactColumn.set_visible(True)
+
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
 
-		callbackMapping = {
-			"on_contactsview_row_activated" : self._on_contactsview_row_activated,
-			"on_addressbook_combo_changed": self._on_addressbook_combo_changed,
-		}
-		widgetTree.signal_autoconnect(callbackMapping)
-		if hildon is not None:
-			hildon.hildon_helper_set_thumb_scrollbar(widgetTree.get_widget('contacts_scrolledwindow'), True)
-
-		self._init_contacts_view()
-
 	def enable(self):
-		pass
+		assert self._backend.is_authed()
+
+		self._contactsview.set_model(self._contactsmodel)
+		self._contactsview.append_column(self._contactColumn)
+		self._contactsviewselection = self._contactsview.get_selection()
+		self._contactsviewselection.set_mode(gtk.SELECTION_SINGLE)
+
+		self._booksList.clear()
+		for (factoryId, bookId), (factoryName, bookName) in self.get_addressbooks():
+			if factoryName and bookName:
+				entryName = "%s: %s" % (factoryName, bookName)
+			elif factoryName:
+				entryName = factoryName
+			elif bookName:
+				entryName = bookName
+			else:
+				entryName = "Bad name (%d)" % factoryId
+			row = (str(factoryId), bookId, entryName)
+			self._booksList.append(row)
+
+		self._booksSelectionBox.set_model(self._booksList)
+		cell = gtk.CellRendererText()
+		self._booksSelectionBox.pack_start(cell, True)
+		self._booksSelectionBox.add_attribute(cell, 'text', 2)
+		self._booksSelectionBox.set_active(0)
+
+		self._contactsview.connect("row-activated", self._on_contactsview_row_activated)
+		self._booksSelectionBox.connect("changed", self._on_addressbook_combo_changed)
 
 	def disable(self):
-		pass
+		self._booksSelectionBox.set_model(None)
+		self._contactsview.set_model(None)
+		self._contactsview.remove_column(self._contactColumn)
+		self._contactsview.disconnect("row-activated", self._on_contactsview_row_activated)
+		self._booksSelectionBox.disconnect("changed", self._on_addressbook_combo_changed)
 
 	def number_selected(self, number):
+		"""
+		@note Actual dial function is patched in later
+		"""
 		raise NotImplementedError
 
 	def get_addressbooks(self):
@@ -638,55 +665,6 @@ class ContactsView(object):
 
 	def extend(self, books):
 		self._addressBookFactories.extend(books)
-
-	def _init_contacts_view(self):
-		self._contactsview.set_model(self._contactsmodel)
-
-		# Add the column to the treeview
-		column = gtk.TreeViewColumn("Contact")
-
-		#displayContactSource = False
-		displayContactSource = True
-		if displayContactSource:
-			textrenderer = gtk.CellRendererText()
-			column.pack_start(textrenderer, expand=False)
-			column.add_attribute(textrenderer, 'text', 0)
-
-		textrenderer = gtk.CellRendererText()
-		column.pack_start(textrenderer, expand=True)
-		column.add_attribute(textrenderer, 'text', 1)
-
-		textrenderer = gtk.CellRendererText()
-		column.pack_start(textrenderer, expand=True)
-		column.add_attribute(textrenderer, 'text', 4)
-
-		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		column.set_sort_column_id(1)
-		column.set_visible(True)
-		self._contactsview.append_column(column)
-
-		self._contactsviewselection = self._contactsview.get_selection()
-		self._contactsviewselection.set_mode(gtk.SELECTION_SINGLE)
-
-	def _init_books_combo(self):
-		self._booksList.clear()
-		for (factoryId, bookId), (factoryName, bookName) in self.get_addressbooks():
-			if factoryName and bookName:
-				entryName = "%s: %s" % (factoryName, bookName)
-			elif factoryName:
-				entryName = factoryName
-			elif bookName:
-				entryName = bookName
-			else:
-				entryName = "Bad name (%d)" % factoryId
-			row = (str(factoryId), bookId, entryName)
-			self._booksList.append(row)
-
-		self._booksSelectionBox.set_model(self._booksList)
-		cell = gtk.CellRendererText()
-		self._booksSelectionBox.pack_start(cell, True)
-		self._booksSelectionBox.add_attribute(cell, 'text', 2)
-		self._booksSelectionBox.set_active(0)
 
 	def _idly_populate_contactsview(self):
 		#@todo Add a lock so only one code path can be in here at a time
