@@ -14,6 +14,9 @@ __changelog__ = '''\
  * Caching of contacts
  * Refactoring to make working with the code easier
  * Filesystem backed contacts but currently only supporting a specific csv format
+ * Gracefully handle lack of connection and connection transitions
+ * Gracefully handle failed login
+ * A tiny bit better error reporting
 
 0.8.3 - "Extras Love"
  * Version bump fighting the extras autobuilder, I hope this works

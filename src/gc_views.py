@@ -356,7 +356,8 @@ class PhoneTypeSelector(object):
 
 class Dialpad(object):
 
-	def __init__(self, widgetTree):
+	def __init__(self, widgetTree, errorDisplay):
+		self._errorDisplay = errorDisplay
 		self._numberdisplay = widgetTree.get_widget("numberdisplay")
 		self._dialButton = widgetTree.get_widget("dial")
 		self._phonenumber = ""
@@ -392,9 +393,12 @@ class Dialpad(object):
 		"""
 		Set the callback phonenumber
 		"""
-		self._phonenumber = make_ugly(number)
-		self._prettynumber = make_pretty(self._phonenumber)
-		self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % (self._prettynumber))
+		try:
+			self._phonenumber = make_ugly(number)
+			self._prettynumber = make_pretty(self._phonenumber)
+			self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % (self._prettynumber))
+		except TypeError, e:
+			self._errorDisplay.push_message(e.message)
 
 	def clear(self):
 		self.set_number("")
@@ -426,7 +430,8 @@ class Dialpad(object):
 
 class AccountInfo(object):
 
-	def __init__(self, widgetTree, backend = None):
+	def __init__(self, widgetTree, backend, errorDisplay):
+		self._errorDisplay = errorDisplay
 		self._backend = backend
 
 		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
@@ -435,6 +440,7 @@ class AccountInfo(object):
 
 	def enable(self):
 		assert self._backend.is_authed()
+		self._accountViewNumberDisplay.set_use_markup(True)
 		self.set_account_number("")
 		self._callbackList.clear()
 		self.update()
@@ -464,34 +470,51 @@ class AccountInfo(object):
 
 	def populate_callback_combo(self):
 		self._callbackList.clear()
-		for number, description in self._backend.get_callback_numbers().iteritems():
+		try:
+			callbackNumbers = self._backend.get_callback_numbers()
+		except RuntimeError, e:
+			self._errorDisplay.push_message(e.message)
+			return
+
+		for number, description in callbackNumbers.iteritems():
 			self._callbackList.append((make_pretty(number),))
 
 		self._callbackCombo.set_model(self._callbackList)
 		self._callbackCombo.set_text_column(0)
-		self._callbackCombo.get_child().set_text(make_pretty(self._backend.get_callback_number()))
+		try:
+			callbackNumber = self._backend.get_callback_number()
+		except RuntimeError, e:
+			self._errorDisplay.push_message(e.message)
+			return
+		self._callbackCombo.get_child().set_text(make_pretty(callbackNumber))
 
 	def _on_callbackentry_changed(self, *args):
 		"""
 		@todo Potential blocking on web access, maybe we should defer this or put up a dialog?
 		"""
-		text = self.get_selected_callback_number()
-		if not self._backend.is_valid_syntax(text):
-			warnings.warn("%s is not a valid callback number" % text, UserWarning, 2)
-		elif text == self._backend.get_callback_number():
-			warnings.warn("Callback number already is %s" % self._backend.get_callback_number(), UserWarning, 2)
-		else:
-			self._backend.set_callback_number(text)
+		try:
+			text = self.get_selected_callback_number()
+			if not self._backend.is_valid_syntax(text):
+				self._errorDisplay.push_message("%s is not a valid callback number" % text)
+			elif text == self._backend.get_callback_number():
+				warnings.warn("Callback number already is %s" % self._backend.get_callback_number(), UserWarning, 2)
+			else:
+				self._backend.set_callback_number(text)
+		except RuntimeError, e:
+			self._errorDisplay.push_message(e.message)
 
 
 class RecentCallsView(object):
 
-	def __init__(self, widgetTree, backend = None):
+	def __init__(self, widgetTree, backend, errorDisplay):
+		self._errorDisplay = errorDisplay
 		self._backend = backend
+
 		self._recenttime = 0.0
 		self._recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._recentview = widgetTree.get_widget("recentview")
 		self._recentviewselection = None
+
 		textrenderer = gtk.CellRendererText()
 		self._recentviewColumn = gtk.TreeViewColumn("Calls", textrenderer, text=1)
 		self._recentviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
@@ -532,7 +555,17 @@ class RecentCallsView(object):
 		self._recenttime = time.time()
 		self._recentmodel.clear()
 
-		for personsName, phoneNumber, date, action in self._backend.get_recent():
+		try:
+			recentItems = self._backend.get_recent()
+		except RuntimeError, e:
+			gtk.gdk.threads_enter()
+			try:
+				self._errorDisplay.push_message(e.message)
+			finally:
+				gtk.gdk.threads_leave()
+			self._recenttime = 0.0
+			recentItems = []
+		for personsName, phoneNumber, date, action in recentItems:
 			description = "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber)
 			item = (phoneNumber, description)
 			gtk.gdk.threads_enter()
@@ -554,7 +587,8 @@ class RecentCallsView(object):
 
 class ContactsView(object):
 
-	def __init__(self, widgetTree, backend = None):
+	def __init__(self, widgetTree, backend, errorDisplay):
+		self._errorDisplay = errorDisplay
 		self._backend = backend
 
 		self._addressBook = None
@@ -675,7 +709,17 @@ class ContactsView(object):
 		self._contactsview.set_model(None)
 
 		addressBook = self._addressBook
-		for contactId, contactName in addressBook.get_contacts():
+		try:
+			contacts = addressBook.get_contacts()
+		except RuntimeError, e:
+			contacts = []
+			self._contactstime = 0.0
+			gtk.gdk.threads_enter()
+			try:
+				self._errorDisplay.push_message(e.message)
+			finally:
+				gtk.gdk.threads_leave()
+		for contactId, contactName in contacts:
 			contactType = (addressBook.contact_source_short_name(contactId),)
 			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("",))
 
@@ -698,7 +742,12 @@ class ContactsView(object):
 			return
 
 		contactId = self._contactsmodel.get_value(itr, 3)
-		contactDetails = self._addressBook.get_contact_details(contactId)
+		try:
+			contactDetails = self._addressBook.get_contact_details(contactId)
+		except RuntimeError, e:
+			contactDetails = []
+			self._contactstime = 0.0
+			self._errorDisplay.push_message(e.message)
 		contactDetails = [phoneNumber for phoneNumber in contactDetails]
 
 		if len(contactDetails) == 0:

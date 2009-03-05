@@ -40,11 +40,16 @@ class AccountInfo(object):
 		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
 		self._accountViewNumberDisplay = widgetTree.get_widget("gcnumber_display")
 		self._callbackCombo = widgetTree.get_widget("callbackcombo")
+		self._clearCookiesButton = widgetTree.get_widget("clearcookies")
 
 	def enable(self):
 		self._callbackCombo.set_sensitive(False)
+		self._clearCookiesButton.set_sensitive(False)
+
+		self._accountViewNumberDisplay.set_text("")
 
 	def disable(self):
+		self._clearCookiesButton.set_sensitive(True)
 		self._callbackCombo.set_sensitive(True)
 
 
@@ -59,6 +64,9 @@ class RecentCallsView(object):
 	def disable(self):
 		pass
 
+	def update(self):
+		pass
+
 
 class ContactsView(object):
 
@@ -70,3 +78,6 @@ class ContactsView(object):
 
 	def disable(self):
 		self._booksSelectionBox.set_sensitive(True)
+
+	def update(self):
+		pass

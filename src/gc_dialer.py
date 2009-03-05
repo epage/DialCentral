@@ -36,6 +36,8 @@ try:
 except ImportError:
 	hildon = None
 
+import gtk_toolbox
+
 
 class Dialcentral(object):
 
@@ -59,10 +61,11 @@ class Dialcentral(object):
 		self._clipboard = gtk.clipboard_get()
 
 		self._deviceIsOnline = True
-		self._dialpad = None
-		self._accountView = None
-		self._recentView = None
-		self._contactsView = None
+		self._isLoggedIn = False
+		self._dialpads = None
+		self._accountViews = None
+		self._recentViews = None
+		self._contactsViews = None
 
 		for path in Dialcentral._glade_files:
 			if os.path.isfile(path):
@@ -75,8 +78,8 @@ class Dialcentral(object):
 
 		self._window = self._widgetTree.get_widget("Dialpad")
 		self._notebook = self._widgetTree.get_widget("notebook")
+		self._errorDisplay = gtk_toolbox.ErrorDisplay(self._widgetTree)
 
-		global hildon
 		self._app = None
 		self._isFullScreen = False
 		if hildon is not None:
@@ -155,6 +158,7 @@ class Dialcentral(object):
 		import evo_backend
 		# import gmail_backend
 		# import maemo_backend
+		import null_views
 		import gc_views
 
 		cookieFile = os.path.join(self._data_path, "cookies.txt")
@@ -166,27 +170,29 @@ class Dialcentral(object):
 		self._gcBackend = gc_backend.GCDialer(cookieFile)
 		gtk.gdk.threads_enter()
 		try:
-			self._dialpad = gc_views.Dialpad(self._widgetTree)
-			self._dialpad.set_number("")
-			self._accountView = gc_views.AccountInfo(self._widgetTree, self._gcBackend)
-			self._recentView = gc_views.RecentCallsView(self._widgetTree, self._gcBackend)
-			self._contactsView = gc_views.ContactsView(self._widgetTree, self._gcBackend)
+			self._dialpads = {
+				True: gc_views.Dialpad(self._widgetTree, self._errorDisplay),
+				False: null_views.Dialpad(self._widgetTree),
+			}
+			self._dialpads[True].set_number("")
+			self._accountViews = {
+				True: gc_views.AccountInfo(self._widgetTree, self._gcBackend, self._errorDisplay),
+				False: null_views.AccountInfo(self._widgetTree),
+			}
+			self._recentViews = {
+				True: gc_views.RecentCallsView(self._widgetTree, self._gcBackend, self._errorDisplay),
+				False: null_views.RecentCallsView(self._widgetTree),
+			}
+			self._contactsViews = {
+				True: gc_views.ContactsView(self._widgetTree, self._gcBackend, self._errorDisplay),
+				False: null_views.ContactsView(self._widgetTree),
+			}
 		finally:
 			gtk.gdk.threads_leave()
 
-		self._dialpad.dial = self._on_dial_clicked
-		self._recentView.number_selected = self._on_number_selected
-		self._contactsView.number_selected = self._on_number_selected
-
-		#This is where the blocking can start
-		if self._gcBackend.is_authed():
-			gtk.gdk.threads_enter()
-			try:
-				self._accountView.update()
-			finally:
-				gtk.gdk.threads_leave()
-		else:
-			self.attempt_login(2)
+		self._dialpads[True].dial = self._on_dial_clicked
+		self._recentViews[True].number_selected = self._on_number_selected
+		self._contactsViews[True].number_selected = self._on_number_selected
 
 		fsContactsPath = os.path.join(self._data_path, "contacts")
 		addressBooks = [
@@ -195,15 +201,15 @@ class Dialcentral(object):
 			file_backend.FilesystemAddressBookFactory(fsContactsPath),
 		]
 		mergedBook = gc_views.MergedAddressBook(addressBooks, gc_views.MergedAddressBook.advanced_lastname_sorter)
-		self._contactsView.append(mergedBook)
-		self._contactsView.extend(addressBooks)
-		self._contactsView.open_addressbook(*self._contactsView.get_addressbooks().next()[0][0:2])
+		self._contactsViews[True].append(mergedBook)
+		self._contactsViews[True].extend(addressBooks)
+		self._contactsViews[True].open_addressbook(*self._contactsViews[True].get_addressbooks().next()[0][0:2])
 		gtk.gdk.threads_enter()
 		try:
-			self._dialpad.enable()
-			self._accountView.enable()
-			self._recentView.enable()
-			self._contactsView.enable()
+			self._dialpads[self._isLoggedIn].enable()
+			self._accountViews[self._isLoggedIn].enable()
+			self._recentViews[self._isLoggedIn].enable()
+			self._contactsViews[self._isLoggedIn].enable()
 		finally:
 			gtk.gdk.threads_leave()
 
@@ -214,6 +220,8 @@ class Dialcentral(object):
 			"on_about_activate": self._on_about_activate,
 		}
 		self._widgetTree.signal_autoconnect(callbackMapping)
+
+		self.attempt_login(2)
 
 		return False
 
@@ -229,35 +237,44 @@ class Dialcentral(object):
 			warnings.warn("Attempted to login while device was offline", UserWarning, 2)
 			return False
 
-		if self._gcBackend.is_authed():
-			return True
+		loggedIn = False
+		try:
+			if self._gcBackend.is_authed():
+				loggedIn = True
+			else:
+				for x in xrange(numOfAttempts):
+					gtk.gdk.threads_enter()
+					try:
+						dialog = self._widgetTree.get_widget("login_dialog")
+						dialog.set_transient_for(self._window)
+						dialog.set_default_response(gtk.RESPONSE_CLOSE)
+						dialog.run()
 
-		for x in xrange(numOfAttempts):
+						username = self._widgetTree.get_widget("usernameentry").get_text()
+						password = self._widgetTree.get_widget("passwordentry").get_text()
+						self._widgetTree.get_widget("passwordentry").set_text("")
+						dialog.hide()
+					finally:
+						gtk.gdk.threads_leave()
+
+					loggedIn = self._gcBackend.login(username, password)
+					if loggedIn:
+						break
+		except RuntimeError, e:
 			gtk.gdk.threads_enter()
 			try:
-				dialog = self._widgetTree.get_widget("login_dialog")
-				dialog.set_transient_for(self._window)
-				dialog.set_default_response(gtk.RESPONSE_CLOSE)
-				dialog.run()
-
-				username = self._widgetTree.get_widget("usernameentry").get_text()
-				password = self._widgetTree.get_widget("passwordentry").get_text()
-				self._widgetTree.get_widget("passwordentry").set_text("")
-				dialog.hide()
+				self._errorDisplay.push_message(e.message)
 			finally:
 				gtk.gdk.threads_leave()
-			loggedIn = self._gcBackend.login(username, password)
-			if loggedIn:
-				gtk.gdk.threads_enter()
-				try:
-					if self._gcBackend.get_callback_number() is None:
-						self._gcBackend.set_sane_callback()
-					self._accountView.update()
-				finally:
-					gtk.gdk.threads_leave()
-				return True
 
-		return False
+		gtk.gdk.threads_enter()
+		try:
+			if not loggedIn:
+				self._errorDisplay.push_message("Login Failed")
+			self._change_loggedin_status(loggedIn)
+		finally:
+			gtk.gdk.threads_leave()
+		return loggedIn
 
 	def display_error_message(self, msg):
 		error_dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, msg)
@@ -272,6 +289,26 @@ class Dialcentral(object):
 	def _on_close(*args, **kwds):
 		gtk.main_quit()
 
+	def _change_loggedin_status(self, newStatus):
+		oldStatus = self._isLoggedIn
+
+		self._dialpads[oldStatus].disable()
+		self._accountViews[oldStatus].disable()
+		self._recentViews[oldStatus].disable()
+		self._contactsViews[oldStatus].disable()
+
+		self._dialpads[newStatus].enable()
+		self._accountViews[newStatus].enable()
+		self._recentViews[newStatus].enable()
+		self._contactsViews[newStatus].enable()
+
+		if newStatus:
+			if self._gcBackend.get_callback_number() is None:
+				self._gcBackend.set_sane_callback()
+			self._accountViews[True].update()
+
+		self._isLoggedIn = newStatus
+
 	def _on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
 		"""
 		For shutdown or save_unsaved_data, our only state is cookies and I think the cookie manager handles that for us.
@@ -281,7 +318,7 @@ class Dialcentral(object):
 		"""
 		if memory_low:
 			self._gcBackend.clear_caches()
-			self._contactsView.clear_caches()
+			self._contactsViews[True].clear_caches()
 			gc.collect()
 
 	def _on_connection_change(self, connection, event, magicIdentifier):
@@ -298,12 +335,14 @@ class Dialcentral(object):
 		if status == conic.STATUS_CONNECTED:
 			self._window.set_sensitive(True)
 			self._deviceIsOnline = True
+			self._isLoggedIn = False
 			backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
 			backgroundLogin.setDaemon(True)
 			backgroundLogin.start()
 		elif status == conic.STATUS_DISCONNECTED:
 			self._window.set_sensitive(False)
 			self._deviceIsOnline = False
+			self._isLoggedIn = False
 
 	def _on_window_state_change(self, widget, event, *args):
 		"""
@@ -332,9 +371,9 @@ class Dialcentral(object):
 
 	def _on_clearcookies_clicked(self, *args):
 		self._gcBackend.logout()
-		self._accountView.clear()
-		self._recentView.clear()
-		self._contactsView.clear()
+		self._accountViews[True].clear()
+		self._recentViews[True].clear()
+		self._contactsViews[True].clear()
 
 		# re-run the inital grandcentral setup
 		backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
@@ -343,9 +382,9 @@ class Dialcentral(object):
 
 	def _on_notebook_switch_page(self, notebook, page, page_num):
 		if page_num == 1:
-			self._contactsView.update()
+			self._contactsViews[self._isLoggedIn].update()
 		elif page_num == 3:
-			self._recentView.update()
+			self._recentViews[self._isLoggedIn].update()
 
 		tabTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
 		if hildon is not None:
@@ -354,39 +393,43 @@ class Dialcentral(object):
 			self._window.set_title("%s - %s" % (self.__pretty_app_name__, tabTitle))
 
 	def _on_number_selected(self, number):
-		self._dialpad.set_number(number)
+		self._dialpads[True].set_number(number)
 		self._notebook.set_current_page(0)
 
 	def _on_dial_clicked(self, number):
 		"""
 		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
 		"""
-		loggedIn = self._gcBackend.is_authed()
-		if not loggedIn:
+		try:
+			loggedIn = self._gcBackend.is_authed()
+		except RuntimeError, e:
+			loggedIn = False
+			self._errorDisplay.push_message(e.message)
 			return
-			#loggedIn = self.attempt_login(2)
 
-		if not loggedIn or not self._gcBackend.is_authed() or self._gcBackend.get_callback_number() == "":
-			self.display_error_message("Backend link with grandcentral is not working, please try again")
-			warnings.warn("Backend Status: Logged in? %s, Authenticated? %s, Callback=%s" % (loggedIn, self._gcBackend.is_authed(), self._gcBackend.get_callback_number()), UserWarning, 2)
+		if not loggedIn:
+			self._errorDisplay.push_message(
+				"Backend link with grandcentral is not working, please try again"
+			)
 			return
 
 		dialed = False
 		try:
+			assert self._gcBackend.get_callback_number() != ""
 			self._gcBackend.dial(number)
 			dialed = True
 		except RuntimeError, e:
-			self.display_error_message(e.message)
+			self._errorDisplay.push_message(e.message)
 		except ValueError, e:
-			self.display_error_message(e.message)
+			self._errorDisplay.push_message(e.message)
 
 		if dialed:
-			self._dialpad.clear()
-			self._recentView.clear()
+			self._dialpads[True].clear()
+			self._recentViews[True].clear()
 
 	def _on_paste(self, *args):
 		contents = self._clipboard.wait_for_text()
-		self._dialpad.set_number(contents)
+		self._dialpads[True].set_number(contents)
 
 	def _on_about_activate(self, *args):
 		dlg = gtk.AboutDialog()

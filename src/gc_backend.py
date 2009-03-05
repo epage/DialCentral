@@ -93,8 +93,7 @@ class GCDialer(object):
 		try:
 			forwardSelectionPage = self._browser.download(GCDialer._forwardselectURL)
 		except urllib2.URLError, e:
-			warnings.warn("%s is not accesible" % GCDialer._forwardselectURL, UserWarning, 2)
-			return False
+			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
 
 		self._browser.cookies.save()
 		if GCDialer._isLoginPageRe.search(forwardSelectionPage) is None:
@@ -117,8 +116,7 @@ class GCDialer(object):
 		try:
 			loginSuccessOrFailurePage = self._browser.download(GCDialer._loginURL, loginPostData)
 		except urllib2.URLError, e:
-			warnings.warn("%s is not accesible" % GCDialer._loginURL, UserWarning, 2)
-			return False
+			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
 
 		return self.is_authed()
 
@@ -152,7 +150,6 @@ class GCDialer(object):
 				{'Referer' : 'http://www.grandcentral.com/mobile/messages'}
 			)
 		except urllib2.URLError, e:
-			warnings.warn("%s is not accesible" % GCDialer._clicktocallURL, UserWarning, 2)
 			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
 
 		if GCDialer._gcDialingStrRe.search(callSuccessPage) is None:
@@ -226,8 +223,7 @@ class GCDialer(object):
 		try:
 			callbackSetPage = self._browser.download(GCDialer._setforwardURL, callbackPostData)
 		except urllib2.URLError, e:
-			warnings.warn("%s is not accesible" % GCDialer._setforwardURL, UserWarning, 2)
-			return False
+			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
 
 		self._browser.cookies.save()
 		return True
@@ -248,8 +244,7 @@ class GCDialer(object):
 		try:
 			recentCallsPage = self._browser.download(GCDialer._inboxallURL)
 		except urllib2.URLError, e:
-			warnings.warn("%s is not accesible" % GCDialer._inboxallURL, UserWarning, 2)
-			return
+			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
 
 		for match in self._inboxRe.finditer(recentCallsPage):
 			phoneNumber = match.group(4)
@@ -284,7 +279,10 @@ class GCDialer(object):
 
 			contactsPagesUrls = [GCDialer._contactsURL]
 			for contactsPageUrl in contactsPagesUrls:
-				contactsPage = self._browser.download(contactsPageUrl)
+				try:
+					contactsPage = self._browser.download(contactsPageUrl)
+				except urllib2.URLError, e:
+					raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
 				for contact_match in self._contactsRe.finditer(contactsPage):
 					contactId = contact_match.group(1)
 					contactName = contact_match.group(2)
@@ -304,7 +302,11 @@ class GCDialer(object):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)
 		"""
-		detailPage = self._browser.download(GCDialer._contactDetailURL + '/' + contactId)
+		try:
+			detailPage = self._browser.download(GCDialer._contactDetailURL + '/' + contactId)
+		except urllib2.URLError, e:
+			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
+
 		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
 			phoneType = detail_match.group(1)
 			phoneNumber = detail_match.group(2)
