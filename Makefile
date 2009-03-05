@@ -36,7 +36,7 @@ package:
 	rm -Rf $(BUILD_PATH)
 	mkdir $(BUILD_PATH)
 	cp $(SOURCE_PATH)/$(PROJECT_NAME).py  $(BUILD_PATH)
-	cp $(SOURCE_PATH)/gc_dialer.glade  $(BUILD_PATH)
+	cp $(SOURCE_PATH)/$(PROJECT_NAME).glade  $(BUILD_PATH)
 	cp $(SOURCE)  $(BUILD_PATH)
 	cp support/$(PROJECT_NAME).desktop $(BUILD_PATH)
 	cp support/icons/hicolor/26x26/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/26x26-$(PROJECT_NAME).png
