@@ -65,7 +65,7 @@ if __name__ == "__main__":
 	p.postinstall = __postinstall__
 	p.icon="26x26-dialcentral.png"
 	p["/usr/bin"] = [ "dialcentral.py" ]
-	p["/usr/lib/dialcentral"] = ["__init__.py", "browser_emu.py", "evo_backend.py", "gc_backend.py", "gc_dialer.glade", "gc_dialer.py", "builddeb.py"]
+	p["/usr/lib/dialcentral"] = ["__init__.py", "browser_emu.py", "file_backend.py", "evo_backend.py", "gc_backend.py", "dialcentral.glade", "gc_dialer.py", "gc_views.py", "null_views.py", "gtk_toolbox.py"]
 	p["/usr/share/applications/hildon"] = ["dialcentral.desktop"]
 	p["/usr/share/icons/hicolor/26x26/hildon"] = ["26x26-dialcentral.png|dialcentral.png"]
 	p["/usr/share/icons/hicolor/64x64/hildon"] = ["64x64-dialcentral.png|dialcentral.png"]
