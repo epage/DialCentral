@@ -7,9 +7,11 @@ __appname__ = "dialcentral"
 __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 __build__ = 0
 __changelog__ = '''\
+0.9.1 - ""
+
 0.9.0 - "Slick as snot"
  * Caching of contacts
  * Refactoring to make working with the code easier
