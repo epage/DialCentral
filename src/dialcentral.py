@@ -6,8 +6,8 @@ import sys
 sys.path.insert(0,"/usr/lib/dialcentral/")
 
 
-import gc_dialer
+import dialer
 
 
-gc_dialer.run_dialpad()
+dialer.run_dialpad()
 

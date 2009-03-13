@@ -24,6 +24,7 @@ Filesystem backend for contact support
 
 
 import os
+import re
 import csv
 
 
@@ -36,18 +37,54 @@ class CsvAddressBook(object):
 	@li Column 0 is name, column 1 is number
 	"""
 
+	_nameRe = re.compile("name", re.IGNORECASE)
+	_phoneRe = re.compile("phone", re.IGNORECASE)
+	_mobileRe = re.compile("mobile", re.IGNORECASE)
+
 	def __init__(self, csvPath):
 		self.__csvPath = csvPath
 		self.__contacts = list(
 			self.read_csv(csvPath)
 		)
 
-	@staticmethod
-	def read_csv(csvPath):
+	@classmethod
+	def read_csv(cls, csvPath):
 		csvReader = iter(csv.reader(open(csvPath, "rU")))
-		csvReader.next()
-		for i, row in enumerate(csvReader):
-			yield str(i), row[0], row[1]
+
+		header = csvReader.next()
+		nameColumn, phoneColumns = cls._guess_columns(header)
+
+		yieldCount = 0
+		for row in csvReader:
+			contactDetails = []
+			for (phoneType, phoneColumn) in phoneColumns:
+				try:
+					if len(row[phoneColumn]) == 0:
+						continue
+					contactDetails.append((phoneType, row[phoneColumn]))
+				except IndexError:
+					pass
+			if len(contactDetails) != 0:
+				yield str(yieldCount), row[nameColumn], contactDetails
+				yieldCount += 1
+
+	@classmethod
+	def _guess_columns(cls, row):
+		names = []
+		phones = []
+		for i, item in enumerate(row):
+			if cls._nameRe.search(item) is not None:
+				names.append((item, i))
+			elif cls._phoneRe.search(item) is not None:
+				phones.append((item, i))
+			elif cls._mobileRe.search(item) is not None:
+				phones.append((item, i))
+		if len(names) == 0:
+			names.append(("Name", 0))
+		if len(phones) == 0:
+			phones.append(("Phone", 1))
+
+		return names[0][1], phones
 
 	def clear_caches(self):
 		pass
@@ -72,7 +109,7 @@ class CsvAddressBook(object):
 		@returns Iterable of (Phone Type, Phone Number)
 		"""
 		contactId = int(contactId)
-		yield "", self.__contacts[contactId][2]
+		return iter(self.__contacts[contactId][2])
 
 
 class FilesystemAddressBookFactory(object):
@@ -105,3 +142,22 @@ class FilesystemAddressBookFactory(object):
 	@staticmethod
 	def factory_name():
 		return "File"
+
+
+def print_filebooks(contactPath = None):
+	"""
+	Included here for debugging.
+
+	Either insert it into the code or launch python with the "-i" flag
+	"""
+	if contactPath is None:
+		contactPath = os.path.join(os.path.expanduser("~"), ".dialcentral", "contacts")
+
+	abf = FilesystemAddressBookFactory(contactPath)
+	for book in abf.get_addressbooks():
+		ab = abf.open_addressbook(book[1])
+		print book
+		for contact in ab.get_contacts():
+			print "\t", contact
+			for details in ab.get_contact_details(contact[0]):
+				print "\t\t", details
