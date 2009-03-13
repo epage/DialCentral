@@ -7,6 +7,7 @@ SOURCE=$(SOURCE_PATH)/dialer.py \
 	   $(SOURCE_PATH)/null_views.py \
 	   $(SOURCE_PATH)/file_backend.py \
 	   $(SOURCE_PATH)/evo_backend.py \
+	   $(SOURCE_PATH)/gdata_backend.py \
 	   $(SOURCE_PATH)/gv_backend.py \
 	   $(SOURCE_PATH)/gc_backend.py \
 	   $(SOURCE_PATH)/browser_emu.py \

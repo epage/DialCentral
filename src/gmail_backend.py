@@ -45,7 +45,7 @@ class GMailAddressBook(object):
 
 		self._account = libgmail.GmailAccount(username, password)
 		self._gmailContacts = self._account.getContacts()
-	
+
 	@classmethod
 	def is_supported(cls):
 		return libgmail is not None
@@ -58,7 +58,7 @@ class GMailAddressBook(object):
 			return
 
 		yield self, "", ""
-	
+
 	def open_addressbook(self, bookId):
 		return self
 
@@ -77,7 +77,7 @@ class GMailAddressBook(object):
 		if not self.is_supported():
 			return
 		pass
-	
+
 	def get_contact_details(self, contactId):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)

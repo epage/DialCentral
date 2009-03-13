@@ -37,13 +37,13 @@ import socket
 socket.setdefaulttimeout(5)
 
 
-class GCDialer(object):
+class GVDialer(object):
 	"""
 	This class encapsulates all of the knowledge necessary to interace with the grandcentral servers
 	the functions include login, setting up a callback number, and initalting a callback
 	"""
 
-	_gcDialingStrRe = re.compile("This may take a few seconds", re.M)
+	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
 	_accessTokenRe = re.compile(r"""<input type="hidden" name="a_t" [^>]*value="(.*)"/>""")
 	_isLoginPageRe = re.compile(r"""<form method="post" action="https://www.grandcentral.com/mobile/account/login">""")
 	_callbackRe = re.compile(r"""name="default_number" value="(\d+)" />\s+(.*)\s$""", re.M)
@@ -56,19 +56,19 @@ class GCDialer(object):
 
 	_validateRe = re.compile("^[0-9]{10,}$")
 
-	_forwardselectURL = "http://www.grandcentral.com/mobile/settings/forwarding_select"
-	_loginURL = "https://www.grandcentral.com/mobile/account/login"
-	_setforwardURL = "http://www.grandcentral.com/mobile/settings/set_forwarding?from=settings"
-	_clicktocallURL = "http://www.grandcentral.com/mobile/calls/click_to_call?a_t=%s&destno=%s"
-	_inboxallURL = "http://www.grandcentral.com/mobile/messages/inbox?types=all"
-	_contactsURL = "http://www.grandcentral.com/mobile/contacts"
-	_contactDetailURL = "http://www.grandcentral.com/mobile/contacts/detail"
+	_forwardselectURL = "http://www.google.com/voice/m/settings/forwarding_select"
+	_loginURL = "https://www.google.com/voice/m/account/login"
+	_setforwardURL = "http://www.google.com/voice/m/settings/set_forwarding?from=settings"
+	_clicktocallURL = "http://www.google.com/voice/m/caller?number=%s"
+	_inboxallURL = "http://www.google.com/voice/m/i"
+	_contactsURL = "http://www.google.com/voice/m/contacts"
+	_contactDetailURL = "http://www.google.com/voice/m/contact"
 
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
 		self._browser = MozillaEmulator(None, 0)
 		if cookieFile is None:
-			cookieFile = os.path.join(os.path.expanduser("~"), ".gc_cookies.txt")
+			cookieFile = os.path.join(os.path.expanduser("~"), ".gv_cookies.txt")
 		self._browser.cookies.filename = cookieFile
 		if os.path.isfile(cookieFile):
 			self._browser.cookies.load()
@@ -91,12 +91,12 @@ class GCDialer(object):
 			return True
 
 		try:
-			forwardSelectionPage = self._browser.download(GCDialer._forwardselectURL)
+			forwardSelectionPage = self._browser.download(self._forwardselectURL)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
+			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		self._browser.cookies.save()
-		if GCDialer._isLoginPageRe.search(forwardSelectionPage) is None:
+		if self._isLoginPageRe.search(forwardSelectionPage) is None:
 			self._grab_token(forwardSelectionPage)
 			self._lastAuthed = time.time()
 			return True
@@ -114,9 +114,9 @@ class GCDialer(object):
 		loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
 
 		try:
-			loginSuccessOrFailurePage = self._browser.download(GCDialer._loginURL, loginPostData)
+			loginSuccessOrFailurePage = self._browser.download(self._loginURL, loginPostData)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
+			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		return self.is_authed()
 
@@ -145,14 +145,14 @@ class GCDialer(object):
 
 		try:
 			callSuccessPage = self._browser.download(
-				GCDialer._clicktocallURL % (self._accessToken, number),
+				self._clicktocallURL % (number, ),
 				None,
 				{'Referer' : 'http://www.grandcentral.com/mobile/messages'}
 			)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
+			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
-		if GCDialer._gcDialingStrRe.search(callSuccessPage) is None:
+		if self._gvDialingStrRe.search(callSuccessPage) is None:
 			raise RuntimeError("Grand Central returned an error")
 
 		return True
@@ -221,9 +221,9 @@ class GCDialer(object):
 			'default_number': callbacknumber
 		})
 		try:
-			callbackSetPage = self._browser.download(GCDialer._setforwardURL, callbackPostData)
+			callbackSetPage = self._browser.download(self._setforwardURL, callbackPostData)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
+			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		self._browser.cookies.save()
 		return True
@@ -242,9 +242,9 @@ class GCDialer(object):
 		@returns Iterable of (personsName, phoneNumber, date, action)
 		"""
 		try:
-			recentCallsPage = self._browser.download(GCDialer._inboxallURL)
+			recentCallsPage = self._browser.download(self._inboxallURL)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
+			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		for match in self._inboxRe.finditer(recentCallsPage):
 			phoneNumber = match.group(4)
@@ -264,11 +264,11 @@ class GCDialer(object):
 
 	@staticmethod
 	def contact_source_short_name(contactId):
-		return "GC"
+		return "GV"
 
 	@staticmethod
 	def factory_name():
-		return "Grand Central"
+		return "Google Voice"
 
 	def get_contacts(self):
 		"""
@@ -277,12 +277,12 @@ class GCDialer(object):
 		if self.__contacts is None:
 			self.__contacts = []
 
-			contactsPagesUrls = [GCDialer._contactsURL]
+			contactsPagesUrls = [self._contactsURL]
 			for contactsPageUrl in contactsPagesUrls:
 				try:
 					contactsPage = self._browser.download(contactsPageUrl)
 				except urllib2.URLError, e:
-					raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
+					raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 				for contact_match in self._contactsRe.finditer(contactsPage):
 					contactId = contact_match.group(1)
 					contactName = contact_match.group(2)
@@ -303,9 +303,9 @@ class GCDialer(object):
 		@returns Iterable of (Phone Type, Phone Number)
 		"""
 		try:
-			detailPage = self._browser.download(GCDialer._contactDetailURL + '/' + contactId)
+			detailPage = self._browser.download(self._contactDetailURL + '/' + contactId)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
+			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
 			phoneType = detail_match.group(1)
@@ -314,12 +314,22 @@ class GCDialer(object):
 
 	def _grab_token(self, data):
 		"Pull the magic cookie from the datastream"
-		atGroup = GCDialer._accessTokenRe.search(data)
+		atGroup = self._accessTokenRe.search(data)
 		self._accessToken = atGroup.group(1)
 
-		anGroup = GCDialer._accountNumRe.search(data)
+		anGroup = self._accountNumRe.search(data)
 		self._accountNum = anGroup.group(1)
 
 		self._callbackNumbers = {}
-		for match in GCDialer._callbackRe.finditer(data):
+		for match in self._callbackRe.finditer(data):
 			self._callbackNumbers[match.group(1)] = match.group(2)
+
+
+def test_backend(username, password):
+	backend = GVDialer()
+	print "Authenticated: ", backend.is_authed()
+	backend.login(username, password)
+	print "Authenticated: ", backend.is_authed()
+	print "Account: ", backend.get_account_number()
+	print "Callback: ", backend.get_callback_numbers()
+	print "Recent: ", backend.get_recent()
