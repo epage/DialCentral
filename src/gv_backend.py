@@ -6,7 +6,11 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 """
-Grandcentral backend code
+Google Voice backend code
+
+Resources
+	http://thatsmith.com/2009/03/google-voice-addon-for-firefox/
+	http://posttopic.com/topic/google-voice-add-on-development
 """
 
 
@@ -56,21 +60,18 @@ class GVDialer(object):
 	"""
 
 	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
-	_inboxRe = re.compile(r"""<td>.*?(voicemail|received|missed|call return).*?</td>\s+<td>\s+<font size="2">\s+(.*?)\s+&nbsp;\|&nbsp;\s+<a href="/mobile/contacts/.*?">(.*?)\s?</a>\s+<br/>\s+(.*?)\s?<a href=""", re.S)
 	_contactsRe = re.compile(r"""<a href="/mobile/contacts/detail/(\d+)">(.*?)</a>""", re.S)
 	_contactsNextRe = re.compile(r""".*<a href="/mobile/contacts(\?page=\d+)">Next</a>""", re.S)
 	_contactDetailGroupRe = re.compile(r"""Group:\s*(\w*)""", re.S)
 	_contactDetailPhoneRe = re.compile(r"""(\w+):[0-9\-\(\) \t]*?<a href="/mobile/calls/click_to_call\?destno=(\d+).*?">call</a>""", re.S)
 
 	_isNotLoginPageRe = re.compile(r"""I cannot access my account""")
-	_validateRe = re.compile("^[0-9]{10,}$")
+	_tokenRe = re.compile(r"""<input.*?name="_rnr_se".*?value="(.*?)"\s*/>""")
 	_accountNumRe = re.compile(r"""<b class="ms2">(.{14})</b></div>""")
 	_callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
+	_validateRe = re.compile("^[0-9]{10,}$")
 
-	_forwardselectURL = "http://www.google.com/voice/m/settings/forwarding_select"
-	_setforwardURL = "http://www.google.com/voice/m/settings/set_forwarding?from=settings"
-	_clicktocallURL = "http://www.google.com/voice/m/caller?number=%s"
-	_inboxallURL = "http://www.google.com/voice/m/i"
+	_clicktocallURL = "http://www.google.com/voice/call/connect/"
 	_contactsURL = "http://www.google.com/voice/m/contacts"
 	_contactDetailURL = "http://www.google.com/voice/m/contact"
 
@@ -94,8 +95,10 @@ class GVDialer(object):
 			self._browser.cookies.load()
 
 		self._accountNum = None
-		self._callbackNumbers = {}
 		self._lastAuthed = 0.0
+		self._token = ""
+		self._callbackNumber = ""
+		self._callbackNumbers = {}
 
 		self.__contacts = None
 
@@ -112,7 +115,7 @@ class GVDialer(object):
 		try:
 			inboxPage = self._browser.download(self._inboxURL)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
+			raise RuntimeError("%s is not accesible" % self._inboxURL)
 
 		self._browser.cookies.save()
 		if self._isNotLoginPageRe.search(inboxPage) is not None:
@@ -138,7 +141,7 @@ class GVDialer(object):
 		try:
 			loginSuccessOrFailurePage = self._browser.download(self._loginURL, loginPostData)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
+			raise RuntimeError("%s is not accesible" % self._loginURL)
 
 		#self._grab_account_info(loginSuccessOrFailurePage)
 		self._grab_account_info()
@@ -155,24 +158,24 @@ class GVDialer(object):
 		"""
 		This is the main function responsible for initating the callback
 		"""
-		# If the number is not valid throw exception
 		if not self.is_valid_syntax(number):
-			raise ValueError('number is not valid')
-
-		# No point if we don't have the magic cookie
-		if not self.is_authed():
+			raise ValueError('Number is not valid: "%s"' % number)
+		elif not self.is_authed():
 			raise RuntimeError("Not Authenticated")
 
-		# Strip leading 1 from 11 digit dialing
 		if len(number) == 11 and number[0] == 1:
+			# Strip leading 1 from 11 digit dialing
 			number = number[1:]
 
 		try:
-			callSuccessPage = self._browser.download(
-				self._clicktocallURL % (number, ),
-				None,
-				{'Referer' : 'http://www.grandcentral.com/mobile/messages'}
-			)
+			clickToCallData = {
+				"outgoingNumber": number,
+				"forwardingNumber": self._callbackNumber,
+				"subscriberNumber": "undefined",
+				"remember": 0,
+				"_rnr_se": self._token,
+			}
+			callSuccessPage = self._browser.download(self._clicktocallURL, None, clickToCallData)
 		except urllib2.URLError, e:
 			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
@@ -240,25 +243,14 @@ class GVDialer(object):
 		Set the number that grandcental calls
 		@param callbacknumber should be a proper 10 digit number
 		"""
-		callbackPostData = urllib.urlencode({
-			'default_number': callbacknumber
-		})
-		try:
-			callbackSetPage = self._browser.download(self._setforwardURL, callbackPostData)
-		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
-
-		self._browser.cookies.save()
+		self._callbackNumber = callbacknumber
 		return True
 
 	def get_callback_number(self):
 		"""
 		@returns Current callback number or None
 		"""
-		for c in self._browser.cookies:
-			if c.name == "pda_forwarding_number":
-				return c.value
-		return None
+		return self._callbackNumber
 
 	def get_recent(self):
 		"""
@@ -356,16 +348,19 @@ class GVDialer(object):
 			accountNumberPage = self._browser.download(self._accountNumberURL)
 		else:
 			accountNumberPage = loginPage
+		tokenGroup = self._tokenRe.search(accountNumberPage)
+		if tokenGroup is not None:
+			self._token = tokenGroup.group(1)
 		anGroup = self._accountNumRe.search(accountNumberPage)
 		if anGroup is not None:
 			self._accountNum = anGroup.group(1)
-		else:
-			print accountNumberPage
 
 		callbackPage = self._browser.download(self._forwardURL)
 		self._callbackNumbers = {}
 		for match in self._callbackRe.finditer(callbackPage):
 			self._callbackNumbers[match.group(2)] = match.group(1)
+		if len(self._callbackNumber) == 0:
+			self.set_sane_callback()
 
 
 def test_backend(username, password):
@@ -374,8 +369,12 @@ def test_backend(username, password):
 	print "Authenticated: ", backend.is_authed()
 	print "Login?: ", backend.login(username, password)
 	print "Authenticated: ", backend.is_authed()
+	print "Token: ", backend._token
 	print "Account: ", backend.get_account_number()
+	print "Callback: ", backend.get_callback_number()
+	print "All Callback: ",
+	pprint.pprint(backend.get_callback_numbers())
 	print "Recent: ",
 	pprint.pprint(list(backend.get_recent()))
-	print "Callback: ",
-	pprint.pprint(backend.get_callback_numbers())
+
+	return backend
