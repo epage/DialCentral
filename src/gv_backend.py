@@ -168,14 +168,16 @@ class GVDialer(object):
 			number = number[1:]
 
 		try:
-			clickToCallData = {
+			clickToCallData = urllib.urlencode({
 				"number": number,
 				"phone": self._callbackNumber,
 				"_rnr_se": self._token,
 				"submit": "Call",
+			})
+			otherData = {
 				'Referer': 'https://www.google.com/voice/m/callsms',
 			}
-			callSuccessPage = self._browser.download(self._clicktocallURL, None, clickToCallData)
+			callSuccessPage = self._browser.download(self._clicktocallURL, clickToCallData, otherData)
 		except urllib2.URLError, e:
 			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
