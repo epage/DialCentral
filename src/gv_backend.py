@@ -59,7 +59,6 @@ class GVDialer(object):
 	the functions include login, setting up a callback number, and initalting a callback
 	"""
 
-	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
 	_contactsRe = re.compile(r"""<a href="/mobile/contacts/detail/(\d+)">(.*?)</a>""", re.S)
 	_contactsNextRe = re.compile(r""".*<a href="/mobile/contacts(\?page=\d+)">Next</a>""", re.S)
 	_contactDetailGroupRe = re.compile(r"""Group:\s*(\w*)""", re.S)
@@ -70,8 +69,9 @@ class GVDialer(object):
 	_accountNumRe = re.compile(r"""<b class="ms2">(.{14})</b></div>""")
 	_callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
 	_validateRe = re.compile("^[0-9]{10,}$")
+	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
 
-	_clicktocallURL = "http://www.google.com/voice/call/connect/"
+	_clicktocallURL = "http://www.google.com/voice/m/sendcall"
 	_contactsURL = "http://www.google.com/voice/m/contacts"
 	_contactDetailURL = "http://www.google.com/voice/m/contact"
 
@@ -169,11 +169,11 @@ class GVDialer(object):
 
 		try:
 			clickToCallData = {
-				"outgoingNumber": number,
-				"forwardingNumber": self._callbackNumber,
-				"subscriberNumber": "undefined",
-				"remember": 0,
+				"number": number,
+				"phone": self._callbackNumber,
 				"_rnr_se": self._token,
+				"submit": "Call",
+				'Referer': 'https://www.google.com/voice/m/callsms',
 			}
 			callSuccessPage = self._browser.download(self._clicktocallURL, None, clickToCallData)
 		except urllib2.URLError, e:
