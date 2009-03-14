@@ -1,15 +1,3 @@
-#!/usr/bin/python
-
-# DialCentral - Front end for Google's Grand Central service.
-# Copyright (C) 2008  Eric Warnke ericew AT gmail DOT com
-# 
-# This library is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or (at your option) any later version.
-# 
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 # 
@@ -29,12 +17,36 @@ import urllib2
 import time
 import warnings
 
+from xml.etree import ElementTree
+
 from browser_emu import MozillaEmulator
 
 import socket
 
+try:
+	import simplejson
+except ImportError:
+	simplejson = None
 
 socket.setdefaulttimeout(5)
+
+
+_TRUE_REGEX = re.compile("true")
+_FALSE_REGEX = re.compile("false")
+
+
+def safe_eval(s):
+	s = _TRUE_REGEX.sub("True", s)
+	s = _FALSE_REGEX.sub("False", s)
+	return eval(s, {}, {})
+
+
+if simplejson is None:
+	def parse_json(flattened):
+		return safe_eval(flattened)
+else:
+	def parse_json(flattened):
+		return simplejson.loads(json)
 
 
 class GVDialer(object):
@@ -44,25 +56,33 @@ class GVDialer(object):
 	"""
 
 	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
-	_accessTokenRe = re.compile(r"""<input type="hidden" name="a_t" [^>]*value="(.*)"/>""")
-	_isLoginPageRe = re.compile(r"""<form method="post" action="https://www.grandcentral.com/mobile/account/login">""")
-	_callbackRe = re.compile(r"""name="default_number" value="(\d+)" />\s+(.*)\s$""", re.M)
-	_accountNumRe = re.compile(r"""<img src="/images/mobile/inbox_logo.gif" alt="GrandCentral" />\s*(.{14})\s*&nbsp""", re.M)
 	_inboxRe = re.compile(r"""<td>.*?(voicemail|received|missed|call return).*?</td>\s+<td>\s+<font size="2">\s+(.*?)\s+&nbsp;\|&nbsp;\s+<a href="/mobile/contacts/.*?">(.*?)\s?</a>\s+<br/>\s+(.*?)\s?<a href=""", re.S)
 	_contactsRe = re.compile(r"""<a href="/mobile/contacts/detail/(\d+)">(.*?)</a>""", re.S)
 	_contactsNextRe = re.compile(r""".*<a href="/mobile/contacts(\?page=\d+)">Next</a>""", re.S)
 	_contactDetailGroupRe = re.compile(r"""Group:\s*(\w*)""", re.S)
 	_contactDetailPhoneRe = re.compile(r"""(\w+):[0-9\-\(\) \t]*?<a href="/mobile/calls/click_to_call\?destno=(\d+).*?">call</a>""", re.S)
 
+	_isNotLoginPageRe = re.compile(r"""I cannot access my account""")
 	_validateRe = re.compile("^[0-9]{10,}$")
+	_accountNumRe = re.compile(r"""<b class="ms2">(.{14})</b></div>""")
+	_callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
 
 	_forwardselectURL = "http://www.google.com/voice/m/settings/forwarding_select"
-	_loginURL = "https://www.google.com/voice/m/account/login"
 	_setforwardURL = "http://www.google.com/voice/m/settings/set_forwarding?from=settings"
 	_clicktocallURL = "http://www.google.com/voice/m/caller?number=%s"
 	_inboxallURL = "http://www.google.com/voice/m/i"
 	_contactsURL = "http://www.google.com/voice/m/contacts"
 	_contactDetailURL = "http://www.google.com/voice/m/contact"
+
+	_loginURL = "https://www.google.com/accounts/ServiceLoginAuth"
+	_accountNumberURL = "https://www.google.com/voice/mobile"
+	_forwardURL = "https://www.google.com/voice/m/phones"
+
+	_inboxURL = "https://www.google.com/voice/inbox/"
+	_recentCallsURL = "https://www.google.com/voice/inbox/recent/"
+	_placedCallsURL = "https://www.google.com/voice/inbox/recent/placed/"
+	_receivedCallsURL = "https://www.google.com/voice/inbox/recent/received/"
+	_missedCallsURL = "https://www.google.com/voice/inbox/recent/missed/"
 
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
@@ -73,7 +93,6 @@ class GVDialer(object):
 		if os.path.isfile(cookieFile):
 			self._browser.cookies.load()
 
-		self._accessToken = None
 		self._accountNum = None
 		self._callbackNumbers = {}
 		self._lastAuthed = 0.0
@@ -82,7 +101,7 @@ class GVDialer(object):
 
 	def is_authed(self, force = False):
 		"""
-		Attempts to detect a current session and pull the auth token ( a_t ) from the page.
+		Attempts to detect a current session
 		@note Once logged in try not to reauth more than once a minute.
 		@returns If authenticated
 		"""
@@ -91,33 +110,38 @@ class GVDialer(object):
 			return True
 
 		try:
-			forwardSelectionPage = self._browser.download(self._forwardselectURL)
+			inboxPage = self._browser.download(self._inboxURL)
 		except urllib2.URLError, e:
 			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		self._browser.cookies.save()
-		if self._isLoginPageRe.search(forwardSelectionPage) is None:
-			self._grab_token(forwardSelectionPage)
-			self._lastAuthed = time.time()
-			return True
+		if self._isNotLoginPageRe.search(inboxPage) is not None:
+			return False
 
-		return False
+		self._lastAuthed = time.time()
+		return True
 
 	def login(self, username, password):
 		"""
 		Attempt to login to grandcentral
 		@returns Whether login was successful or not
 		"""
-		if self.is_authed():
-			return True
+		#if self.is_authed():
+		#	return True
 
-		loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
+		loginPostData = urllib.urlencode({
+			'Email' : username,
+			'Passwd' : password,
+			'service': "grandcentral",
+		})
 
 		try:
 			loginSuccessOrFailurePage = self._browser.download(self._loginURL, loginPostData)
 		except urllib2.URLError, e:
 			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
+		#self._grab_account_info(loginSuccessOrFailurePage)
+		self._grab_account_info()
 		return self.is_authed()
 
 	def logout(self):
@@ -217,7 +241,6 @@ class GVDialer(object):
 		@param callbacknumber should be a proper 10 digit number
 		"""
 		callbackPostData = urllib.urlencode({
-			'a_t': self._accessToken,
 			'default_number': callbacknumber
 		})
 		try:
@@ -241,17 +264,25 @@ class GVDialer(object):
 		"""
 		@returns Iterable of (personsName, phoneNumber, date, action)
 		"""
-		try:
-			recentCallsPage = self._browser.download(self._inboxallURL)
-		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
+		for url in (
+			self._receivedCallsURL,
+			self._missedCallsURL,
+			self._placedCallsURL,
+		):
+			try:
+				allRecentData = self._grab_json(url)
+			except urllib2.URLError, e:
+				raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
-		for match in self._inboxRe.finditer(recentCallsPage):
-			phoneNumber = match.group(4)
-			action = match.group(1)
-			date = match.group(2)
-			personsName = match.group(3)
-			yield personsName, phoneNumber, date, action
+			for recentCallData in allRecentData["messages"].itervalues():
+				number = recentCallData["displayNumber"]
+				date = recentCallData["relativeStartTime"]
+				action = ", ".join((
+					label.title()
+					for label in recentCallData["labels"]
+						if label.lower() != "all" and label.lower() != "inbox"
+				))
+				yield "", number, date, action
 
 	def get_addressbooks(self):
 		"""
@@ -312,24 +343,39 @@ class GVDialer(object):
 			phoneNumber = detail_match.group(2)
 			yield (phoneType, phoneNumber)
 
-	def _grab_token(self, data):
-		"Pull the magic cookie from the datastream"
-		atGroup = self._accessTokenRe.search(data)
-		self._accessToken = atGroup.group(1)
+	def _grab_json(self, url):
+		flatXml = self._browser.download(url)
+		xmlTree = ElementTree.fromstring(flatXml)
+		jsonElement = xmlTree.getchildren()[0]
+		flatJson = jsonElement.text
+		jsonTree = parse_json(flatJson)
+		return jsonTree
 
-		anGroup = self._accountNumRe.search(data)
-		self._accountNum = anGroup.group(1)
+	def _grab_account_info(self, loginPage = None):
+		if loginPage is None:
+			accountNumberPage = self._browser.download(self._accountNumberURL)
+		else:
+			accountNumberPage = loginPage
+		anGroup = self._accountNumRe.search(accountNumberPage)
+		if anGroup is not None:
+			self._accountNum = anGroup.group(1)
+		else:
+			print accountNumberPage
 
+		callbackPage = self._browser.download(self._forwardURL)
 		self._callbackNumbers = {}
-		for match in self._callbackRe.finditer(data):
-			self._callbackNumbers[match.group(1)] = match.group(2)
+		for match in self._callbackRe.finditer(callbackPage):
+			self._callbackNumbers[match.group(2)] = match.group(1)
 
 
 def test_backend(username, password):
+	import pprint
 	backend = GVDialer()
 	print "Authenticated: ", backend.is_authed()
-	backend.login(username, password)
+	print "Login?: ", backend.login(username, password)
 	print "Authenticated: ", backend.is_authed()
 	print "Account: ", backend.get_account_number()
-	print "Callback: ", backend.get_callback_numbers()
-	print "Recent: ", backend.get_recent()
+	print "Recent: ",
+	pprint.pprint(list(backend.get_recent()))
+	print "Callback: ",
+	pprint.pprint(backend.get_callback_numbers())
