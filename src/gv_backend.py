@@ -71,13 +71,14 @@ class GVDialer(object):
 	_validateRe = re.compile("^[0-9]{10,}$")
 	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
 
-	_clicktocallURL = "http://www.google.com/voice/m/sendcall"
-	_contactsURL = "http://www.google.com/voice/m/contacts"
-	_contactDetailURL = "http://www.google.com/voice/m/contact"
+	_clicktocallURL = "http://www.google.com/voice/m/callsms"
+	_contactsURL = "http://www.google.com/voice/mobile/contacts"
+	_contactDetailURL = "http://www.google.com/voice/mobile/contact"
 
 	_loginURL = "https://www.google.com/accounts/ServiceLoginAuth"
+	_setforwardURL = "https://www.google.com//voice/m/setphone"
 	_accountNumberURL = "https://www.google.com/voice/mobile"
-	_forwardURL = "https://www.google.com/voice/m/phones"
+	_forwardURL = "https://www.google.com/voice/mobile/phones"
 
 	_inboxURL = "https://www.google.com/voice/inbox/"
 	_recentCallsURL = "https://www.google.com/voice/inbox/recent/"
@@ -167,22 +168,22 @@ class GVDialer(object):
 			# Strip leading 1 from 11 digit dialing
 			number = number[1:]
 
-		try:
-			clickToCallData = urllib.urlencode({
-				"number": number,
-				"phone": self._callbackNumber,
-				"_rnr_se": self._token,
-				"submit": "Call",
-			})
-			otherData = {
-				'Referer': 'https://www.google.com/voice/m/callsms',
-			}
-			callSuccessPage = self._browser.download(self._clicktocallURL, clickToCallData, otherData)
-		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
+		#try:
+		clickToCallData = urllib.urlencode({
+			"number": number,
+			"_rnr_se": self._token,
+			#"call": "Call",
+		})
+		otherData = {
+			'Referer': self._accountNumberURL,
+		}
+		callSuccessPage = self._browser.download(self._clicktocallURL, clickToCallData, otherData)
+		#except urllib2.URLError, e:
+		#	print e.message
+		#	raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		if self._gvDialingStrRe.search(callSuccessPage) is None:
-			raise RuntimeError("Grand Central returned an error")
+			raise RuntimeError("Google Voice returned an error")
 
 		return True
 
@@ -212,17 +213,17 @@ class GVDialer(object):
 		numbers = self.get_callback_numbers()
 
 		for number, description in numbers.iteritems():
-			if not re.compile(r"""1747""").match(number) is None:
+			if re.compile(r"""1747""").match(number) is not None:
 				self.set_callback_number(number)
 				return
 
 		for number, description in numbers.iteritems():
-			if not re.compile(r"""gizmo""", re.I).search(description) is None:
+			if re.compile(r"""gizmo""", re.I).search(description) is not None:
 				self.set_callback_number(number)
 				return
 
 		for number, description in numbers.iteritems():
-			if not re.compile(r"""computer""", re.I).search(description) is None:
+			if re.compile(r"""computer""", re.I).search(description) is not None:
 				self.set_callback_number(number)
 				return
 
@@ -246,6 +247,16 @@ class GVDialer(object):
 		@param callbacknumber should be a proper 10 digit number
 		"""
 		self._callbackNumber = callbacknumber
+		callbackPostData = urllib.urlencode({
+			'_rnr_se': self._token,
+			'phone': callbacknumber
+		})
+		try:
+			callbackSetPage = self._browser.download(self._setforwardURL, callbackPostData)
+		except urllib2.URLError, e:
+			raise RuntimeError("%s is not accesible" % self._setforwardURL)
+
+		self._browser.cookies.save()
 		return True
 
 	def get_callback_number(self):
