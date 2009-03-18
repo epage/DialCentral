@@ -57,7 +57,8 @@ class Dialcentral(object):
 	def __init__(self):
 		self._connection = None
 		self._osso = None
-		self._gcBackend = None
+		self._phoneBackends = []
+		self._phoneBackend = None
 		self._clipboard = gtk.clipboard_get()
 
 		self._deviceIsOnline = True
@@ -160,13 +161,20 @@ class Dialcentral(object):
 		import null_views
 		import gc_views
 
-		cookieFile = os.path.join(self._data_path, "cookies.txt")
 		try:
-			os.makedirs(os.path.dirname(cookieFile))
+			os.makedirs(self._data_path)
 		except OSError, e:
 			if e.errno != 17:
 				raise
-		self._gcBackend = gc_backend.GCDialer(cookieFile)
+		self._phoneBackends = [
+			(gc_backend.GCDialer, os.path.join(self._data_path, "gc_cookies.txt"))
+		]
+		for backendFactory, cookieFile in self._phoneBackends:
+			if os.path.exists(cookieFile):
+				break
+		else:
+			backendFactory, cookiFile = self._phoneBackends[0]
+		self._phoneBackend = backendFactory(cookieFile)
 		gtk.gdk.threads_enter()
 		try:
 			self._dialpads = {
@@ -175,15 +183,15 @@ class Dialcentral(object):
 			}
 			self._dialpads[True].set_number("")
 			self._accountViews = {
-				True: gc_views.AccountInfo(self._widgetTree, self._gcBackend, self._errorDisplay),
+				True: gc_views.AccountInfo(self._widgetTree, self._phoneBackend, self._errorDisplay),
 				False: null_views.AccountInfo(self._widgetTree),
 			}
 			self._recentViews = {
-				True: gc_views.RecentCallsView(self._widgetTree, self._gcBackend, self._errorDisplay),
+				True: gc_views.RecentCallsView(self._widgetTree, self._phoneBackend, self._errorDisplay),
 				False: null_views.RecentCallsView(self._widgetTree),
 			}
 			self._contactsViews = {
-				True: gc_views.ContactsView(self._widgetTree, self._gcBackend, self._errorDisplay),
+				True: gc_views.ContactsView(self._widgetTree, self._phoneBackend, self._errorDisplay),
 				False: null_views.ContactsView(self._widgetTree),
 			}
 		finally:
@@ -195,7 +203,7 @@ class Dialcentral(object):
 
 		fsContactsPath = os.path.join(self._data_path, "contacts")
 		addressBooks = [
-			self._gcBackend,
+			self._phoneBackend,
 			evo_backend.EvolutionAddressBook(),
 			file_backend.FilesystemAddressBookFactory(fsContactsPath),
 		]
@@ -238,7 +246,7 @@ class Dialcentral(object):
 
 		loggedIn = False
 		try:
-			if self._gcBackend.is_authed():
+			if self._phoneBackend.is_authed():
 				loggedIn = True
 			else:
 				for x in xrange(numOfAttempts):
@@ -248,7 +256,7 @@ class Dialcentral(object):
 					finally:
 						gtk.gdk.threads_leave()
 
-					loggedIn = self._gcBackend.login(username, password)
+					loggedIn = self._phoneBackend.login(username, password)
 					if loggedIn:
 						break
 		except RuntimeError, e:
@@ -294,8 +302,8 @@ class Dialcentral(object):
 		self._contactsViews[newStatus].enable()
 
 		if newStatus:
-			if self._gcBackend.get_callback_number() is None:
-				self._gcBackend.set_sane_callback()
+			if self._phoneBackend.get_callback_number() is None:
+				self._phoneBackend.set_sane_callback()
 			self._accountViews[True].update()
 
 		self._isLoggedIn = newStatus
@@ -308,7 +316,7 @@ class Dialcentral(object):
 		@note Hildon specific
 		"""
 		if memory_low:
-			self._gcBackend.clear_caches()
+			self._phoneBackend.clear_caches()
 			self._contactsViews[True].clear_caches()
 			gc.collect()
 
@@ -355,7 +363,7 @@ class Dialcentral(object):
 				self._window.fullscreen()
 
 	def _on_clearcookies_clicked(self, *args):
-		self._gcBackend.logout()
+		self._phoneBackend.logout()
 		self._accountViews[True].clear()
 		self._recentViews[True].clear()
 		self._contactsViews[True].clear()
@@ -386,7 +394,7 @@ class Dialcentral(object):
 		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
 		"""
 		try:
-			loggedIn = self._gcBackend.is_authed()
+			loggedIn = self._phoneBackend.is_authed()
 		except RuntimeError, e:
 			loggedIn = False
 			self._errorDisplay.push_message(e.message)
@@ -400,8 +408,8 @@ class Dialcentral(object):
 
 		dialed = False
 		try:
-			assert self._gcBackend.get_callback_number() != ""
-			self._gcBackend.dial(number)
+			assert self._phoneBackend.get_callback_number() != ""
+			self._phoneBackend.dial(number)
 			dialed = True
 		except RuntimeError, e:
 			self._errorDisplay.push_message(e.message)
