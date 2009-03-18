@@ -71,9 +71,9 @@ class GVDialer(object):
 	_validateRe = re.compile("^[0-9]{10,}$")
 	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
 
-	_clicktocallURL = "http://www.google.com/voice/m/callsms"
-	_contactsURL = "http://www.google.com/voice/mobile/contacts"
-	_contactDetailURL = "http://www.google.com/voice/mobile/contact"
+	_clicktocallURL = "https://www.google.com/voice/m/callsms"
+	_contactsURL = "https://www.google.com/voice/mobile/contacts"
+	_contactDetailURL = "https://www.google.com/voice/mobile/contact"
 
 	_loginURL = "https://www.google.com/accounts/ServiceLoginAuth"
 	_setforwardURL = "https://www.google.com//voice/m/setphone"
