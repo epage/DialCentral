@@ -11,7 +11,9 @@ __version__ = "0.9.1"
 __build__ = 0
 __changelog__ = '''\
 0.9.1 - "Get your hands off that"
+ * GoogleVoice Support, what a pain
  * More flexible CSV support.  It now checks the header row for what column name/number are in
+ * Experimenting with faster startup by caching PYC files with the package
 
 0.9.0 - "Slick as snot"
  * Caching of contacts
