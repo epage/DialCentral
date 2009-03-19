@@ -2,7 +2,6 @@ PROJECT_NAME=dialcentral
 SOURCE_PATH=src
 SOURCE=$(SOURCE_PATH)/dialer.py \
 	   $(SOURCE_PATH)/gtk_toolbox.py \
-	   $(SOURCE_PATH)/gv_views.py \
 	   $(SOURCE_PATH)/gc_views.py \
 	   $(SOURCE_PATH)/null_views.py \
 	   $(SOURCE_PATH)/file_backend.py \
@@ -50,6 +49,7 @@ package:
 	cp $(SOURCE_PATH)/$(PROJECT_NAME).py  $(BUILD_PATH)
 	cp $(SOURCE_PATH)/$(PROJECT_NAME).glade  $(BUILD_PATH)
 	cp $(SOURCE)  $(BUILD_PATH)
+	cp $(OBJ)  $(BUILD_PATH)
 	cp support/$(PROJECT_NAME).desktop $(BUILD_PATH)
 	cp support/icons/hicolor/26x26/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/26x26-$(PROJECT_NAME).png
 	cp support/icons/hicolor/64x64/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/64x64-$(PROJECT_NAME).png

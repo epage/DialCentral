@@ -10,7 +10,8 @@ __email__ = "eopage@byu.net"
 __version__ = "0.9.1"
 __build__ = 0
 __changelog__ = '''\
-0.9.1 - ""
+0.9.1 - "Get your hands off that"
+ * More flexible CSV support.  It now checks the header row for what column name/number are in
 
 0.9.0 - "Slick as snot"
  * Caching of contacts
@@ -68,18 +69,27 @@ if __name__ == "__main__":
 	p.icon="26x26-dialcentral.png"
 	p["/usr/bin"] = [ "dialcentral.py" ]
 	p["/usr/lib/dialcentral"] = [
+		"dialcentral.glade",
 		"__init__.py",
 		"dialer.py",
-		"dialcentral.glade",
 		"browser_emu.py",
 		"file_backend.py",
 		"evo_backend.py",
 		"gc_backend.py",
 		"gv_backend.py",
 		"gc_views.py",
-		"gv_views.py",
 		"null_views.py",
-		"gtk_toolbox.py"
+		"gtk_toolbox.py",
+		"__init__.pyc",
+		"dialer.pyc",
+		"browser_emu.pyc",
+		"file_backend.pyc",
+		"evo_backend.pyc",
+		"gc_backend.pyc",
+		"gv_backend.pyc",
+		"gc_views.pyc",
+		"null_views.pyc",
+		"gtk_toolbox.pyc",
 	]
 	p["/usr/share/applications/hildon"] = ["dialcentral.desktop"]
 	p["/usr/share/icons/hicolor/26x26/hildon"] = ["26x26-dialcentral.png|dialcentral.png"]
