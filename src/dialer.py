@@ -27,6 +27,7 @@ import gc
 import os
 import threading
 import warnings
+import traceback
 
 import gtk
 import gtk.glade
@@ -171,11 +172,12 @@ class Dialcentral(object):
 			(gv_backend.GVDialer, os.path.join(self._data_path, "gv_cookies.txt")),
 			(gc_backend.GCDialer, os.path.join(self._data_path, "gc_cookies.txt")),
 		]
+		backendFactory, cookieFile = None, None
 		for backendFactory, cookieFile in self._phoneBackends:
 			if os.path.exists(cookieFile):
 				break
 		else:
-			backendFactory, cookiFile = self._phoneBackends[0]
+			backendFactory, cookieFile = self._phoneBackends[0]
 		self._phoneBackend = backendFactory(cookieFile)
 		gtk.gdk.threads_enter()
 		try:
@@ -262,6 +264,7 @@ class Dialcentral(object):
 					if loggedIn:
 						break
 		except RuntimeError, e:
+			warnings.warn(traceback.format_exc())
 			gtk.gdk.threads_enter()
 			try:
 				self._errorDisplay.push_message(e.message)
@@ -398,6 +401,7 @@ class Dialcentral(object):
 		try:
 			loggedIn = self._phoneBackend.is_authed()
 		except RuntimeError, e:
+			warnings.warn(traceback.format_exc())
 			loggedIn = False
 			self._errorDisplay.push_message(e.message)
 			return
@@ -414,8 +418,10 @@ class Dialcentral(object):
 			self._phoneBackend.dial(number)
 			dialed = True
 		except RuntimeError, e:
+			warnings.warn(traceback.format_exc())
 			self._errorDisplay.push_message(e.message)
 		except ValueError, e:
+			warnings.warn(traceback.format_exc())
 			self._errorDisplay.push_message(e.message)
 
 		if dialed:

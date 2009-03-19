@@ -1,3 +1,15 @@
+#!/usr/bin/python
+
+# DialCentral - Front end for Google's Grand Central service.
+# Copyright (C) 2008  Eric Warnke ericew AT gmail DOT com
+# 
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+# 
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 # 
@@ -20,6 +32,7 @@ import urllib
 import urllib2
 import time
 import warnings
+import traceback
 
 from xml.etree import ElementTree
 
@@ -50,7 +63,7 @@ if simplejson is None:
 		return safe_eval(flattened)
 else:
 	def parse_json(flattened):
-		return simplejson.loads(json)
+		return simplejson.loads(flattened)
 
 
 class GVDialer(object):
@@ -115,12 +128,14 @@ class GVDialer(object):
 		try:
 			inboxPage = self._browser.download(self._inboxURL)
 		except urllib2.URLError, e:
+			warnings.warn(traceback.format_exc())
 			raise RuntimeError("%s is not accesible" % self._inboxURL)
 
 		self._browser.cookies.save()
 		if self._isNotLoginPageRe.search(inboxPage) is not None:
 			return False
 
+		self._grab_account_info()
 		self._lastAuthed = time.time()
 		return True
 
@@ -129,8 +144,8 @@ class GVDialer(object):
 		Attempt to login to grandcentral
 		@returns Whether login was successful or not
 		"""
-		#if self.is_authed():
-		#	return True
+		if self.is_authed():
+			return True
 
 		loginPostData = urllib.urlencode({
 			'Email' : username,
@@ -141,10 +156,9 @@ class GVDialer(object):
 		try:
 			loginSuccessOrFailurePage = self._browser.download(self._loginURL, loginPostData)
 		except urllib2.URLError, e:
+			warnings.warn(traceback.format_exc())
 			raise RuntimeError("%s is not accesible" % self._loginURL)
 
-		#self._grab_account_info(loginSuccessOrFailurePage)
-		self._grab_account_info()
 		return self.is_authed()
 
 	def logout(self):
@@ -178,6 +192,7 @@ class GVDialer(object):
 			}
 			callSuccessPage = self._browser.download(self._clicktocallURL, clickToCallData, None, otherData)
 		except urllib2.URLError, e:
+			warnings.warn(traceback.format_exc())
 			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		if self._gvDialingStrRe.search(callSuccessPage) is None:
@@ -252,6 +267,7 @@ class GVDialer(object):
 		try:
 			callbackSetPage = self._browser.download(self._setforwardURL, callbackPostData)
 		except urllib2.URLError, e:
+			warnings.warn(traceback.format_exc())
 			raise RuntimeError("%s is not accesible" % self._setforwardURL)
 
 		self._browser.cookies.save()
@@ -275,6 +291,7 @@ class GVDialer(object):
 			try:
 				allRecentData = self._grab_json(url)
 			except urllib2.URLError, e:
+				warnings.warn(traceback.format_exc())
 				raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 			for recentCallData in allRecentData["messages"].itervalues():
@@ -316,6 +333,7 @@ class GVDialer(object):
 				try:
 					contactsPage = self._browser.download(contactsPageUrl)
 				except urllib2.URLError, e:
+					warnings.warn(traceback.format_exc())
 					raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 				for contact_match in self._contactsRe.finditer(contactsPage):
 					contactId = contact_match.group(1)
@@ -339,6 +357,7 @@ class GVDialer(object):
 		try:
 			detailPage = self._browser.download(self._contactDetailURL + '/' + contactId)
 		except urllib2.URLError, e:
+			warnings.warn(traceback.format_exc())
 			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
@@ -370,6 +389,7 @@ class GVDialer(object):
 		self._callbackNumbers = {}
 		for match in self._callbackRe.finditer(callbackPage):
 			self._callbackNumbers[match.group(2)] = match.group(1)
+
 		if len(self._callbackNumber) == 0:
 			self.set_sane_callback()
 

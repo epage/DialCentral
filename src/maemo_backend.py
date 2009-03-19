@@ -44,10 +44,10 @@ class MaemoAddressBook(object):
 	def __init__(self, contextName, context):
 		if not self.is_supported():
 			return
-		
+
 		abook.init_with_name(contextName, context)
 		self._book = abook.all_group_get()
-	
+
 	@classmethod
 	def is_supported(cls):
 		return abook is not None and ebook is not None
@@ -60,7 +60,7 @@ class MaemoAddressBook(object):
 			return
 
 		yield self, "", ""
-	
+
 	def open_addressbook(self, bookId):
 		return self
 
@@ -79,7 +79,7 @@ class MaemoAddressBook(object):
 		if not self.is_supported():
 			return
 		pass
-	
+
 	def get_contact_details(self, contactId):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)

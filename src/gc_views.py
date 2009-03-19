@@ -20,6 +20,7 @@
 import threading
 import time
 import warnings
+import traceback
 
 import gobject
 import gtk
@@ -63,6 +64,8 @@ def make_pretty(phonenumber):
 	"""
 	if phonenumber is None or phonenumber is "":
 		return ""
+
+	phonenumber = make_ugly(phonenumber)
 
 	if len(phonenumber) < 3:
 		return phonenumber
@@ -398,6 +401,7 @@ class Dialpad(object):
 			self._prettynumber = make_pretty(self._phonenumber)
 			self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % (self._prettynumber))
 		except TypeError, e:
+			warnings.warn(traceback.format_exc())
 			self._errorDisplay.push_message(e.message)
 
 	def clear(self):
@@ -473,6 +477,7 @@ class AccountInfo(object):
 		try:
 			callbackNumbers = self._backend.get_callback_numbers()
 		except RuntimeError, e:
+			warnings.warn(traceback.format_exc())
 			self._errorDisplay.push_message(e.message)
 			return
 
@@ -484,6 +489,7 @@ class AccountInfo(object):
 		try:
 			callbackNumber = self._backend.get_callback_number()
 		except RuntimeError, e:
+			warnings.warn(traceback.format_exc())
 			self._errorDisplay.push_message(e.message)
 			return
 		self._callbackCombo.get_child().set_text(make_pretty(callbackNumber))
@@ -501,6 +507,7 @@ class AccountInfo(object):
 			else:
 				self._backend.set_callback_number(text)
 		except RuntimeError, e:
+			warnings.warn(traceback.format_exc())
 			self._errorDisplay.push_message(e.message)
 
 
@@ -558,6 +565,7 @@ class RecentCallsView(object):
 		try:
 			recentItems = self._backend.get_recent()
 		except RuntimeError, e:
+			warnings.warn(traceback.format_exc())
 			gtk.gdk.threads_enter()
 			try:
 				self._errorDisplay.push_message(e.message)
@@ -565,6 +573,7 @@ class RecentCallsView(object):
 				gtk.gdk.threads_leave()
 			self._recenttime = 0.0
 			recentItems = []
+
 		for personsName, phoneNumber, date, action in recentItems:
 			description = "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber)
 			item = (phoneNumber, description)
@@ -712,6 +721,7 @@ class ContactsView(object):
 		try:
 			contacts = addressBook.get_contacts()
 		except RuntimeError, e:
+			warnings.warn(traceback.format_exc())
 			contacts = []
 			self._contactstime = 0.0
 			gtk.gdk.threads_enter()
@@ -745,6 +755,7 @@ class ContactsView(object):
 		try:
 			contactDetails = self._addressBook.get_contact_details(contactId)
 		except RuntimeError, e:
+			warnings.warn(traceback.format_exc())
 			contactDetails = []
 			self._contactstime = 0.0
 			self._errorDisplay.push_message(e.message)

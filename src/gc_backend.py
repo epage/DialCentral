@@ -28,6 +28,7 @@ import urllib
 import urllib2
 import time
 import warnings
+import traceback
 
 from browser_emu import MozillaEmulator
 
@@ -90,17 +91,18 @@ class GCDialer(object):
 			return True
 
 		try:
-			forwardSelectionPage = self._browser.download(GCDialer._forwardselectURL)
+			forwardSelectionPage = self._browser.download(self._forwardselectURL)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._forwardselectURL)
+			warnings.warn(traceback.format_exc())
+			raise RuntimeError("%s is not accesible" % self._forwardselectURL)
 
 		self._browser.cookies.save()
-		if GCDialer._isLoginPageRe.search(forwardSelectionPage) is None:
-			self._grab_token(forwardSelectionPage)
-			self._lastAuthed = time.time()
-			return True
+		if self._isLoginPageRe.search(forwardSelectionPage) is not None:
+			return False
 
-		return False
+		self._grab_token(forwardSelectionPage)
+		self._lastAuthed = time.time()
+		return True
 
 	def login(self, username, password):
 		"""
@@ -113,9 +115,10 @@ class GCDialer(object):
 		loginPostData = urllib.urlencode( {'username' : username , 'password' : password } )
 
 		try:
-			loginSuccessOrFailurePage = self._browser.download(GCDialer._loginURL, loginPostData)
+			loginSuccessOrFailurePage = self._browser.download(self._loginURL, loginPostData)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._loginURL)
+			warnings.warn(traceback.format_exc())
+			raise RuntimeError("%s is not accesible" % self._loginURL)
 
 		return self.is_authed()
 
@@ -130,28 +133,26 @@ class GCDialer(object):
 		"""
 		This is the main function responsible for initating the callback
 		"""
-		# If the number is not valid throw exception
 		if not self.is_valid_syntax(number):
-			raise ValueError('number is not valid')
-
-		# No point if we don't have the magic cookie
-		if not self.is_authed():
+			raise ValueError('Number is not valid: "%s"' % number)
+		elif not self.is_authed():
 			raise RuntimeError("Not Authenticated")
 
-		# Strip leading 1 from 11 digit dialing
 		if len(number) == 11 and number[0] == 1:
+			# Strip leading 1 from 11 digit dialing
 			number = number[1:]
 
 		try:
 			callSuccessPage = self._browser.download(
-				GCDialer._clicktocallURL % (self._accessToken, number),
+				self._clicktocallURL % (self._accessToken, number),
 				None,
 				{'Referer' : 'http://www.grandcentral.com/mobile/messages'}
 			)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._clicktocallURL)
+			warnings.warn(traceback.format_exc())
+			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
-		if GCDialer._gcDialingStrRe.search(callSuccessPage) is None:
+		if self._gcDialingStrRe.search(callSuccessPage) is None:
 			raise RuntimeError("Grand Central returned an error")
 
 		return True
@@ -182,17 +183,17 @@ class GCDialer(object):
 		numbers = self.get_callback_numbers()
 
 		for number, description in numbers.iteritems():
-			if not re.compile(r"""1747""").match(number) is None:
+			if re.compile(r"""1747""").match(number) is not None:
 				self.set_callback_number(number)
 				return
 
 		for number, description in numbers.iteritems():
-			if not re.compile(r"""gizmo""", re.I).search(description) is None:
+			if re.compile(r"""gizmo""", re.I).search(description) is not None:
 				self.set_callback_number(number)
 				return
 
 		for number, description in numbers.iteritems():
-			if not re.compile(r"""computer""", re.I).search(description) is None:
+			if re.compile(r"""computer""", re.I).search(description) is not None:
 				self.set_callback_number(number)
 				return
 
@@ -220,9 +221,10 @@ class GCDialer(object):
 			'default_number': callbacknumber
 		})
 		try:
-			callbackSetPage = self._browser.download(GCDialer._setforwardURL, callbackPostData)
+			callbackSetPage = self._browser.download(self._setforwardURL, callbackPostData)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._setforwardURL)
+			warnings.warn(traceback.format_exc())
+			raise RuntimeError("%s is not accesible" % self._setforwardURL)
 
 		self._browser.cookies.save()
 		return True
@@ -241,9 +243,10 @@ class GCDialer(object):
 		@returns Iterable of (personsName, phoneNumber, date, action)
 		"""
 		try:
-			recentCallsPage = self._browser.download(GCDialer._inboxallURL)
+			recentCallsPage = self._browser.download(self._inboxallURL)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._inboxallURL)
+			warnings.warn(traceback.format_exc())
+			raise RuntimeError("%s is not accesible" % self._inboxallURL)
 
 		for match in self._inboxRe.finditer(recentCallsPage):
 			phoneNumber = match.group(4)
@@ -276,11 +279,12 @@ class GCDialer(object):
 		if self.__contacts is None:
 			self.__contacts = []
 
-			contactsPagesUrls = [GCDialer._contactsURL]
+			contactsPagesUrls = [self._contactsURL]
 			for contactsPageUrl in contactsPagesUrls:
 				try:
 					contactsPage = self._browser.download(contactsPageUrl)
 				except urllib2.URLError, e:
+					warnings.warn(traceback.format_exc())
 					raise RuntimeError("%s is not accesible" % contactsPageUrl)
 				for contact_match in self._contactsRe.finditer(contactsPage):
 					contactId = contact_match.group(1)
@@ -302,9 +306,10 @@ class GCDialer(object):
 		@returns Iterable of (Phone Type, Phone Number)
 		"""
 		try:
-			detailPage = self._browser.download(GCDialer._contactDetailURL + '/' + contactId)
+			detailPage = self._browser.download(self._contactDetailURL + '/' + contactId)
 		except urllib2.URLError, e:
-			raise RuntimeError("%s is not accesible" % GCDialer._contactDetailURL)
+			warnings.warn(traceback.format_exc())
+			raise RuntimeError("%s is not accesible" % self._contactDetailURL)
 
 		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
 			phoneType = detail_match.group(1)
@@ -313,12 +318,33 @@ class GCDialer(object):
 
 	def _grab_token(self, data):
 		"Pull the magic cookie from the datastream"
-		atGroup = GCDialer._accessTokenRe.search(data)
+		atGroup = self._accessTokenRe.search(data)
 		self._accessToken = atGroup.group(1)
 
-		anGroup = GCDialer._accountNumRe.search(data)
+		anGroup = self._accountNumRe.search(data)
 		self._accountNum = anGroup.group(1)
 
 		self._callbackNumbers = {}
-		for match in GCDialer._callbackRe.finditer(data):
+		for match in self._callbackRe.finditer(data):
 			self._callbackNumbers[match.group(1)] = match.group(2)
+
+
+def test_backend(username, password):
+	import pprint
+	backend = GCDialer()
+	print "Authenticated: ", backend.is_authed()
+	print "Login?: ", backend.login(username, password)
+	print "Authenticated: ", backend.is_authed()
+	print "Token: ", backend._token
+	print "Account: ", backend.get_account_number()
+	print "Callback: ", backend.get_callback_number()
+	# print "All Callback: ",
+	# pprint.pprint(backend.get_callback_numbers())
+	# print "Recent: ",
+	# pprint.pprint(list(backend.get_recent()))
+	# print "Contacts: ",
+	# for contact in backend.get_contacts():
+	#	print contact
+	#	pprint.pprint(list(backend.get_contact_details(contact[0])))
+
+	return backend
