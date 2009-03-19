@@ -153,6 +153,7 @@ class Dialcentral(object):
 		else:
 			pass # warnings.warn("No Internet Connectivity API ", UserWarning)
 
+		import gv_backend
 		import gc_backend
 		import file_backend
 		import evo_backend
@@ -167,7 +168,8 @@ class Dialcentral(object):
 			if e.errno != 17:
 				raise
 		self._phoneBackends = [
-			(gc_backend.GCDialer, os.path.join(self._data_path, "gc_cookies.txt"))
+			(gv_backend.GVDialer, os.path.join(self._data_path, "gv_cookies.txt")),
+			(gc_backend.GCDialer, os.path.join(self._data_path, "gc_cookies.txt")),
 		]
 		for backendFactory, cookieFile in self._phoneBackends:
 			if os.path.exists(cookieFile):

@@ -59,11 +59,6 @@ class GVDialer(object):
 	the functions include login, setting up a callback number, and initalting a callback
 	"""
 
-	_contactsRe = re.compile(r"""<a href="/mobile/contacts/detail/(\d+)">(.*?)</a>""", re.S)
-	_contactsNextRe = re.compile(r""".*<a href="/mobile/contacts(\?page=\d+)">Next</a>""", re.S)
-	_contactDetailGroupRe = re.compile(r"""Group:\s*(\w*)""", re.S)
-	_contactDetailPhoneRe = re.compile(r"""(\w+):[0-9\-\(\) \t]*?<a href="/mobile/calls/click_to_call\?destno=(\d+).*?">call</a>""", re.S)
-
 	_isNotLoginPageRe = re.compile(r"""I cannot access my account""")
 	_tokenRe = re.compile(r"""<input.*?name="_rnr_se".*?value="(.*?)"\s*/>""")
 	_accountNumRe = re.compile(r"""<b class="ms2">(.{14})</b></div>""")
@@ -71,7 +66,11 @@ class GVDialer(object):
 	_validateRe = re.compile("^[0-9]{10,}$")
 	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
 
-	_clicktocallURL = "https://www.google.com/voice/m/callsms"
+	_contactsRe = re.compile(r"""<a href="/voice/m/contact/(\d+)">(.*?)</a>""", re.S)
+	_contactsNextRe = re.compile(r""".*<a href="/voice/m/contacts(\?p=\d+)">Next.*?</a>""", re.S)
+	_contactDetailPhoneRe = re.compile(r"""<div.*?>([0-9\-\(\) \t]+?)<span.*?>\((\w+)\)</span>""", re.S)
+
+	_clicktocallURL = "https://www.google.com/voice/m/sendcall"
 	_contactsURL = "https://www.google.com/voice/mobile/contacts"
 	_contactDetailURL = "https://www.google.com/voice/mobile/contact"
 
@@ -168,19 +167,18 @@ class GVDialer(object):
 			# Strip leading 1 from 11 digit dialing
 			number = number[1:]
 
-		#try:
-		clickToCallData = urllib.urlencode({
-			"number": number,
-			"_rnr_se": self._token,
-			#"call": "Call",
-		})
-		otherData = {
-			'Referer': self._accountNumberURL,
-		}
-		callSuccessPage = self._browser.download(self._clicktocallURL, clickToCallData, otherData)
-		#except urllib2.URLError, e:
-		#	print e.message
-		#	raise RuntimeError("%s is not accesible" % self._clicktocallURL)
+		try:
+			clickToCallData = urllib.urlencode({
+				"number": number,
+				"phone": self._callbackNumber,
+				"_rnr_se": self._token,
+			})
+			otherData = {
+				'Referer' : 'https://google.com/voice/m/callsms',
+			}
+			callSuccessPage = self._browser.download(self._clicktocallURL, clickToCallData, None, otherData)
+		except urllib2.URLError, e:
+			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		if self._gvDialingStrRe.search(callSuccessPage) is None:
 			raise RuntimeError("Google Voice returned an error")
@@ -344,8 +342,8 @@ class GVDialer(object):
 			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
-			phoneType = detail_match.group(1)
-			phoneNumber = detail_match.group(2)
+			phoneNumber = detail_match.group(1)
+			phoneType = detail_match.group(2)
 			yield (phoneType, phoneNumber)
 
 	def _grab_json(self, url):
@@ -385,9 +383,13 @@ def test_backend(username, password):
 	print "Token: ", backend._token
 	print "Account: ", backend.get_account_number()
 	print "Callback: ", backend.get_callback_number()
-	print "All Callback: ",
-	pprint.pprint(backend.get_callback_numbers())
-	print "Recent: ",
-	pprint.pprint(list(backend.get_recent()))
+	# print "All Callback: ",
+	# pprint.pprint(backend.get_callback_numbers())
+	# print "Recent: ",
+	# pprint.pprint(list(backend.get_recent()))
+	# print "Contacts: ",
+	# for contact in backend.get_contacts():
+	#	print contact
+	#	pprint.pprint(list(backend.get_contact_details(contact[0])))
 
 	return backend
