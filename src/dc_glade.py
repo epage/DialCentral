@@ -169,8 +169,8 @@ class Dialcentral(object):
 			if e.errno != 17:
 				raise
 		self._phoneBackends = [
-			(gv_backend.GVDialer, os.path.join(self._data_path, "gv_cookies.txt")),
 			(gc_backend.GCDialer, os.path.join(self._data_path, "gc_cookies.txt")),
+			(gv_backend.GVDialer, os.path.join(self._data_path, "gv_cookies.txt")),
 		]
 		backendFactory, cookieFile = None, None
 		for backendFactory, cookieFile in self._phoneBackends:
