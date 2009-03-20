@@ -374,12 +374,12 @@ class GVDialer(object):
 
 		tokenGroup = self._tokenRe.search(page)
 		if tokenGroup is None:
-			raise RuntimeError("Could not extract authentication token from GrandCentral")
+			raise RuntimeError("Could not extract authentication token from GoogleVoice")
 		self._token = tokenGroup.group(1)
 
 		anGroup = self._accountNumRe.search(page)
 		if anGroup is None:
-			raise RuntimeError("Could not extract account number from GrandCentral")
+			raise RuntimeError("Could not extract account number from GoogleVoice")
 		self._accountNum = anGroup.group(1)
 
 		self._callbackNumbers = {}
