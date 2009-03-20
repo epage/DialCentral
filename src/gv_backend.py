@@ -379,17 +379,17 @@ class GVDialer(object):
 		self._token = tokenGroup.group(1)
 
 		anGroup = self._accountNumRe.search(accountNumberPage)
-		if atGroup is None:
+		if anGroup is None:
 			raise RuntimeError("Could not extract account number from GrandCentral")
 		self._accountNum = anGroup.group(1)
 
 		callbackPage = self._browser.download(self._forwardURL)
 		self._callbackNumbers = {}
 		for match in self._callbackRe.finditer(callbackPage):
-			self._callbackNumbers[match.group(2)] = match.group(1)
-
-		if len(self._callbackNumber) == 0:
-			self.set_sane_callback()
+			callbackNumber = match.group(2)
+			callbackName = match.group(1)
+			print callbackName, callbackNumber
+			self._callbackNumbers[callbackNumber] = callbackName
 
 
 def test_backend(username, password):
@@ -401,8 +401,8 @@ def test_backend(username, password):
 	print "Token: ", backend._token
 	print "Account: ", backend.get_account_number()
 	print "Callback: ", backend.get_callback_number()
-	# print "All Callback: ",
-	# pprint.pprint(backend.get_callback_numbers())
+	print "All Callback: ",
+	pprint.pprint(backend.get_callback_numbers())
 	# print "Recent: ",
 	# pprint.pprint(list(backend.get_recent()))
 	# print "Contacts: ",

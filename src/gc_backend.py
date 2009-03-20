@@ -319,7 +319,7 @@ class GCDialer(object):
 		self._accessToken = atGroup.group(1)
 
 		anGroup = self._accountNumRe.search(data)
-		if atGroup is None:
+		if anGroup is None:
 			raise RuntimeError("Could not extract account number from GrandCentral")
 		self._accountNum = anGroup.group(1)
 
