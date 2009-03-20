@@ -388,7 +388,6 @@ class GVDialer(object):
 		for match in self._callbackRe.finditer(callbackPage):
 			callbackNumber = match.group(2)
 			callbackName = match.group(1)
-			print callbackName, callbackNumber
 			self._callbackNumbers[callbackNumber] = callbackName
 
 
