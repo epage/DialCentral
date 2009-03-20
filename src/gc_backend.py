@@ -314,12 +314,12 @@ class GCDialer(object):
 	def _grab_token(self, data):
 		"Pull the magic cookie from the datastream"
 		atGroup = self._accessTokenRe.search(data)
-		if atGroup is not None:
+		if atGroup is None:
 			raise RuntimeError("Could not extract authentication token from GrandCentral")
 		self._accessToken = atGroup.group(1)
 
 		anGroup = self._accountNumRe.search(data)
-		if atGroup is not None:
+		if atGroup is None:
 			raise RuntimeError("Could not extract account number from GrandCentral")
 		self._accountNum = anGroup.group(1)
 
