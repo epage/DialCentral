@@ -48,6 +48,26 @@ gtk-update-icon-cache /usr/share/icons/hicolor
 '''
 
 
+def find_files(path):
+	for root, dirs, files in os.walk(path):
+		for file in files:
+			if file.startswith("src-"):
+				fileParts = file.split("-")
+				unused, relPathParts, newName = fileParts[0], fileParts[1:-1], fileParts[-1]
+				assert unused == "src"
+				relPath = os.sep.join(relPathParts)
+				yield relPath, file, newName
+
+
+def unflatten_files(files):
+	d = {}
+	for relPath, oldName, newName in files:
+		if relPath not in d:
+			d[relPath] = []
+		d[relPath].append((oldName, newName))
+	return d
+
+
 if __name__ == "__main__":
 	try:
 		os.chdir(os.path.dirname(sys.argv[0]))
@@ -60,7 +80,6 @@ if __name__ == "__main__":
 	p.mail = __email__
 	p.license = "lgpl"
 	p.depends = "python2.5, python2.5-gtk2"
-	# p.section = "user/utilities"
 	p.section = "user/communication"
 	p.arch = "all"
 	p.urgency = "low"
@@ -70,29 +89,14 @@ if __name__ == "__main__":
 	p.postinstall = __postinstall__
 	p.icon="26x26-dialcentral.png"
 	p["/usr/bin"] = [ "dialcentral.py" ]
-	p["/usr/lib/dialcentral"] = [
-		"dialcentral.glade",
-		"__init__.py",
-		"dialer.py",
-		"browser_emu.py",
-		"file_backend.py",
-		"evo_backend.py",
-		"gc_backend.py",
-		"gv_backend.py",
-		"gc_views.py",
-		"null_views.py",
-		"gtk_toolbox.py",
-		"__init__.pyc",
-		"dialer.pyc",
-		"browser_emu.pyc",
-		"file_backend.pyc",
-		"evo_backend.pyc",
-		"gc_backend.pyc",
-		"gv_backend.pyc",
-		"gc_views.pyc",
-		"null_views.pyc",
-		"gtk_toolbox.pyc",
-	]
+	for relPath, files in unflatten_files(find_files(".")).iteritems():
+		fullPath = "/usr/lib/dialcentral"
+		if relPath:
+			fullPath += os.sep+relPath
+		p[fullPath] = list(
+			"|".join((oldName, newName))
+			for (oldName, newName) in files
+		)
 	p["/usr/share/applications/hildon"] = ["dialcentral.desktop"]
 	p["/usr/share/icons/hicolor/26x26/hildon"] = ["26x26-dialcentral.png|dialcentral.png"]
 	p["/usr/share/icons/hicolor/64x64/hildon"] = ["64x64-dialcentral.png|dialcentral.png"]

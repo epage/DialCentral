@@ -1,18 +1,9 @@
 PROJECT_NAME=dialcentral
 SOURCE_PATH=src
-SOURCE=$(SOURCE_PATH)/dialer.py \
-	   $(SOURCE_PATH)/gtk_toolbox.py \
-	   $(SOURCE_PATH)/gc_views.py \
-	   $(SOURCE_PATH)/null_views.py \
-	   $(SOURCE_PATH)/file_backend.py \
-	   $(SOURCE_PATH)/evo_backend.py \
-	   $(SOURCE_PATH)/gdata_backend.py \
-	   $(SOURCE_PATH)/gv_backend.py \
-	   $(SOURCE_PATH)/gc_backend.py \
-	   $(SOURCE_PATH)/browser_emu.py \
-	   $(SOURCE_PATH)/__init__.py \
-
+SOURCE=$(shell find $(SOURCE_PATH) -iname *.py)
 PROGRAM=$(SOURCE_PATH)/$(PROJECT_NAME).py
+DATA_TYPES=*.ini *.map *.glade *.png
+DATA=$(foreach type, $(DATA_TYPES), $(shell find $(SOURCE_PATH) -iname $(type)))
 OBJ=$(SOURCE:.py=.pyc)
 BUILD_PATH=./build/
 TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
@@ -26,12 +17,12 @@ PROFILE_GEN=python -m cProfile -o .profile
 PROFILE_VIEW=python -m pstats .profile
 CTAGS=ctags-exuberant
 
-.PHONY: all run debug test lint tags package clean distclean
+.PHONY: all run profile debug test lint tags package clean distclean
 
 all: test package
 
 run: $(SOURCE)
-	$(SOURCE_PATH)/gc_dialer.py
+	$(SOURCE_PATH)/dc_glade.py
 
 profile: $(SOURCE)
 	$(PROFILE_GEN) $(PROGRAM)
@@ -47,9 +38,9 @@ package:
 	rm -Rf $(BUILD_PATH)
 	mkdir $(BUILD_PATH)
 	cp $(SOURCE_PATH)/$(PROJECT_NAME).py  $(BUILD_PATH)
-	cp $(SOURCE_PATH)/$(PROJECT_NAME).glade  $(BUILD_PATH)
-	cp $(SOURCE)  $(BUILD_PATH)
-	cp $(OBJ)  $(BUILD_PATH)
+	$(foreach file, $(DATA), cp $(file) $(BUILD_PATH)/$(subst /,-,$(file)) ; )
+	$(foreach file, $(SOURCE), cp $(file) $(BUILD_PATH)/$(subst /,-,$(file)) ; )
+	$(foreach file, $(OBJ), cp $(file) $(BUILD_PATH)/$(subst /,-,$(file)) ; )
 	cp support/$(PROJECT_NAME).desktop $(BUILD_PATH)
 	cp support/icons/hicolor/26x26/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/26x26-$(PROJECT_NAME).png
 	cp support/icons/hicolor/64x64/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/64x64-$(PROJECT_NAME).png
