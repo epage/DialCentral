@@ -158,8 +158,6 @@ class Dialcentral(object):
 		import gc_backend
 		import file_backend
 		import evo_backend
-		# import gmail_backend
-		# import maemo_backend
 		import null_views
 		import gc_views
 
