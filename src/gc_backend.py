@@ -32,11 +32,6 @@ import traceback
 
 from browser_emu import MozillaEmulator
 
-import socket
-
-
-socket.setdefaulttimeout(5)
-
 
 class GCDialer(object):
 	"""

@@ -32,6 +32,11 @@ import urllib2
 import cookielib
 import warnings
 
+import socket
+
+
+socket.setdefaulttimeout(10)
+
 
 class MozillaEmulator(object):
 

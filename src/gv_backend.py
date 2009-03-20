@@ -38,14 +38,10 @@ from xml.etree import ElementTree
 
 from browser_emu import MozillaEmulator
 
-import socket
-
 try:
 	import simplejson
 except ImportError:
 	simplejson = None
-
-socket.setdefaulttimeout(5)
 
 
 _TRUE_REGEX = re.compile("true")
