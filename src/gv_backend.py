@@ -369,17 +369,19 @@ class GVDialer(object):
 		jsonTree = parse_json(flatJson)
 		return jsonTree
 
-	def _grab_account_info(self, loginPage = None):
-		if loginPage is None:
+	def _grab_account_info(self, accountNumberPage = None):
+		if accountNumberPage is None:
 			accountNumberPage = self._browser.download(self._accountNumberURL)
-		else:
-			accountNumberPage = loginPage
+
 		tokenGroup = self._tokenRe.search(accountNumberPage)
 		if tokenGroup is not None:
-			self._token = tokenGroup.group(1)
+			raise RuntimeError("Could not extract authentication token from GrandCentral")
+		self._token = tokenGroup.group(1)
+
 		anGroup = self._accountNumRe.search(accountNumberPage)
-		if anGroup is not None:
-			self._accountNum = anGroup.group(1)
+		if atGroup is not None:
+			raise RuntimeError("Could not extract account number from GrandCentral")
+		self._accountNum = anGroup.group(1)
 
 		callbackPage = self._browser.download(self._forwardURL)
 		self._callbackNumbers = {}

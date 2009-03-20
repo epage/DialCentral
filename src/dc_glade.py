@@ -245,7 +245,12 @@ class Dialcentral(object):
 		assert 0 < numOfAttempts, "That was pointless having 0 or less login attempts"
 
 		if not self._deviceIsOnline:
-			warnings.warn("Attempted to login while device was offline", UserWarning, 2)
+			warnings.warn("Attempted to login while device was offline")
+			return False
+		elif self._phoneBackend is None:
+			warnings.warn(
+				"Attempted to login before initialization is complete, did an event fire early?"
+			)
 			return False
 
 		loggedIn = False
