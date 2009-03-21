@@ -1,9 +1,9 @@
 PROJECT_NAME=dialcentral
 SOURCE_PATH=src
-SOURCE=$(shell find $(SOURCE_PATH) -iname *.py)
+SOURCE=$(shell find $(SOURCE_PATH) -iname "*.py")
 PROGRAM=$(SOURCE_PATH)/$(PROJECT_NAME).py
 DATA_TYPES=*.ini *.map *.glade *.png
-DATA=$(foreach type, $(DATA_TYPES), $(shell find $(SOURCE_PATH) -iname $(type)))
+DATA=$(foreach type, $(DATA_TYPES), $(shell find $(SOURCE_PATH) -iname "$(type)"))
 OBJ=$(SOURCE:.py=.pyc)
 BUILD_PATH=./build/
 TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
@@ -17,7 +17,7 @@ PROFILE_GEN=python -m cProfile -o .profile
 PROFILE_VIEW=python -m pstats .profile
 CTAGS=ctags-exuberant
 
-.PHONY: all run profile debug test lint tags package clean distclean
+.PHONY: all run profile debug test lint tags build clean distclean
 
 all: test package
 
@@ -34,7 +34,7 @@ debug: $(SOURCE)
 test: $(SOURCE)
 	$(UNIT_TEST)
 
-package:
+build:
 	rm -Rf $(BUILD_PATH)
 	mkdir $(BUILD_PATH)
 	cp $(SOURCE_PATH)/$(PROJECT_NAME).py  $(BUILD_PATH)
@@ -47,7 +47,7 @@ package:
 	cp support/icons/hicolor/scalable/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/scale-$(PROJECT_NAME).png
 	cp support/builddeb.py $(BUILD_PATH)
 
-lint:
+lint: $(SOURCE)
 	$(foreach file, $(SOURCE), $(LINT) $(file) ; )
 
 tags: $(TAG_FILE) 
