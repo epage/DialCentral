@@ -8,7 +8,7 @@ __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
 __version__ = "0.9.1"
-__build__ = 0
+__build__ = 1
 __changelog__ = '''\
 0.9.1 - "Get your hands off that"
  * GoogleVoice Support, what a pain
@@ -82,7 +82,7 @@ if __name__ == "__main__":
 	p.mail = __email__
 	p.license = "lgpl"
 	p.depends = "python2.5, python2.5-gtk2"
-	p.section = "user/communication"
+	p.section = "user/network"
 	p.arch = "all"
 	p.urgency = "low"
 	p.distribution = "chinook diablo"
