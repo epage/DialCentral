@@ -88,7 +88,7 @@ class GVDialer(object):
 	_accountNumberURL = "https://www.google.com/voice/mobile"
 	_forwardURL = "https://www.google.com/voice/mobile/phones"
 
-	_inboxURL = "https://www.google.com/voice/inbox/"
+	_inboxURL = "https://www.google.com/voice/m/i"
 	_recentCallsURL = "https://www.google.com/voice/inbox/recent/"
 	_placedCallsURL = "https://www.google.com/voice/inbox/recent/placed/"
 	_receivedCallsURL = "https://www.google.com/voice/inbox/recent/received/"
@@ -103,9 +103,9 @@ class GVDialer(object):
 		if os.path.isfile(cookieFile):
 			self._browser.cookies.load()
 
+		self._token = ""
 		self._accountNum = None
 		self._lastAuthed = 0.0
-		self._token = ""
 		self._callbackNumber = ""
 		self._callbackNumbers = {}
 
@@ -125,13 +125,18 @@ class GVDialer(object):
 			inboxPage = self._browser.download(self._inboxURL)
 		except urllib2.URLError, e:
 			warnings.warn(traceback.format_exc())
-			raise RuntimeError("%s is not accesible" % self._inboxURL)
+			return False
 
-		self._browser.cookies.save()
 		if self._isNotLoginPageRe.search(inboxPage) is not None:
 			return False
 
-		self._grab_account_info()
+		try:
+			self._grab_account_info()
+		except StandardError, e:
+			warnings.warn(traceback.format_exc())
+			return False
+
+		self._browser.cookies.save()
 		self._lastAuthed = time.time()
 		return True
 
@@ -147,6 +152,9 @@ class GVDialer(object):
 			'Email' : username,
 			'Passwd' : password,
 			'service': "grandcentral",
+			"ltmpl": "mobile",
+			"btmpl": "mobile",
+			"PersistentCookie": "yes",
 		})
 
 		try:

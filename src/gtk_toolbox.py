@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 
+import gobject
 import gtk
 
 
@@ -12,8 +13,16 @@ class LoginWindow(object):
 		"""
 		self._dialog = widgetTree.get_widget("loginDialog")
 		self._parentWindow = widgetTree.get_widget("mainWindow")
+		self._serviceCombo = widgetTree.get_widget("serviceCombo")
 		self._usernameEntry = widgetTree.get_widget("usernameentry")
 		self._passwordEntry = widgetTree.get_widget("passwordentry")
+
+		self._serviceList = gtk.ListStore(gobject.TYPE_INT, gobject.TYPE_STRING)
+		self._serviceCombo.set_model(self._serviceList)
+		cell = gtk.CellRendererText()
+		self._serviceCombo.pack_start(cell, True)
+		self._serviceCombo.add_attribute(cell, 'text', 1)
+		self._serviceCombo.set_active(0)
 
 		callbackMapping = {
 			"on_loginbutton_clicked": self._on_loginbutton_clicked,
@@ -27,6 +36,10 @@ class LoginWindow(object):
 		"""
 		if parentWindow is None:
 			parentWindow = self._parentWindow
+
+		self._serviceCombo.hide()
+		self._serviceList.clear()
+
 		try:
 			self._dialog.set_transient_for(parentWindow)
 			self._dialog.set_default_response(gtk.RESPONSE_OK)
@@ -39,7 +52,39 @@ class LoginWindow(object):
 			self._passwordEntry.set_text("")
 		finally:
 			self._dialog.hide()
+
 		return username, password
+
+	def request_credentials_from(self, services, parentWindow = None):
+		"""
+		@note UI Thread
+		"""
+		if parentWindow is None:
+			parentWindow = self._parentWindow
+
+		self._serviceList.clear()
+		for serviceIdserviceName in services.iteritems():
+			self._serviceList.append(serviceIdserviceName)
+		self._serviceCombo.set_active(0)
+		self._serviceCombo.show()
+
+		try:
+			self._dialog.set_transient_for(parentWindow)
+			self._dialog.set_default_response(gtk.RESPONSE_OK)
+			response = self._dialog.run()
+			if response != gtk.RESPONSE_OK:
+				raise RuntimeError("Login Cancelled")
+
+			username = self._usernameEntry.get_text()
+			password = self._passwordEntry.get_text()
+			self._passwordEntry.set_text("")
+		finally:
+			self._dialog.hide()
+
+		itr = self._serviceCombo.get_active_iter()
+		serviceId = int(self._serviceList.get_value(itr, 0))
+		self._serviceList.clear()
+		return serviceId, username, password
 
 	def _on_loginbutton_clicked(self, *args):
 		self._dialog.response(gtk.RESPONSE_OK)
@@ -61,6 +106,13 @@ class ErrorDisplay(object):
 
 		self.__messages = []
 		self.__parentBox.remove(self.__errorBox)
+
+	def push_message_with_lock(self, message):
+		gtk.gdk.threads_enter()
+		try:
+			self.push_message(message)
+		finally:
+			gtk.gdk.threads_leave()
 
 	def push_message(self, message):
 		if 0 < len(self.__messages):

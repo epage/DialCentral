@@ -283,7 +283,7 @@ class MergedAddressBook(object):
 			return name.rsplit(" ", 1)[-1]
 
 	@classmethod
-	def advanced_firtname_sorter(cls, contacts):
+	def advanced_firstname_sorter(cls, contacts):
 		contactsWithKey = [
 			(cls.guess_firstname(contactName), (contactId, contactName))
 				for (contactId, contactName) in contacts
@@ -441,6 +441,7 @@ class AccountInfo(object):
 		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
 		self._accountViewNumberDisplay = widgetTree.get_widget("gcnumber_display")
 		self._callbackCombo = widgetTree.get_widget("callbackcombo")
+		self._onCallbackentryChangedId = 0
 
 	def enable(self):
 		assert self._backend.is_authed()
@@ -448,10 +449,10 @@ class AccountInfo(object):
 		self.set_account_number("")
 		self._callbackList.clear()
 		self.update()
-		self._callbackCombo.get_child().connect("changed", self._on_callbackentry_changed)
+		self._onCallbackentryChangedId = self._callbackCombo.get_child().connect("changed", self._on_callbackentry_changed)
 
 	def disable(self):
-		self._callbackCombo.get_child().disconnect("changed", self._on_callbackentry_changed)
+		self._callbackCombo.get_child().disconnect(self._onCallbackentryChangedId)
 		self.clear()
 		self._callbackList.clear()
 
@@ -521,6 +522,7 @@ class RecentCallsView(object):
 		self._recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._recentview = widgetTree.get_widget("recentview")
 		self._recentviewselection = None
+		self._onRecentviewRowActivatedId = 0
 
 		textrenderer = gtk.CellRendererText()
 		self._recentviewColumn = gtk.TreeViewColumn("Calls", textrenderer, text=1)
@@ -534,10 +536,10 @@ class RecentCallsView(object):
 		self._recentviewselection = self._recentview.get_selection()
 		self._recentviewselection.set_mode(gtk.SELECTION_SINGLE)
 
-		self._recentview.connect("row-activated", self._on_recentview_row_activated)
+		self._onRecentviewRowActivatedId = self._recentview.connect("row-activated", self._on_recentview_row_activated)
 
 	def disable(self):
-		self._recentview.disconnect("row-activated", self._on_recentview_row_activated)
+		self._recentview.disconnect(self._onRecentviewRowActivatedId)
 		self._recentview.remove_column(self._recentviewColumn)
 		self._recentview.set_model(None)
 
@@ -627,6 +629,8 @@ class ContactsView(object):
 		self._contactColumn.set_sort_column_id(1)
 		self._contactColumn.set_visible(True)
 
+		self._onContactsviewRowActivatedId = 0
+		self._onAddressbookComboChangedId = 0
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
 
 	def enable(self):
@@ -656,15 +660,17 @@ class ContactsView(object):
 		self._booksSelectionBox.add_attribute(cell, 'text', 2)
 		self._booksSelectionBox.set_active(0)
 
-		self._contactsview.connect("row-activated", self._on_contactsview_row_activated)
-		self._booksSelectionBox.connect("changed", self._on_addressbook_combo_changed)
+		self._onContactsviewRowActivatedId = self._contactsview.connect("row-activated", self._on_contactsview_row_activated)
+		self._onAddressbookComboChangedId = self._booksSelectionBox.connect("changed", self._on_addressbook_combo_changed)
 
 	def disable(self):
+		self._contactsview.disconnect(self._onContactsviewRowActivatedId)
+		self._booksSelectionBox.disconnect(self._onAddressbookComboChangedId)
+
+		self._booksSelectionBox.clear()
 		self._booksSelectionBox.set_model(None)
 		self._contactsview.set_model(None)
 		self._contactsview.remove_column(self._contactColumn)
-		self._contactsview.disconnect("row-activated", self._on_contactsview_row_activated)
-		self._booksSelectionBox.disconnect("changed", self._on_addressbook_combo_changed)
 
 	def number_selected(self, number):
 		"""

@@ -70,8 +70,8 @@ class GCDialer(object):
 
 		self._accessToken = None
 		self._accountNum = None
-		self._callbackNumbers = {}
 		self._lastAuthed = 0.0
+		self._callbackNumbers = {}
 
 		self.__contacts = None
 
@@ -89,13 +89,18 @@ class GCDialer(object):
 			forwardSelectionPage = self._browser.download(self._forwardselectURL)
 		except urllib2.URLError, e:
 			warnings.warn(traceback.format_exc())
-			raise RuntimeError("%s is not accesible" % self._forwardselectURL)
+			return False
 
-		self._browser.cookies.save()
 		if self._isLoginPageRe.search(forwardSelectionPage) is not None:
 			return False
 
-		self._grab_token(forwardSelectionPage)
+		try:
+			self._grab_token(forwardSelectionPage)
+		except StandardError, e:
+			warnings.warn(traceback.format_exc())
+			return False
+
+		self._browser.cookies.save()
 		self._lastAuthed = time.time()
 		return True
 
@@ -334,7 +339,7 @@ def test_backend(username, password):
 	print "Authenticated: ", backend.is_authed()
 	print "Login?: ", backend.login(username, password)
 	print "Authenticated: ", backend.is_authed()
-	print "Token: ", backend._token
+	print "Token: ", backend._accessToken
 	print "Account: ", backend.get_account_number()
 	print "Callback: ", backend.get_callback_number()
 	# print "All Callback: ",

@@ -35,6 +35,7 @@ test: $(SOURCE)
 	$(UNIT_TEST)
 
 build:
+	@# @todo Add a PYC generation step
 	rm -Rf $(BUILD_PATH)
 	mkdir $(BUILD_PATH)
 	cp $(SOURCE_PATH)/$(PROJECT_NAME).py  $(BUILD_PATH)

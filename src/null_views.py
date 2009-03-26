@@ -52,6 +52,14 @@ class AccountInfo(object):
 		self._clearCookiesButton.set_sensitive(True)
 		self._callbackCombo.set_sensitive(True)
 
+	@staticmethod
+	def update():
+		pass
+
+	@staticmethod
+	def clear():
+		pass
+
 
 class RecentCallsView(object):
 
@@ -67,6 +75,10 @@ class RecentCallsView(object):
 	def update(self):
 		pass
 
+	@staticmethod
+	def clear():
+		pass
+
 
 class ContactsView(object):
 
@@ -80,4 +92,8 @@ class ContactsView(object):
 		self._booksSelectionBox.set_sensitive(True)
 
 	def update(self):
+		pass
+
+	@staticmethod
+	def clear():
 		pass

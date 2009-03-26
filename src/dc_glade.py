@@ -40,6 +40,13 @@ except ImportError:
 import gtk_toolbox
 
 
+def getmtime_nothrow(path):
+	try:
+		return os.path.getmtime(path)
+	except StandardError:
+		return 0
+
+
 class Dialcentral(object):
 
 	__pretty_app_name__ = "DialCentral"
@@ -53,17 +60,22 @@ class Dialcentral(object):
 		os.path.join(os.path.dirname(__file__), "../lib/dialcentral.glade"),
 	]
 
+	NULL_BACKEND = 0
+	GC_BACKEND = 1
+	GV_BACKEND = 2
+	BACKENDS = (NULL_BACKEND, GC_BACKEND, GV_BACKEND)
+
 	_data_path = os.path.join(os.path.expanduser("~"), ".dialcentral")
 
 	def __init__(self):
 		self._connection = None
 		self._osso = None
-		self._phoneBackends = []
-		self._phoneBackend = None
 		self._clipboard = gtk.clipboard_get()
 
 		self._deviceIsOnline = True
-		self._isLoggedIn = False
+		self._selectedBackendId = self.NULL_BACKEND
+		self._defaultBackendId = self.GC_BACKEND
+		self._phoneBackends = None
 		self._dialpads = None
 		self._accountViews = None
 		self._recentViews = None
@@ -130,6 +142,26 @@ class Dialcentral(object):
 		"""
 		If something can be done after the UI loads, push it here so it's not blocking the UI
 		"""
+		# Barebones UI handlers
+		import null_backend
+		import null_views
+
+		self._phoneBackends = {self.NULL_BACKEND: null_backend.NullDialer()}
+		gtk.gdk.threads_enter()
+		try:
+			self._dialpads = {self.NULL_BACKEND: null_views.Dialpad(self._widgetTree)}
+			self._accountViews = {self.NULL_BACKEND: null_views.AccountInfo(self._widgetTree)}
+			self._recentViews = {self.NULL_BACKEND: null_views.RecentCallsView(self._widgetTree)}
+			self._contactsViews = {self.NULL_BACKEND: null_views.ContactsView(self._widgetTree)}
+
+			self._dialpads[self._selectedBackendId].enable()
+			self._accountViews[self._selectedBackendId].enable()
+			self._recentViews[self._selectedBackendId].enable()
+			self._contactsViews[self._selectedBackendId].enable()
+		finally:
+			gtk.gdk.threads_leave()
+
+		# Setup maemo specifics
 		try:
 			import osso
 		except ImportError:
@@ -154,11 +186,11 @@ class Dialcentral(object):
 		else:
 			pass # warnings.warn("No Internet Connectivity API ", UserWarning)
 
+		# Setup costly backends
 		import gv_backend
 		import gc_backend
 		import file_backend
 		import evo_backend
-		import null_views
 		import gc_views
 
 		try:
@@ -166,61 +198,69 @@ class Dialcentral(object):
 		except OSError, e:
 			if e.errno != 17:
 				raise
-		self._phoneBackends = [
-			(gc_backend.GCDialer, os.path.join(self._data_path, "gc_cookies.txt")),
-			(gv_backend.GVDialer, os.path.join(self._data_path, "gv_cookies.txt")),
-		]
-		backendFactory, cookieFile = None, None
-		for backendFactory, cookieFile in self._phoneBackends:
-			if os.path.exists(cookieFile):
-				break
-		else:
-			backendFactory, cookieFile = self._phoneBackends[0]
-		self._phoneBackend = backendFactory(cookieFile)
+		gcCookiePath = os.path.join(self._data_path, "gc_cookies.txt")
+		gvCookiePath = os.path.join(self._data_path, "gv_cookies.txt")
+		self._defaultBackendId = self._guess_preferred_backend((
+			(self.GC_BACKEND, gcCookiePath),
+			(self.GV_BACKEND, gvCookiePath),
+		))
+
+		self._phoneBackends.update({
+			self.GC_BACKEND: gc_backend.GCDialer(gcCookiePath),
+			self.GV_BACKEND: gv_backend.GVDialer(gvCookiePath),
+		})
 		gtk.gdk.threads_enter()
 		try:
-			self._dialpads = {
-				True: gc_views.Dialpad(self._widgetTree, self._errorDisplay),
-				False: null_views.Dialpad(self._widgetTree),
-			}
-			self._dialpads[True].set_number("")
-			self._accountViews = {
-				True: gc_views.AccountInfo(self._widgetTree, self._phoneBackend, self._errorDisplay),
-				False: null_views.AccountInfo(self._widgetTree),
-			}
-			self._recentViews = {
-				True: gc_views.RecentCallsView(self._widgetTree, self._phoneBackend, self._errorDisplay),
-				False: null_views.RecentCallsView(self._widgetTree),
-			}
-			self._contactsViews = {
-				True: gc_views.ContactsView(self._widgetTree, self._phoneBackend, self._errorDisplay),
-				False: null_views.ContactsView(self._widgetTree),
-			}
+			unifiedDialpad = gc_views.Dialpad(self._widgetTree, self._errorDisplay)
+			unifiedDialpad.set_number("")
+			self._dialpads.update({
+				self.GC_BACKEND: unifiedDialpad,
+				self.GV_BACKEND: unifiedDialpad,
+			})
+			self._accountViews.update({
+				self.GC_BACKEND: gc_views.AccountInfo(
+					self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
+				),
+				self.GV_BACKEND: gc_views.AccountInfo(
+					self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
+				),
+			})
+			self._recentViews.update({
+				self.GC_BACKEND: gc_views.RecentCallsView(
+					self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
+				),
+				self.GV_BACKEND: gc_views.RecentCallsView(
+					self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
+				),
+			})
+			self._contactsViews.update({
+				self.GC_BACKEND: gc_views.ContactsView(
+					self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
+				),
+				self.GV_BACKEND: gc_views.ContactsView(
+					self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
+				),
+			})
 		finally:
 			gtk.gdk.threads_leave()
 
-		self._dialpads[True].dial = self._on_dial_clicked
-		self._recentViews[True].number_selected = self._on_number_selected
-		self._contactsViews[True].number_selected = self._on_number_selected
-
+		evoBackend = evo_backend.EvolutionAddressBook()
 		fsContactsPath = os.path.join(self._data_path, "contacts")
-		addressBooks = [
-			self._phoneBackend,
-			evo_backend.EvolutionAddressBook(),
-			file_backend.FilesystemAddressBookFactory(fsContactsPath),
-		]
-		mergedBook = gc_views.MergedAddressBook(addressBooks, gc_views.MergedAddressBook.advanced_lastname_sorter)
-		self._contactsViews[True].append(mergedBook)
-		self._contactsViews[True].extend(addressBooks)
-		self._contactsViews[True].open_addressbook(*self._contactsViews[True].get_addressbooks().next()[0][0:2])
-		gtk.gdk.threads_enter()
-		try:
-			self._dialpads[self._isLoggedIn].enable()
-			self._accountViews[self._isLoggedIn].enable()
-			self._recentViews[self._isLoggedIn].enable()
-			self._contactsViews[self._isLoggedIn].enable()
-		finally:
-			gtk.gdk.threads_leave()
+		fileBackend = file_backend.FilesystemAddressBookFactory(fsContactsPath)
+		for backendId in (self.GV_BACKEND, self.GC_BACKEND):
+			self._dialpads[backendId].dial = self._on_dial_clicked
+			self._recentViews[backendId].number_selected = self._on_number_selected
+			self._contactsViews[backendId].number_selected = self._on_number_selected
+
+			addressBooks = [
+				self._phoneBackends[backendId],
+				evoBackend,
+				fileBackend,
+			]
+			mergedBook = gc_views.MergedAddressBook(addressBooks, gc_views.MergedAddressBook.advanced_lastname_sorter)
+			self._contactsViews[backendId].append(mergedBook)
+			self._contactsViews[backendId].extend(addressBooks)
+			self._contactsViews[backendId].open_addressbook(*self._contactsViews[backendId].get_addressbooks().next()[0][0:2])
 
 		callbackMapping = {
 			"on_paste": self._on_paste,
@@ -234,7 +274,7 @@ class Dialcentral(object):
 
 		return False
 
-	def attempt_login(self, numOfAttempts = 1):
+	def attempt_login(self, numOfAttempts = 10):
 		"""
 		@todo Handle user notification better like attempting to login and failed login
 
@@ -245,7 +285,7 @@ class Dialcentral(object):
 		if not self._deviceIsOnline:
 			warnings.warn("Attempted to login while device was offline")
 			return False
-		elif self._phoneBackend is None:
+		elif self._phoneBackends is None:
 			warnings.warn(
 				"Attempted to login before initialization is complete, did an event fire early?"
 			)
@@ -253,32 +293,33 @@ class Dialcentral(object):
 
 		loggedIn = False
 		try:
-			if self._phoneBackend.is_authed():
+			if self._phoneBackends[self._defaultBackendId].is_authed():
+				serviceId = self._defaultBackendId
 				loggedIn = True
-			else:
-				for x in xrange(numOfAttempts):
-					gtk.gdk.threads_enter()
-					try:
-						username, password = self._credentials.request_credentials()
-					finally:
-						gtk.gdk.threads_leave()
+			for x in xrange(numOfAttempts):
+				if loggedIn:
+					break
+				gtk.gdk.threads_enter()
+				try:
+					availableServices = {
+						self.GV_BACKEND: "Google Voice",
+						self.GC_BACKEND: "Grand Central",
+					}
+					credentials = self._credentials.request_credentials_from(availableServices)
+					serviceId, username, password = credentials
+				finally:
+					gtk.gdk.threads_leave()
 
-					loggedIn = self._phoneBackend.login(username, password)
-					if loggedIn:
-						break
+				loggedIn = self._phoneBackends[serviceId].login(username, password)
 		except RuntimeError, e:
 			warnings.warn(traceback.format_exc())
-			gtk.gdk.threads_enter()
-			try:
-				self._errorDisplay.push_message(e.message)
-			finally:
-				gtk.gdk.threads_leave()
+			self._errorDisplay.push_message_with_lock(e.message)
 
 		gtk.gdk.threads_enter()
 		try:
 			if not loggedIn:
 				self._errorDisplay.push_message("Login Failed")
-			self._change_loggedin_status(loggedIn)
+			self._change_loggedin_status(serviceId if loggedIn else self.NULL_BACKEND)
 		finally:
 			gtk.gdk.threads_leave()
 		return loggedIn
@@ -297,7 +338,9 @@ class Dialcentral(object):
 		gtk.main_quit()
 
 	def _change_loggedin_status(self, newStatus):
-		oldStatus = self._isLoggedIn
+		oldStatus = self._selectedBackendId
+		if oldStatus == newStatus:
+			return
 
 		self._dialpads[oldStatus].disable()
 		self._accountViews[oldStatus].disable()
@@ -309,12 +352,19 @@ class Dialcentral(object):
 		self._recentViews[newStatus].enable()
 		self._contactsViews[newStatus].enable()
 
-		if newStatus:
-			if self._phoneBackend.get_callback_number() is None:
-				self._phoneBackend.set_sane_callback()
-			self._accountViews[True].update()
+		if self._phoneBackends[self._selectedBackendId].get_callback_number() is None:
+			self._phoneBackends[self._selectedBackendId].set_sane_callback()
+		self._accountViews[self._selectedBackendId].update()
 
-		self._isLoggedIn = newStatus
+		self._selectedBackendId = newStatus
+
+	def _guess_preferred_backend(self, backendAndCookiePaths):
+		modTimeAndPath = [
+			(getmtime_nothrow(path), backendId, path)
+			for backendId, path in backendAndCookiePaths
+		]
+		modTimeAndPath.sort()
+		return modTimeAndPath[-1][1]
 
 	def _on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
 		"""
@@ -324,8 +374,9 @@ class Dialcentral(object):
 		@note Hildon specific
 		"""
 		if memory_low:
-			self._phoneBackend.clear_caches()
-			self._contactsViews[True].clear_caches()
+			for backendId in self.BACKENDS:
+				self._phoneBackends[backendId].clear_caches()
+			self._contactsViews[self._selectedBackendId].clear_caches()
 			gc.collect()
 
 	def _on_connection_change(self, connection, event, magicIdentifier):
@@ -342,14 +393,14 @@ class Dialcentral(object):
 		if status == conic.STATUS_CONNECTED:
 			self._window.set_sensitive(True)
 			self._deviceIsOnline = True
-			self._isLoggedIn = False
 			backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
 			backgroundLogin.setDaemon(True)
 			backgroundLogin.start()
 		elif status == conic.STATUS_DISCONNECTED:
 			self._window.set_sensitive(False)
 			self._deviceIsOnline = False
-			self._isLoggedIn = False
+			self._defaultBackendId = self._selectedBackendId
+			self._change_loggedin_status(self.NULL_BACKEND)
 
 	def _on_window_state_change(self, widget, event, *args):
 		"""
@@ -371,21 +422,21 @@ class Dialcentral(object):
 				self._window.fullscreen()
 
 	def _on_clearcookies_clicked(self, *args):
-		self._phoneBackend.logout()
-		self._accountViews[True].clear()
-		self._recentViews[True].clear()
-		self._contactsViews[True].clear()
+		self._phoneBackends[self._selectedBackendId].logout()
+		self._accountViews[self._selectedBackendId].clear()
+		self._recentViews[self._selectedBackendId].clear()
+		self._contactsViews[self._selectedBackendId].clear()
+		self._change_loggedin_status(self.NULL_BACKEND)
 
-		# re-run the inital grandcentral setup
 		backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
 		backgroundLogin.setDaemon(True)
 		backgroundLogin.start()
 
 	def _on_notebook_switch_page(self, notebook, page, page_num):
 		if page_num == 1:
-			self._contactsViews[self._isLoggedIn].update()
+			self._contactsViews[self._selectedBackendId].update()
 		elif page_num == 3:
-			self._recentViews[self._isLoggedIn].update()
+			self._recentViews[self._selectedBackendId].update()
 
 		tabTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
 		if hildon is not None:
@@ -394,7 +445,7 @@ class Dialcentral(object):
 			self._window.set_title("%s - %s" % (self.__pretty_app_name__, tabTitle))
 
 	def _on_number_selected(self, number):
-		self._dialpads[True].set_number(number)
+		self._dialpads[self._selectedBackendId].set_number(number)
 		self._notebook.set_current_page(0)
 
 	def _on_dial_clicked(self, number):
@@ -402,7 +453,7 @@ class Dialcentral(object):
 		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
 		"""
 		try:
-			loggedIn = self._phoneBackend.is_authed()
+			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
 		except RuntimeError, e:
 			warnings.warn(traceback.format_exc())
 			loggedIn = False
@@ -417,8 +468,8 @@ class Dialcentral(object):
 
 		dialed = False
 		try:
-			assert self._phoneBackend.get_callback_number() != ""
-			self._phoneBackend.dial(number)
+			assert self._phoneBackends[self._selectedBackendId].get_callback_number() != ""
+			self._phoneBackends[self._selectedBackendId].dial(number)
 			dialed = True
 		except RuntimeError, e:
 			warnings.warn(traceback.format_exc())
@@ -428,12 +479,12 @@ class Dialcentral(object):
 			self._errorDisplay.push_message(e.message)
 
 		if dialed:
-			self._dialpads[True].clear()
-			self._recentViews[True].clear()
+			self._dialpads[self._selectedBackendId].clear()
+			self._recentViews[self._selectedBackendId].clear()
 
 	def _on_paste(self, *args):
 		contents = self._clipboard.wait_for_text()
-		self._dialpads[True].set_number(contents)
+		self._dialpads[self._selectedBackendId].set_number(contents)
 
 	def _on_about_activate(self, *args):
 		dlg = gtk.AboutDialog()

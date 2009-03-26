@@ -83,7 +83,6 @@ class GDataAddressBookFactory(object):
 	def clear_caches(self):
 		if gdata is None:
 			return
-		pass
 
 	def get_addressbooks(self):
 		"""
