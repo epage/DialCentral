@@ -10,6 +10,7 @@ TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
 
 DEBUGGER=winpdb
 UNIT_TEST=nosetests --with-doctest -w .
+SYNTAX_TEST=support/test_syntax.py
 STYLE_TEST=../../Python/tools/pep8.py --ignore=W191
 LINT_RC=./support/pylint.rc
 LINT=pylint --rcfile=$(LINT_RC)
@@ -19,22 +20,22 @@ CTAGS=ctags-exuberant
 
 .PHONY: all run profile debug test lint tags build clean distclean
 
-all: test package
+all: test
 
-run: $(SOURCE)
+run: $(OBJ)
 	$(SOURCE_PATH)/dc_glade.py
 
-profile: $(SOURCE)
+profile: $(OBJ)
 	$(PROFILE_GEN) $(PROGRAM)
 	$(PROFILE_VIEW)
 
-debug: $(SOURCE)
+debug: $(OBJ)
 	$(DEBUGGER) $(PROGRAM)
 
-test: $(SOURCE)
+test: $(OBJ)
 	$(UNIT_TEST)
 
-build:
+build: $(OBJ)
 	@# @todo Add a PYC generation step
 	rm -Rf $(BUILD_PATH)
 	mkdir $(BUILD_PATH)
@@ -48,7 +49,7 @@ build:
 	cp support/icons/hicolor/scalable/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/scale-$(PROJECT_NAME).png
 	cp support/builddeb.py $(BUILD_PATH)
 
-lint: $(SOURCE)
+lint: $(OBJ)
 	$(foreach file, $(SOURCE), $(LINT) $(file) ; )
 
 tags: $(TAG_FILE) 
@@ -66,9 +67,12 @@ distclean:
 	find $(SOURCE_PATH) -name "*.bak" | xargs rm -f
 	find $(SOURCE_PATH) -name ".*.swp" | xargs rm -f
 
-$(TAG_FILE): $(SOURCE)
+$(TAG_FILE): $(OBJ)
 	mkdir -p $(dir $(TAG_FILE))
 	$(CTAGS) -o $(TAG_FILE) $(SOURCE)
+
+%.pyc: %.py
+	$(SYNTAX_TEST) $<
 
 #Makefile Debugging
 #Target to print any variable, can be added to the dependencies of any other target
