@@ -7,9 +7,12 @@ __appname__ = "dialcentral"
 __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
-__version__ = "0.9.2"
-__build__ = 1
+__version__ = "0.9.3"
+__build__ = 0
 __changelog__ = '''\
+0.9.3 - ""
+
+
 0.9.2 - "Two heads are better than one"
  * Adding of UI to switch between GC and GV
  * Minimized flashing the dial button between grayed out and not on startup
