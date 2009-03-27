@@ -12,7 +12,7 @@ TODO_FILE=./TODO
 DEBUGGER=winpdb
 UNIT_TEST=nosetests --with-doctest -w .
 SYNTAX_TEST=support/test_syntax.py
-STYLE_TEST=../../Python/tools/pep8.py --ignore=W191
+STYLE_TEST=../../Python/tools/pep8.py --ignore=W191,E501
 LINT_RC=./support/pylint.rc
 LINT=pylint --rcfile=$(LINT_RC)
 PROFILE_GEN=python -m cProfile -o .profile
@@ -38,7 +38,6 @@ test: $(OBJ)
 	$(UNIT_TEST)
 
 build: $(OBJ)
-	@# @todo Add a PYC generation step
 	rm -Rf $(BUILD_PATH)
 	mkdir $(BUILD_PATH)
 	cp $(SOURCE_PATH)/$(PROJECT_NAME).py  $(BUILD_PATH)
