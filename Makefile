@@ -7,6 +7,7 @@ DATA=$(foreach type, $(DATA_TYPES), $(shell find $(SOURCE_PATH) -iname "$(type)"
 OBJ=$(SOURCE:.py=.pyc)
 BUILD_PATH=./build/
 TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
+TODO_FILE=./TODO
 
 DEBUGGER=winpdb
 UNIT_TEST=nosetests --with-doctest -w .
@@ -16,9 +17,10 @@ LINT_RC=./support/pylint.rc
 LINT=pylint --rcfile=$(LINT_RC)
 PROFILE_GEN=python -m cProfile -o .profile
 PROFILE_VIEW=python -m pstats .profile
+TODO_FINDER=support/todo.py
 CTAGS=ctags-exuberant
 
-.PHONY: all run profile debug test lint tags build clean distclean
+.PHONY: all run profile debug test build lint tags todo clean distclean
 
 all: test
 
@@ -54,6 +56,8 @@ lint: $(OBJ)
 
 tags: $(TAG_FILE) 
 
+todo: $(TODO_FILE)
+
 clean:
 	rm -Rf $(OBJ)
 	rm -Rf $(BUILD_PATH)
@@ -70,6 +74,9 @@ distclean:
 $(TAG_FILE): $(OBJ)
 	mkdir -p $(dir $(TAG_FILE))
 	$(CTAGS) -o $(TAG_FILE) $(SOURCE)
+
+$(TODO_FILE): $(SOURCE)
+	@- $(TODO_FINDER) $(SOURCE) > $(TODO_FILE)
 
 %.pyc: %.py
 	$(SYNTAX_TEST) $<
