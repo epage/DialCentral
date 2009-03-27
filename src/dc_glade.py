@@ -81,7 +81,7 @@ class Dialcentral(object):
 		self._recentViews = None
 		self._contactsViews = None
 
-		for path in Dialcentral._glade_files:
+		for path in self._glade_files:
 			if os.path.isfile(path):
 				self._widgetTree = gtk.glade.XML(path)
 				break
@@ -391,13 +391,11 @@ class Dialcentral(object):
 		bearer = event.get_bearer_type()
 
 		if status == conic.STATUS_CONNECTED:
-			self._window.set_sensitive(True)
 			self._deviceIsOnline = True
 			backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
 			backgroundLogin.setDaemon(True)
 			backgroundLogin.start()
 		elif status == conic.STATUS_DISCONNECTED:
-			self._window.set_sensitive(False)
 			self._deviceIsOnline = False
 			self._defaultBackendId = self._selectedBackendId
 			self._change_loggedin_status(self.NULL_BACKEND)

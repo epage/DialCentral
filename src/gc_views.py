@@ -736,8 +736,9 @@ class ContactsView(object):
 			finally:
 				gtk.gdk.threads_leave()
 		for contactId, contactName in contacts:
-			contactType = (addressBook.contact_source_short_name(contactId),)
-			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("",))
+			# contactType = (addressBook.contact_source_short_name(contactId), )
+			contactType = ("", ) # Due to popular demand
+			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("", ))
 
 		# restart the treeview data rendering
 		self._contactsview.set_model(self._contactsmodel)
