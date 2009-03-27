@@ -61,6 +61,7 @@ todo: $(TODO_FILE)
 clean:
 	rm -Rf $(OBJ)
 	rm -Rf $(BUILD_PATH)
+	rm -Rf $(TODO_FILE)
 
 distclean:
 	rm -Rf $(OBJ)
