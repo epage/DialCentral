@@ -68,7 +68,6 @@ class GVDialer(object):
 	the functions include login, setting up a callback number, and initalting a callback
 	"""
 
-	_isNotLoginPageRe = re.compile(r"""I cannot access my account""")
 	_tokenRe = re.compile(r"""<input.*?name="_rnr_se".*?value="(.*?)"\s*/>""")
 	_accountNumRe = re.compile(r"""<b class="ms2">(.{14})</b></div>""")
 	_callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
@@ -88,7 +87,6 @@ class GVDialer(object):
 	_accountNumberURL = "https://www.google.com/voice/mobile"
 	_forwardURL = "https://www.google.com/voice/mobile/phones"
 
-	_inboxURL = "https://www.google.com/voice/m/i"
 	_recentCallsURL = "https://www.google.com/voice/inbox/recent/"
 	_placedCallsURL = "https://www.google.com/voice/inbox/recent/placed/"
 	_receivedCallsURL = "https://www.google.com/voice/inbox/recent/received/"
@@ -120,15 +118,6 @@ class GVDialer(object):
 
 		if (time.time() - self._lastAuthed) < 60 and not force:
 			return True
-
-		try:
-			inboxPage = self._browser.download(self._inboxURL)
-		except urllib2.URLError, e:
-			warnings.warn(traceback.format_exc())
-			return False
-
-		if self._isNotLoginPageRe.search(inboxPage) is not None:
-			return False
 
 		try:
 			self._grab_account_info()
