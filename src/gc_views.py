@@ -525,7 +525,9 @@ class RecentCallsView(object):
 		self._onRecentviewRowActivatedId = 0
 
 		textrenderer = gtk.CellRendererText()
-		self._recentviewColumn = gtk.TreeViewColumn("Calls", textrenderer, text=1)
+		self._recentviewColumn = gtk.TreeViewColumn("Calls")
+		self._recentviewColumn.pack_start(textrenderer, expand=True)
+		self._recentviewColumn.add_attribute(textrenderer, "markup", 1)
 		self._recentviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 	def enable(self):
@@ -614,17 +616,17 @@ class ContactsView(object):
 		self._contactsview = widgetTree.get_widget("contactsview")
 
 		self._contactColumn = gtk.TreeViewColumn("Contact")
-		displayContactSource = True
+		displayContactSource = False
 		if displayContactSource:
 			textrenderer = gtk.CellRendererText()
 			self._contactColumn.pack_start(textrenderer, expand=False)
-			self._contactColumn.add_attribute(textrenderer, 'text', 0)
+			self._contactColumn.add_attribute(textrenderer, 'markup', 0)
 		textrenderer = gtk.CellRendererText()
 		self._contactColumn.pack_start(textrenderer, expand=True)
-		self._contactColumn.add_attribute(textrenderer, 'text', 1)
+		self._contactColumn.add_attribute(textrenderer, 'markup', 1)
 		textrenderer = gtk.CellRendererText()
 		self._contactColumn.pack_start(textrenderer, expand=True)
-		self._contactColumn.add_attribute(textrenderer, 'text', 4)
+		self._contactColumn.add_attribute(textrenderer, 'markup', 4)
 		self._contactColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		self._contactColumn.set_sort_column_id(1)
 		self._contactColumn.set_visible(True)
@@ -736,8 +738,7 @@ class ContactsView(object):
 			finally:
 				gtk.gdk.threads_leave()
 		for contactId, contactName in contacts:
-			# contactType = (addressBook.contact_source_short_name(contactId), )
-			contactType = ("", ) # Due to popular demand
+			contactType = (addressBook.contact_source_short_name(contactId), )
 			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("", ))
 
 		# restart the treeview data rendering

@@ -29,8 +29,9 @@ import urllib2
 import time
 import warnings
 import traceback
+from xml.sax import saxutils
 
-from browser_emu import MozillaEmulator
+import browser_emu
 
 
 class GCDialer(object):
@@ -61,7 +62,7 @@ class GCDialer(object):
 
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
-		self._browser = MozillaEmulator(None, 0)
+		self._browser = browser_emu.MozillaEmulator(None, 0)
 		if cookieFile is None:
 			cookieFile = os.path.join(os.path.expanduser("~"), ".gc_cookies.txt")
 		self._browser.cookies.filename = cookieFile
@@ -250,9 +251,9 @@ class GCDialer(object):
 
 		for match in self._inboxRe.finditer(recentCallsPage):
 			phoneNumber = match.group(4)
-			action = match.group(1)
-			date = match.group(2)
-			personsName = match.group(3)
+			action = saxutils.unescape(match.group(1))
+			date = saxutils.unescape(match.group(2))
+			personsName = saxutils.unescape(match.group(3))
 			yield personsName, phoneNumber, date, action
 
 	def get_addressbooks(self):
@@ -289,7 +290,7 @@ class GCDialer(object):
 				for contact_match in self._contactsRe.finditer(contactsPage):
 					contactId = contact_match.group(1)
 					contactName = contact_match.group(2)
-					contact = contactId, contactName
+					contact = contactId, saxutils.unescape(contactName)
 					self.__contacts.append(contact)
 					yield contact
 
@@ -312,7 +313,7 @@ class GCDialer(object):
 			raise RuntimeError("%s is not accesible" % self._contactDetailURL)
 
 		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
-			phoneType = detail_match.group(1)
+			phoneType = saxutils.unescape(detail_match.group(1))
 			phoneNumber = detail_match.group(2)
 			yield (phoneType, phoneNumber)
 

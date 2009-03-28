@@ -33,10 +33,11 @@ import urllib2
 import time
 import warnings
 import traceback
+from xml.sax import saxutils
 
 from xml.etree import ElementTree
 
-from browser_emu import MozillaEmulator
+import browser_emu
 
 try:
 	import simplejson
@@ -94,7 +95,7 @@ class GVDialer(object):
 
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
-		self._browser = MozillaEmulator(None, 0)
+		self._browser = browser_emu.MozillaEmulator(None, 0)
 		if cookieFile is None:
 			cookieFile = os.path.join(os.path.expanduser("~"), ".gv_cookies.txt")
 		self._browser.cookies.filename = cookieFile
@@ -295,6 +296,9 @@ class GVDialer(object):
 					for label in recentCallData["labels"]
 						if label.lower() != "all" and label.lower() != "inbox"
 				))
+				number = saxutils.unescape(number)
+				date = saxutils.unescape(date)
+				action = saxutils.unescape(action)
 				yield "", number, date, action
 
 	def get_addressbooks(self):
@@ -330,7 +334,7 @@ class GVDialer(object):
 					raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 				for contact_match in self._contactsRe.finditer(contactsPage):
 					contactId = contact_match.group(1)
-					contactName = contact_match.group(2)
+					contactName = saxutils.unescape(contact_match.group(2))
 					contact = contactId, contactName
 					self.__contacts.append(contact)
 					yield contact
@@ -355,7 +359,7 @@ class GVDialer(object):
 
 		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
 			phoneNumber = detail_match.group(1)
-			phoneType = detail_match.group(2)
+			phoneType = saxutils.unescape(detail_match.group(2))
 			yield (phoneType, phoneNumber)
 
 	def _grab_json(self, url):
