@@ -271,6 +271,9 @@ class GVDialer(object):
 		"""
 		@returns Current callback number or None
 		"""
+		for c in self._browser.cookies:
+			if c.name == "gv-ph":
+				return c.value
 		return self._callbackNumber
 
 	def get_recent(self):
