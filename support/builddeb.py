@@ -11,7 +11,10 @@ __version__ = "0.9.3"
 __build__ = 0
 __changelog__ = '''\
 0.9.3 - ""
-
+ * Removed the much disliked contact source ID
+ * Added saving of callback number when using GoogleVoice
+ * Got proper formatting on things ("&" rather than "&amp;")
+ * Misc Bug fixes
 
 0.9.2 - "Two heads are better than one"
  * Adding of UI to switch between GC and GV
