@@ -527,7 +527,7 @@ class RecentCallsView(object):
 		textrenderer = gtk.CellRendererText()
 		self._recentviewColumn = gtk.TreeViewColumn("Calls")
 		self._recentviewColumn.pack_start(textrenderer, expand=True)
-		self._recentviewColumn.add_attribute(textrenderer, "markup", 1)
+		self._recentviewColumn.add_attribute(textrenderer, "text", 1)
 		self._recentviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 	def enable(self):
@@ -620,13 +620,13 @@ class ContactsView(object):
 		if displayContactSource:
 			textrenderer = gtk.CellRendererText()
 			self._contactColumn.pack_start(textrenderer, expand=False)
-			self._contactColumn.add_attribute(textrenderer, 'markup', 0)
+			self._contactColumn.add_attribute(textrenderer, 'text', 0)
 		textrenderer = gtk.CellRendererText()
 		self._contactColumn.pack_start(textrenderer, expand=True)
-		self._contactColumn.add_attribute(textrenderer, 'markup', 1)
+		self._contactColumn.add_attribute(textrenderer, 'text', 1)
 		textrenderer = gtk.CellRendererText()
 		self._contactColumn.pack_start(textrenderer, expand=True)
-		self._contactColumn.add_attribute(textrenderer, 'markup', 4)
+		self._contactColumn.add_attribute(textrenderer, 'text', 4)
 		self._contactColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		self._contactColumn.set_sort_column_id(1)
 		self._contactColumn.set_visible(True)
