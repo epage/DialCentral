@@ -7,9 +7,11 @@ __appname__ = "dialcentral"
 __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
-__version__ = "0.9.3"
+__version__ = "0.9.4"
 __build__ = 0
 __changelog__ = '''\
+0.9.4 - ""
+
 0.9.3 - ""
  * Removed the much disliked contact source ID
  * Added saving of callback number when using GoogleVoice
