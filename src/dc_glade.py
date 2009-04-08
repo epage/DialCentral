@@ -285,7 +285,7 @@ class Dialcentral(object):
 		if not self._deviceIsOnline:
 			warnings.warn("Attempted to login while device was offline")
 			return False
-		elif self._phoneBackends is None:
+		elif self._phoneBackends is None or len(self._phoneBackends) <= 1:
 			warnings.warn(
 				"Attempted to login before initialization is complete, did an event fire early?"
 			)
