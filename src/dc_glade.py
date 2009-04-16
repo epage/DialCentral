@@ -20,7 +20,12 @@
 
 """
 DialCentral: A phone dialer using GrandCentral
+
+@todo Add logging support to make debugging issues for people a lot easier
 """
+
+
+from __future__ import with_statement
 
 import sys
 import gc
@@ -147,8 +152,7 @@ class Dialcentral(object):
 		import null_views
 
 		self._phoneBackends = {self.NULL_BACKEND: null_backend.NullDialer()}
-		gtk.gdk.threads_enter()
-		try:
+		with gtk_toolbox.gtk_lock():
 			self._dialpads = {self.NULL_BACKEND: null_views.Dialpad(self._widgetTree)}
 			self._accountViews = {self.NULL_BACKEND: null_views.AccountInfo(self._widgetTree)}
 			self._recentViews = {self.NULL_BACKEND: null_views.RecentCallsView(self._widgetTree)}
@@ -158,8 +162,6 @@ class Dialcentral(object):
 			self._accountViews[self._selectedBackendId].enable()
 			self._recentViews[self._selectedBackendId].enable()
 			self._contactsViews[self._selectedBackendId].enable()
-		finally:
-			gtk.gdk.threads_leave()
 
 		# Setup maemo specifics
 		try:
@@ -209,8 +211,7 @@ class Dialcentral(object):
 			self.GC_BACKEND: gc_backend.GCDialer(gcCookiePath),
 			self.GV_BACKEND: gv_backend.GVDialer(gvCookiePath),
 		})
-		gtk.gdk.threads_enter()
-		try:
+		with gtk_toolbox.gtk_lock():
 			unifiedDialpad = gc_views.Dialpad(self._widgetTree, self._errorDisplay)
 			unifiedDialpad.set_number("")
 			self._dialpads.update({
@@ -241,8 +242,6 @@ class Dialcentral(object):
 					self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
 				),
 			})
-		finally:
-			gtk.gdk.threads_leave()
 
 		evoBackend = evo_backend.EvolutionAddressBook()
 		fsContactsPath = os.path.join(self._data_path, "contacts")
@@ -285,7 +284,7 @@ class Dialcentral(object):
 		if not self._deviceIsOnline:
 			warnings.warn("Attempted to login while device was offline")
 			return False
-		elif self._phoneBackends is None or len(self._phoneBackends) <= 1:
+		elif self._phoneBackends is None or len(self._phoneBackends) < len(self.BACKENDS):
 			warnings.warn(
 				"Attempted to login before initialization is complete, did an event fire early?"
 			)
@@ -299,29 +298,23 @@ class Dialcentral(object):
 			for x in xrange(numOfAttempts):
 				if loggedIn:
 					break
-				gtk.gdk.threads_enter()
-				try:
+				with gtk_toolbox.gtk_lock():
 					availableServices = {
 						self.GV_BACKEND: "Google Voice",
 						self.GC_BACKEND: "Grand Central",
 					}
 					credentials = self._credentials.request_credentials_from(availableServices)
 					serviceId, username, password = credentials
-				finally:
-					gtk.gdk.threads_leave()
 
 				loggedIn = self._phoneBackends[serviceId].login(username, password)
 		except RuntimeError, e:
 			warnings.warn(traceback.format_exc())
 			self._errorDisplay.push_message_with_lock(e.message)
 
-		gtk.gdk.threads_enter()
-		try:
+		with gtk_toolbox.gtk_lock():
 			if not loggedIn:
 				self._errorDisplay.push_message("Login Failed")
 			self._change_loggedin_status(serviceId if loggedIn else self.NULL_BACKEND)
-		finally:
-			gtk.gdk.threads_leave()
 		return loggedIn
 
 	def display_error_message(self, msg):
@@ -335,6 +328,8 @@ class Dialcentral(object):
 
 	@staticmethod
 	def _on_close(*args, **kwds):
+		if self._osso is not None:
+			self._osso.close()
 		gtk.main_quit()
 
 	def _change_loggedin_status(self, newStatus):

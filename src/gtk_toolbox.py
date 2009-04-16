@@ -1,8 +1,19 @@
 #!/usr/bin/python
 
+import warnings
+import contextlib
 
 import gobject
 import gtk
+
+
+@contextlib.contextmanager
+def gtk_lock():
+	gtk.gdk.threads_enter()
+	try:
+		yield
+	finally:
+		gtk.gdk.threads_leave()
 
 
 class LoginWindow(object):
@@ -119,6 +130,10 @@ class ErrorDisplay(object):
 			self.__messages.append(message)
 		else:
 			self.__show_message(message)
+
+	def push_exception(self, exception):
+		self.push_message(exception.message)
+		warnings.warn(exception, stacklevel=3)
 
 	def pop_message(self):
 		if 0 < len(self.__messages):

@@ -17,6 +17,8 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+from __future__ import with_statement
+
 import threading
 import time
 import warnings
@@ -24,6 +26,8 @@ import traceback
 
 import gobject
 import gtk
+
+import gtk_toolbox
 
 
 def make_ugly(prettynumber):
@@ -570,22 +574,16 @@ class RecentCallsView(object):
 			recentItems = self._backend.get_recent()
 		except RuntimeError, e:
 			warnings.warn(traceback.format_exc())
-			gtk.gdk.threads_enter()
-			try:
+			with gtk_toolbox.gtk_lock():
 				self._errorDisplay.push_message(e.message)
-			finally:
-				gtk.gdk.threads_leave()
 			self._recenttime = 0.0
 			recentItems = []
 
 		for personsName, phoneNumber, date, action in recentItems:
 			description = "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber)
 			item = (phoneNumber, description)
-			gtk.gdk.threads_enter()
-			try:
+			with gtk_toolbox.gtk_lock():
 				self._recentmodel.append(item)
-			finally:
-				gtk.gdk.threads_leave()
 
 		return False
 
@@ -732,11 +730,8 @@ class ContactsView(object):
 			warnings.warn(traceback.format_exc())
 			contacts = []
 			self._contactstime = 0.0
-			gtk.gdk.threads_enter()
-			try:
+			with gtk_toolbox.gtk_lock():
 				self._errorDisplay.push_message(e.message)
-			finally:
-				gtk.gdk.threads_leave()
 		for contactId, contactName in contacts:
 			contactType = (addressBook.contact_source_short_name(contactId), )
 			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("", ))

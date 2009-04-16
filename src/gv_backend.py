@@ -264,6 +264,8 @@ class GVDialer(object):
 			warnings.warn(traceback.format_exc())
 			raise RuntimeError("%s is not accesible" % self._setforwardURL)
 
+		# @bug This does not seem to be keeping on my tablet (but works on the
+		# desktop), or the reading isn't working too well
 		self._browser.cookies.save()
 		return True
 
