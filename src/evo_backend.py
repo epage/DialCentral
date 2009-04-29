@@ -55,6 +55,7 @@ class EvolutionAddressBook(object):
 			except IndexError:
 				global evolution
 				evolution = None
+				return
 		self._book = evolution.ebook.open_addressbook(self._bookId)
 
 	@classmethod
