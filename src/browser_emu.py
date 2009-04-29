@@ -6,12 +6,10 @@
 Objects of the MozillaEmulator class can emulate a browser that is capable of:
 
 	- cookie management
-	- caching
 	- configurable user agent string
 	- GET and POST
 	- multipart POST (send files)
 	- receive content into file
-	- progress indicator
 
 I have seen many requests on the python mailing list about how to emulate a browser. I'm using this class for years now, without any problems. This is how you can use it:
 
@@ -23,7 +21,6 @@ I have seen many requests on the python mailing list about how to emulate a brow
 
 Optional steps:
 
-	- For testing, use a MozillaCacher instance - this will cache all pages and make testing quicker
 	- You can change user agent string in the build_opened method
 	- The "encode_multipart_formdata" function can be used alone to create POST data from a list of field values and files
 """
@@ -40,22 +37,16 @@ socket.setdefaulttimeout(10)
 
 class MozillaEmulator(object):
 
-	def __init__(self, cacher=None, trycount=0):
+	def __init__(self, trycount = 1):
 		"""Create a new MozillaEmulator object.
 
-		@param cacher: A dictionary like object, that can cache search results on a storage device.
-			You can use a simple dictionary here, but it is not recommended.
-			You can also put None here to disable caching completely.
 		@param trycount: The download() method will retry the operation if it fails. You can specify -1 for infinite retrying.
 			 A value of 0 means no retrying. A value of 1 means one retry. etc."""
-		if cacher is None:
-			cacher = {}
-		self.cacher = cacher
 		self.cookies = cookielib.LWPCookieJar()
 		self.debug = False
 		self.trycount = trycount
 
-	def build_opener(self, url, postdata=None, extraheaders=None, forbid_redirect=False):
+	def build_opener(self, url, postdata = None, extraheaders = None, forbid_redirect = False):
 		if extraheaders is None:
 			extraheaders = {}
 
@@ -90,8 +81,10 @@ class MozillaEmulator(object):
 			req.add_data(postdata)
 		return (req, u)
 
-	def download(self, url, postdata=None, extraheaders=None, forbid_redirect=False,
-			trycount=None, fd=None, onprogress=None, only_head=False):
+	def download(self, url,
+			postdata = None, extraheaders = None, forbid_redirect = False,
+			trycount = None, only_head = False,
+		):
 		"""Download an URL with GET or POST methods.
 
 		@param postdata: It can be a string that will be POST-ed to the URL.
@@ -102,18 +95,10 @@ class MozillaEmulator(object):
 		@param trycount: Specify the maximum number of retries here.
 			0 means no retry on error. Using -1 means infinite retring.
 			None means the default value (that is self.trycount).
-		@param fd: You can pass a file descriptor here. In this case,
-			the data will be written into the file. Please note that
-			when you save the raw data into a file then it won't be cached.
-		@param onprogress: A function that has two parameters:
-			the size of the resource and the downloaded size. This will be
-			called for each 1KB chunk. (If the HTTP header does not contain
-			the content-length field, then the size parameter will be zero!)
 		@param only_head: Create the openerdirector and return it. In other
 			words, this will not retrieve any content except HTTP headers.
 
-		@return: The raw HTML page data, unless fd was specified. When fd
-			was given, the return value is undefined.
+		@return: The raw HTML page data
 		"""
 		warnings.warn("Performing download of %s" % url, UserWarning, 2)
 
@@ -122,6 +107,7 @@ class MozillaEmulator(object):
 		if trycount is None:
 			trycount = self.trycount
 		cnt = 0
+
 		while True:
 			try:
 				req, u = self.build_opener(url, postdata, extraheaders, forbid_redirect)
@@ -133,14 +119,37 @@ class MozillaEmulator(object):
 				self.cookies.extract_cookies(openerdirector, req)
 				if only_head:
 					return openerdirector
-				return openerdirector.read()
+
+				return self._read(openerdirector, trycount)
 			except urllib2.URLError:
 				cnt += 1
-				if (trycount > -1) and (trycount < cnt):
+				if (-1 < trycount) and (trycount < cnt):
 					raise
-				# Retry :-)
-				if self.debug:
-					print "MozillaEmulator: urllib2.URLError, retryting ", cnt
+
+			# Retry :-)
+			if self.debug:
+				print "MozillaEmulator: urllib2.URLError, retryting ", cnt
+
+	def _read(self, openerdirector, trycount):
+		chunks = []
+
+		chunk = openerdirector.read()
+		chunks.append(chunk)
+		#while chunk and cnt < trycount:
+		#	time.sleep(1)
+		#	cnt += 1
+		#	chunk = openerdirector.read()
+		#	chunks.append(chunk)
+
+		data = "".join(chunks)
+
+		if "Content-Length" in openerdirector.info():
+			assert len(data) == int(openerdirector.info()["Content-Length"]), "The packet header promised %s of data but only was able to read %s of data" % (
+				openerdirector.info()["Content-Length"],
+				len(data),
+			)
+
+		return data
 
 
 class HTTPNoRedirector(urllib2.HTTPRedirectHandler):

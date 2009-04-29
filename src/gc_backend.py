@@ -62,7 +62,7 @@ class GCDialer(object):
 
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
-		self._browser = browser_emu.MozillaEmulator(None, 0)
+		self._browser = browser_emu.MozillaEmulator(1)
 		if cookieFile is None:
 			cookieFile = os.path.join(os.path.expanduser("~"), ".gc_cookies.txt")
 		self._browser.cookies.filename = cookieFile
