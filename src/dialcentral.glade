@@ -119,6 +119,8 @@
                   <widget class="GtkLabel" id="errorDescription">
                     <property name="visible">True</property>
                     <property name="use_markup">True</property>
+                    <property name="ellipsize">PANGO_ELLIPSIZE_END</property>
+                    <property name="single_line_mode">True</property>
                   </widget>
                   <packing>
                     <property name="position">1</property>
