@@ -1,7 +1,12 @@
 #!/usr/bin/python
 
-import warnings
+from __future__ import with_statement
+
+import sys
+import traceback
+import functools
 import contextlib
+import warnings
 
 import gobject
 import gtk
@@ -14,6 +19,55 @@ def gtk_lock():
 		yield
 	finally:
 		gtk.gdk.threads_leave()
+
+
+def make_idler(func):
+	"""
+	Decorator that makes a generator-function into a function that will continue execution on next call
+	"""
+	a = []
+
+	@functools.wraps(func)
+	def decorated_func(*args, **kwds):
+		if not a:
+			a.append(func(*args, **kwds))
+		try:
+			a[0].next()
+			return True
+		except StopIteration:
+			del a[:]
+			return False
+
+	return decorated_func
+
+
+def asynchronous_gtk_message(original_func):
+	"""
+	@note Idea came from http://www.aclevername.com/articles/python-webgui/
+	"""
+
+	def execute(allArgs):
+		args, kwargs = allArgs
+		original_func(*args, **kwargs)
+
+	@functools.wraps(original_func)
+	def delayed_func(*args, **kwargs):
+		gobject.idle_add(execute, (args, kwargs))
+
+	return delayed_func
+
+
+def synchronous_gtk_message(original_func):
+	"""
+	@note Idea came from http://www.aclevername.com/articles/python-webgui/
+	"""
+
+	@functools.wraps(original_func)
+	def immediate_func(*args, **kwargs):
+		with gtk_lock():
+			return original_func(*args, **kwargs)
+
+	return immediate_func
 
 
 class LoginWindow(object):
@@ -119,11 +173,8 @@ class ErrorDisplay(object):
 		self.__parentBox.remove(self.__errorBox)
 
 	def push_message_with_lock(self, message):
-		gtk.gdk.threads_enter()
-		try:
+		with gtk_lock():
 			self.push_message(message)
-		finally:
-			gtk.gdk.threads_leave()
 
 	def push_message(self, message):
 		if 0 < len(self.__messages):
@@ -131,9 +182,19 @@ class ErrorDisplay(object):
 		else:
 			self.__show_message(message)
 
-	def push_exception(self, exception):
-		self.push_message(exception.message)
-		warnings.warn(exception, stacklevel=3)
+	def push_exception_with_lock(self, exception = None):
+		with gtk_lock():
+			self.push_exception(exception)
+
+	def push_exception(self, exception = None):
+		if exception is None:
+			userMessage = str(sys.exc_value)
+			warningMessage = str(traceback.format_exc())
+		else:
+			userMessage = str(exception)
+			warningMessage = str(exception)
+		self.push_message(userMessage)
+		warnings.warn(warningMessage, stacklevel=3)
 
 	def pop_message(self):
 		if 0 < len(self.__messages):
@@ -153,6 +214,38 @@ class ErrorDisplay(object):
 	def __hide_message(self):
 		self.__errorDescription.set_text("")
 		self.__parentBox.remove(self.__errorBox)
+
+
+class DummyErrorDisplay(object):
+
+	def __init__(self):
+		super(DummyErrorDisplay, self).__init__()
+
+		self.__messages = []
+
+	def push_message_with_lock(self, message):
+		self.push_message(message)
+
+	def push_message(self, message):
+		if 0 < len(self.__messages):
+			self.__messages.append(message)
+		else:
+			self.__show_message(message)
+
+	def push_exception(self, exception = None):
+		if exception is None:
+			warningMessage = traceback.format_exc()
+		else:
+			warningMessage = exception
+		warnings.warn(warningMessage, stacklevel=3)
+
+	def pop_message(self):
+		if 0 < len(self.__messages):
+			self.__show_message(self.__messages[0])
+			del self.__messages[0]
+
+	def __show_message(self, message):
+		warnings.warn(message, stacklevel=2)
 
 
 class MessageBox(gtk.MessageDialog):
@@ -191,3 +284,139 @@ class MessageBox2(gtk.MessageDialog):
 
 	def _handle_clicked(self, *args):
 		self.destroy()
+
+
+class PopupCalendar(object):
+
+	def __init__(self, parent, displayDate, title = ""):
+		self._displayDate = displayDate
+
+		self._calendar = gtk.Calendar()
+		self._calendar.select_month(self._displayDate.month, self._displayDate.year)
+		self._calendar.select_day(self._displayDate.day)
+		self._calendar.set_display_options(
+			gtk.CALENDAR_SHOW_HEADING |
+			gtk.CALENDAR_SHOW_DAY_NAMES |
+			gtk.CALENDAR_NO_MONTH_CHANGE |
+			0
+		)
+		self._calendar.connect("day-selected", self._on_day_selected)
+
+		self._popupWindow = gtk.Window()
+		self._popupWindow.set_title(title)
+		self._popupWindow.add(self._calendar)
+		self._popupWindow.set_transient_for(parent)
+		self._popupWindow.set_modal(True)
+		self._popupWindow.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
+		self._popupWindow.set_skip_pager_hint(True)
+		self._popupWindow.set_skip_taskbar_hint(True)
+
+	def run(self):
+		self._popupWindow.show_all()
+
+	def _on_day_selected(self, *args):
+		try:
+			self._calendar.select_month(self._displayDate.month, self._displayDate.year)
+			self._calendar.select_day(self._displayDate.day)
+		except StandardError, e:
+			warnings.warn(e.message)
+
+
+class QuickAddView(object):
+
+	def __init__(self, widgetTree, errorDisplay, signalSink, prefix):
+		self._errorDisplay = errorDisplay
+		self._manager = None
+		self._signalSink = signalSink
+
+		self._clipboard = gtk.clipboard_get()
+
+		self._taskNameEntry = widgetTree.get_widget(prefix+"-nameEntry")
+		self._addTaskButton = widgetTree.get_widget(prefix+"-addButton")
+		self._pasteTaskNameButton = widgetTree.get_widget(prefix+"-pasteNameButton")
+		self._clearTaskNameButton = widgetTree.get_widget(prefix+"-clearNameButton")
+		self._onAddId = None
+		self._onAddClickedId = None
+		self._onAddReleasedId = None
+		self._addToEditTimerId = None
+		self._onClearId = None
+		self._onPasteId = None
+
+	def enable(self, manager):
+		self._manager = manager
+
+		self._onAddId = self._addTaskButton.connect("clicked", self._on_add)
+		self._onAddClickedId = self._addTaskButton.connect("pressed", self._on_add_pressed)
+		self._onAddReleasedId = self._addTaskButton.connect("released", self._on_add_released)
+		self._onPasteId = self._pasteTaskNameButton.connect("clicked", self._on_paste)
+		self._onClearId = self._clearTaskNameButton.connect("clicked", self._on_clear)
+
+	def disable(self):
+		self._manager = None
+
+		self._addTaskButton.disconnect(self._onAddId)
+		self._addTaskButton.disconnect(self._onAddClickedId)
+		self._addTaskButton.disconnect(self._onAddReleasedId)
+		self._pasteTaskNameButton.disconnect(self._onPasteId)
+		self._clearTaskNameButton.disconnect(self._onClearId)
+
+	def set_addability(self, addability):
+		self._addTaskButton.set_sensitive(addability)
+
+	def _on_add(self, *args):
+		try:
+			name = self._taskNameEntry.get_text()
+			self._taskNameEntry.set_text("")
+
+			self._signalSink.stage.send(("add", name))
+		except StandardError, e:
+			self._errorDisplay.push_exception()
+
+	def _on_add_edit(self, *args):
+		try:
+			name = self._taskNameEntry.get_text()
+			self._taskNameEntry.set_text("")
+
+			self._signalSink.stage.send(("add-edit", name))
+		except StandardError, e:
+			self._errorDisplay.push_exception()
+
+	def _on_add_pressed(self, widget):
+		try:
+			self._addToEditTimerId = gobject.timeout_add(1000, self._on_add_edit)
+		except StandardError, e:
+			self._errorDisplay.push_exception()
+
+	def _on_add_released(self, widget):
+		try:
+			if self._addToEditTimerId is not None:
+				gobject.source_remove(self._addToEditTimerId)
+			self._addToEditTimerId = None
+		except StandardError, e:
+			self._errorDisplay.push_exception()
+
+	def _on_paste(self, *args):
+		try:
+			entry = self._taskNameEntry.get_text()
+			addedText = self._clipboard.wait_for_text()
+			if addedText:
+				entry += addedText
+			self._taskNameEntry.set_text(entry)
+		except StandardError, e:
+			self._errorDisplay.push_exception()
+
+	def _on_clear(self, *args):
+		try:
+			self._taskNameEntry.set_text("")
+		except StandardError, e:
+			self._errorDisplay.push_exception()
+
+
+if __name__ == "__main__":
+	if False:
+		import datetime
+		cal = PopupCalendar(None, datetime.datetime.now())
+		cal._popupWindow.connect("destroy", lambda w: gtk.main_quit())
+		cal.run()
+
+	gtk.main()
