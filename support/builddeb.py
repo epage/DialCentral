@@ -94,7 +94,7 @@ if __name__ == "__main__":
 	p.author = __author__
 	p.mail = __email__
 	p.license = "lgpl"
-	p.depends = "python2.5, python2.5-gtk2"
+	p.depends = "python2.5, python2.5-gtk2, python2.5-xml"
 	p.section = "user/communication"
 	p.arch = "all"
 	p.urgency = "low"
