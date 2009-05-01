@@ -405,8 +405,7 @@ class Dialpad(object):
 			self._prettynumber = make_pretty(self._phonenumber)
 			self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % (self._prettynumber))
 		except TypeError, e:
-			warnings.warn(traceback.format_exc())
-			self._errorDisplay.push_message(e.message)
+			self._errorDisplay.push_exception(e)
 
 	def clear(self):
 		self.set_number("")
@@ -482,8 +481,7 @@ class AccountInfo(object):
 		try:
 			callbackNumbers = self._backend.get_callback_numbers()
 		except RuntimeError, e:
-			warnings.warn(traceback.format_exc())
-			self._errorDisplay.push_message(e.message)
+			self._errorDisplay.push_exception(e)
 			return
 
 		for number, description in callbackNumbers.iteritems():
@@ -494,8 +492,7 @@ class AccountInfo(object):
 		try:
 			callbackNumber = self._backend.get_callback_number()
 		except RuntimeError, e:
-			warnings.warn(traceback.format_exc())
-			self._errorDisplay.push_message(e.message)
+			self._errorDisplay.push_exception(e)
 			return
 		self._callbackCombo.get_child().set_text(make_pretty(callbackNumber))
 
@@ -512,8 +509,7 @@ class AccountInfo(object):
 			else:
 				self._backend.set_callback_number(text)
 		except RuntimeError, e:
-			warnings.warn(traceback.format_exc())
-			self._errorDisplay.push_message(e.message)
+			self._errorDisplay.push_exception(e)
 
 
 class RecentCallsView(object):
@@ -573,9 +569,7 @@ class RecentCallsView(object):
 		try:
 			recentItems = self._backend.get_recent()
 		except RuntimeError, e:
-			warnings.warn(traceback.format_exc())
-			with gtk_toolbox.gtk_lock():
-				self._errorDisplay.push_message(e.message)
+			self._errorDisplay.push_exception_with_lock(e)
 			self._recenttime = 0.0
 			recentItems = []
 
@@ -727,11 +721,9 @@ class ContactsView(object):
 		try:
 			contacts = addressBook.get_contacts()
 		except RuntimeError, e:
-			warnings.warn(traceback.format_exc())
 			contacts = []
 			self._contactstime = 0.0
-			with gtk_toolbox.gtk_lock():
-				self._errorDisplay.push_message(e.message)
+			self._errorDisplay.push_exception_with_lock(e)
 		for contactId, contactName in contacts:
 			contactType = (addressBook.contact_source_short_name(contactId), )
 			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("", ))
@@ -758,10 +750,9 @@ class ContactsView(object):
 		try:
 			contactDetails = self._addressBook.get_contact_details(contactId)
 		except RuntimeError, e:
-			warnings.warn(traceback.format_exc())
 			contactDetails = []
 			self._contactstime = 0.0
-			self._errorDisplay.push_message(e.message)
+			self._errorDisplay.push_exception(e)
 		contactDetails = [phoneNumber for phoneNumber in contactDetails]
 
 		if len(contactDetails) == 0:

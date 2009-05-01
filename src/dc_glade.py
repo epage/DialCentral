@@ -309,7 +309,7 @@ class Dialcentral(object):
 				loggedIn = self._phoneBackends[serviceId].login(username, password)
 		except RuntimeError, e:
 			warnings.warn(traceback.format_exc())
-			self._errorDisplay.push_message_with_lock(e.message)
+			self._errorDisplay.push_exception_with_lock(e)
 
 		with gtk_toolbox.gtk_lock():
 			if not loggedIn:
@@ -326,8 +326,7 @@ class Dialcentral(object):
 		error_dialog.connect("response", close, self)
 		error_dialog.run()
 
-	@staticmethod
-	def _on_close(*args, **kwds):
+	def _on_close(self, *args, **kwds):
 		if self._osso is not None:
 			self._osso.close()
 		gtk.main_quit()
@@ -448,9 +447,8 @@ class Dialcentral(object):
 		try:
 			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
 		except RuntimeError, e:
-			warnings.warn(traceback.format_exc())
 			loggedIn = False
-			self._errorDisplay.push_message(e.message)
+			self._errorDisplay.push_exception(e)
 			return
 
 		if not loggedIn:
@@ -465,11 +463,9 @@ class Dialcentral(object):
 			self._phoneBackends[self._selectedBackendId].dial(number)
 			dialed = True
 		except RuntimeError, e:
-			warnings.warn(traceback.format_exc())
-			self._errorDisplay.push_message(e.message)
+			self._errorDisplay.push_exception(e)
 		except ValueError, e:
-			warnings.warn(traceback.format_exc())
-			self._errorDisplay.push_message(e.message)
+			self._errorDisplay.push_exception(e)
 
 		if dialed:
 			self._dialpads[self._selectedBackendId].clear()
