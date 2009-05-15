@@ -70,7 +70,7 @@ class GVDialer(object):
 	"""
 
 	_tokenRe = re.compile(r"""<input.*?name="_rnr_se".*?value="(.*?)"\s*/>""")
-	_accountNumRe = re.compile(r"""<b class="ms2">(.{14})</b></div>""")
+	_accountNumRe = re.compile(r"""<b class="ms\d">(.{14})</b></div>""")
 	_callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
 	_validateRe = re.compile("^[0-9]{10,}$")
 	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
@@ -377,6 +377,7 @@ class GVDialer(object):
 
 	def _grab_account_info(self):
 		page = self._browser.download(self._forwardURL)
+		print page
 
 		tokenGroup = self._tokenRe.search(page)
 		if tokenGroup is None:
