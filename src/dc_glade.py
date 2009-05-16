@@ -56,7 +56,7 @@ class Dialcentral(object):
 
 	__pretty_app_name__ = "DialCentral"
 	__app_name__ = "dialcentral"
-	__version__ = "0.9.5"
+	__version__ = "0.9.6"
 	__app_magic__ = 0xdeadbeef
 
 	_glade_files = [

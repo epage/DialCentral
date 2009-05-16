@@ -7,9 +7,11 @@ __appname__ = "dialcentral"
 __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
-__version__ = "0.9.5"
+__version__ = "0.9.6"
 __build__ = 0
-__changelog__ = '''\
+__changelog__ = '''
+0.9.6
+
 0.9.5
  * Fixed a login issue due to Google changing their webpage
 
