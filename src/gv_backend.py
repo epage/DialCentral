@@ -386,12 +386,19 @@ class GVDialer(object):
 		voicemailHtml = self._grab_html(voicemailPage)
 		smsHtml = self._grab_html(smsPage)
 
+		print "="*60
+		print voicemailHtml
+		print "-"*60
+		print smsHtml
+		print "="*60
+
 		voicemailTree = ElementTree.fromstring(voicemailHtml)
 		smsTree = ElementTree.fromstring(smsHtml)
 
 		import xml.dom.minidom as minidom
 		print minidom.parseString(voicemailTree).toprettyxml()
 		print minidom.parseString(smsTree).toprettyxml()
+		return ()
 
 	def _grab_json(self, flatXml):
 		xmlTree = ElementTree.fromstring(flatXml)

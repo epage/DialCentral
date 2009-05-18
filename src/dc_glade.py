@@ -64,8 +64,9 @@ class Dialcentral(object):
 
 	KEYPAD_TAB = 0
 	RECENT_TAB = 1
-	CONTACTS_TAB = 2
-	ACCOUNT_TAB = 3
+	MESSAGES_TAB = 2
+	CONTACTS_TAB = 3
+	ACCOUNT_TAB = 4
 
 	NULL_BACKEND = 0
 	GC_BACKEND = 1
@@ -85,6 +86,7 @@ class Dialcentral(object):
 		self._phoneBackends = None
 		self._dialpads = None
 		self._accountViews = None
+		self._messagesViews = None
 		self._recentViews = None
 		self._contactsViews = None
 
@@ -159,11 +161,13 @@ class Dialcentral(object):
 			self._dialpads = {self.NULL_BACKEND: null_views.Dialpad(self._widgetTree)}
 			self._accountViews = {self.NULL_BACKEND: null_views.AccountInfo(self._widgetTree)}
 			self._recentViews = {self.NULL_BACKEND: null_views.RecentCallsView(self._widgetTree)}
+			self._messagesViews = {self.NULL_BACKEND: null_views.MessagesView(self._widgetTree)}
 			self._contactsViews = {self.NULL_BACKEND: null_views.ContactsView(self._widgetTree)}
 
 			self._dialpads[self._selectedBackendId].enable()
 			self._accountViews[self._selectedBackendId].enable()
 			self._recentViews[self._selectedBackendId].enable()
+			self._messagesViews[self._selectedBackendId].enable()
 			self._contactsViews[self._selectedBackendId].enable()
 
 		# Setup maemo specifics
@@ -234,6 +238,12 @@ class Dialcentral(object):
 					self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
 				),
 				self.GV_BACKEND: gc_views.RecentCallsView(
+					self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
+				),
+			})
+			self._messagesViews.update({
+				self.GC_BACKEND: null_views.MessagesView(self._widgetTree),
+				self.GV_BACKEND: gc_views.MessagesView(
 					self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
 				),
 			})
@@ -342,11 +352,13 @@ class Dialcentral(object):
 		self._dialpads[oldStatus].disable()
 		self._accountViews[oldStatus].disable()
 		self._recentViews[oldStatus].disable()
+		self._messagesViews[oldStatus].disable()
 		self._contactsViews[oldStatus].disable()
 
 		self._dialpads[newStatus].enable()
 		self._accountViews[newStatus].enable()
 		self._recentViews[newStatus].enable()
+		self._messagesViews[newStatus].enable()
 		self._contactsViews[newStatus].enable()
 
 		if self._phoneBackends[self._selectedBackendId].get_callback_number() is None:
@@ -420,6 +432,7 @@ class Dialcentral(object):
 		self._phoneBackends[self._selectedBackendId].logout()
 		self._accountViews[self._selectedBackendId].clear()
 		self._recentViews[self._selectedBackendId].clear()
+		self._messagesViews[self._selectedBackendId].clear()
 		self._contactsViews[self._selectedBackendId].clear()
 		self._change_loggedin_status(self.NULL_BACKEND)
 
@@ -432,6 +445,8 @@ class Dialcentral(object):
 			self._contactsViews[self._selectedBackendId].update()
 		elif page_num == self.RECENT_TAB:
 			self._recentViews[self._selectedBackendId].update()
+		elif page_num == self.MESSAGES_TAB:
+			self._messagesViews[self._selectedBackendId].update()
 
 		tabTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
 		if hildon is not None:

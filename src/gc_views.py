@@ -331,6 +331,7 @@ class PhoneTypeSelector(object):
 		self._typemodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._typeviewselection = None
 
+		self._message = self._widgetTree.get_widget("phoneSelectionMessage")
 		typeview = self._widgetTree.get_widget("phonetypes")
 		typeview.connect("row-activated", self._on_phonetype_select)
 		typeview.set_model(self._typemodel)
@@ -345,11 +346,17 @@ class PhoneTypeSelector(object):
 		self._typeviewselection = typeview.get_selection()
 		self._typeviewselection.set_mode(gtk.SELECTION_SINGLE)
 
-	def run(self, contactDetails):
+	def run(self, contactDetails, message = ""):
 		self._typemodel.clear()
 
 		for phoneType, phoneNumber in contactDetails:
 			self._typemodel.append((phoneNumber, "%s - %s" % (make_pretty(phoneNumber), phoneType)))
+
+		if message:
+			self._message.show()
+			self._message.set_text(message)
+		else:
+			self._message.hide()
 
 		userResponse = self._dialog.run()
 
@@ -549,6 +556,8 @@ class RecentCallsView(object):
 		self._recentviewColumn.add_attribute(textrenderer, "text", 1)
 		self._recentviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
+		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
+
 	def enable(self):
 		assert self._backend.is_authed()
 		self._recentview.set_model(self._recentmodel)
@@ -605,8 +614,103 @@ class RecentCallsView(object):
 		if not itr:
 			return
 
-		self.number_selected(self._recentmodel.get_value(itr, 0))
+		contactPhoneNumbers = [("Phone", self._recentmodel.get_value(itr, 0))]
+		description = self._recentmodel.get_value(itr, 1)
+		print repr(contactPhoneNumbers), repr(description)
+
+		phoneNumber = self._phoneTypeSelector.run(contactPhoneNumbers, message = description)
+		if 0 == len(phoneNumber):
+			return
+
+		self.number_selected(phoneNumber)
 		self._recentviewselection.unselect_all()
+
+
+class MessagesView(object):
+
+	def __init__(self, widgetTree, backend, errorDisplay):
+		self._errorDisplay = errorDisplay
+		self._backend = backend
+
+		self._messagetime = 0.0
+		self._messagemodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self._messageview = widgetTree.get_widget("messages_view")
+		self._messageviewselection = None
+		self._onRcentviewRowActivatedId = 0
+
+		textrenderer = gtk.CellRendererText()
+		self._messageviewColumn = gtk.TreeViewColumn("Messages")
+		self._messageviewColumn.pack_start(textrenderer, expand=True)
+		self._messageviewColumn.add_attribute(textrenderer, "text", 1)
+		self._messageviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+
+		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
+
+	def enable(self):
+		assert self._backend.is_authed()
+		self._messageview.set_model(self._messagemodel)
+
+		self._messageview.append_column(self._messageviewColumn)
+		self._messageviewselection = self._messageview.get_selection()
+		self._messageviewselection.set_mode(gtk.SELECTION_SINGLE)
+
+		self._onMessageviewRowActivatedId = self._messageview.connect("row-activated", self._on_messageview_row_activated)
+
+	def disable(self):
+		self._messageview.disconnect(self._onMessageviewRowActivatedId)
+		self._messageview.remove_column(self._messageviewColumn)
+		self._messageview.set_model(None)
+
+	def number_selected(self, number):
+		"""
+		@note Actual dial function is patched in later
+		"""
+		raise NotImplementedError
+
+	def update(self):
+		if (time.time() - self._messagetime) < 300:
+			return
+		backgroundPopulate = threading.Thread(target=self._idly_populate_messageview)
+		backgroundPopulate.setDaemon(True)
+		backgroundPopulate.start()
+
+	def clear(self):
+		self._messagetime = 0.0
+		self._messagemodel.clear()
+
+	def _idly_populate_messageview(self):
+		self._messagetime = time.time()
+		self._messagemodel.clear()
+
+		try:
+			messageItems = self._backend.get_messages()
+		except RuntimeError, e:
+			self._errorDisplay.push_exception_with_lock(e)
+			self._messagetime = 0.0
+			messageItems = []
+
+		for phoneNumber, date in messageItems:
+			item = (phoneNumber, data)
+			with gtk_toolbox.gtk_lock():
+				self._messagemodel.append(item)
+
+		return False
+
+	def _on_messageview_row_activated(self, treeview, path, view_column):
+		model, itr = self._messageviewselection.get_selected()
+		if not itr:
+			return
+
+		contactPhoneNumbers = [("Phone", self._messagemodel.get_value(itr, 0))]
+		description = self._messagemodel.get_value(itr, 1)
+		print repr(contactPhoneNumbers), repr(description)
+
+		phoneNumber = self._phoneTypeSelector.run(contactPhoneNumbers, message = description)
+		if 0 == len(phoneNumber):
+			return
+
+		self.number_selected(phoneNumber)
+		self._messageviewselection.unselect_all()
 
 
 class ContactsView(object):
@@ -766,20 +870,22 @@ class ContactsView(object):
 			return
 
 		contactId = self._contactsmodel.get_value(itr, 3)
+		contactName = self._contactsmodel.get_value(itr, 1)
 		try:
 			contactDetails = self._addressBook.get_contact_details(contactId)
 		except RuntimeError, e:
 			contactDetails = []
 			self._contactstime = 0.0
 			self._errorDisplay.push_exception(e)
-		contactDetails = [phoneNumber for phoneNumber in contactDetails]
+		contactPhoneNumbers = [phoneNumber for phoneNumber in contactDetails]
 
-		if len(contactDetails) == 0:
+		if len(contactPhoneNumbers) == 0:
 			phoneNumber = ""
-		elif len(contactDetails) == 1:
-			phoneNumber = self._phoneTypeSelector.run(contactDetails)
+		elif len(contactPhoneNumbers) == 1:
+			phoneNumber = self._phoneTypeSelector.run(contactPhoneNumbers, message = contactName)
 
-		if 0 < len(phoneNumber):
-			self.number_selected(phoneNumber)
+		if 0 == len(phoneNumber):
+			return
 
+		self.number_selected(phoneNumber)
 		self._contactsviewselection.unselect_all()

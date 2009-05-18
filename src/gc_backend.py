@@ -317,6 +317,9 @@ class GCDialer(object):
 			phoneNumber = detail_match.group(2)
 			yield (phoneType, phoneNumber)
 
+	def get_messages(self):
+		return ()
+
 	def _grab_token(self, data):
 		"Pull the magic cookie from the datastream"
 		atGroup = self._accessTokenRe.search(data)

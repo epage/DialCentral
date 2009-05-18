@@ -82,6 +82,25 @@ class RecentCallsView(object):
 		pass
 
 
+class MessagesView(object):
+
+	def __init__(self, widgetTree):
+		pass
+
+	def enable(self):
+		pass
+
+	def disable(self):
+		pass
+
+	def update(self):
+		pass
+
+	@staticmethod
+	def clear():
+		pass
+
+
 class ContactsView(object):
 
 	def __init__(self, widgetTree):

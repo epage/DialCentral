@@ -86,3 +86,6 @@ class NullDialer(object):
 
 	def get_contact_details(self, contactId):
 		return ()
+
+	def get_messages(self):
+		return ()

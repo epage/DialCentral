@@ -588,6 +588,26 @@
               </packing>
             </child>
             <child>
+              <widget class="GtkTreeView" id="messages_view">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+              </widget>
+              <packing>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="messages">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Messages</property>
+              </widget>
+              <packing>
+                <property name="position">2</property>
+                <property name="tab_fill">False</property>
+                <property name="type">tab</property>
+              </packing>
+            </child>
+            <child>
               <widget class="GtkTable" id="contacts_table">
                 <property name="visible">True</property>
                 <property name="n_rows">2</property>
@@ -625,7 +645,7 @@
                 </child>
               </widget>
               <packing>
-                <property name="position">2</property>
+                <property name="position">3</property>
                 <property name="tab_expand">True</property>
                 <property name="tab_fill">False</property>
               </packing>
@@ -636,7 +656,7 @@
                 <property name="label" translatable="yes">Contacts</property>
               </widget>
               <packing>
-                <property name="position">2</property>
+                <property name="position">3</property>
                 <property name="tab_expand">True</property>
                 <property name="tab_fill">False</property>
                 <property name="type">tab</property>
@@ -717,7 +737,7 @@ Number:</property>
                 </child>
               </widget>
               <packing>
-                <property name="position">3</property>
+                <property name="position">4</property>
                 <property name="tab_expand">True</property>
                 <property name="tab_fill">False</property>
               </packing>
@@ -729,7 +749,7 @@ Number:</property>
                 <property name="label" translatable="yes">Account</property>
               </widget>
               <packing>
-                <property name="position">3</property>
+                <property name="position">4</property>
                 <property name="tab_fill">False</property>
                 <property name="type">tab</property>
               </packing>
@@ -881,6 +901,16 @@ Number:</property>
         <property name="visible">True</property>
         <property name="spacing">2</property>
         <child>
+          <widget class="GtkLabel" id="phoneSelectionMessage">
+            <property name="visible">True</property>
+            <property name="use_markup">True</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
           <widget class="GtkTreeView" id="phonetypes">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -888,7 +918,7 @@ Number:</property>
             <signal name="row_activated" handler="on_phonetype_select"/>
           </widget>
           <packing>
-            <property name="position">1</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child internal-child="action_area">
