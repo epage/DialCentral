@@ -1,23 +1,23 @@
 #!/usr/bin/python
 
-# DialCentral - Front end for Google's Grand Central service.
-# Copyright (C) 2008  Eric Warnke ericew AT gmail DOT com
-# 
-# This library is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or (at your option) any later version.
-# 
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-# 
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
 """
+DialCentral - Front end for Google's Grand Central service.
+Copyright (C) 2008  Eric Warnke ericew AT gmail DOT com
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
 Google Voice backend code
 
 Resources
@@ -92,6 +92,8 @@ class GVDialer(object):
 	_placedCallsURL = "https://www.google.com/voice/inbox/recent/placed/"
 	_receivedCallsURL = "https://www.google.com/voice/inbox/recent/received/"
 	_missedCallsURL = "https://www.google.com/voice/inbox/recent/missed/"
+	_voicemailURL = "https://www.google.com/voice/inbox/recent/voicemail/"
+	_smsURL = "https://www.google.com/voice/inbox/recent/sms/"
 
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
@@ -288,11 +290,12 @@ class GVDialer(object):
 			self._placedCallsURL,
 		):
 			try:
-				allRecentData = self._grab_json(url)
+				flatXml = self._browser.download(url)
 			except urllib2.URLError, e:
 				warnings.warn(traceback.format_exc())
 				raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
+			allRecentData = self._grab_json(flatXml)
 			for recentCallData in allRecentData["messages"].itervalues():
 				number = recentCallData["displayNumber"]
 				date = recentCallData["relativeStartTime"]
@@ -367,17 +370,44 @@ class GVDialer(object):
 			phoneType = saxutils.unescape(detail_match.group(2))
 			yield (phoneType, phoneNumber)
 
-	def _grab_json(self, url):
-		flatXml = self._browser.download(url)
+	def get_messages(self):
+		try:
+			voicemailPage = self._browser.download(self._voicemailURL)
+		except urllib2.URLError, e:
+			warnings.warn(traceback.format_exc())
+			raise RuntimeError("%s is not accesible" % self._voicemailURL)
+
+		try:
+			smsPage = self._browser.download(self._smsURL)
+		except urllib2.URLError, e:
+			warnings.warn(traceback.format_exc())
+			raise RuntimeError("%s is not accesible" % self._smsURL)
+
+		voicemailHtml = self._grab_html(voicemailPage)
+		smsHtml = self._grab_html(smsPage)
+
+		voicemailTree = ElementTree.fromstring(voicemailHtml)
+		smsTree = ElementTree.fromstring(smsHtml)
+
+		import xml.dom.minidom as minidom
+		print minidom.parseString(voicemailTree).toprettyxml()
+		print minidom.parseString(smsTree).toprettyxml()
+
+	def _grab_json(self, flatXml):
 		xmlTree = ElementTree.fromstring(flatXml)
 		jsonElement = xmlTree.getchildren()[0]
 		flatJson = jsonElement.text
 		jsonTree = parse_json(flatJson)
 		return jsonTree
 
+	def _grab_html(self, flatXml):
+		xmlTree = ElementTree.fromstring(flatXml)
+		htmlElement = xmlTree.getchildren()[1]
+		flatHtml = htmlElement.text
+		return flatHtml
+
 	def _grab_account_info(self):
 		page = self._browser.download(self._forwardURL)
-		print page
 
 		tokenGroup = self._tokenRe.search(page)
 		if tokenGroup is None:

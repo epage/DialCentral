@@ -1,21 +1,28 @@
 #!/usr/bin/python2.5
 
-# DialCentral - Front end for Google's Grand Central service.
-# Copyright (C) 2008  Mark Bergman bergman AT merctech DOT com
-# 
-# This library is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or (at your option) any later version.
-# 
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-# 
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+"""
+DialCentral - Front end for Google's Grand Central service.
+Copyright (C) 2008  Mark Bergman bergman AT merctech DOT com
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+@todo Look into a messages view
+	@li https://www.google.com/voice/inbox/recent/voicemail/
+	@li https://www.google.com/voice/inbox/recent/sms/
+	Would need to either use both json and html or just html
+"""
 
 from __future__ import with_statement
 
@@ -312,6 +319,9 @@ class PhoneTypeSelector(object):
 		self._widgetTree = widgetTree
 		self._dialog = self._widgetTree.get_widget("phonetype_dialog")
 
+		self._dialButton = self._widgetTree.get_widget("dial_button")
+		self._dialButton.connect("clicked", self._on_phonetype_dial)
+
 		self._selectButton = self._widgetTree.get_widget("select_button")
 		self._selectButton.connect("clicked", self._on_phonetype_select)
 
@@ -344,15 +354,24 @@ class PhoneTypeSelector(object):
 		userResponse = self._dialog.run()
 
 		if userResponse == gtk.RESPONSE_OK:
-			model, itr = self._typeviewselection.get_selected()
-			if itr:
-				phoneNumber = self._typemodel.get_value(itr, 0)
+			phoneNumber = self._get_number()
 		else:
 			phoneNumber = ""
 
 		self._typeviewselection.unselect_all()
 		self._dialog.hide()
 		return phoneNumber
+
+	def _get_number(self):
+		model, itr = self._typeviewselection.get_selected()
+		if not itr:
+			return ""
+		phoneNumber = self._typemodel.get_value(itr, 0)
+		return phonenumber
+
+	def _on_phonetype_dial(self, *args):
+		self.dial(self._get_number())
+		self._dialog.response(gtk.RESPONSE_CANCEL)
 
 	def _on_phonetype_select(self, *args):
 		self._dialog.response(gtk.RESPONSE_OK)
@@ -758,8 +777,6 @@ class ContactsView(object):
 		if len(contactDetails) == 0:
 			phoneNumber = ""
 		elif len(contactDetails) == 1:
-			phoneNumber = contactDetails[0][1]
-		else:
 			phoneNumber = self._phoneTypeSelector.run(contactDetails)
 
 		if 0 < len(phoneNumber):

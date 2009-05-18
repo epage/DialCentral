@@ -1,25 +1,22 @@
 #!/usr/bin/python2.5
 
-# DialCentral - Front end for Google's Grand Central service.
-# Copyright (C) 2008  Mark Bergman bergman AT merctech DOT com
-# 
-# This library is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or (at your option) any later version.
-# 
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-# 
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-
 """
-DialCentral: A phone dialer using GrandCentral
+DialCentral - Front end for Google's Grand Central service.
+Copyright (C) 2008  Mark Bergman bergman AT merctech DOT com
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @todo Add logging support to make debugging issues for people a lot easier
 """
@@ -138,6 +135,7 @@ class Dialcentral(object):
 		if self._window:
 			self._window.connect("destroy", gtk.main_quit)
 			self._window.show_all()
+			self._window.set_default_size(800, 300)
 
 		backgroundSetup = threading.Thread(target=self._idle_setup)
 		backgroundSetup.setDaemon(True)
@@ -427,7 +425,7 @@ class Dialcentral(object):
 	def _on_notebook_switch_page(self, notebook, page, page_num):
 		if page_num == 1:
 			self._contactsViews[self._selectedBackendId].update()
-		elif page_num == 3:
+		elif page_num == 2:
 			self._recentViews[self._selectedBackendId].update()
 
 		tabTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
