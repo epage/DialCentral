@@ -373,11 +373,12 @@ class PhoneTypeSelector(object):
 		model, itr = self._typeviewselection.get_selected()
 		if not itr:
 			return ""
+
 		phoneNumber = self._typemodel.get_value(itr, 0)
-		return phonenumber
+		return phoneNumber
 
 	def _on_phonetype_dial(self, *args):
-		self.dial(self._get_number())
+		self._gcBackend.dial(self._get_number())
 		self._dialog.response(gtk.RESPONSE_CANCEL)
 
 	def _on_phonetype_select(self, *args):
@@ -601,6 +602,7 @@ class RecentCallsView(object):
 			self._recenttime = 0.0
 			recentItems = []
 
+		# @todo Sort these
 		for personsName, phoneNumber, date, action in recentItems:
 			description = "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber)
 			item = (phoneNumber, description)
@@ -689,7 +691,7 @@ class MessagesView(object):
 			self._messagetime = 0.0
 			messageItems = []
 
-		for phoneNumber, date in messageItems:
+		for phoneNumber, data in messageItems:
 			item = (phoneNumber, data)
 			with gtk_toolbox.gtk_lock():
 				self._messagemodel.append(item)
