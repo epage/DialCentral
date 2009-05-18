@@ -62,6 +62,11 @@ class Dialcentral(object):
 		os.path.join(os.path.dirname(__file__), "../lib/dialcentral.glade"),
 	]
 
+	KEYPAD_TAB = 0
+	RECENT_TAB = 1
+	CONTACTS_TAB = 2
+	ACCOUNT_TAB = 3
+
 	NULL_BACKEND = 0
 	GC_BACKEND = 1
 	GV_BACKEND = 2
@@ -423,9 +428,9 @@ class Dialcentral(object):
 		backgroundLogin.start()
 
 	def _on_notebook_switch_page(self, notebook, page, page_num):
-		if page_num == 1:
+		if page_num == self.CONTACTS_TAB:
 			self._contactsViews[self._selectedBackendId].update()
-		elif page_num == 2:
+		elif page_num == self.RECENT_TAB:
 			self._recentViews[self._selectedBackendId].update()
 
 		tabTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()

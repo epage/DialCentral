@@ -11,6 +11,7 @@ __version__ = "0.9.6"
 __build__ = 0
 __changelog__ = '''
 0.9.6
+ * Experimenting with the tabs being on the side
 
 0.9.5
  * Fixed a login issue due to Google changing their webpage

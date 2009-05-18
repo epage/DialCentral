@@ -25,8 +25,14 @@
                         <property name="label">_New Login</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <property name="use_stock">False</property>
                         <signal name="activate" handler="on_clearcookies_clicked"/>
+                        <child internal-child="image">
+                          <widget class="GtkImage" id="image3">
+                            <property name="visible">True</property>
+                            <property name="stock">gtk-missing-image</property>
+                          </widget>
+                        </child>
                       </widget>
                     </child>
                     <child>
@@ -69,9 +75,14 @@
                         <property name="label">Clear Number</property>
                         <property name="visible">True</property>
                         <property name="tooltip" translatable="yes">Clear Number</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <property name="use_stock">False</property>
                         <signal name="activate" handler="on_clear_number"/>
+                        <child internal-child="image">
+                          <widget class="GtkImage" id="image4">
+                            <property name="visible">True</property>
+                            <property name="stock">gtk-missing-image</property>
+                          </widget>
+                        </child>
                       </widget>
                     </child>
                   </widget>
@@ -194,10 +205,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="c" signal="clicked"/>
-                        <accelerator key="b" signal="clicked"/>
-                        <accelerator key="a" signal="clicked"/>
                         <accelerator key="2" signal="clicked"/>
+                        <accelerator key="a" signal="clicked"/>
+                        <accelerator key="b" signal="clicked"/>
+                        <accelerator key="c" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label10">
                             <property name="visible">True</property>
@@ -220,10 +231,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="f" signal="clicked"/>
-                        <accelerator key="e" signal="clicked"/>
-                        <accelerator key="d" signal="clicked"/>
                         <accelerator key="3" signal="clicked"/>
+                        <accelerator key="d" signal="clicked"/>
+                        <accelerator key="e" signal="clicked"/>
+                        <accelerator key="f" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label11">
                             <property name="visible">True</property>
@@ -246,10 +257,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="i" signal="clicked"/>
-                        <accelerator key="h" signal="clicked"/>
-                        <accelerator key="g" signal="clicked"/>
                         <accelerator key="4" signal="clicked"/>
+                        <accelerator key="g" signal="clicked"/>
+                        <accelerator key="h" signal="clicked"/>
+                        <accelerator key="i" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label13">
                             <property name="visible">True</property>
@@ -272,10 +283,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="l" signal="clicked"/>
-                        <accelerator key="k" signal="clicked"/>
-                        <accelerator key="j" signal="clicked"/>
                         <accelerator key="5" signal="clicked"/>
+                        <accelerator key="j" signal="clicked"/>
+                        <accelerator key="k" signal="clicked"/>
+                        <accelerator key="l" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label14">
                             <property name="visible">True</property>
@@ -300,10 +311,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="o" signal="clicked"/>
-                        <accelerator key="n" signal="clicked"/>
-                        <accelerator key="m" signal="clicked"/>
                         <accelerator key="6" signal="clicked"/>
+                        <accelerator key="m" signal="clicked"/>
+                        <accelerator key="n" signal="clicked"/>
+                        <accelerator key="o" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label15">
                             <property name="visible">True</property>
@@ -328,11 +339,11 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="s" signal="clicked"/>
-                        <accelerator key="r" signal="clicked"/>
-                        <accelerator key="q" signal="clicked"/>
-                        <accelerator key="p" signal="clicked"/>
                         <accelerator key="7" signal="clicked"/>
+                        <accelerator key="p" signal="clicked"/>
+                        <accelerator key="q" signal="clicked"/>
+                        <accelerator key="r" signal="clicked"/>
+                        <accelerator key="s" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label16">
                             <property name="visible">True</property>
@@ -355,10 +366,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="v" signal="clicked"/>
-                        <accelerator key="u" signal="clicked"/>
-                        <accelerator key="t" signal="clicked"/>
                         <accelerator key="8" signal="clicked"/>
+                        <accelerator key="t" signal="clicked"/>
+                        <accelerator key="u" signal="clicked"/>
+                        <accelerator key="v" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label17">
                             <property name="visible">True</property>
@@ -383,11 +394,11 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="z" signal="clicked"/>
-                        <accelerator key="y" signal="clicked"/>
-                        <accelerator key="x" signal="clicked"/>
-                        <accelerator key="w" signal="clicked"/>
                         <accelerator key="9" signal="clicked"/>
+                        <accelerator key="w" signal="clicked"/>
+                        <accelerator key="x" signal="clicked"/>
+                        <accelerator key="y" signal="clicked"/>
+                        <accelerator key="z" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label18">
                             <property name="visible">True</property>
@@ -540,6 +551,43 @@
               </packing>
             </child>
             <child>
+              <widget class="GtkScrolledWindow" id="recent_scrolledwindow">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">never</property>
+                <child>
+                  <widget class="GtkTreeView" id="recentview">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="headers_visible">False</property>
+                    <property name="enable_search">False</property>
+                    <property name="fixed_height_mode">True</property>
+                    <property name="enable_grid_lines">horizontal</property>
+                    <property name="enable_tree_lines">True</property>
+                    <signal name="row_activated" handler="on_recentview_row_activated"/>
+                  </widget>
+                </child>
+              </widget>
+              <packing>
+                <property name="position">1</property>
+                <property name="tab_expand">True</property>
+                <property name="tab_fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="recent">
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Recent</property>
+              </widget>
+              <packing>
+                <property name="position">1</property>
+                <property name="tab_expand">True</property>
+                <property name="tab_fill">False</property>
+                <property name="type">tab</property>
+              </packing>
+            </child>
+            <child>
               <widget class="GtkTable" id="contacts_table">
                 <property name="visible">True</property>
                 <property name="n_rows">2</property>
@@ -577,7 +625,7 @@
                 </child>
               </widget>
               <packing>
-                <property name="position">1</property>
+                <property name="position">2</property>
                 <property name="tab_expand">True</property>
                 <property name="tab_fill">False</property>
               </packing>
@@ -586,43 +634,6 @@
               <widget class="GtkLabel" id="contacts">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">Contacts</property>
-              </widget>
-              <packing>
-                <property name="position">1</property>
-                <property name="tab_expand">True</property>
-                <property name="tab_fill">False</property>
-                <property name="type">tab</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkScrolledWindow" id="recent_scrolledwindow">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">never</property>
-                <child>
-                  <widget class="GtkTreeView" id="recentview">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="headers_visible">False</property>
-                    <property name="enable_search">False</property>
-                    <property name="fixed_height_mode">True</property>
-                    <property name="enable_grid_lines">horizontal</property>
-                    <property name="enable_tree_lines">True</property>
-                    <signal name="row_activated" handler="on_recentview_row_activated"/>
-                  </widget>
-                </child>
-              </widget>
-              <packing>
-                <property name="position">2</property>
-                <property name="tab_expand">True</property>
-                <property name="tab_fill">False</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkLabel" id="recent">
-                <property name="height_request">30</property>
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Recent</property>
               </widget>
               <packing>
                 <property name="position">2</property>
