@@ -29,7 +29,6 @@ from __future__ import with_statement
 import threading
 import time
 import warnings
-import traceback
 
 import gobject
 import gtk
@@ -699,7 +698,7 @@ class MessagesView(object):
 		self._messagemodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._messageview = widgetTree.get_widget("messages_view")
 		self._messageviewselection = None
-		self._onRcentviewRowActivatedId = 0
+		self._onMessageviewRowActivatedId = 0
 
 		textrenderer = gtk.CellRendererText()
 		self._messageviewColumn = gtk.TreeViewColumn("Messages")
