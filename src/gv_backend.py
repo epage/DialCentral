@@ -31,6 +31,7 @@ import re
 import urllib
 import urllib2
 import time
+import datetime
 import warnings
 import traceback
 from xml.sax import saxutils
@@ -282,32 +283,16 @@ class GVDialer(object):
 
 	def get_recent(self):
 		"""
+		@todo Sort this stuff
 		@returns Iterable of (personsName, phoneNumber, date, action)
 		"""
-		for url in (
-			self._receivedCallsURL,
-			self._missedCallsURL,
-			self._placedCallsURL,
-		):
-			try:
-				flatXml = self._browser.download(url)
-			except urllib2.URLError, e:
-				warnings.warn(traceback.format_exc())
-				raise RuntimeError("%s is not accesible" % self._clicktocallURL)
-
-			allRecentData = self._grab_json(flatXml)
-			for recentCallData in allRecentData["messages"].itervalues():
-				number = recentCallData["displayNumber"]
-				date = recentCallData["relativeStartTime"]
-				action = ", ".join((
-					label.title()
-					for label in recentCallData["labels"]
-						if label.lower() != "all" and label.lower() != "inbox"
-				))
-				number = saxutils.unescape(number)
-				date = saxutils.unescape(date)
-				action = saxutils.unescape(action)
-				yield "", number, date, action
+		sortedRecent = [
+			(exactDate, name, number, relativeDate, action)
+			for (name, number, exactDate, relativeDate, action) in self._get_recent()
+		]
+		sortedRecent.sort(reverse = True)
+		for exactDate, name, number, relativeDate, action in sortedRecent:
+			yield name, number, relativeDate, action
 
 	def get_addressbooks(self):
 		"""
@@ -425,6 +410,38 @@ class GVDialer(object):
 			callbackNumber = match.group(2)
 			callbackName = match.group(1)
 			self._callbackNumbers[callbackNumber] = callbackName
+
+	def _get_recent(self):
+		"""
+		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
+		"""
+		for url in (
+			self._receivedCallsURL,
+			self._missedCallsURL,
+			self._placedCallsURL,
+		):
+			try:
+				flatXml = self._browser.download(url)
+			except urllib2.URLError, e:
+				warnings.warn(traceback.format_exc())
+				raise RuntimeError("%s is not accesible" % self._clicktocallURL)
+
+			allRecentData = self._grab_json(flatXml)
+			for recentCallData in allRecentData["messages"].itervalues():
+				number = recentCallData["displayNumber"]
+				exactDate = recentCallData["displayStartDateTime"]
+				relativeDate = recentCallData["relativeStartTime"]
+				action = ", ".join((
+					label.title()
+					for label in recentCallData["labels"]
+						if label.lower() != "all" and label.lower() != "inbox"
+				))
+				number = saxutils.unescape(number)
+				exactDate = saxutils.unescape(exactDate)
+				exactDate = datetime.datetime.strptime(exactDate, "%m/%d/%y %I:%M %p")
+				relativeDate = saxutils.unescape(relativeDate)
+				action = saxutils.unescape(action)
+				yield "", number, exactDate, relativeDate, action
 
 
 def test_backend(username, password):

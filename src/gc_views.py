@@ -602,7 +602,6 @@ class RecentCallsView(object):
 			self._recenttime = 0.0
 			recentItems = []
 
-		# @todo Sort these
 		for personsName, phoneNumber, date, action in recentItems:
 			description = "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber)
 			item = (phoneNumber, description)
