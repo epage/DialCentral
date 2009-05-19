@@ -192,7 +192,6 @@ class GVDialer(object):
 
 	def send_sms(self, number, message):
 		number = self._send_validation(number)
-		message = saxutils.escape(message)
 		try:
 			smsData = urllib.urlencode({
 				"number": number,

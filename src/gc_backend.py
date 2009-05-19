@@ -158,6 +158,9 @@ class GCDialer(object):
 
 		return True
 
+	def send_sms(self, number, message):
+		raise NotImplementedError("SMS Is Not Supported by GrandCentral")
+
 	def clear_caches(self):
 		self.__contacts = None
 

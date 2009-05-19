@@ -37,6 +37,9 @@ class NullDialer(object):
 	def dial(self, number):
 		return True
 
+	def send_sms(self, number, message):
+		raise NotImplementedError("SMS Is Not Supported")
+
 	def clear_caches(self):
 		pass
 
