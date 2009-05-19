@@ -317,7 +317,12 @@ class PhoneTypeSelector(object):
 	def __init__(self, widgetTree, gcBackend):
 		self._gcBackend = gcBackend
 		self._widgetTree = widgetTree
+
 		self._dialog = self._widgetTree.get_widget("phonetype_dialog")
+		self._smsDialog = SmsEntryDialog(self._widgetTree, self._gcBackend)
+
+		self._smsButton = self._widgetTree.get_widget("sms_button")
+		self._smsButton.connect("clicked", self._on_phonetype_send_sms)
 
 		self._dialButton = self._widgetTree.get_widget("dial_button")
 		self._dialButton.connect("clicked", self._on_phonetype_dial)
@@ -381,10 +386,67 @@ class PhoneTypeSelector(object):
 		self._gcBackend.dial(self._get_number())
 		self._dialog.response(gtk.RESPONSE_CANCEL)
 
+	def _on_phonetype_send_sms(self, *args):
+		self._dialog.response(gtk.RESPONSE_CANCEL)
+		idly_run = gtk_toolbox.asynchronous_gtk_message(self._smsDialog.run)
+		idly_run(self._get_number(), self._message.get_text())
+
 	def _on_phonetype_select(self, *args):
 		self._dialog.response(gtk.RESPONSE_OK)
 
 	def _on_phonetype_cancel(self, *args):
+		self._dialog.response(gtk.RESPONSE_CANCEL)
+
+
+class SmsEntryDialog(object):
+
+	MAX_CHAR = 160
+
+	def __init__(self, widgetTree, gcBackend):
+		self._gcBackend = gcBackend
+		self._widgetTree = widgetTree
+		self._dialog = self._widgetTree.get_widget("smsDialog")
+
+		self._smsButton = self._widgetTree.get_widget("sendSmsButton")
+		self._smsButton.connect("clicked", self._on_send)
+
+		self._cancelButton = self._widgetTree.get_widget("cancelSmsButton")
+		self._cancelButton.connect("clicked", self._on_cancel)
+
+		self._letterCountLabel = self._widgetTree.get_widget("smsLetterCount")
+		self._message = self._widgetTree.get_widget("smsMessage")
+		self._smsEntry = self._widgetTree.get_widget("smsEntry")
+		self._smsEntry.get_buffer().connect("changed", self._on_entry_changed)
+
+	def run(self, number, message = ""):
+		if message:
+			self._message.show()
+			self._message.set_text(message)
+		else:
+			self._message.hide()
+		self._smsEntry.get_buffer().set_text("")
+		self._update_letter_count()
+
+		userResponse = self._dialog.run()
+		if userResponse == gtk.RESPONSE_OK:
+			entryBuffer = self._smsEntry.get_buffer()
+			enteredMessage = entryBuffer.get_text(entryBuffer.get_start_iter(), entryBuffer.get_end_iter())
+			enteredMessage = enteredMessage[0:self.MAX_CHAR]
+			self._gcBackend.send_sms(number, enteredMessage)
+
+		self._dialog.hide()
+
+	def _update_letter_count(self, *args):
+		entryLength = self._smsEntry.get_buffer().get_char_count()
+		self._letterCountLabel.set_text(str(self.MAX_CHAR - entryLength))
+
+	def _on_entry_changed(self, *args):
+		self._update_letter_count()
+
+	def _on_send(self, *args):
+		self._dialog.response(gtk.RESPONSE_OK)
+
+	def _on_cancel(self, *args):
 		self._dialog.response(gtk.RESPONSE_CANCEL)
 
 

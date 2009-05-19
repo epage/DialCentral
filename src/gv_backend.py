@@ -81,6 +81,7 @@ class GVDialer(object):
 	_contactDetailPhoneRe = re.compile(r"""<div.*?>([0-9\-\(\) \t]+?)<span.*?>\((\w+)\)</span>""", re.S)
 
 	_clicktocallURL = "https://www.google.com/voice/m/sendcall"
+	_smsURL = "https://www.google.com/voice/m/sendsms"
 	_contactsURL = "https://www.google.com/voice/mobile/contacts"
 	_contactDetailURL = "https://www.google.com/voice/mobile/contact"
 
@@ -169,15 +170,7 @@ class GVDialer(object):
 		"""
 		This is the main function responsible for initating the callback
 		"""
-		if not self.is_valid_syntax(number):
-			raise ValueError('Number is not valid: "%s"' % number)
-		elif not self.is_authed():
-			raise RuntimeError("Not Authenticated")
-
-		if len(number) == 11 and number[0] == 1:
-			# Strip leading 1 from 11 digit dialing
-			number = number[1:]
-
+		number = self._send_validation(number)
 		try:
 			clickToCallData = urllib.urlencode({
 				"number": number,
@@ -194,6 +187,27 @@ class GVDialer(object):
 
 		if self._gvDialingStrRe.search(callSuccessPage) is None:
 			raise RuntimeError("Google Voice returned an error")
+
+		return True
+
+	def send_sms(self, number, message):
+		number = self._send_validation(number)
+		message = saxutils.escape(message)
+		try:
+			smsData = urllib.urlencode({
+				"number": number,
+				"smstext": message,
+				"_rnr_se": self._token,
+				"id": "undefined",
+				"c": "undefined",
+			})
+			otherData = {
+				'Referer' : 'https://google.com/voice/m/sms',
+			}
+			smsSuccessPage = self._browser.download(self._smsURL, smsData, None, otherData)
+		except urllib2.URLError, e:
+			warnings.warn(traceback.format_exc())
+			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		return True
 
@@ -410,6 +424,17 @@ class GVDialer(object):
 			callbackNumber = match.group(2)
 			callbackName = match.group(1)
 			self._callbackNumbers[callbackNumber] = callbackName
+
+	def _send_validation(self, number):
+		if not self.is_valid_syntax(number):
+			raise ValueError('Number is not valid: "%s"' % number)
+		elif not self.is_authed():
+			raise RuntimeError("Not Authenticated")
+
+		if len(number) == 11 and number[0] == 1:
+			# Strip leading 1 from 11 digit dialing
+			number = number[1:]
+		return number
 
 	def _get_recent(self):
 		"""

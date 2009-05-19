@@ -48,7 +48,9 @@ def asynchronous_gtk_message(original_func):
 
 	def execute(allArgs):
 		args, kwargs = allArgs
-		original_func(*args, **kwargs)
+		with gtk_lock():
+			original_func(*args, **kwargs)
+		return False
 
 	@functools.wraps(original_func)
 	def delayed_func(*args, **kwargs):
