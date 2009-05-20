@@ -32,6 +32,7 @@ import urllib
 import urllib2
 import time
 import datetime
+import itertools
 import warnings
 import traceback
 from xml.sax import saxutils
@@ -62,6 +63,39 @@ if simplejson is None:
 else:
 	def parse_json(flattened):
 		return simplejson.loads(flattened)
+
+
+def itergroup(iterator, count, padValue = None):
+	"""
+	Iterate in groups of 'count' values. If there
+	aren't enough values, the last result is padded with
+	None.
+
+	>>> for val in itergroup([1, 2, 3, 4, 5, 6], 3):
+	... 	print tuple(val)
+	(1, 2, 3)
+	(4, 5, 6)
+	>>> for val in itergroup([1, 2, 3, 4, 5, 6], 3):
+	... 	print list(val)
+	[1, 2, 3]
+	[4, 5, 6]
+	>>> for val in itergroup([1, 2, 3, 4, 5, 6, 7], 3):
+	... 	print tuple(val)
+	(1, 2, 3)
+	(4, 5, 6)
+	(7, None, None)
+	>>> for val in itergroup("123456", 3):
+	... 	print tuple(val)
+	('1', '2', '3')
+	('4', '5', '6')
+	>>> for val in itergroup("123456", 3):
+	... 	print repr("".join(val))
+	'123'
+	'456'
+	"""
+	paddedIterator = itertools.chain(iterator, itertools.repeat(padValue, count-1))
+	nIterators = (paddedIterator, ) * count
+	return itertools.izip(*nIterators)
 
 
 class GVDialer(object):
@@ -96,6 +130,14 @@ class GVDialer(object):
 	_missedCallsURL = "https://www.google.com/voice/inbox/recent/missed/"
 	_voicemailURL = "https://www.google.com/voice/inbox/recent/voicemail/"
 	_smsURL = "https://www.google.com/voice/inbox/recent/sms/"
+
+	_seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class="gc-message.*?">""", re.MULTILINE | re.DOTALL)
+	_exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
+	_relativeVoicemailTimeRegex = re.compile(r"""<span class="gc-message-relative">(.*?)</span>""", re.MULTILINE)
+	_voicemailNumberRegex = re.compile(r"""<input type="hidden" class="gc-text gc-quickcall-ac" value="(.*?)"/>""", re.MULTILINE)
+	_prettyVoicemailNumberRegex = re.compile(r"""<span class="gc-message-type">(.*?)</span>""", re.MULTILINE)
+	_voicemailLocationRegex = re.compile(r"""<span class="gc-message-location">(.*?)</span>""", re.MULTILINE)
+	_voicemailMessageRegex = re.compile(r"""<span class="gc-word-(.*?)">(.*?)</span>""", re.MULTILINE)
 
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
@@ -382,15 +424,16 @@ class GVDialer(object):
 			raise RuntimeError("%s is not accesible" % self._smsURL)
 
 		voicemailHtml = self._grab_html(voicemailPage)
-		smsHtml = self._grab_html(smsPage)
+		parsedVoicemail = self._parse_voicemail(voicemailHtml)
+		decoratedVoicemails = self._decorated_voicemail(parsedVoicemail)
 
-		print "="*60
-		print voicemailHtml
-		print "-"*60
-		print smsHtml
-		print "="*60
+		# @todo Parse this
+		# smsHtml = self._grab_html(smsPage)
 
-		return ()
+		allMessages = itertools.chain(decoratedVoicemails)
+		sortedMessages = list(allMessages)
+		for exactDate, header, number, relativeDate, message in sortedMessages:
+			yield header, number, relativeDate, message
 
 	def _grab_json(self, flatXml):
 		xmlTree = ElementTree.fromstring(flatXml)
@@ -467,6 +510,51 @@ class GVDialer(object):
 				action = saxutils.unescape(action)
 				yield "", number, exactDate, relativeDate, action
 
+	def _parse_voicemail(self, voicemailHtml):
+		splitVoicemail = self._seperateVoicemailsRegex.split(voicemailHtml)
+		for id, messageHtml in itergroup(splitVoicemail[1:], 2):
+			exactTimeGroup = self._exactVoicemailTimeRegex.search(messageHtml)
+			exactTime = exactTimeGroup.group(1) if exactTimeGroup else ""
+			relativeTimeGroup = self._relativeVoicemailTimeRegex.search(messageHtml)
+			relativeTime = relativeTimeGroup.group(1) if relativeTimeGroup else ""
+			locationGroup = self._voicemailLocationRegex.search(messageHtml)
+			location = locationGroup.group(1) if locationGroup else ""
+			numberGroup = self._voicemailNumberRegex.search(messageHtml)
+			number = numberGroup.group(1) if numberGroup else ""
+			prettyNumberGroup = self._prettyVoicemailNumberRegex.search(messageHtml)
+			prettyNumber = prettyNumberGroup.group(1) if prettyNumberGroup else ""
+			messageGroups = self._voicemailMessageRegex.finditer(messageHtml)
+			messageParts = (
+				(group.group(1), group.group(2))
+				for group in messageGroups
+			) if messageGroups else ()
+			yield {
+				"id": id,
+				"time": exactTime,
+				"relTime": relativeTime,
+				"prettyNumber": prettyNumber,
+				"number": number,
+				"location": location,
+				"messageParts": messageParts,
+			}
+
+	def _decorated_voicemail(self, parsedVoicemail):
+		messagePartFormat = {
+			"med1": "<i>%s</i>",
+			"med2": "%s",
+			"high": "<b>%s</b>",
+		}
+		for voicemailData in parsedVoicemail:
+			exactTime = voicemailData["time"] # @todo Parse This
+			header = "%s %s" % (voicemailData["prettyNumber"], voicemailData["location"])
+			message = " ".join((
+				messagePartFormat[quality] % part
+				for (quality, part) in voicemailData["messageParts"]
+			)).strip()
+			if not message:
+				message = "No Transcription"
+			yield exactTime, header, voicemailData["number"], voicemailData["relTime"], message
+
 
 def test_backend(username, password):
 	import pprint
@@ -477,8 +565,8 @@ def test_backend(username, password):
 	print "Token: ", backend._token
 	print "Account: ", backend.get_account_number()
 	print "Callback: ", backend.get_callback_number()
-	print "All Callback: ",
-	pprint.pprint(backend.get_callback_numbers())
+	# print "All Callback: ",
+	# pprint.pprint(backend.get_callback_numbers())
 	# print "Recent: ",
 	# pprint.pprint(list(backend.get_recent()))
 	# print "Contacts: ",

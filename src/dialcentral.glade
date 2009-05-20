@@ -904,6 +904,7 @@ Number:</property>
           <widget class="GtkLabel" id="phoneSelectionMessage">
             <property name="visible">True</property>
             <property name="use_markup">True</property>
+            <property name="wrap">True</property>
           </widget>
           <packing>
             <property name="expand">False</property>
@@ -993,8 +994,11 @@ Number:</property>
   </widget>
   <widget class="GtkDialog" id="smsDialog">
     <property name="border_width">5</property>
+    <property name="title" translatable="yes">Send SMS</property>
     <property name="modal">True</property>
     <property name="window_position">center</property>
+    <property name="default_width">800</property>
+    <property name="default_height">300</property>
     <property name="type_hint">normal</property>
     <property name="skip_taskbar_hint">True</property>
     <property name="skip_pager_hint">True</property>
@@ -1012,6 +1016,7 @@ Number:</property>
               <widget class="GtkLabel" id="smsMessage">
                 <property name="visible">True</property>
                 <property name="use_markup">True</property>
+                <property name="wrap">True</property>
               </widget>
               <packing>
                 <property name="expand">False</property>

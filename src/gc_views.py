@@ -354,12 +354,16 @@ class PhoneTypeSelector(object):
 		self._typemodel.clear()
 
 		for phoneType, phoneNumber in contactDetails:
+			# @bug this isn't populating correctly for recent and messages but it is for contacts
+			print repr(phoneNumber), repr(phoneType)
 			self._typemodel.append((phoneNumber, "%s - %s" % (make_pretty(phoneNumber), phoneType)))
 
+		# @todo Need to decide how how to handle the single phone number case
 		if message:
+			self._message.set_markup(message)
 			self._message.show()
-			self._message.set_text(message)
 		else:
+			self._message.set_markup("")
 			self._message.hide()
 
 		userResponse = self._dialog.run()
@@ -388,7 +392,7 @@ class PhoneTypeSelector(object):
 	def _on_phonetype_send_sms(self, *args):
 		self._dialog.response(gtk.RESPONSE_CANCEL)
 		idly_run = gtk_toolbox.asynchronous_gtk_message(self._smsDialog.run)
-		idly_run(self._get_number(), self._message.get_text())
+		idly_run(self._get_number(), self._message.get_label())
 
 	def _on_phonetype_select(self, *args):
 		self._dialog.response(gtk.RESPONSE_OK)
@@ -419,9 +423,10 @@ class SmsEntryDialog(object):
 
 	def run(self, number, message = ""):
 		if message:
+			self._message.set_markup(message)
 			self._message.show()
-			self._message.set_text(message)
 		else:
+			self._message.set_markup("")
 			self._message.hide()
 		self._smsEntry.get_buffer().set_text("")
 		self._update_letter_count()
@@ -613,6 +618,7 @@ class RecentCallsView(object):
 		self._onRecentviewRowActivatedId = 0
 
 		textrenderer = gtk.CellRendererText()
+		# @todo Make seperate columns for each item in recent item payload
 		self._recentviewColumn = gtk.TreeViewColumn("Calls")
 		self._recentviewColumn.pack_start(textrenderer, expand=True)
 		self._recentviewColumn.add_attribute(textrenderer, "text", 1)
@@ -676,9 +682,11 @@ class RecentCallsView(object):
 		if not itr:
 			return
 
-		contactPhoneNumbers = [("Phone", self._recentmodel.get_value(itr, 0))]
+		number = self._recentmodel.get_value(itr, 0)
+		number = make_ugly(number)
+		contactPhoneNumbers = [("Phone", number)]
 		description = self._recentmodel.get_value(itr, 1)
-		print repr(contactPhoneNumbers), repr(description)
+		print "Activated Recent Row:", repr(contactPhoneNumbers), repr(description)
 
 		phoneNumber = self._phoneTypeSelector.run(contactPhoneNumbers, message = description)
 		if 0 == len(phoneNumber):
@@ -701,9 +709,10 @@ class MessagesView(object):
 		self._onMessageviewRowActivatedId = 0
 
 		textrenderer = gtk.CellRendererText()
+		# @todo Make seperate columns for each item in message payload
 		self._messageviewColumn = gtk.TreeViewColumn("Messages")
 		self._messageviewColumn.pack_start(textrenderer, expand=True)
-		self._messageviewColumn.add_attribute(textrenderer, "text", 1)
+		self._messageviewColumn.add_attribute(textrenderer, "markup", 1)
 		self._messageviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
@@ -751,8 +760,10 @@ class MessagesView(object):
 			self._messagetime = 0.0
 			messageItems = []
 
-		for phoneNumber, data in messageItems:
-			item = (phoneNumber, data)
+		for header, number, relativeDate, message in messageItems:
+			number = make_ugly(number)
+			print "Discarding", header, relativeDate
+			item = (number, message)
 			with gtk_toolbox.gtk_lock():
 				self._messagemodel.append(item)
 
