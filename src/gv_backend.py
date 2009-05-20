@@ -104,41 +104,6 @@ class GVDialer(object):
 	the functions include login, setting up a callback number, and initalting a callback
 	"""
 
-	_tokenRe = re.compile(r"""<input.*?name="_rnr_se".*?value="(.*?)"\s*/>""")
-	_accountNumRe = re.compile(r"""<b class="ms\d">(.{14})</b></div>""")
-	_callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
-	_validateRe = re.compile("^[0-9]{10,}$")
-	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
-
-	_contactsRe = re.compile(r"""<a href="/voice/m/contact/(\d+)">(.*?)</a>""", re.S)
-	_contactsNextRe = re.compile(r""".*<a href="/voice/m/contacts(\?p=\d+)">Next.*?</a>""", re.S)
-	_contactDetailPhoneRe = re.compile(r"""<div.*?>([0-9\-\(\) \t]+?)<span.*?>\((\w+)\)</span>""", re.S)
-
-	_clicktocallURL = "https://www.google.com/voice/m/sendcall"
-	_smsURL = "https://www.google.com/voice/m/sendsms"
-	_contactsURL = "https://www.google.com/voice/mobile/contacts"
-	_contactDetailURL = "https://www.google.com/voice/mobile/contact"
-
-	_loginURL = "https://www.google.com/accounts/ServiceLoginAuth"
-	_setforwardURL = "https://www.google.com//voice/m/setphone"
-	_accountNumberURL = "https://www.google.com/voice/mobile"
-	_forwardURL = "https://www.google.com/voice/mobile/phones"
-
-	_recentCallsURL = "https://www.google.com/voice/inbox/recent/"
-	_placedCallsURL = "https://www.google.com/voice/inbox/recent/placed/"
-	_receivedCallsURL = "https://www.google.com/voice/inbox/recent/received/"
-	_missedCallsURL = "https://www.google.com/voice/inbox/recent/missed/"
-	_voicemailURL = "https://www.google.com/voice/inbox/recent/voicemail/"
-	_smsURL = "https://www.google.com/voice/inbox/recent/sms/"
-
-	_seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class="gc-message.*?">""", re.MULTILINE | re.DOTALL)
-	_exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
-	_relativeVoicemailTimeRegex = re.compile(r"""<span class="gc-message-relative">(.*?)</span>""", re.MULTILINE)
-	_voicemailNumberRegex = re.compile(r"""<input type="hidden" class="gc-text gc-quickcall-ac" value="(.*?)"/>""", re.MULTILINE)
-	_prettyVoicemailNumberRegex = re.compile(r"""<span class="gc-message-type">(.*?)</span>""", re.MULTILINE)
-	_voicemailLocationRegex = re.compile(r"""<span class="gc-message-location">(.*?)</span>""", re.MULTILINE)
-	_voicemailMessageRegex = re.compile(r"""<span class="gc-word-(.*?)">(.*?)</span>""", re.MULTILINE)
-
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
 		self._browser = browser_emu.MozillaEmulator(1)
@@ -176,6 +141,8 @@ class GVDialer(object):
 		self._lastAuthed = time.time()
 		return True
 
+	_loginURL = "https://www.google.com/accounts/ServiceLoginAuth"
+
 	def login(self, username, password):
 		"""
 		Attempt to login to grandcentral
@@ -208,6 +175,9 @@ class GVDialer(object):
 
 		self.clear_caches()
 
+	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
+	_clicktocallURL = "https://www.google.com/voice/m/sendcall"
+
 	def dial(self, number):
 		"""
 		This is the main function responsible for initating the callback
@@ -232,6 +202,8 @@ class GVDialer(object):
 
 		return True
 
+	_sendSmsURL = "https://www.google.com/voice/m/sendsms"
+
 	def send_sms(self, number, message):
 		number = self._send_validation(number)
 		try:
@@ -245,15 +217,17 @@ class GVDialer(object):
 			otherData = {
 				'Referer' : 'https://google.com/voice/m/sms',
 			}
-			smsSuccessPage = self._browser.download(self._smsURL, smsData, None, otherData)
+			smsSuccessPage = self._browser.download(self._sendSmsURL, smsData, None, otherData)
 		except urllib2.URLError, e:
 			warnings.warn(traceback.format_exc())
-			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
+			raise RuntimeError("%s is not accesible" % self._sendSmsURL)
 
 		return True
 
 	def clear_caches(self):
 		self.__contacts = None
+
+	_validateRe = re.compile("^[0-9]{10,}$")
 
 	def is_valid_syntax(self, number):
 		"""
@@ -305,6 +279,8 @@ class GVDialer(object):
 			return self._callbackNumbers
 
 		return {}
+
+	_setforwardURL = "https://www.google.com//voice/m/setphone"
 
 	def set_callback_number(self, callbacknumber):
 		"""
@@ -366,6 +342,10 @@ class GVDialer(object):
 	def factory_name():
 		return "Google Voice"
 
+	_contactsRe = re.compile(r"""<a href="/voice/m/contact/(\d+)">(.*?)</a>""", re.S)
+	_contactsNextRe = re.compile(r""".*<a href="/voice/m/contacts(\?p=\d+)">Next.*?</a>""", re.S)
+	_contactsURL = "https://www.google.com/voice/mobile/contacts"
+
 	def get_contacts(self):
 		"""
 		@returns Iterable of (contact id, contact name)
@@ -379,7 +359,7 @@ class GVDialer(object):
 					contactsPage = self._browser.download(contactsPageUrl)
 				except urllib2.URLError, e:
 					warnings.warn(traceback.format_exc())
-					raise RuntimeError("%s is not accesible" % self._clicktocallURL)
+					raise RuntimeError("%s is not accesible" % contactsPageUrl)
 				for contact_match in self._contactsRe.finditer(contactsPage):
 					contactId = contact_match.group(1)
 					contactName = saxutils.unescape(contact_match.group(2))
@@ -395,6 +375,9 @@ class GVDialer(object):
 			for contact in self.__contacts:
 				yield contact
 
+	_contactDetailPhoneRe = re.compile(r"""<div.*?>([0-9\-\(\) \t]+?)<span.*?>\((\w+)\)</span>""", re.S)
+	_contactDetailURL = "https://www.google.com/voice/mobile/contact"
+
 	def get_contact_details(self, contactId):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)
@@ -403,12 +386,15 @@ class GVDialer(object):
 			detailPage = self._browser.download(self._contactDetailURL + '/' + contactId)
 		except urllib2.URLError, e:
 			warnings.warn(traceback.format_exc())
-			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
+			raise RuntimeError("%s is not accesible" % self._contactDetailURL)
 
 		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
 			phoneNumber = detail_match.group(1)
 			phoneType = saxutils.unescape(detail_match.group(2))
 			yield (phoneType, phoneNumber)
+
+	_voicemailURL = "https://www.google.com/voice/inbox/recent/voicemail/"
+	_smsURL = "https://www.google.com/voice/inbox/recent/sms/"
 
 	def get_messages(self):
 		try:
@@ -448,6 +434,11 @@ class GVDialer(object):
 		flatHtml = htmlElement.text
 		return flatHtml
 
+	_tokenRe = re.compile(r"""<input.*?name="_rnr_se".*?value="(.*?)"\s*/>""")
+	_accountNumRe = re.compile(r"""<b class="ms\d">(.{14})</b></div>""")
+	_callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
+	_forwardURL = "https://www.google.com/voice/mobile/phones"
+
 	def _grab_account_info(self):
 		page = self._browser.download(self._forwardURL)
 
@@ -478,6 +469,11 @@ class GVDialer(object):
 			number = number[1:]
 		return number
 
+	_recentCallsURL = "https://www.google.com/voice/inbox/recent/"
+	_placedCallsURL = "https://www.google.com/voice/inbox/recent/placed/"
+	_receivedCallsURL = "https://www.google.com/voice/inbox/recent/received/"
+	_missedCallsURL = "https://www.google.com/voice/inbox/recent/missed/"
+
 	def _get_recent(self):
 		"""
 		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
@@ -491,7 +487,7 @@ class GVDialer(object):
 				flatXml = self._browser.download(url)
 			except urllib2.URLError, e:
 				warnings.warn(traceback.format_exc())
-				raise RuntimeError("%s is not accesible" % self._clicktocallURL)
+				raise RuntimeError("%s is not accesible" % url)
 
 			allRecentData = self._grab_json(flatXml)
 			for recentCallData in allRecentData["messages"].itervalues():
@@ -509,6 +505,14 @@ class GVDialer(object):
 				relativeDate = saxutils.unescape(relativeDate)
 				action = saxutils.unescape(action)
 				yield "", number, exactDate, relativeDate, action
+
+	_seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class="gc-message.*?">""", re.MULTILINE | re.DOTALL)
+	_exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
+	_relativeVoicemailTimeRegex = re.compile(r"""<span class="gc-message-relative">(.*?)</span>""", re.MULTILINE)
+	_voicemailNumberRegex = re.compile(r"""<input type="hidden" class="gc-text gc-quickcall-ac" value="(.*?)"/>""", re.MULTILINE)
+	_prettyVoicemailNumberRegex = re.compile(r"""<span class="gc-message-type">(.*?)</span>""", re.MULTILINE)
+	_voicemailLocationRegex = re.compile(r"""<span class="gc-message-location">(.*?)</span>""", re.MULTILINE)
+	_voicemailMessageRegex = re.compile(r"""<span class="gc-word-(.*?)">(.*?)</span>""", re.MULTILINE)
 
 	def _parse_voicemail(self, voicemailHtml):
 		splitVoicemail = self._seperateVoicemailsRegex.split(voicemailHtml)
