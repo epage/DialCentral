@@ -417,6 +417,7 @@ class GVDialer(object):
 
 		allMessages = itertools.chain(decoratedVoicemails, decoratedSms)
 		sortedMessages = list(allMessages)
+		sortedMessages.sort(reverse=True)
 		for exactDate, header, number, relativeDate, message in sortedMessages:
 			yield header, number, relativeDate, message
 
@@ -518,6 +519,7 @@ class GVDialer(object):
 		for id, messageHtml in itergroup(splitVoicemail[1:], 2):
 			exactTimeGroup = self._exactVoicemailTimeRegex.search(messageHtml)
 			exactTime = exactTimeGroup.group(1).strip() if exactTimeGroup else ""
+			exactTime = datetime.datetime.strptime(exactTime, "%m/%d/%y %I:%M %p")
 			relativeTimeGroup = self._relativeVoicemailTimeRegex.search(messageHtml)
 			relativeTime = relativeTimeGroup.group(1).strip() if relativeTimeGroup else ""
 			locationGroup = self._voicemailLocationRegex.search(messageHtml)
@@ -570,6 +572,7 @@ class GVDialer(object):
 		for id, messageHtml in itergroup(splitSms[1:], 2):
 			exactTimeGroup = self._exactVoicemailTimeRegex.search(messageHtml)
 			exactTime = exactTimeGroup.group(1).strip() if exactTimeGroup else ""
+			exactTime = datetime.datetime.strptime(exactTime, "%m/%d/%y %I:%M %p")
 			relativeTimeGroup = self._relativeVoicemailTimeRegex.search(messageHtml)
 			relativeTime = relativeTimeGroup.group(1).strip() if relativeTimeGroup else ""
 
