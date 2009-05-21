@@ -517,25 +517,25 @@ class GVDialer(object):
 		splitVoicemail = self._seperateVoicemailsRegex.split(voicemailHtml)
 		for id, messageHtml in itergroup(splitVoicemail[1:], 2):
 			exactTimeGroup = self._exactVoicemailTimeRegex.search(messageHtml)
-			exactTime = exactTimeGroup.group(1) if exactTimeGroup else ""
+			exactTime = exactTimeGroup.group(1).strip() if exactTimeGroup else ""
 			relativeTimeGroup = self._relativeVoicemailTimeRegex.search(messageHtml)
-			relativeTime = relativeTimeGroup.group(1) if relativeTimeGroup else ""
+			relativeTime = relativeTimeGroup.group(1).strip() if relativeTimeGroup else ""
 			locationGroup = self._voicemailLocationRegex.search(messageHtml)
-			location = locationGroup.group(1) if locationGroup else ""
+			location = locationGroup.group(1).strip() if locationGroup else ""
 
 			numberGroup = self._voicemailNumberRegex.search(messageHtml)
-			number = numberGroup.group(1) if numberGroup else ""
+			number = numberGroup.group(1).strip() if numberGroup else ""
 			prettyNumberGroup = self._prettyVoicemailNumberRegex.search(messageHtml)
-			prettyNumber = prettyNumberGroup.group(1) if prettyNumberGroup else ""
+			prettyNumber = prettyNumberGroup.group(1).strip() if prettyNumberGroup else ""
 
 			messageGroups = self._voicemailMessageRegex.finditer(messageHtml)
 			messageParts = (
-				(group.group(1), group.group(2))
+				(group.group(1).strip(), group.group(2).strip())
 				for group in messageGroups
 			) if messageGroups else ()
 
 			yield {
-				"id": id,
+				"id": id.strip(),
 				"time": exactTime,
 				"relTime": relativeTime,
 				"prettyNumber": prettyNumber,
@@ -561,55 +561,54 @@ class GVDialer(object):
 				message = "No Transcription"
 			yield exactTime, header, voicemailData["number"], voicemailData["relTime"], message
 
-	_smsFromRegex = re.compile(r"""<span class="gc-message-sms-from">(.*?)</span>""", re.MULTILINE)
-	_smsTextRegex = re.compile(r"""<span class="gc-message-sms-time">(.*?)</span>""", re.MULTILINE)
-	_smsTimeRegex = re.compile(r"""<span class="gc-message-sms-text">(.*?)</span>""", re.MULTILINE)
+	_smsFromRegex = re.compile(r"""<span class="gc-message-sms-from">(.*?)</span>""", re.MULTILINE | re.DOTALL)
+	_smsTextRegex = re.compile(r"""<span class="gc-message-sms-time">(.*?)</span>""", re.MULTILINE | re.DOTALL)
+	_smsTimeRegex = re.compile(r"""<span class="gc-message-sms-text">(.*?)</span>""", re.MULTILINE | re.DOTALL)
 
 	def _parse_sms(self, smsHtml):
-		print "="*60
-		print smsHtml
-		print "="*60
 		splitSms = self._seperateVoicemailsRegex.split(smsHtml)
 		for id, messageHtml in itergroup(splitSms[1:], 2):
 			exactTimeGroup = self._exactVoicemailTimeRegex.search(messageHtml)
-			exactTime = exactTimeGroup.group(1) if exactTimeGroup else ""
+			exactTime = exactTimeGroup.group(1).strip() if exactTimeGroup else ""
 			relativeTimeGroup = self._relativeVoicemailTimeRegex.search(messageHtml)
-			relativeTime = relativeTimeGroup.group(1) if relativeTimeGroup else ""
-
-			locationGroup = self._voicemailLocationRegex.search(messageHtml)
-			location = locationGroup.group(1) if locationGroup else ""
+			relativeTime = relativeTimeGroup.group(1).strip() if relativeTimeGroup else ""
 
 			numberGroup = self._voicemailNumberRegex.search(messageHtml)
-			number = numberGroup.group(1) if numberGroup else ""
+			number = numberGroup.group(1).strip() if numberGroup else ""
 			prettyNumberGroup = self._prettyVoicemailNumberRegex.search(messageHtml)
-			prettyNumber = prettyNumberGroup.group(1) if prettyNumberGroup else ""
+			prettyNumber = prettyNumberGroup.group(1).strip() if prettyNumberGroup else ""
 
 			fromGroups = self._smsFromRegex.finditer(messageHtml)
-			fromParts = (group.group(1) for group in fromGroups)
+			fromParts = (group.group(1).strip() for group in fromGroups)
 			textGroups = self._smsTextRegex.finditer(messageHtml)
-			textParts = (group.group(1) for group in textGroups)
+			textParts = (group.group(1).strip() for group in textGroups)
 			timeGroups = self._smsTimeRegex.finditer(messageHtml)
-			timeParts = (group.group(1) for group in timeGroups)
+			timeParts = (group.group(1).strip() for group in timeGroups)
 
-			# @todo Switch from chain to izip once debugged the parts
-			#messageParts = itertools.izip(fromParts, textParts, timeParts)
-			messageParts = itertools.chain(fromParts, textParts, timeParts)
+			messageParts = itertools.izip(fromParts, textParts, timeParts)
 
-			# @todo Switch pprint to yield and remove list() call once debugged parts
-			import pprint
-			pprint.pprint({
-				"id": id,
+			yield {
+				"id": id.strip(),
 				"time": exactTime,
 				"relTime": relativeTime,
 				"prettyNumber": prettyNumber,
 				"number": number,
-				"location": location,
-				"messageParts": list(messageParts),
-			})
-		return ()
+				"messageParts": messageParts,
+			}
 
 	def _decorate_sms(self, parsedSms):
-		return ()
+		for messageData in parsedSms:
+			exactTime = messageData["time"] # @todo Parse This
+			header = "%s" % (messageData["prettyNumber"])
+			number = messageData["number"]
+			relativeTime = messageData["relTime"]
+			message = "\n".join((
+				"<b>%s (%s)</b>: %s" % messagePart
+				for messagePart in messageData["messageParts"]
+			))
+			if not message:
+				message = "No Transcription"
+			yield exactTime, header, number, relativeTime, message
 
 
 def test_backend(username, password):

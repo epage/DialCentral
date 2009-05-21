@@ -388,7 +388,7 @@ class PhoneTypeSelector(object):
 			smsMessage = ""
 		if not smsMessage:
 			phoneNumber = ""
-			self._action = ACTION_CANCEL
+			self._action = self.ACTION_CANCEL
 
 		self._typeviewselection.unselect_all()
 		self._dialog.hide()
