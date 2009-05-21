@@ -313,6 +313,11 @@ class MergedAddressBook(object):
 
 class PhoneTypeSelector(object):
 
+	ACTION_CANCEL = "cancel"
+	ACTION_SELECT = "select"
+	ACTION_DIAL = "dial"
+	ACTION_SEND_SMS = "sms"
+
 	def __init__(self, widgetTree, gcBackend):
 		self._gcBackend = gcBackend
 		self._widgetTree = widgetTree
@@ -350,6 +355,8 @@ class PhoneTypeSelector(object):
 		self._typeviewselection = typeview.get_selection()
 		self._typeviewselection.set_mode(gtk.SELECTION_SINGLE)
 
+		self._action = self.ACTION_CANCEL
+
 	def run(self, contactDetails, message = ""):
 		self._typemodel.clear()
 
@@ -372,10 +379,20 @@ class PhoneTypeSelector(object):
 			phoneNumber = self._get_number()
 		else:
 			phoneNumber = ""
+		if not phoneNumber:
+			self._action = self.ACTION_CANCEL
+
+		if self._action == self.ACTION_SEND_SMS:
+			smsMessage = self._smsDialog.run(phoneNumber, message)
+		else:
+			smsMessage = ""
+		if not smsMessage:
+			phoneNumber = ""
+			self._action = ACTION_CANCEL
 
 		self._typeviewselection.unselect_all()
 		self._dialog.hide()
-		return phoneNumber
+		return self._action, phoneNumber, smsMessage
 
 	def _get_number(self):
 		model, itr = self._typeviewselection.get_selected()
@@ -386,19 +403,20 @@ class PhoneTypeSelector(object):
 		return phoneNumber
 
 	def _on_phonetype_dial(self, *args):
-		self._gcBackend.dial(self._get_number())
-		self._dialog.response(gtk.RESPONSE_CANCEL)
+		self._dialog.response(gtk.RESPONSE_OK)
+		self._action = self.ACTION_DIAL
 
 	def _on_phonetype_send_sms(self, *args):
-		self._dialog.response(gtk.RESPONSE_CANCEL)
-		idly_run = gtk_toolbox.asynchronous_gtk_message(self._smsDialog.run)
-		idly_run(self._get_number(), self._message.get_label())
+		self._dialog.response(gtk.RESPONSE_OK)
+		self._action = self.ACTION_SEND_SMS
 
 	def _on_phonetype_select(self, *args):
 		self._dialog.response(gtk.RESPONSE_OK)
+		self._action = self.ACTION_SELECT
 
 	def _on_phonetype_cancel(self, *args):
 		self._dialog.response(gtk.RESPONSE_CANCEL)
+		self._action = self.ACTION_CANCEL
 
 
 class SmsEntryDialog(object):
@@ -436,9 +454,11 @@ class SmsEntryDialog(object):
 			entryBuffer = self._smsEntry.get_buffer()
 			enteredMessage = entryBuffer.get_text(entryBuffer.get_start_iter(), entryBuffer.get_end_iter())
 			enteredMessage = enteredMessage[0:self.MAX_CHAR]
-			self._gcBackend.send_sms(number, enteredMessage)
+		else:
+			enteredMessage = ""
 
 		self._dialog.hide()
+		return enteredMessage
 
 	def _update_letter_count(self, *args):
 		entryLength = self._smsEntry.get_buffer().get_char_count()
@@ -641,7 +661,7 @@ class RecentCallsView(object):
 		self._recentview.remove_column(self._recentviewColumn)
 		self._recentview.set_model(None)
 
-	def number_selected(self, number):
+	def number_selected(self, action, number, message):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -688,11 +708,12 @@ class RecentCallsView(object):
 		description = self._recentmodel.get_value(itr, 1)
 		print "Activated Recent Row:", repr(contactPhoneNumbers), repr(description)
 
-		phoneNumber = self._phoneTypeSelector.run(contactPhoneNumbers, message = description)
-		if 0 == len(phoneNumber):
+		action, phoneNumber, message = self._phoneTypeSelector.run(contactPhoneNumbers, message = description)
+		if action == PhoneTypeSelector.ACTION_CANCEL:
 			return
+		assert phoneNumber
 
-		self.number_selected(phoneNumber)
+		self.number_selected(action, phoneNumber, message)
 		self._recentviewselection.unselect_all()
 
 
@@ -732,7 +753,7 @@ class MessagesView(object):
 		self._messageview.remove_column(self._messageviewColumn)
 		self._messageview.set_model(None)
 
-	def number_selected(self, number):
+	def number_selected(self, action, number, message):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -778,11 +799,12 @@ class MessagesView(object):
 		description = self._messagemodel.get_value(itr, 1)
 		print repr(contactPhoneNumbers), repr(description)
 
-		phoneNumber = self._phoneTypeSelector.run(contactPhoneNumbers, message = description)
-		if 0 == len(phoneNumber):
+		action, phoneNumber, message = self._phoneTypeSelector.run(contactPhoneNumbers, message = description)
+		if action == PhoneTypeSelector.ACTION_CANCEL:
 			return
+		assert phoneNumber
 
-		self.number_selected(phoneNumber)
+		self.number_selected(action, phoneNumber, message)
 		self._messageviewselection.unselect_all()
 
 
@@ -862,7 +884,7 @@ class ContactsView(object):
 		self._contactsview.set_model(None)
 		self._contactsview.remove_column(self._contactColumn)
 
-	def number_selected(self, number):
+	def number_selected(self, action, number, message):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -953,12 +975,12 @@ class ContactsView(object):
 		contactPhoneNumbers = [phoneNumber for phoneNumber in contactDetails]
 
 		if len(contactPhoneNumbers) == 0:
-			phoneNumber = ""
-		elif len(contactPhoneNumbers) == 1:
-			phoneNumber = self._phoneTypeSelector.run(contactPhoneNumbers, message = contactName)
-
-		if 0 == len(phoneNumber):
 			return
 
-		self.number_selected(phoneNumber)
+		action, phoneNumber, message = self._phoneTypeSelector.run(contactPhoneNumbers, message = contactName)
+		if action == PhoneTypeSelector.ACTION_CANCEL:
+			return
+		assert phoneNumber
+
+		self.number_selected(action, phoneNumber, message)
 		self._contactsviewselection.unselect_all()

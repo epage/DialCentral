@@ -454,14 +454,50 @@ class Dialcentral(object):
 		else:
 			self._window.set_title("%s - %s" % (self.__pretty_app_name__, tabTitle))
 
-	def _on_number_selected(self, number):
-		self._dialpads[self._selectedBackendId].set_number(number)
-		self._notebook.set_current_page(0)
+	def _on_number_selected(self, action, number, message):
+		if action == "select":
+			self._dialpads[self._selectedBackendId].set_number(number)
+			self._notebook.set_current_page(0)
+		elif action == "dial":
+			self._on_dial_clicked(number)
+		elif action == "sms":
+			self._on_sms_clicked(number, message)
+		else:
+			assert False, "Unknown action: %s" % action
+
+	def _on_sms_clicked(self, number, message):
+		"""
+		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
+		"""
+		assert number
+		assert message
+		try:
+			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
+		except RuntimeError, e:
+			loggedIn = False
+			self._errorDisplay.push_exception(e)
+			return
+
+		if not loggedIn:
+			self._errorDisplay.push_message(
+				"Backend link with grandcentral is not working, please try again"
+			)
+			return
+
+		dialed = False
+		try:
+			self._phoneBackends[self._selectedBackendId].send_sms(number, message)
+			dialed = True
+		except RuntimeError, e:
+			self._errorDisplay.push_exception(e)
+		except ValueError, e:
+			self._errorDisplay.push_exception(e)
 
 	def _on_dial_clicked(self, number):
 		"""
 		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
 		"""
+		assert number
 		try:
 			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
 		except RuntimeError, e:
