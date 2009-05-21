@@ -314,7 +314,6 @@ class GVDialer(object):
 
 	def get_recent(self):
 		"""
-		@todo Sort this stuff
 		@returns Iterable of (personsName, phoneNumber, date, action)
 		"""
 		sortedRecent = [
@@ -553,7 +552,7 @@ class GVDialer(object):
 			"high": "<b>%s</b>",
 		}
 		for voicemailData in parsedVoicemail:
-			exactTime = voicemailData["time"] # @todo Parse This
+			exactTime = voicemailData["time"]
 			header = "%s %s" % (voicemailData["prettyNumber"], voicemailData["location"])
 			message = " ".join((
 				messagePartFormat[quality] % part
@@ -601,7 +600,7 @@ class GVDialer(object):
 
 	def _decorate_sms(self, parsedSms):
 		for messageData in parsedSms:
-			exactTime = messageData["time"] # @todo Parse This
+			exactTime = messageData["time"]
 			header = "%s" % (messageData["prettyNumber"])
 			number = messageData["number"]
 			relativeTime = messageData["relTime"]
