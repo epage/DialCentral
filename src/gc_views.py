@@ -336,29 +336,33 @@ class PhoneTypeSelector(object):
 		self._typeviewselection = None
 
 		self._message = self._widgetTree.get_widget("phoneSelectionMessage")
-		typeview = self._widgetTree.get_widget("phonetypes")
-		typeview.connect("row-activated", self._on_phonetype_select)
-		typeview.set_model(self._typemodel)
-		textrenderer = gtk.CellRendererText()
-
-		# Add the column to the treeview
-		column = gtk.TreeViewColumn("Phone Numbers", textrenderer, text=1)
-		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-
-		typeview.append_column(column)
-
-		self._typeviewselection = typeview.get_selection()
-		self._typeviewselection.set_mode(gtk.SELECTION_SINGLE)
+		self._typeview = self._widgetTree.get_widget("phonetypes")
+		self._typeview.connect("row-activated", self._on_phonetype_select)
 
 		self._action = self.ACTION_CANCEL
 
 	def run(self, contactDetails, message = ""):
+		self._action = self.ACTION_CANCEL
 		self._typemodel.clear()
+		self._typeview.set_model(self._typemodel)
+
+		# Add the column to the treeview
+		textrenderer = gtk.CellRendererText()
+		numberColumn = gtk.TreeViewColumn("Phone Numbers", textrenderer, text=0)
+		self._typeview.append_column(numberColumn)
+
+		textrenderer = gtk.CellRendererText()
+		typeColumn = gtk.TreeViewColumn("Phone Type", textrenderer, text=1)
+		self._typeview.append_column(typeColumn)
+
+		self._typeviewselection = self._typeview.get_selection()
+		self._typeviewselection.set_mode(gtk.SELECTION_SINGLE)
 
 		for phoneType, phoneNumber in contactDetails:
-			# @bug this isn't populating correctly for recent and messages but it is for contacts
-			print repr(phoneNumber), repr(phoneType)
-			self._typemodel.append((phoneNumber, "%s - %s" % (make_pretty(phoneNumber), phoneType)))
+			display = " - ".join((phoneNumber, phoneType))
+			display = phoneType
+			row = (phoneNumber, display)
+			self._typemodel.append(row)
 
 		# @todo Need to decide how how to handle the single phone number case
 		if message:
@@ -386,6 +390,9 @@ class PhoneTypeSelector(object):
 			self._action = self.ACTION_CANCEL
 
 		self._typeviewselection.unselect_all()
+		self._typeview.remove_column(numberColumn)
+		self._typeview.remove_column(typeColumn)
+		self._typeview.set_model(None)
 		self._dialog.hide()
 		return self._action, phoneNumber, smsMessage
 
@@ -632,12 +639,11 @@ class RecentCallsView(object):
 		self._recentviewselection = None
 		self._onRecentviewRowActivatedId = 0
 
-		textrenderer = gtk.CellRendererText()
 		# @todo Make seperate columns for each item in recent item payload
+		textrenderer = gtk.CellRendererText()
 		self._recentviewColumn = gtk.TreeViewColumn("Calls")
 		self._recentviewColumn.pack_start(textrenderer, expand=True)
 		self._recentviewColumn.add_attribute(textrenderer, "text", 1)
-		self._recentviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
 
@@ -701,7 +707,6 @@ class RecentCallsView(object):
 		number = make_ugly(number)
 		contactPhoneNumbers = [("Phone", number)]
 		description = self._recentmodel.get_value(itr, 1)
-		print "Activated Recent Row:", repr(contactPhoneNumbers), repr(description)
 
 		action, phoneNumber, message = self._phoneTypeSelector.run(contactPhoneNumbers, message = description)
 		if action == PhoneTypeSelector.ACTION_CANCEL:
@@ -778,7 +783,6 @@ class MessagesView(object):
 
 		for header, number, relativeDate, message in messageItems:
 			number = make_ugly(number)
-			print "Discarding", header, relativeDate
 			item = (number, message)
 			with gtk_toolbox.gtk_lock():
 				self._messagemodel.append(item)
@@ -792,7 +796,6 @@ class MessagesView(object):
 
 		contactPhoneNumbers = [("Phone", self._messagemodel.get_value(itr, 0))]
 		description = self._messagemodel.get_value(itr, 1)
-		print repr(contactPhoneNumbers), repr(description)
 
 		action, phoneNumber, message = self._phoneTypeSelector.run(contactPhoneNumbers, message = description)
 		if action == PhoneTypeSelector.ACTION_CANCEL:
