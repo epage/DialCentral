@@ -8,7 +8,7 @@ __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
 __version__ = "0.9.6"
-__build__ = 0
+__build__ = 1
 __changelog__ = '''
 0.9.6
  * Experimenting with the tabs being on the side

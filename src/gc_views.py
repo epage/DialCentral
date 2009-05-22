@@ -376,6 +376,7 @@ class PhoneTypeSelector(object):
 
 		if userResponse == gtk.RESPONSE_OK:
 			phoneNumber = self._get_number()
+			phoneNumber = make_ugly(phoneNumber)
 		else:
 			phoneNumber = ""
 		if not phoneNumber:
@@ -383,11 +384,11 @@ class PhoneTypeSelector(object):
 
 		if self._action == self.ACTION_SEND_SMS:
 			smsMessage = self._smsDialog.run(phoneNumber, message)
+			if not smsMessage:
+				phoneNumber = ""
+				self._action = self.ACTION_CANCEL
 		else:
 			smsMessage = ""
-		if not smsMessage:
-			phoneNumber = ""
-			self._action = self.ACTION_CANCEL
 
 		self._typeviewselection.unselect_all()
 		self._typeview.remove_column(numberColumn)
