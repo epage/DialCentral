@@ -464,7 +464,12 @@ class SmsEntryDialog(object):
 
 	def _update_letter_count(self, *args):
 		entryLength = self._smsEntry.get_buffer().get_char_count()
-		self._letterCountLabel.set_text(str(self.MAX_CHAR - entryLength))
+		charsLeft = self.MAX_CHAR - entryLength
+		self._letterCountLabel.set_text(str(charsLeft))
+		if charsLeft < 0:
+			self._smsButton.set_sensitive(False)
+		else:
+			self._smsButton.set_sensitive(True)
 
 	def _on_entry_changed(self, *args):
 		self._update_letter_count()
@@ -644,6 +649,7 @@ class RecentCallsView(object):
 		self._recentviewColumn = gtk.TreeViewColumn("Calls")
 		self._recentviewColumn.pack_start(textrenderer, expand=True)
 		self._recentviewColumn.add_attribute(textrenderer, "text", 1)
+		self._recentviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
 
@@ -783,9 +789,9 @@ class MessagesView(object):
 
 		for header, number, relativeDate, message in messageItems:
 			number = make_ugly(number)
-			item = (number, message)
+			row = (number, message)
 			with gtk_toolbox.gtk_lock():
-				self._messagemodel.append(item)
+				self._messagemodel.append(row)
 
 		return False
 
