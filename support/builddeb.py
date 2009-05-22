@@ -12,6 +12,9 @@ __build__ = 0
 __changelog__ = '''
 0.9.6
  * Experimenting with the tabs being on the side
+ * Now the phone selector is used always, even if there is just one phone number
+ * Added a Messages Tab, which displays SMS and Voicemail messages
+ * Added option to send SMS messages
 
 0.9.5
  * Fixed a login issue due to Google changing their webpage
