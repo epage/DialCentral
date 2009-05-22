@@ -276,6 +276,7 @@ class Dialcentral(object):
 
 		callbackMapping = {
 			"on_paste": self._on_paste,
+			"on_refresh": self._on_refresh,
 			"on_clearcookies_clicked": self._on_clearcookies_clicked,
 			"on_notebook_switch_page": self._on_notebook_switch_page,
 			"on_about_activate": self._on_about_activate,
@@ -457,7 +458,7 @@ class Dialcentral(object):
 	def _on_number_selected(self, action, number, message):
 		if action == "select":
 			self._dialpads[self._selectedBackendId].set_number(number)
-			self._notebook.set_current_page(0)
+			self._notebook.set_current_page(self.KEYPAD_TAB)
 		elif action == "dial":
 			self._on_dial_clicked(number)
 		elif action == "sms":
@@ -523,7 +524,15 @@ class Dialcentral(object):
 
 		if dialed:
 			self._dialpads[self._selectedBackendId].clear()
-			self._recentViews[self._selectedBackendId].clear()
+
+	def _on_refresh(self, *args):
+		page_num = self._notebook.get_current_page()
+		if page_num == self.CONTACTS_TAB:
+			self._contactsViews[self._selectedBackendId].update(force=True)
+		elif page_num == self.RECENT_TAB:
+			self._recentViews[self._selectedBackendId].update(force=True)
+		elif page_num == self.MESSAGES_TAB:
+			self._messagesViews[self._selectedBackendId].update(force=True)
 
 	def _on_paste(self, *args):
 		contents = self._clipboard.wait_for_text()

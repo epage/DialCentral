@@ -589,7 +589,7 @@ class AccountInfo(object):
 		"""
 		self._accountViewNumberDisplay.set_label("<span size='23000' weight='bold'>%s</span>" % (number))
 
-	def update(self):
+	def update(self, force = False):
 		self.populate_callback_combo()
 		self.set_account_number(self._backend.get_account_number())
 
@@ -675,8 +675,8 @@ class RecentCallsView(object):
 		"""
 		raise NotImplementedError
 
-	def update(self):
-		if (time.time() - self._recenttime) < 300:
+	def update(self, force = False):
+		if not force and (time.time() - self._recenttime) < 300:
 			return
 		backgroundPopulate = threading.Thread(target=self._idly_populate_recentview)
 		backgroundPopulate.setDaemon(True)
@@ -766,8 +766,8 @@ class MessagesView(object):
 		"""
 		raise NotImplementedError
 
-	def update(self):
-		if (time.time() - self._messagetime) < 300:
+	def update(self, force = False):
+		if not force and (time.time() - self._messagetime) < 300:
 			return
 		backgroundPopulate = threading.Thread(target=self._idly_populate_messageview)
 		backgroundPopulate.setDaemon(True)
@@ -910,8 +910,8 @@ class ContactsView(object):
 		backgroundPopulate.setDaemon(True)
 		backgroundPopulate.start()
 
-	def update(self):
-		if (time.time() - self._contactstime) < 300:
+	def update(self, force = False):
+		if not force and (time.time() - self._contactstime) < 300:
 			return
 		backgroundPopulate = threading.Thread(target=self._idly_populate_contactsview)
 		backgroundPopulate.setDaemon(True)

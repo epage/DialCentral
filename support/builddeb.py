@@ -7,9 +7,12 @@ __appname__ = "dialcentral"
 __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
-__version__ = "0.9.6"
-__build__ = 1
+__version__ = "0.9.7"
+__build__ = 0
 __changelog__ = '''
+0.9.7
+ * Force Refresh for when wanting to check for more messages
+
 0.9.6
  * Experimenting with the tabs being on the side
  * Now the phone selector is used always, even if there is just one phone number
