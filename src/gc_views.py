@@ -364,7 +364,7 @@ class PhoneTypeSelector(object):
 			row = (phoneNumber, display)
 			self._typemodel.append(row)
 
-		# @todo Need to decide how how to handle the single phone number case
+		self._typeviewselection.select_iter(self._typemodel.get_iter_first())
 		if message:
 			self._message.set_markup(message)
 			self._message.show()
