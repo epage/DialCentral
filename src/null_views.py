@@ -35,6 +35,19 @@ class Dialpad(object):
 	def disable(self):
 		self._dialButton.set_sensitive(True)
 
+	@staticmethod
+	def name():
+		return "Dialpad"
+
+	def load_settings(self, config, sectionName):
+		pass
+
+	def save_settings(self, config, sectionName):
+		"""
+		@note Thread Agnostic
+		"""
+		pass
+
 
 class AccountInfo(object):
 
@@ -62,6 +75,19 @@ class AccountInfo(object):
 	def clear():
 		pass
 
+	@staticmethod
+	def name():
+		return "Account Info"
+
+	def load_settings(self, config, sectionName):
+		pass
+
+	def save_settings(self, config, sectionName):
+		"""
+		@note Thread Agnostic
+		"""
+		pass
+
 
 class RecentCallsView(object):
 
@@ -79,6 +105,19 @@ class RecentCallsView(object):
 
 	@staticmethod
 	def clear():
+		pass
+
+	@staticmethod
+	def name():
+		return "Recent Calls"
+
+	def load_settings(self, config, sectionName):
+		pass
+
+	def save_settings(self, config, sectionName):
+		"""
+		@note Thread Agnostic
+		"""
 		pass
 
 
@@ -100,6 +139,19 @@ class MessagesView(object):
 	def clear():
 		pass
 
+	@staticmethod
+	def name():
+		return "Messages"
+
+	def load_settings(self, config, sectionName):
+		pass
+
+	def save_settings(self, config, sectionName):
+		"""
+		@note Thread Agnostic
+		"""
+		pass
+
 
 class ContactsView(object):
 
@@ -117,4 +169,17 @@ class ContactsView(object):
 
 	@staticmethod
 	def clear():
+		pass
+
+	@staticmethod
+	def name():
+		return "Contacts"
+
+	def load_settings(self, config, sectionName):
+		pass
+
+	def save_settings(self, config, sectionName):
+		"""
+		@note Thread Agnostic
+		"""
 		pass

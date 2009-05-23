@@ -22,7 +22,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 from __future__ import with_statement
 
 import threading
-import time
 import warnings
 
 import gobject
@@ -531,6 +530,19 @@ class Dialpad(object):
 	def clear(self):
 		self.set_number("")
 
+	@staticmethod
+	def name():
+		return "Dialpad"
+
+	def load_settings(self, config, section):
+		pass
+
+	def save_settings(self, config, section):
+		"""
+		@note Thread Agnostic
+		"""
+		pass
+
 	def _on_dial_clicked(self, widget):
 		self.dial(self.get_number())
 
@@ -567,6 +579,8 @@ class AccountInfo(object):
 		self._callbackCombo = widgetTree.get_widget("callbackcombo")
 		self._onCallbackentryChangedId = 0
 
+		self._defaultCallback = ""
+
 	def enable(self):
 		assert self._backend.is_authed()
 		self._accountViewNumberDisplay.set_use_markup(True)
@@ -590,14 +604,28 @@ class AccountInfo(object):
 		self._accountViewNumberDisplay.set_label("<span size='23000' weight='bold'>%s</span>" % (number))
 
 	def update(self, force = False):
-		self.populate_callback_combo()
+		self._populate_callback_combo()
 		self.set_account_number(self._backend.get_account_number())
 
 	def clear(self):
 		self._callbackCombo.get_child().set_text("")
 		self.set_account_number("")
 
-	def populate_callback_combo(self):
+	@staticmethod
+	def name():
+		return "Account Info"
+
+	def load_settings(self, config, section):
+		self._defaultCallback = config.get(section, "callback")
+
+	def save_settings(self, config, section):
+		"""
+		@note Thread Agnostic
+		"""
+		callback = self.get_selected_callback_number()
+		config.set(section, "callback", callback)
+
+	def _populate_callback_combo(self):
 		self._callbackList.clear()
 		try:
 			callbackNumbers = self._backend.get_callback_numbers()
@@ -613,8 +641,7 @@ class AccountInfo(object):
 		try:
 			callbackNumber = self._backend.get_callback_number()
 		except RuntimeError, e:
-			self._errorDisplay.push_exception(e)
-			return
+			callbackNumber = self._defaultCallback
 		self._callbackCombo.get_child().set_text(make_pretty(callbackNumber))
 
 	def _on_callbackentry_changed(self, *args):
@@ -639,7 +666,7 @@ class RecentCallsView(object):
 		self._errorDisplay = errorDisplay
 		self._backend = backend
 
-		self._recenttime = 0.0
+		self._isPopulated = False
 		self._recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._recentview = widgetTree.get_widget("recentview")
 		self._recentviewselection = None
@@ -676,25 +703,38 @@ class RecentCallsView(object):
 		raise NotImplementedError
 
 	def update(self, force = False):
-		if not force and (time.time() - self._recenttime) < 300:
+		if not force and self._isPopulated:
 			return
 		backgroundPopulate = threading.Thread(target=self._idly_populate_recentview)
 		backgroundPopulate.setDaemon(True)
 		backgroundPopulate.start()
 
 	def clear(self):
-		self._recenttime = 0.0
+		self._isPopulated = False
 		self._recentmodel.clear()
 
+	@staticmethod
+	def name():
+		return "Recent Calls"
+
+	def load_settings(self, config, section):
+		pass
+
+	def save_settings(self, config, section):
+		"""
+		@note Thread Agnostic
+		"""
+		pass
+
 	def _idly_populate_recentview(self):
-		self._recenttime = time.time()
+		self._isPopulated = True
 		self._recentmodel.clear()
 
 		try:
 			recentItems = self._backend.get_recent()
 		except RuntimeError, e:
 			self._errorDisplay.push_exception_with_lock(e)
-			self._recenttime = 0.0
+			self._isPopulated = False
 			recentItems = []
 
 		for personsName, phoneNumber, date, action in recentItems:
@@ -730,7 +770,7 @@ class MessagesView(object):
 		self._errorDisplay = errorDisplay
 		self._backend = backend
 
-		self._messagetime = 0.0
+		self._isPopulated = False
 		self._messagemodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._messageview = widgetTree.get_widget("messages_view")
 		self._messageviewselection = None
@@ -767,25 +807,38 @@ class MessagesView(object):
 		raise NotImplementedError
 
 	def update(self, force = False):
-		if not force and (time.time() - self._messagetime) < 300:
+		if not force and self._isPopulated:
 			return
 		backgroundPopulate = threading.Thread(target=self._idly_populate_messageview)
 		backgroundPopulate.setDaemon(True)
 		backgroundPopulate.start()
 
 	def clear(self):
-		self._messagetime = 0.0
+		self._isPopulated = False
 		self._messagemodel.clear()
 
+	@staticmethod
+	def name():
+		return "Messages"
+
+	def load_settings(self, config, section):
+		pass
+
+	def save_settings(self, config, section):
+		"""
+		@note Thread Agnostic
+		"""
+		pass
+
 	def _idly_populate_messageview(self):
-		self._messagetime = time.time()
+		self._isPopulated = True
 		self._messagemodel.clear()
 
 		try:
 			messageItems = self._backend.get_messages()
 		except RuntimeError, e:
 			self._errorDisplay.push_exception_with_lock(e)
-			self._messagetime = 0.0
+			self._isPopulated = False
 			messageItems = []
 
 		for header, number, relativeDate, message in messageItems:
@@ -825,7 +878,7 @@ class ContactsView(object):
 		self._booksList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._booksSelectionBox = widgetTree.get_widget("addressbook_combo")
 
-		self._contactstime = 0.0
+		self._isPopulated = False
 		self._contactsmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._contactsviewselection = None
 		self._contactsview = widgetTree.get_widget("contactsview")
@@ -905,20 +958,17 @@ class ContactsView(object):
 
 	def open_addressbook(self, bookFactoryId, bookId):
 		self._addressBook = self._addressBookFactories[bookFactoryId].open_addressbook(bookId)
-		self._contactstime = 0
-		backgroundPopulate = threading.Thread(target=self._idly_populate_contactsview)
-		backgroundPopulate.setDaemon(True)
-		backgroundPopulate.start()
+		self.update(force=True)
 
 	def update(self, force = False):
-		if not force and (time.time() - self._contactstime) < 300:
+		if not force and self._isPopulated:
 			return
 		backgroundPopulate = threading.Thread(target=self._idly_populate_contactsview)
 		backgroundPopulate.setDaemon(True)
 		backgroundPopulate.start()
 
 	def clear(self):
-		self._contactstime = 0.0
+		self._isPopulated = False
 		self._contactsmodel.clear()
 
 	def clear_caches(self):
@@ -932,8 +982,21 @@ class ContactsView(object):
 	def extend(self, books):
 		self._addressBookFactories.extend(books)
 
+	@staticmethod
+	def name():
+		return "Contacts"
+
+	def load_settings(self, config, section):
+		pass
+
+	def save_settings(self, config, section):
+		"""
+		@note Thread Agnostic
+		"""
+		pass
+
 	def _idly_populate_contactsview(self):
-		#@todo Add a lock so only one code path can be in here at a time
+		self._isPopulated = True
 		self.clear()
 
 		# completely disable updating the treeview while we populate the data
@@ -945,7 +1008,7 @@ class ContactsView(object):
 			contacts = addressBook.get_contacts()
 		except RuntimeError, e:
 			contacts = []
-			self._contactstime = 0.0
+			self._isPopulated = False
 			self._errorDisplay.push_exception_with_lock(e)
 		for contactId, contactName in contacts:
 			contactType = (addressBook.contact_source_short_name(contactId), )
@@ -975,7 +1038,6 @@ class ContactsView(object):
 			contactDetails = self._addressBook.get_contact_details(contactId)
 		except RuntimeError, e:
 			contactDetails = []
-			self._contactstime = 0.0
 			self._errorDisplay.push_exception(e)
 		contactPhoneNumbers = [phoneNumber for phoneNumber in contactDetails]
 

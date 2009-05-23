@@ -122,7 +122,11 @@ class LoginWindow(object):
 
 		return username, password
 
-	def request_credentials_from(self, services, parentWindow = None):
+	def request_credentials_from(self,
+		services,
+		parentWindow = None,
+		defaultCredentials = ("", "")
+	):
 		"""
 		@note UI Thread
 		"""
@@ -135,6 +139,9 @@ class LoginWindow(object):
 		self._serviceCombo.set_active(0)
 		self._serviceCombo.show()
 
+		self._usernameEntry.set_text(defaultCredentials[0])
+		self._passwordEntry.set_text(defaultCredentials[1])
+
 		try:
 			self._dialog.set_transient_for(parentWindow)
 			self._dialog.set_default_response(gtk.RESPONSE_OK)
@@ -144,7 +151,6 @@ class LoginWindow(object):
 
 			username = self._usernameEntry.get_text()
 			password = self._passwordEntry.get_text()
-			self._passwordEntry.set_text("")
 		finally:
 			self._dialog.hide()
 

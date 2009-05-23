@@ -18,6 +18,8 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+@bug Completely broken on Maemo
+@todo Add storing of credentials like DoneIt
 @todo Add logging support to make debugging issues for people a lot easier
 """
 
@@ -28,6 +30,9 @@ import sys
 import gc
 import os
 import threading
+import base64
+import ConfigParser
+import itertools
 import warnings
 import traceback
 
@@ -47,6 +52,15 @@ def getmtime_nothrow(path):
 		return os.path.getmtime(path)
 	except StandardError:
 		return 0
+
+
+def display_error_message(msg):
+	error_dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, msg)
+
+	def close(dialog, response):
+		dialog.destroy()
+	error_dialog.connect("response", close)
+	error_dialog.run()
 
 
 class Dialcentral(object):
@@ -74,13 +88,16 @@ class Dialcentral(object):
 	BACKENDS = (NULL_BACKEND, GC_BACKEND, GV_BACKEND)
 
 	_data_path = os.path.join(os.path.expanduser("~"), ".dialcentral")
+	_user_settings = "%s/settings.ini" % _data_path
 
 	def __init__(self):
+		self._initDone = False
 		self._connection = None
 		self._osso = None
 		self._clipboard = gtk.clipboard_get()
 
 		self._deviceIsOnline = True
+		self._credentials = ("", "")
 		self._selectedBackendId = self.NULL_BACKEND
 		self._defaultBackendId = self.GC_BACKEND
 		self._phoneBackends = None
@@ -95,14 +112,14 @@ class Dialcentral(object):
 				self._widgetTree = gtk.glade.XML(path)
 				break
 		else:
-			self.display_error_message("Cannot find dialcentral.glade")
+			display_error_message("Cannot find dialcentral.glade")
 			gtk.main_quit()
 			return
 
 		self._window = self._widgetTree.get_widget("mainWindow")
 		self._notebook = self._widgetTree.get_widget("notebook")
 		self._errorDisplay = gtk_toolbox.ErrorDisplay(self._widgetTree)
-		self._credentials = gtk_toolbox.LoginWindow(self._widgetTree)
+		self._credentialsDialog = gtk_toolbox.LoginWindow(self._widgetTree)
 
 		self._app = None
 		self._isFullScreen = False
@@ -140,7 +157,7 @@ class Dialcentral(object):
 		self._widgetTree.signal_autoconnect(callbackMapping)
 
 		if self._window:
-			self._window.connect("destroy", gtk.main_quit)
+			self._window.connect("destroy", self._on_close)
 			self._window.show_all()
 			self._window.set_default_size(800, 300)
 
@@ -283,6 +300,13 @@ class Dialcentral(object):
 		}
 		self._widgetTree.signal_autoconnect(callbackMapping)
 
+		self._initDone = True
+
+		config = ConfigParser.SafeConfigParser()
+		config.read(self._user_settings)
+		with gtk_toolbox.gtk_lock():
+			self.load_settings(config)
+
 		self.attempt_login(2)
 
 		return False
@@ -309,6 +333,7 @@ class Dialcentral(object):
 			if self._phoneBackends[self._defaultBackendId].is_authed():
 				serviceId = self._defaultBackendId
 				loggedIn = True
+				username, password = self._credentials
 			for x in xrange(numOfAttempts):
 				if loggedIn:
 					break
@@ -317,7 +342,9 @@ class Dialcentral(object):
 						self.GV_BACKEND: "Google Voice",
 						self.GC_BACKEND: "Grand Central",
 					}
-					credentials = self._credentials.request_credentials_from(availableServices)
+					credentials = self._credentialsDialog.request_credentials_from(
+						availableServices, defaultCredentials = self._credentials
+					)
 					serviceId, username, password = credentials
 
 				loggedIn = self._phoneBackends[serviceId].login(username, password)
@@ -326,24 +353,22 @@ class Dialcentral(object):
 			self._errorDisplay.push_exception_with_lock(e)
 
 		with gtk_toolbox.gtk_lock():
-			if not loggedIn:
+			if loggedIn:
+				self._credentials = username, password
+			else:
 				self._errorDisplay.push_message("Login Failed")
 			self._change_loggedin_status(serviceId if loggedIn else self.NULL_BACKEND)
 		return loggedIn
 
-	def display_error_message(self, msg):
-		error_dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, msg)
-
-		def close(dialog, response, editor):
-			editor.about_dialog = None
-			dialog.destroy()
-		error_dialog.connect("response", close, self)
-		error_dialog.run()
-
 	def _on_close(self, *args, **kwds):
-		if self._osso is not None:
-			self._osso.close()
-		gtk.main_quit()
+		try:
+			if self._osso is not None:
+				self._osso.close()
+
+			if self._initDone:
+				self._save_settings()
+		finally:
+			gtk.main_quit()
 
 	def _change_loggedin_status(self, newStatus):
 		oldStatus = self._selectedBackendId
@@ -368,6 +393,50 @@ class Dialcentral(object):
 
 		self._selectedBackendId = newStatus
 
+	def load_settings(self, config):
+		"""
+		@note UI Thread
+		"""
+		self._defaultBackendId = int(config.get(self.__pretty_app_name__, "active"))
+		blobs = (
+			config.get(self.__pretty_app_name__, "bin_blob_%i" % i)
+			for i in xrange(len(self._credentials))
+		)
+		creds = (
+			base64.b64decode(blob)
+			for blob in blobs
+		)
+		self._credentials = tuple(creds)
+		for backendId, view in itertools.chain(
+			self._dialpads.iteritems(),
+			self._accountViews.iteritems(),
+			self._messagesViews.iteritems(),
+			self._recentViews.iteritems(),
+			self._contactsViews.iteritems(),
+		):
+			sectionName = "%s - %s" % (backendId, view.name())
+			view.load_settings(config, sectionName)
+
+	def save_settings(self, config):
+		"""
+		@note Thread Agnostic
+		"""
+		config.add_section(self.__pretty_app_name__)
+		config.set(self.__pretty_app_name__, "active", str(self._selectedBackendId))
+		for i, value in enumerate(self._credentials):
+			blob = base64.b64encode(value)
+			config.set(self.__pretty_app_name__, "bin_blob_%i" % i, blob)
+		for backendId, view in itertools.chain(
+			self._dialpads.iteritems(),
+			self._accountViews.iteritems(),
+			self._messagesViews.iteritems(),
+			self._recentViews.iteritems(),
+			self._contactsViews.iteritems(),
+		):
+			sectionName = "%s - %s" % (backendId, view.name())
+			config.add_section(sectionName)
+			view.save_settings(config, sectionName)
+
 	def _guess_preferred_backend(self, backendAndCookiePaths):
 		modTimeAndPath = [
 			(getmtime_nothrow(path), backendId, path)
@@ -375,6 +444,15 @@ class Dialcentral(object):
 		]
 		modTimeAndPath.sort()
 		return modTimeAndPath[-1][1]
+
+	def _save_settings(self):
+		"""
+		@note Thread Agnostic
+		"""
+		config = ConfigParser.SafeConfigParser()
+		self.save_settings(config)
+		with open(self._user_settings, "wb") as configFile:
+			config.write(configFile)
 
 	def _on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
 		"""
@@ -388,6 +466,9 @@ class Dialcentral(object):
 				self._phoneBackends[backendId].clear_caches()
 			self._contactsViews[self._selectedBackendId].clear_caches()
 			gc.collect()
+
+		if save_unsaved_data or shutdown:
+			self._save_settings()
 
 	def _on_connection_change(self, connection, event, magicIdentifier):
 		"""
