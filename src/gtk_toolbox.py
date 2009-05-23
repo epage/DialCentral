@@ -21,6 +21,14 @@ def gtk_lock():
 		gtk.gdk.threads_leave()
 
 
+def find_parent_window(widget):
+	while True:
+		parent = widget.get_parent()
+		if isinstance(parent, gtk.Window):
+			return parent
+		widget = parent
+
+
 def make_idler(func):
 	"""
 	Decorator that makes a generator-function into a function that will continue execution on next call

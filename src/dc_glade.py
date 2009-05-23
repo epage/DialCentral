@@ -18,7 +18,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-@bug Completely broken on Maemo
+@bug SMS Dialog issues on Hildon
 @bug Session timeouts are bad, possible solutions:
 	@li For every X minutes, if logged in, attempt login
 	@li Restructure so code handling login/dial/sms is beneath everything else and login attempts are made if those fail

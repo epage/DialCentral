@@ -340,7 +340,7 @@ class PhoneTypeSelector(object):
 
 		self._action = self.ACTION_CANCEL
 
-	def run(self, contactDetails, message = ""):
+	def run(self, contactDetails, message = "", parent = None):
 		self._action = self.ACTION_CANCEL
 		self._typemodel.clear()
 		self._typeview.set_model(self._typemodel)
@@ -371,7 +371,13 @@ class PhoneTypeSelector(object):
 			self._message.set_markup("")
 			self._message.hide()
 
-		userResponse = self._dialog.run()
+		if parent is not None:
+			self._dialog.set_transient_for(parent)
+
+		try:
+			userResponse = self._dialog.run()
+		finally:
+			self._dialog.hide()
 
 		if userResponse == gtk.RESPONSE_OK:
 			phoneNumber = self._get_number()
@@ -382,7 +388,7 @@ class PhoneTypeSelector(object):
 			self._action = self.ACTION_CANCEL
 
 		if self._action == self.ACTION_SEND_SMS:
-			smsMessage = self._smsDialog.run(phoneNumber, message)
+			smsMessage = self._smsDialog.run(phoneNumber, message, parent)
 			if not smsMessage:
 				phoneNumber = ""
 				self._action = self.ACTION_CANCEL
@@ -393,7 +399,7 @@ class PhoneTypeSelector(object):
 		self._typeview.remove_column(numberColumn)
 		self._typeview.remove_column(typeColumn)
 		self._typeview.set_model(None)
-		self._dialog.hide()
+
 		return self._action, phoneNumber, smsMessage
 
 	def _get_number(self):
@@ -441,7 +447,7 @@ class SmsEntryDialog(object):
 		self._smsEntry = self._widgetTree.get_widget("smsEntry")
 		self._smsEntry.get_buffer().connect("changed", self._on_entry_changed)
 
-	def run(self, number, message = ""):
+	def run(self, number, message = "", parent = None):
 		if message:
 			self._message.set_markup(message)
 			self._message.show()
@@ -451,7 +457,14 @@ class SmsEntryDialog(object):
 		self._smsEntry.get_buffer().set_text("")
 		self._update_letter_count()
 
-		userResponse = self._dialog.run()
+		if parent is not None:
+			self._dialog.set_transient_for(parent)
+
+		try:
+			userResponse = self._dialog.run()
+		finally:
+			self._dialog.hide()
+
 		if userResponse == gtk.RESPONSE_OK:
 			entryBuffer = self._smsEntry.get_buffer()
 			enteredMessage = entryBuffer.get_text(entryBuffer.get_start_iter(), entryBuffer.get_end_iter())
@@ -459,7 +472,6 @@ class SmsEntryDialog(object):
 		else:
 			enteredMessage = ""
 
-		self._dialog.hide()
 		return enteredMessage
 
 	def _update_letter_count(self, *args):
@@ -692,6 +704,7 @@ class RecentCallsView(object):
 		self._recentviewColumn.add_attribute(textrenderer, "text", 1)
 		self._recentviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
+		self._window = gtk_toolbox.find_parent_window(self._recentview)
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
 
 	def enable(self):
@@ -771,7 +784,11 @@ class RecentCallsView(object):
 		contactPhoneNumbers = [("Phone", number)]
 		description = self._recentmodel.get_value(itr, 1)
 
-		action, phoneNumber, message = self._phoneTypeSelector.run(contactPhoneNumbers, message = description)
+		action, phoneNumber, message = self._phoneTypeSelector.run(
+			contactPhoneNumbers,
+			message = description,
+			parent = self._window,
+		)
 		if action == PhoneTypeSelector.ACTION_CANCEL:
 			return
 		assert phoneNumber
@@ -799,6 +816,7 @@ class MessagesView(object):
 		self._messageviewColumn.add_attribute(textrenderer, "markup", 1)
 		self._messageviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
+		self._window = gtk_toolbox.find_parent_window(self._messageview)
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
 
 	def enable(self):
@@ -876,7 +894,11 @@ class MessagesView(object):
 		contactPhoneNumbers = [("Phone", self._messagemodel.get_value(itr, 0))]
 		description = self._messagemodel.get_value(itr, 1)
 
-		action, phoneNumber, message = self._phoneTypeSelector.run(contactPhoneNumbers, message = description)
+		action, phoneNumber, message = self._phoneTypeSelector.run(
+			contactPhoneNumbers,
+			message = description,
+			parent = self._window,
+		)
 		if action == PhoneTypeSelector.ACTION_CANCEL:
 			return
 		assert phoneNumber
@@ -920,6 +942,7 @@ class ContactsView(object):
 
 		self._onContactsviewRowActivatedId = 0
 		self._onAddressbookComboChangedId = 0
+		self._window = gtk_toolbox.find_parent_window(self._contactsview)
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
 
 	def enable(self):
@@ -1065,7 +1088,11 @@ class ContactsView(object):
 		if len(contactPhoneNumbers) == 0:
 			return
 
-		action, phoneNumber, message = self._phoneTypeSelector.run(contactPhoneNumbers, message = contactName)
+		action, phoneNumber, message = self._phoneTypeSelector.run(
+			contactPhoneNumbers,
+			message = contactName,
+			parent = self._window,
+		)
 		if action == PhoneTypeSelector.ACTION_CANCEL:
 			return
 		assert phoneNumber
