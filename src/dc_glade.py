@@ -19,7 +19,9 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @bug Completely broken on Maemo
-@todo For every X minutes, if logged in, attempt login
+@bug Session timeouts are bad, possible solutions:
+	@li For every X minutes, if logged in, attempt login
+	@li Restructure so code handling login/dial/sms is beneath everything else and login attempts are made if those fail
 @todo Force login on connect if not already done
 @todo Can't text from dialpad (so can't do any arbitrary number texts)
 @todo Add logging support to make debugging issues for people a lot easier
@@ -281,6 +283,7 @@ class Dialcentral(object):
 		for backendId in (self.GV_BACKEND, self.GC_BACKEND):
 			self._dialpads[backendId].dial = self._on_dial_clicked
 			self._recentViews[backendId].number_selected = self._on_number_selected
+			self._messagesViews[backendId].number_selected = self._on_number_selected
 			self._contactsViews[backendId].number_selected = self._on_number_selected
 
 			addressBooks = [
