@@ -12,6 +12,8 @@ __build__ = 0
 __changelog__ = '''
 0.9.7
  * Force Refresh for when wanting to check for more messages
+ * Removed timeouts that forced refreshes on various tabs
+ * Added support for a settings file, fairly primitive right now
 
 0.9.6
  * Experimenting with the tabs being on the side
