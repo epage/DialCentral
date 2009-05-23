@@ -129,13 +129,15 @@ class Dialcentral(object):
 		self._isFullScreen = False
 		if hildon is not None:
 			self._app = hildon.Program()
+			oldWindow = self._window
 			self._window = hildon.Window()
-			self._widgetTree.get_widget("vbox1").reparent(self._window)
+			oldWindow.get_child().reparent(self._window)
 			self._app.add_window(self._window)
 			self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
 			self._widgetTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
 			self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
 			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('recent_scrolledwindow'), True)
+			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('message_scrolledwindow'), True)
 			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('contacts_scrolledwindow'), True)
 
 			gtkMenu = self._widgetTree.get_widget("dialpad_menubar")
@@ -204,6 +206,7 @@ class Dialcentral(object):
 		else:
 			pass # warnings.warn("No OSSO", UserWarning)
 
+		# Setup maemo specifics
 		try:
 			import conic
 		except ImportError:
@@ -426,15 +429,25 @@ class Dialcentral(object):
 		@note UI Thread
 		"""
 		self._defaultBackendId = int(config.get(self.__pretty_app_name__, "active"))
-		blobs = (
-			config.get(self.__pretty_app_name__, "bin_blob_%i" % i)
-			for i in xrange(len(self._credentials))
-		)
-		creds = (
-			base64.b64decode(blob)
-			for blob in blobs
-		)
-		self._credentials = tuple(creds)
+		try:
+			blobs = (
+				config.get(self.__pretty_app_name__, "bin_blob_%i" % i)
+				for i in xrange(len(self._credentials))
+			)
+			creds = (
+				base64.b64decode(blob)
+				for blob in blobs
+			)
+			self._credentials = tuple(creds)
+		except ConfigParser.NoSectionError, e:
+			warnings.warn(
+				"Settings file %s is missing section %s" % (
+					self._user_settings,
+					e.section,
+				),
+				stacklevel=2
+			)
+
 		for backendId, view in itertools.chain(
 			self._dialpads.iteritems(),
 			self._accountViews.iteritems(),
@@ -443,7 +456,16 @@ class Dialcentral(object):
 			self._contactsViews.iteritems(),
 		):
 			sectionName = "%s - %s" % (backendId, view.name())
-			view.load_settings(config, sectionName)
+			try:
+				view.load_settings(config, sectionName)
+			except ConfigParser.NoSectionError, e:
+				warnings.warn(
+					"Settings file %s is missing section %s" % (
+						self._user_settings,
+						e.section,
+					),
+					stacklevel=2
+				)
 
 	def save_settings(self, config):
 		"""
@@ -511,13 +533,15 @@ class Dialcentral(object):
 
 		if status == conic.STATUS_CONNECTED:
 			self._deviceIsOnline = True
-			backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
-			backgroundLogin.setDaemon(True)
-			backgroundLogin.start()
+			if self._initDone:
+				backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
+				backgroundLogin.setDaemon(True)
+				backgroundLogin.start()
 		elif status == conic.STATUS_DISCONNECTED:
 			self._deviceIsOnline = False
-			self._defaultBackendId = self._selectedBackendId
-			self._change_loggedin_status(self.NULL_BACKEND)
+			if self._initDone:
+				self._defaultBackendId = self._selectedBackendId
+				self._change_loggedin_status(self.NULL_BACKEND)
 
 	def _on_window_state_change(self, widget, event, *args):
 		"""
