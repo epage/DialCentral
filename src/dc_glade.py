@@ -19,7 +19,8 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @bug Completely broken on Maemo
-@todo Add storing of credentials like DoneIt
+@todo For every X minutes, if logged in, attempt login
+@todo Force login on connect if not already done
 @todo Add logging support to make debugging issues for people a lot easier
 """
 
@@ -337,7 +338,8 @@ class Dialcentral(object):
 			loggedIn = self._phoneBackends[self._defaultBackendId].is_authed()
 			if loggedIn:
 				warnings.warn(
-					"Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId]
+					"Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId],
+					UserWarning, 2
 				)
 
 			# Attempt using the settings file
@@ -345,7 +347,8 @@ class Dialcentral(object):
 				loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
 				if loggedIn:
 					warnings.warn(
-						"Logged into %r through settings" % self._phoneBackends[self._defaultBackendId]
+						"Logged into %r through settings" % self._phoneBackends[self._defaultBackendId],
+						UserWarning, 2
 					)
 
 			# Query the user for credentials
@@ -365,7 +368,8 @@ class Dialcentral(object):
 				loggedIn = self._phoneBackends[serviceId].login(username, password)
 			if 0 < attemptCount:
 				warnings.warn(
-					"Logged into %r through user request" % self._phoneBackends[serviceId]
+					"Logged into %r through user request" % self._phoneBackends[serviceId],
+					UserWarning, 2
 				)
 		except RuntimeError, e:
 			warnings.warn(traceback.format_exc())
