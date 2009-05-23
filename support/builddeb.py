@@ -11,9 +11,11 @@ __version__ = "0.9.7"
 __build__ = 0
 __changelog__ = '''
 0.9.7
- * Force Refresh for when wanting to check for more messages
+ * Switched to Force Refresh for when wanting to check for more messages
  * Removed timeouts that forced refreshes on various tabs
  * Added support for a settings file, fairly primitive right now
+ * Fixed Maemo Support
+ * Lots of major and minor bug fixes
 
 0.9.6
  * Experimenting with the tabs being on the side

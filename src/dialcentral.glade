@@ -921,7 +921,6 @@ Number:</property>
     <property name="type_hint">dialog</property>
     <property name="skip_taskbar_hint">True</property>
     <property name="skip_pager_hint">True</property>
-    <property name="deletable">False</property>
     <property name="has_separator">False</property>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="phoneTypeLayout">
@@ -1046,10 +1045,9 @@ Number:</property>
     <property name="border_width">5</property>
     <property name="title" translatable="yes">Send SMS</property>
     <property name="modal">True</property>
-    <property name="window_position">center</property>
-    <property name="default_width">800</property>
-    <property name="default_height">300</property>
-    <property name="type_hint">normal</property>
+    <property name="window_position">center-on-parent</property>
+    <property name="destroy_with_parent">True</property>
+    <property name="type_hint">dialog</property>
     <property name="skip_taskbar_hint">True</property>
     <property name="skip_pager_hint">True</property>
     <property name="has_separator">False</property>
@@ -1059,55 +1057,46 @@ Number:</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
-          <widget class="GtkVBox" id="smsDisplayBox">
+          <widget class="GtkScrolledWindow" id="smsMessage_scrolledwindow">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">never</property>
+            <property name="vscrollbar_policy">automatic</property>
             <child>
-              <widget class="GtkScrolledWindow" id="smsMessage_scrolledwindow">
+              <widget class="GtkViewport" id="smsMessage_viewport">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">never</property>
-                <property name="vscrollbar_policy">automatic</property>
+                <property name="resize_mode">queue</property>
                 <child>
-                  <widget class="GtkViewport" id="smsMessage_viewport">
+                  <widget class="GtkLabel" id="smsMessage">
                     <property name="visible">True</property>
-                    <property name="resize_mode">queue</property>
-                    <child>
-                      <widget class="GtkLabel" id="smsMessage">
-                        <property name="visible">True</property>
-                        <property name="use_markup">True</property>
-                        <property name="wrap">True</property>
-                      </widget>
-                    </child>
+                    <property name="use_markup">True</property>
+                    <property name="wrap">True</property>
                   </widget>
                 </child>
               </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkScrolledWindow" id="scrolledwindow1">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">never</property>
-                <property name="vscrollbar_policy">automatic</property>
-                <child>
-                  <widget class="GtkTextView" id="smsEntry">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="wrap_mode">word</property>
-                  </widget>
-                </child>
-              </widget>
-              <packing>
-                <property name="position">1</property>
-              </packing>
             </child>
           </widget>
           <packing>
+            <property name="expand">False</property>
             <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkScrolledWindow" id="scrolledwindow1">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">never</property>
+            <property name="vscrollbar_policy">automatic</property>
+            <child>
+              <widget class="GtkTextView" id="smsEntry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="wrap_mode">word</property>
+              </widget>
+            </child>
+          </widget>
+          <packing>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -1137,7 +1126,7 @@ Number:</property>
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child internal-child="action_area">
