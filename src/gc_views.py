@@ -656,7 +656,7 @@ class AccountInfo(object):
 		"""
 		try:
 			if not self._backend.is_valid_syntax(number):
-				self._errorDisplay.push_message("%s is not a valid callback number" % numbern)
+				self._errorDisplay.push_message("%s is not a valid callback number" % number)
 			elif number == self._backend.get_callback_number():
 				warnings.warn("Callback number already is %s" % self._backend.get_callback_number(), UserWarning, 2)
 			else:
