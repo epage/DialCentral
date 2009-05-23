@@ -509,7 +509,6 @@
                       <widget class="GtkButton" id="dial">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="has_default">True</property>
                         <property name="receives_default">False</property>
                         <signal name="clicked" handler="on_dial_clicked"/>
                         <accelerator key="Return" signal="clicked"/>
@@ -893,7 +892,6 @@ Number:</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="can_default">True</property>
-                <property name="has_default">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_stock">True</property>
                 <signal name="clicked" handler="on_loginbutton_clicked"/>
