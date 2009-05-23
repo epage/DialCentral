@@ -330,11 +330,26 @@ class Dialcentral(object):
 
 		loggedIn = False
 		try:
-			if self._phoneBackends[self._defaultBackendId].is_authed():
-				serviceId = self._defaultBackendId
-				loggedIn = True
-				username, password = self._credentials
-			for x in xrange(numOfAttempts):
+			username, password = self._credentials
+			serviceId = self._defaultBackendId
+
+			# Attempt using the cookies
+			loggedIn = self._phoneBackends[self._defaultBackendId].is_authed()
+			if loggedIn:
+				warnings.warn(
+					"Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId]
+				)
+
+			# Attempt using the settings file
+			if not loggedIn and username and password:
+				loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
+				if loggedIn:
+					warnings.warn(
+						"Logged into %r through settings" % self._phoneBackends[self._defaultBackendId]
+					)
+
+			# Query the user for credentials
+			for attemptCount in xrange(numOfAttempts):
 				if loggedIn:
 					break
 				with gtk_toolbox.gtk_lock():
@@ -348,6 +363,10 @@ class Dialcentral(object):
 					serviceId, username, password = credentials
 
 				loggedIn = self._phoneBackends[serviceId].login(username, password)
+			if 0 < attemptCount:
+				warnings.warn(
+					"Logged into %r through user request" % self._phoneBackends[serviceId]
+				)
 		except RuntimeError, e:
 			warnings.warn(traceback.format_exc())
 			self._errorDisplay.push_exception_with_lock(e)
@@ -355,9 +374,10 @@ class Dialcentral(object):
 		with gtk_toolbox.gtk_lock():
 			if loggedIn:
 				self._credentials = username, password
+				self._change_loggedin_status(serviceId)
 			else:
 				self._errorDisplay.push_message("Login Failed")
-			self._change_loggedin_status(serviceId if loggedIn else self.NULL_BACKEND)
+				self._change_loggedin_status(self.NULL_BACKEND)
 		return loggedIn
 
 	def _on_close(self, *args, **kwds):
@@ -523,12 +543,14 @@ class Dialcentral(object):
 		backgroundLogin.start()
 
 	def _on_notebook_switch_page(self, notebook, page, page_num):
-		if page_num == self.CONTACTS_TAB:
-			self._contactsViews[self._selectedBackendId].update()
-		elif page_num == self.RECENT_TAB:
+		if page_num == self.RECENT_TAB:
 			self._recentViews[self._selectedBackendId].update()
 		elif page_num == self.MESSAGES_TAB:
 			self._messagesViews[self._selectedBackendId].update()
+		elif page_num == self.CONTACTS_TAB:
+			self._contactsViews[self._selectedBackendId].update()
+		elif page_num == self.ACCOUNT_TAB:
+			self._accountViews[self._selectedBackendId].update()
 
 		tabTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
 		if hildon is not None:

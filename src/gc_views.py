@@ -573,6 +573,7 @@ class AccountInfo(object):
 	def __init__(self, widgetTree, backend, errorDisplay):
 		self._errorDisplay = errorDisplay
 		self._backend = backend
+		self._isPopulated = False
 
 		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
 		self._accountViewNumberDisplay = widgetTree.get_widget("gcnumber_display")
@@ -586,12 +587,14 @@ class AccountInfo(object):
 		self._accountViewNumberDisplay.set_use_markup(True)
 		self.set_account_number("")
 		self._callbackList.clear()
-		self.update()
 		self._onCallbackentryChangedId = self._callbackCombo.get_child().connect("changed", self._on_callbackentry_changed)
+		self.update(force=True)
 
 	def disable(self):
 		self._callbackCombo.get_child().disconnect(self._onCallbackentryChangedId)
+
 		self.clear()
+
 		self._callbackList.clear()
 
 	def get_selected_callback_number(self):
@@ -604,12 +607,15 @@ class AccountInfo(object):
 		self._accountViewNumberDisplay.set_label("<span size='23000' weight='bold'>%s</span>" % (number))
 
 	def update(self, force = False):
+		if not force and self._isPopulated:
+			return
 		self._populate_callback_combo()
 		self.set_account_number(self._backend.get_account_number())
 
 	def clear(self):
 		self._callbackCombo.get_child().set_text("")
 		self.set_account_number("")
+		self._isPopulated = False
 
 	@staticmethod
 	def name():
@@ -626,11 +632,13 @@ class AccountInfo(object):
 		config.set(section, "callback", callback)
 
 	def _populate_callback_combo(self):
+		self._isPopulated = True
 		self._callbackList.clear()
 		try:
 			callbackNumbers = self._backend.get_callback_numbers()
 		except RuntimeError, e:
 			self._errorDisplay.push_exception(e)
+			self._isPopulated = False
 			return
 
 		for number, description in callbackNumbers.iteritems():
@@ -638,26 +646,31 @@ class AccountInfo(object):
 
 		self._callbackCombo.set_model(self._callbackList)
 		self._callbackCombo.set_text_column(0)
-		try:
-			callbackNumber = self._backend.get_callback_number()
-		except RuntimeError, e:
-			callbackNumber = self._defaultCallback
+		#callbackNumber = self._backend.get_callback_number()
+		callbackNumber = self._defaultCallback
 		self._callbackCombo.get_child().set_text(make_pretty(callbackNumber))
+
+	def _set_callback_number(self, number):
+		"""
+		@todo Potential blocking on web access, maybe we should defer this or put up a dialog?
+		"""
+		try:
+			if not self._backend.is_valid_syntax(number):
+				self._errorDisplay.push_message("%s is not a valid callback number" % numbern)
+			elif number == self._backend.get_callback_number():
+				warnings.warn("Callback number already is %s" % self._backend.get_callback_number(), UserWarning, 2)
+			else:
+				self._backend.set_callback_number(number)
+				warnings.warn("Callback number set to %s" % self._backend.get_callback_number(), UserWarning, 2)
+		except RuntimeError, e:
+			self._errorDisplay.push_exception(e)
 
 	def _on_callbackentry_changed(self, *args):
 		"""
 		@todo Potential blocking on web access, maybe we should defer this or put up a dialog?
 		"""
-		try:
-			text = self.get_selected_callback_number()
-			if not self._backend.is_valid_syntax(text):
-				self._errorDisplay.push_message("%s is not a valid callback number" % text)
-			elif text == self._backend.get_callback_number():
-				warnings.warn("Callback number already is %s" % self._backend.get_callback_number(), UserWarning, 2)
-			else:
-				self._backend.set_callback_number(text)
-		except RuntimeError, e:
-			self._errorDisplay.push_exception(e)
+		text = self.get_selected_callback_number()
+		self._set_callback_number(text)
 
 
 class RecentCallsView(object):
@@ -693,6 +706,9 @@ class RecentCallsView(object):
 
 	def disable(self):
 		self._recentview.disconnect(self._onRecentviewRowActivatedId)
+
+		self.clear()
+
 		self._recentview.remove_column(self._recentviewColumn)
 		self._recentview.set_model(None)
 
@@ -797,6 +813,9 @@ class MessagesView(object):
 
 	def disable(self):
 		self._messageview.disconnect(self._onMessageviewRowActivatedId)
+
+		self.clear()
+
 		self._messageview.remove_column(self._messageviewColumn)
 		self._messageview.set_model(None)
 
@@ -936,6 +955,8 @@ class ContactsView(object):
 	def disable(self):
 		self._contactsview.disconnect(self._onContactsviewRowActivatedId)
 		self._booksSelectionBox.disconnect(self._onAddressbookComboChangedId)
+
+		self.clear()
 
 		self._booksSelectionBox.clear()
 		self._booksSelectionBox.set_model(None)
