@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 @bug Completely broken on Maemo
 @todo For every X minutes, if logged in, attempt login
 @todo Force login on connect if not already done
+@todo Can't text from dialpad (so can't do any arbitrary number texts)
 @todo Add logging support to make debugging issues for people a lot easier
 """
 
