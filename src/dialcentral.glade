@@ -1063,10 +1063,24 @@ Number:</property>
             <property name="visible">True</property>
             <property name="orientation">vertical</property>
             <child>
-              <widget class="GtkLabel" id="smsMessage">
+              <widget class="GtkScrolledWindow" id="smsMessage_scrolledwindow">
                 <property name="visible">True</property>
-                <property name="use_markup">True</property>
-                <property name="wrap">True</property>
+                <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">never</property>
+                <property name="vscrollbar_policy">automatic</property>
+                <child>
+                  <widget class="GtkViewport" id="smsMessage_viewport">
+                    <property name="visible">True</property>
+                    <property name="resize_mode">queue</property>
+                    <child>
+                      <widget class="GtkLabel" id="smsMessage">
+                        <property name="visible">True</property>
+                        <property name="use_markup">True</property>
+                        <property name="wrap">True</property>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
               </widget>
               <packing>
                 <property name="expand">False</property>
