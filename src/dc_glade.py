@@ -319,7 +319,7 @@ class Dialcentral(object):
 
 		return False
 
-	def attempt_login(self, numOfAttempts = 10):
+	def attempt_login(self, numOfAttempts = 10, force = False):
 		"""
 		@todo Handle user notification better like attempting to login and failed login
 
@@ -327,57 +327,30 @@ class Dialcentral(object):
 		"""
 		assert 0 < numOfAttempts, "That was pointless having 0 or less login attempts"
 
-		if not self._deviceIsOnline:
-			warnings.warn("Attempted to login while device was offline")
-			return False
-		elif self._phoneBackends is None or len(self._phoneBackends) < len(self.BACKENDS):
+		if self._phoneBackends is None or len(self._phoneBackends) < len(self.BACKENDS):
 			warnings.warn(
 				"Attempted to login before initialization is complete, did an event fire early?"
 			)
 			return False
+
+		with gtk_toolbox.gtk_lock():
+			if not self._deviceIsOnline:
+				self._errorDisplay.push_message(
+					"Unable to login, device is not online"
+				)
+				return False
 
 		loggedIn = False
 		try:
 			username, password = self._credentials
 			serviceId = self._defaultBackendId
 
-			# Attempt using the cookies
-			loggedIn = self._phoneBackends[self._defaultBackendId].is_authed()
-			if loggedIn:
-				warnings.warn(
-					"Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId],
-					UserWarning, 2
-				)
-
-			# Attempt using the settings file
-			if not loggedIn and username and password:
-				loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
-				if loggedIn:
-					warnings.warn(
-						"Logged into %r through settings" % self._phoneBackends[self._defaultBackendId],
-						UserWarning, 2
-					)
-
-			# Query the user for credentials
-			for attemptCount in xrange(numOfAttempts):
-				if loggedIn:
-					break
-				with gtk_toolbox.gtk_lock():
-					availableServices = {
-						self.GV_BACKEND: "Google Voice",
-						self.GC_BACKEND: "Grand Central",
-					}
-					credentials = self._credentialsDialog.request_credentials_from(
-						availableServices, defaultCredentials = self._credentials
-					)
-					serviceId, username, password = credentials
-
-				loggedIn = self._phoneBackends[serviceId].login(username, password)
-			if 0 < attemptCount:
-				warnings.warn(
-					"Logged into %r through user request" % self._phoneBackends[serviceId],
-					UserWarning, 2
-				)
+			if not force:
+				loggedIn, username, password = self._login_by_cookie(username, password)
+				if not loggedIn:
+					loggedIn, username, password = self._login_by_settings(username, password)
+			if not loggedIn:
+				loggedIn, username, password = self._login_by_user(username, password, numOfAttempts)
 		except RuntimeError, e:
 			warnings.warn(traceback.format_exc())
 			self._errorDisplay.push_exception_with_lock(e)
@@ -390,6 +363,48 @@ class Dialcentral(object):
 				self._errorDisplay.push_message("Login Failed")
 				self._change_loggedin_status(self.NULL_BACKEND)
 		return loggedIn
+
+	def _login_by_cookie(self, username, password):
+		loggedIn = self._phoneBackends[self._defaultBackendId].is_authed()
+		if loggedIn:
+			warnings.warn(
+				"Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId],
+				UserWarning, 2
+			)
+		return loggedIn, username, password
+
+	def _login_by_settings(self, username, password):
+		if username and password:
+			loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
+			if loggedIn:
+				warnings.warn(
+					"Logged into %r through settings" % self._phoneBackends[self._defaultBackendId],
+					UserWarning, 2
+				)
+		return loggedIn, username, password
+
+	def _login_by_user(self, username, password, numOfAttempts):
+		loggedIn = False
+		for attemptCount in xrange(numOfAttempts):
+			if loggedIn:
+				break
+			with gtk_toolbox.gtk_lock():
+				availableServices = {
+					self.GV_BACKEND: "Google Voice",
+					self.GC_BACKEND: "Grand Central",
+				}
+				credentials = self._credentialsDialog.request_credentials_from(
+					availableServices, defaultCredentials = self._credentials
+				)
+				serviceId, username, password = credentials
+
+			loggedIn = self._phoneBackends[serviceId].login(username, password)
+		if 0 < attemptCount:
+			warnings.warn(
+				"Logged into %r through user request" % self._phoneBackends[serviceId],
+				UserWarning, 2
+			)
+		return loggedIn, username, password
 
 	def _on_close(self, *args, **kwds):
 		try:
@@ -570,7 +585,7 @@ class Dialcentral(object):
 		self._contactsViews[self._selectedBackendId].clear()
 		self._change_loggedin_status(self.NULL_BACKEND)
 
-		backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
+		backgroundLogin = threading.Thread(target=self.attempt_login, args=[2, True])
 		backgroundLogin.setDaemon(True)
 		backgroundLogin.start()
 
