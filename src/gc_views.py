@@ -687,22 +687,44 @@ class AccountInfo(object):
 
 class RecentCallsView(object):
 
+	NUMBER_IDX = 0
+	DATE_IDX = 1
+	ACTION_IDX = 2
+	FROM_IDX = 3
+
 	def __init__(self, widgetTree, backend, errorDisplay):
 		self._errorDisplay = errorDisplay
 		self._backend = backend
 
 		self._isPopulated = False
-		self._recentmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self._recentmodel = gtk.ListStore(
+			gobject.TYPE_STRING, # number
+			gobject.TYPE_STRING, # date
+			gobject.TYPE_STRING, # action
+			gobject.TYPE_STRING, # from
+		)
 		self._recentview = widgetTree.get_widget("recentview")
 		self._recentviewselection = None
 		self._onRecentviewRowActivatedId = 0
 
-		# @todo Make seperate columns for each item in recent item payload
 		textrenderer = gtk.CellRendererText()
-		self._recentviewColumn = gtk.TreeViewColumn("Calls")
-		self._recentviewColumn.pack_start(textrenderer, expand=True)
-		self._recentviewColumn.add_attribute(textrenderer, "text", 1)
-		self._recentviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		textrenderer.set_property("yalign", 0)
+		self._dateColumn = gtk.TreeViewColumn("Date")
+		self._dateColumn.pack_start(textrenderer, expand=True)
+		self._dateColumn.add_attribute(textrenderer, "text", self.DATE_IDX)
+
+		textrenderer = gtk.CellRendererText()
+		textrenderer.set_property("yalign", 0)
+		self._actionColumn = gtk.TreeViewColumn("Action")
+		self._actionColumn.pack_start(textrenderer, expand=True)
+		self._actionColumn.add_attribute(textrenderer, "text", self.ACTION_IDX)
+
+		textrenderer = gtk.CellRendererText()
+		textrenderer.set_property("yalign", 0)
+		self._fromColumn = gtk.TreeViewColumn("From")
+		self._fromColumn.pack_start(textrenderer, expand=True)
+		self._fromColumn.add_attribute(textrenderer, "text", self.FROM_IDX)
+		self._fromColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 		self._window = gtk_toolbox.find_parent_window(self._recentview)
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
@@ -711,7 +733,9 @@ class RecentCallsView(object):
 		assert self._backend.is_authed()
 		self._recentview.set_model(self._recentmodel)
 
-		self._recentview.append_column(self._recentviewColumn)
+		self._recentview.append_column(self._dateColumn)
+		self._recentview.append_column(self._actionColumn)
+		self._recentview.append_column(self._fromColumn)
 		self._recentviewselection = self._recentview.get_selection()
 		self._recentviewselection.set_mode(gtk.SELECTION_SINGLE)
 
@@ -722,7 +746,9 @@ class RecentCallsView(object):
 
 		self.clear()
 
-		self._recentview.remove_column(self._recentviewColumn)
+		self._recentview.remove_column(self._dateColumn)
+		self._recentview.remove_column(self._actionColumn)
+		self._recentview.remove_column(self._fromColumn)
 		self._recentview.set_model(None)
 
 	def number_selected(self, action, number, message):
@@ -766,9 +792,11 @@ class RecentCallsView(object):
 			self._isPopulated = False
 			recentItems = []
 
-		for personsName, phoneNumber, date, action in recentItems:
-			description = "%s on %s from/to %s - %s" % (action.capitalize(), date, personsName, phoneNumber)
-			item = (phoneNumber, description)
+		for personName, phoneNumber, date, action in recentItems:
+			if not personName:
+				personName = "Unknown"
+			description = "%s (%s)" % (phoneNumber, personName)
+			item = (phoneNumber, date, action.capitalize(), description)
 			with gtk_toolbox.gtk_lock():
 				self._recentmodel.append(item)
 
@@ -779,10 +807,10 @@ class RecentCallsView(object):
 		if not itr:
 			return
 
-		number = self._recentmodel.get_value(itr, 0)
+		number = self._recentmodel.get_value(itr, self.NUMBER_IDX)
 		number = make_ugly(number)
 		contactPhoneNumbers = [("Phone", number)]
-		description = self._recentmodel.get_value(itr, 1)
+		description = self._recentmodel.get_value(itr, self.FROM_IDX)
 
 		action, phoneNumber, message = self._phoneTypeSelector.run(
 			contactPhoneNumbers,
@@ -799,22 +827,44 @@ class RecentCallsView(object):
 
 class MessagesView(object):
 
+	NUMBER_IDX = 0
+	DATE_IDX = 1
+	HEADER_IDX = 2
+	MESSAGE_IDX = 3
+
 	def __init__(self, widgetTree, backend, errorDisplay):
 		self._errorDisplay = errorDisplay
 		self._backend = backend
 
 		self._isPopulated = False
-		self._messagemodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self._messagemodel = gtk.ListStore(
+			gobject.TYPE_STRING, # number
+			gobject.TYPE_STRING, # date
+			gobject.TYPE_STRING, # header
+			gobject.TYPE_STRING, # message
+		)
 		self._messageview = widgetTree.get_widget("messages_view")
 		self._messageviewselection = None
 		self._onMessageviewRowActivatedId = 0
 
 		textrenderer = gtk.CellRendererText()
-		# @todo Make seperate columns for each item in message payload
-		self._messageviewColumn = gtk.TreeViewColumn("Messages")
-		self._messageviewColumn.pack_start(textrenderer, expand=True)
-		self._messageviewColumn.add_attribute(textrenderer, "markup", 1)
-		self._messageviewColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		textrenderer.set_property("yalign", 0)
+		self._dateColumn = gtk.TreeViewColumn("Date")
+		self._dateColumn.pack_start(textrenderer, expand=True)
+		self._dateColumn.add_attribute(textrenderer, "markup", self.DATE_IDX)
+
+		textrenderer = gtk.CellRendererText()
+		textrenderer.set_property("yalign", 0)
+		self._headerColumn = gtk.TreeViewColumn("From")
+		self._headerColumn.pack_start(textrenderer, expand=True)
+		self._headerColumn.add_attribute(textrenderer, "markup", self.HEADER_IDX)
+
+		textrenderer = gtk.CellRendererText()
+		textrenderer.set_property("yalign", 0)
+		self._messageColumn = gtk.TreeViewColumn("Messages")
+		self._messageColumn.pack_start(textrenderer, expand=True)
+		self._messageColumn.add_attribute(textrenderer, "markup", self.MESSAGE_IDX)
+		self._messageColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 		self._window = gtk_toolbox.find_parent_window(self._messageview)
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
@@ -823,7 +873,9 @@ class MessagesView(object):
 		assert self._backend.is_authed()
 		self._messageview.set_model(self._messagemodel)
 
-		self._messageview.append_column(self._messageviewColumn)
+		self._messageview.append_column(self._dateColumn)
+		self._messageview.append_column(self._headerColumn)
+		self._messageview.append_column(self._messageColumn)
 		self._messageviewselection = self._messageview.get_selection()
 		self._messageviewselection.set_mode(gtk.SELECTION_SINGLE)
 
@@ -834,7 +886,9 @@ class MessagesView(object):
 
 		self.clear()
 
-		self._messageview.remove_column(self._messageviewColumn)
+		self._messageview.remove_column(self._dateColumn)
+		self._messageview.remove_column(self._headerColumn)
+		self._messageview.remove_column(self._messageColumn)
 		self._messageview.set_model(None)
 
 	def number_selected(self, action, number, message):
@@ -880,7 +934,7 @@ class MessagesView(object):
 
 		for header, number, relativeDate, message in messageItems:
 			number = make_ugly(number)
-			row = (number, message)
+			row = (number, relativeDate, header, message)
 			with gtk_toolbox.gtk_lock():
 				self._messagemodel.append(row)
 
@@ -891,8 +945,8 @@ class MessagesView(object):
 		if not itr:
 			return
 
-		contactPhoneNumbers = [("Phone", self._messagemodel.get_value(itr, 0))]
-		description = self._messagemodel.get_value(itr, 1)
+		contactPhoneNumbers = [("Phone", self._messagemodel.get_value(itr, self.NUMBER_IDX))]
+		description = self._messagemodel.get_value(itr, self.MESSAGE_IDX)
 
 		action, phoneNumber, message = self._phoneTypeSelector.run(
 			contactPhoneNumbers,

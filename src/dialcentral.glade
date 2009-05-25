@@ -579,9 +579,8 @@
                   <widget class="GtkTreeView" id="recentview">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="headers_visible">False</property>
+                    <property name="headers_visible">True</property>
                     <property name="rules_hint">True</property>
-                    <property name="fixed_height_mode">True</property>
                     <property name="enable_grid_lines">horizontal</property>
                     <property name="enable_tree_lines">True</property>
                     <signal name="row_activated" handler="on_recentview_row_activated"/>
@@ -618,6 +617,8 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="rules_hint">True</property>
+                    <property name="enable_grid_lines">horizontal</property>
+                    <property name="enable_tree_lines">True</property>
                   </widget>
                 </child>
               </widget>

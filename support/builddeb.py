@@ -7,9 +7,12 @@ __appname__ = "dialcentral"
 __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
-__version__ = "0.9.7"
+__version__ = "0.9.8"
 __build__ = 0
 __changelog__ = '''
+0.9.8
+ * Added columns to recent view and messages view to help seperate messages
+
 0.9.7
  * Switched to Force Refresh for when wanting to check for more messages
  * Removed timeouts that forced refreshes on various tabs
