@@ -70,7 +70,7 @@ class Dialcentral(object):
 
 	__pretty_app_name__ = "DialCentral"
 	__app_name__ = "dialcentral"
-	__version__ = "0.9.6"
+	__version__ = "0.9.8"
 	__app_magic__ = 0xdeadbeef
 
 	_glade_files = [
@@ -329,9 +329,12 @@ class Dialcentral(object):
 			serviceId = self.NULL_BACKEND
 			loggedIn = False
 			if not force:
-				self.refresh_session()
-				serviceId = self._defaultBackendId
-				loggedIn = True
+				try:
+					self.refresh_session()
+					serviceId = self._defaultBackendId
+					loggedIn = True
+				except StandardError, e:
+					pass
 
 			if not loggedIn:
 				with gtk_toolbox.gtk_lock():
