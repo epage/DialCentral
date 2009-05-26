@@ -519,7 +519,7 @@ class Dialpad(object):
 	def disable(self):
 		pass
 
-	def dial(self, number):
+	def number_selected(self, action, number, message):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -556,7 +556,10 @@ class Dialpad(object):
 		pass
 
 	def _on_dial_clicked(self, widget):
-		self.dial(self.get_number())
+		action = PhoneTypeSelector.ACTION_DIAL
+		phoneNumber = self.get_number()
+		message = ""
+		self.number_selected(action, phoneNumber, message)
 
 	def _on_clear_number(self, *args):
 		self.clear()

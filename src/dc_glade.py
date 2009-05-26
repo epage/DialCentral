@@ -38,7 +38,6 @@ import base64
 import ConfigParser
 import itertools
 import warnings
-import traceback
 
 import gtk
 import gtk.glade
@@ -284,10 +283,10 @@ class Dialcentral(object):
 		fsContactsPath = os.path.join(self._data_path, "contacts")
 		fileBackend = file_backend.FilesystemAddressBookFactory(fsContactsPath)
 		for backendId in (self.GV_BACKEND, self.GC_BACKEND):
-			self._dialpads[backendId].dial = self._on_dial_clicked
-			self._recentViews[backendId].number_selected = self._on_number_selected
-			self._messagesViews[backendId].number_selected = self._on_number_selected
-			self._contactsViews[backendId].number_selected = self._on_number_selected
+			self._dialpads[backendId].number_selected = self._select_action
+			self._recentViews[backendId].number_selected = self._select_action
+			self._messagesViews[backendId].number_selected = self._select_action
+			self._contactsViews[backendId].number_selected = self._select_action
 
 			addressBooks = [
 				self._phoneBackends[backendId],
@@ -317,104 +316,106 @@ class Dialcentral(object):
 
 		self.attempt_login(2)
 
-		return False
-
 	def attempt_login(self, numOfAttempts = 10, force = False):
 		"""
 		@todo Handle user notification better like attempting to login and failed login
-
-		@note Not meant to be called directly, but run as a seperate thread.
 		"""
-		assert 0 < numOfAttempts, "That was pointless having 0 or less login attempts"
-
-		if self._phoneBackends is None or len(self._phoneBackends) < len(self.BACKENDS):
-			warnings.warn(
-				"Attempted to login before initialization is complete, did an event fire early?"
-			)
-			return False
-
-		with gtk_toolbox.gtk_lock():
+		try:
+			assert 0 <= numOfAttempts, "That was pointless having 0 or less login attempts"
+			assert self._initDone, "Attempting login before app is fully loaded"
 			if not self._deviceIsOnline:
-				self._errorDisplay.push_message(
-					"Unable to login, device is not online"
-				)
-				return False
+				raise RuntimeError("Unable to login, device is not online")
+
+			serviceId = self.NULL_BACKEND
+			loggedIn = False
+			if not force:
+				self.refresh_session()
+				serviceId = self._defaultBackendId
+				loggedIn = True
+
+			if not loggedIn:
+				with gtk_toolbox.gtk_lock():
+					loggedIn, serviceId = self._login_by_user(numOfAttempts)
+
+			with gtk_toolbox.gtk_lock():
+				self._change_loggedin_status(serviceId)
+		except StandardError, e:
+			with gtk_toolbox.gtk_lock():
+				self._errorDisplay.push_exception(e)
+
+	def refresh_session(self):
+		assert self._initDone, "Attempting login before app is fully loaded"
+		if not self._deviceIsOnline:
+			raise RuntimeError("Unable to login, device is not online")
 
 		loggedIn = False
-		try:
-			username, password = self._credentials
-			serviceId = self._defaultBackendId
+		if not loggedIn:
+			loggedIn = self._login_by_cookie()
+		if not loggedIn:
+			loggedIn = self._login_by_settings()
 
-			if not force:
-				loggedIn, username, password = self._login_by_cookie(username, password)
-				if not loggedIn:
-					loggedIn, username, password = self._login_by_settings(username, password)
-			if not loggedIn:
-				loggedIn, username, password = self._login_by_user(username, password, numOfAttempts)
-		except RuntimeError, e:
-			warnings.warn(traceback.format_exc())
-			self._errorDisplay.push_exception_with_lock(e)
+		if not loggedIn:
+			raise RuntimeError("Login Failed")
 
-		with gtk_toolbox.gtk_lock():
-			if loggedIn:
-				self._credentials = username, password
-				self._change_loggedin_status(serviceId)
-			else:
-				self._errorDisplay.push_message("Login Failed")
-				self._change_loggedin_status(self.NULL_BACKEND)
-		return loggedIn
-
-	def _login_by_cookie(self, username, password):
+	def _login_by_cookie(self):
 		loggedIn = self._phoneBackends[self._defaultBackendId].is_authed()
 		if loggedIn:
 			warnings.warn(
 				"Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId],
 				UserWarning, 2
 			)
-		return loggedIn, username, password
+		return loggedIn
 
-	def _login_by_settings(self, username, password):
-		if username and password:
-			loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
-			if loggedIn:
-				warnings.warn(
-					"Logged into %r through settings" % self._phoneBackends[self._defaultBackendId],
-					UserWarning, 2
-				)
-		return loggedIn, username, password
+	def _login_by_settings(self):
+		username, password = self._credentials
+		loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
+		if loggedIn:
+			self._credentials = username, password
+			warnings.warn(
+				"Logged into %r through settings" % self._phoneBackends[self._defaultBackendId],
+				UserWarning, 2
+			)
+		return loggedIn
 
-	def _login_by_user(self, username, password, numOfAttempts):
-		loggedIn = False
+	def _login_by_user(self, numOfAttempts):
+		loggedIn, (username, password) = False, self._credentials
+		tmpServiceId = self.NULL_BACKEND
 		for attemptCount in xrange(numOfAttempts):
 			if loggedIn:
 				break
-			with gtk_toolbox.gtk_lock():
-				availableServices = {
-					self.GV_BACKEND: "Google Voice",
-					self.GC_BACKEND: "Grand Central",
-				}
-				credentials = self._credentialsDialog.request_credentials_from(
-					availableServices, defaultCredentials = self._credentials
-				)
-				serviceId, username, password = credentials
+			availableServices = {
+				self.GV_BACKEND: "Google Voice",
+				self.GC_BACKEND: "Grand Central",
+			}
+			credentials = self._credentialsDialog.request_credentials_from(
+				availableServices, defaultCredentials = self._credentials
+			)
+			tmpServiceId, username, password = credentials
+			loggedIn = self._phoneBackends[tmpServiceId].login(username, password)
 
-			loggedIn = self._phoneBackends[serviceId].login(username, password)
-		if 0 < attemptCount:
+		if loggedIn:
+			serviceId = tmpServiceId
+			self._credentials = username, password
 			warnings.warn(
 				"Logged into %r through user request" % self._phoneBackends[serviceId],
 				UserWarning, 2
 			)
-		return loggedIn, username, password
+		else:
+			serviceId = self.NULL_BACKEND
 
-	def _on_close(self, *args, **kwds):
-		try:
-			if self._osso is not None:
-				self._osso.close()
+		return loggedIn, serviceId
 
-			if self._initDone:
-				self._save_settings()
-		finally:
-			gtk.main_quit()
+	def _select_action(self, action, number, message):
+		self.refresh_session()
+		if action == "select":
+			self._dialpads[self._selectedBackendId].set_number(number)
+			self._notebook.set_current_page(self.KEYPAD_TAB)
+		elif action == "dial":
+			self._on_dial_clicked(number)
+		elif action == "sms":
+			self._on_sms_clicked(number, message)
+		else:
+			assert False, "Unknown action: %s" % action
 
 	def _change_loggedin_status(self, newStatus):
 		oldStatus = self._selectedBackendId
@@ -443,8 +444,8 @@ class Dialcentral(object):
 		"""
 		@note UI Thread
 		"""
-		self._defaultBackendId = int(config.get(self.__pretty_app_name__, "active"))
 		try:
+			self._defaultBackendId = int(config.get(self.__pretty_app_name__, "active"))
 			blobs = (
 				config.get(self.__pretty_app_name__, "bin_blob_%i" % i)
 				for i in xrange(len(self._credentials))
@@ -518,6 +519,16 @@ class Dialcentral(object):
 		self.save_settings(config)
 		with open(self._user_settings, "wb") as configFile:
 			config.write(configFile)
+
+	def _on_close(self, *args, **kwds):
+		try:
+			if self._osso is not None:
+				self._osso.close()
+
+			if self._initDone:
+				self._save_settings()
+		finally:
+			gtk.main_quit()
 
 	def _on_device_state_change(self, shutdown, save_unsaved_data, memory_low, system_inactivity, message, userData):
 		"""
@@ -604,17 +615,6 @@ class Dialcentral(object):
 			self._window.set_title(tabTitle)
 		else:
 			self._window.set_title("%s - %s" % (self.__pretty_app_name__, tabTitle))
-
-	def _on_number_selected(self, action, number, message):
-		if action == "select":
-			self._dialpads[self._selectedBackendId].set_number(number)
-			self._notebook.set_current_page(self.KEYPAD_TAB)
-		elif action == "dial":
-			self._on_dial_clicked(number)
-		elif action == "sms":
-			self._on_sms_clicked(number, message)
-		else:
-			assert False, "Unknown action: %s" % action
 
 	def _on_sms_clicked(self, number, message):
 		"""
