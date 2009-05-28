@@ -32,16 +32,28 @@ def startup(factory):
 
 
 def test_startup_with_no_data_dir_with_dummy_hildon():
-	dc_glade.Dialcentral._data_path = os.path.join(os.path.dirname(__file__), "notexistent_data")
-	dc_glade.Dialcentral._user_settings = "%s/settings.ini" % dc_glade.Dialcentral._data_path
-
+	hildonPath = os.path.join(os.path.dirname(__file__), "dummy_hildon")
+	sys.path.insert(0, hildonPath)
+	import hildon
+	dc_glade.Dialcentral.hildon = hildon
 	try:
-		sys.path.insert(0, "dummy_hildon")
-		startup(dc_glade.Dialcentral)
-		sys.path.remove("dummy_hildon")
+		dc_glade.Dialcentral._data_path = os.path.join(os.path.dirname(__file__), "notexistent_data")
+		dc_glade.Dialcentral._user_settings = "%s/settings.ini" % dc_glade.Dialcentral._data_path
+
+		try:
+			startup(dc_glade.Dialcentral)
+		finally:
+			try:
+				os.remove(dc_glade.Dialcentral._user_settings)
+			except:
+				pass
+			try:
+				os.removedirs(dc_glade.Dialcentral._data_path)
+			except:
+				pass
 	finally:
-		os.remove(dc_glade.Dialcentral._user_settings)
-		os.removedirs(dc_glade.Dialcentral._data_path)
+		dc_glade.Dialcentral.hildon = None
+		sys.path.remove(hildonPath)
 
 
 def test_startup_with_no_data_dir():
@@ -51,8 +63,14 @@ def test_startup_with_no_data_dir():
 	try:
 		startup(dc_glade.Dialcentral)
 	finally:
-		os.remove(dc_glade.Dialcentral._user_settings)
-		os.removedirs(dc_glade.Dialcentral._data_path)
+		try:
+			os.remove(dc_glade.Dialcentral._user_settings)
+		except:
+			pass
+		try:
+			os.removedirs(dc_glade.Dialcentral._data_path)
+		except:
+			pass
 
 
 def test_startup_with_empty_data_dir():
@@ -62,8 +80,14 @@ def test_startup_with_empty_data_dir():
 	try:
 		startup(dc_glade.Dialcentral)
 	finally:
-		os.remove(dc_glade.Dialcentral._user_settings)
-		os.removedirs(dc_glade.Dialcentral._data_path)
+		try:
+			os.remove(dc_glade.Dialcentral._user_settings)
+		except:
+			pass
+		try:
+			os.removedirs(dc_glade.Dialcentral._data_path)
+		except:
+			pass
 
 
 def test_startup_with_basic_data_dir():
