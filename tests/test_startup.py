@@ -52,7 +52,7 @@ def test_startup_with_no_data_dir_with_dummy_hildon():
 			except:
 				pass
 	finally:
-		dc_glade.Dialcentral.hildon = None
+		dc_glade.hildon = None
 		sys.path.remove(hildonPath)
 
 
