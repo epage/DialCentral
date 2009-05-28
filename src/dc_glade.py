@@ -18,11 +18,10 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-@bug SMS Dialog issues on Hildon
+@bug Need to add unit tests
 @bug Session timeouts are bad, possible solutions:
 	@li For every X minutes, if logged in, attempt login
 	@li Restructure so code handling login/dial/sms is beneath everything else and login attempts are made if those fail
-@todo Force login on connect if not already done
 @todo Can't text from dialpad (so can't do any arbitrary number texts)
 @todo Add logging support to make debugging issues for people a lot easier
 """
@@ -47,6 +46,7 @@ try:
 except ImportError:
 	hildon = None
 
+import constants
 import gtk_toolbox
 
 
@@ -67,11 +67,6 @@ def display_error_message(msg):
 
 
 class Dialcentral(object):
-
-	__pretty_app_name__ = "DialCentral"
-	__app_name__ = "dialcentral"
-	__version__ = "0.9.8"
-	__app_magic__ = 0xdeadbeef
 
 	_glade_files = [
 		'/usr/lib/dialcentral/dialcentral.glade',
@@ -154,7 +149,7 @@ class Dialcentral(object):
 		if hildon is not None:
 			self._window.set_title("Keypad")
 		else:
-			self._window.set_title("%s - Keypad" % self.__pretty_app_name__)
+			self._window.set_title("%s - Keypad" % constants.__pretty_app_name__)
 
 		callbackMapping = {
 			"on_dialpad_quit": self._on_close,
@@ -199,7 +194,7 @@ class Dialcentral(object):
 			osso = None
 		self._osso = None
 		if osso is not None:
-			self._osso = osso.Context(Dialcentral.__app_name__, Dialcentral.__version__, False)
+			self._osso = osso.Context(constants.__app_name__, constants.__version__, False)
 			device = osso.DeviceState(self._osso)
 			device.set_device_state_callback(self._on_device_state_change, 0)
 		else:
@@ -213,7 +208,7 @@ class Dialcentral(object):
 		self._connection = None
 		if conic is not None:
 			self._connection = conic.Connection()
-			self._connection.connect("connection-event", self._on_connection_change, Dialcentral.__app_magic__)
+			self._connection.connect("connection-event", self._on_connection_change, constants.__app_magic__)
 			self._connection.request_connection(conic.CONNECT_FLAG_NONE)
 		else:
 			pass # warnings.warn("No Internet Connectivity API ", UserWarning)
@@ -319,6 +314,8 @@ class Dialcentral(object):
 	def attempt_login(self, numOfAttempts = 10, force = False):
 		"""
 		@todo Handle user notification better like attempting to login and failed login
+
+		@note This must be run outside of the UI lock
 		"""
 		try:
 			assert 0 <= numOfAttempts, "That was pointless having 0 or less login attempts"
@@ -337,8 +334,7 @@ class Dialcentral(object):
 					pass
 
 			if not loggedIn:
-				with gtk_toolbox.gtk_lock():
-					loggedIn, serviceId = self._login_by_user(numOfAttempts)
+				loggedIn, serviceId = self._login_by_user(numOfAttempts)
 
 			with gtk_toolbox.gtk_lock():
 				self._change_loggedin_status(serviceId)
@@ -381,6 +377,9 @@ class Dialcentral(object):
 		return loggedIn
 
 	def _login_by_user(self, numOfAttempts):
+		"""
+		@note This must be run outside of the UI lock
+		"""
 		loggedIn, (username, password) = False, self._credentials
 		tmpServiceId = self.NULL_BACKEND
 		for attemptCount in xrange(numOfAttempts):
@@ -390,9 +389,10 @@ class Dialcentral(object):
 				self.GV_BACKEND: "Google Voice",
 				self.GC_BACKEND: "Grand Central",
 			}
-			credentials = self._credentialsDialog.request_credentials_from(
-				availableServices, defaultCredentials = self._credentials
-			)
+			with gtk_toolbox.gtk_lock():
+				credentials = self._credentialsDialog.request_credentials_from(
+					availableServices, defaultCredentials = self._credentials
+				)
 			tmpServiceId, username, password = credentials
 			loggedIn = self._phoneBackends[tmpServiceId].login(username, password)
 
@@ -448,9 +448,9 @@ class Dialcentral(object):
 		@note UI Thread
 		"""
 		try:
-			self._defaultBackendId = int(config.get(self.__pretty_app_name__, "active"))
+			self._defaultBackendId = int(config.get(constants.__pretty_app_name__, "active"))
 			blobs = (
-				config.get(self.__pretty_app_name__, "bin_blob_%i" % i)
+				config.get(constants.__pretty_app_name__, "bin_blob_%i" % i)
 				for i in xrange(len(self._credentials))
 			)
 			creds = (
@@ -490,11 +490,11 @@ class Dialcentral(object):
 		"""
 		@note Thread Agnostic
 		"""
-		config.add_section(self.__pretty_app_name__)
-		config.set(self.__pretty_app_name__, "active", str(self._selectedBackendId))
+		config.add_section(constants.__pretty_app_name__)
+		config.set(constants.__pretty_app_name__, "active", str(self._selectedBackendId))
 		for i, value in enumerate(self._credentials):
 			blob = base64.b64encode(value)
-			config.set(self.__pretty_app_name__, "bin_blob_%i" % i, blob)
+			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
 		for backendId, view in itertools.chain(
 			self._dialpads.iteritems(),
 			self._accountViews.iteritems(),
@@ -617,7 +617,7 @@ class Dialcentral(object):
 		if hildon is not None:
 			self._window.set_title(tabTitle)
 		else:
-			self._window.set_title("%s - %s" % (self.__pretty_app_name__, tabTitle))
+			self._window.set_title("%s - %s" % (constants.__pretty_app_name__, tabTitle))
 
 	def _on_sms_clicked(self, number, message):
 		"""
@@ -693,8 +693,8 @@ class Dialcentral(object):
 
 	def _on_about_activate(self, *args):
 		dlg = gtk.AboutDialog()
-		dlg.set_name(self.__pretty_app_name__)
-		dlg.set_version(self.__version__)
+		dlg.set_name(constants.__pretty_app_name__)
+		dlg.set_version(constants.__version__)
 		dlg.set_copyright("Copyright 2008 - LGPL")
 		dlg.set_comments("Dialer is designed to interface with your Google Grandcentral account.  This application is not affiliated with Google or Grandcentral in any way")
 		dlg.set_website("http://gc-dialer.garage.maemo.org/")
@@ -717,7 +717,7 @@ def run_doctest():
 def run_dialpad():
 	gtk.gdk.threads_init()
 	if hildon is not None:
-		gtk.set_application_name(Dialcentral.__pretty_app_name__)
+		gtk.set_application_name(constants.__pretty_app_name__)
 	handle = Dialcentral()
 	gtk.main()
 

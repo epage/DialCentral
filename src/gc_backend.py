@@ -346,7 +346,7 @@ def test_backend(username, password):
 	print "Authenticated: ", backend.is_authed()
 	print "Login?: ", backend.login(username, password)
 	print "Authenticated: ", backend.is_authed()
-	print "Token: ", backend._accessToken
+	# print "Token: ", backend._accessToken
 	print "Account: ", backend.get_account_number()
 	print "Callback: ", backend.get_callback_number()
 	# print "All Callback: ",

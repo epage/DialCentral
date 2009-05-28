@@ -515,7 +515,7 @@ class GVDialer(object):
 
 	def _parse_voicemail(self, voicemailHtml):
 		splitVoicemail = self._seperateVoicemailsRegex.split(voicemailHtml)
-		for id, messageHtml in itergroup(splitVoicemail[1:], 2):
+		for messageId, messageHtml in itergroup(splitVoicemail[1:], 2):
 			exactTimeGroup = self._exactVoicemailTimeRegex.search(messageHtml)
 			exactTime = exactTimeGroup.group(1).strip() if exactTimeGroup else ""
 			exactTime = datetime.datetime.strptime(exactTime, "%m/%d/%y %I:%M %p")
@@ -536,7 +536,7 @@ class GVDialer(object):
 			) if messageGroups else ()
 
 			yield {
-				"id": id.strip(),
+				"id": messageId.strip(),
 				"time": exactTime,
 				"relTime": relativeTime,
 				"prettyNumber": prettyNumber,
@@ -568,7 +568,7 @@ class GVDialer(object):
 
 	def _parse_sms(self, smsHtml):
 		splitSms = self._seperateVoicemailsRegex.split(smsHtml)
-		for id, messageHtml in itergroup(splitSms[1:], 2):
+		for messageId, messageHtml in itergroup(splitSms[1:], 2):
 			exactTimeGroup = self._exactVoicemailTimeRegex.search(messageHtml)
 			exactTime = exactTimeGroup.group(1).strip() if exactTimeGroup else ""
 			exactTime = datetime.datetime.strptime(exactTime, "%m/%d/%y %I:%M %p")
@@ -590,7 +590,7 @@ class GVDialer(object):
 			messageParts = itertools.izip(fromParts, textParts, timeParts)
 
 			yield {
-				"id": id.strip(),
+				"id": messageId.strip(),
 				"time": exactTime,
 				"relTime": relativeTime,
 				"prettyNumber": prettyNumber,
@@ -619,7 +619,7 @@ def test_backend(username, password):
 	print "Authenticated: ", backend.is_authed()
 	print "Login?: ", backend.login(username, password)
 	print "Authenticated: ", backend.is_authed()
-	print "Token: ", backend._token
+	# print "Token: ", backend._token
 	print "Account: ", backend.get_account_number()
 	print "Callback: ", backend.get_callback_number()
 	# print "All Callback: ",

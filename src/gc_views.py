@@ -28,6 +28,7 @@ import gobject
 import gtk
 
 import gtk_toolbox
+import null_backend
 
 
 def make_ugly(prettynumber):
@@ -91,69 +92,6 @@ def make_pretty(phonenumber):
 	elif len(phonenumber) > 7:
 		prettynumber = "(%s)-%s-%s" % (phonenumber[0:3], phonenumber[3:6], phonenumber[6:])
 	return prettynumber
-
-
-def make_idler(func):
-	"""
-	Decorator that makes a generator-function into a function that will continue execution on next call
-	"""
-	a = []
-
-	def decorated_func(*args, **kwds):
-		if not a:
-			a.append(func(*args, **kwds))
-		try:
-			a[0].next()
-			return True
-		except StopIteration:
-			del a[:]
-			return False
-
-	decorated_func.__name__ = func.__name__
-	decorated_func.__doc__ = func.__doc__
-	decorated_func.__dict__.update(func.__dict__)
-
-	return decorated_func
-
-
-class DummyAddressBook(object):
-	"""
-	Minimal example of both an addressbook factory and an addressbook
-	"""
-
-	def clear_caches(self):
-		pass
-
-	def get_addressbooks(self):
-		"""
-		@returns Iterable of (Address Book Factory, Book Id, Book Name)
-		"""
-		yield self, "", "None"
-
-	def open_addressbook(self, bookId):
-		return self
-
-	@staticmethod
-	def contact_source_short_name(contactId):
-		return ""
-
-	@staticmethod
-	def factory_name():
-		return ""
-
-	@staticmethod
-	def get_contacts():
-		"""
-		@returns Iterable of (contact id, contact name)
-		"""
-		return []
-
-	@staticmethod
-	def get_contact_details(contactId):
-		"""
-		@returns Iterable of (Phone Type, Phone Number)
-		"""
-		return []
 
 
 class MergedAddressBook(object):
@@ -971,7 +909,7 @@ class ContactsView(object):
 		self._backend = backend
 
 		self._addressBook = None
-		self._addressBookFactories = [DummyAddressBook()]
+		self._addressBookFactories = [null_backend.NullAddressBook()]
 
 		self._booksList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._booksSelectionBox = widgetTree.get_widget("addressbook_combo")

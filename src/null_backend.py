@@ -92,3 +92,43 @@ class NullDialer(object):
 
 	def get_messages(self):
 		return ()
+
+
+class NullAddressBook(object):
+	"""
+	Minimal example of both an addressbook factory and an addressbook
+	"""
+
+	def clear_caches(self):
+		pass
+
+	def get_addressbooks(self):
+		"""
+		@returns Iterable of (Address Book Factory, Book Id, Book Name)
+		"""
+		yield self, "", "None"
+
+	def open_addressbook(self, bookId):
+		return self
+
+	@staticmethod
+	def contact_source_short_name(contactId):
+		return ""
+
+	@staticmethod
+	def factory_name():
+		return ""
+
+	@staticmethod
+	def get_contacts():
+		"""
+		@returns Iterable of (contact id, contact name)
+		"""
+		return []
+
+	@staticmethod
+	def get_contact_details(contactId):
+		"""
+		@returns Iterable of (Phone Type, Phone Number)
+		"""
+		return []
