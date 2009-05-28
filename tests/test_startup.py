@@ -35,7 +35,7 @@ def test_startup_with_no_data_dir_with_dummy_hildon():
 	hildonPath = os.path.join(os.path.dirname(__file__), "dummy_hildon")
 	sys.path.insert(0, hildonPath)
 	import hildon
-	dc_glade.Dialcentral.hildon = hildon
+	dc_glade.hildon = hildon
 	try:
 		dc_glade.Dialcentral._data_path = os.path.join(os.path.dirname(__file__), "notexistent_data")
 		dc_glade.Dialcentral._user_settings = "%s/settings.ini" % dc_glade.Dialcentral._data_path
