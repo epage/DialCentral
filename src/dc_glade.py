@@ -156,10 +156,9 @@ class Dialcentral(object):
 		}
 		self._widgetTree.signal_autoconnect(callbackMapping)
 
-		if self._window:
-			self._window.connect("destroy", self._on_close)
-			self._window.show_all()
-			self._window.set_default_size(800, 300)
+		self._window.connect("destroy", self._on_close)
+		self._window.set_default_size(800, 300)
+		self._window.show_all()
 
 		backgroundSetup = threading.Thread(target=self._idle_setup)
 		backgroundSetup.setDaemon(True)
@@ -198,7 +197,7 @@ class Dialcentral(object):
 			device = osso.DeviceState(self._osso)
 			device.set_device_state_callback(self._on_device_state_change, 0)
 		else:
-			pass # warnings.warn("No OSSO", UserWarning)
+			pass # warnings.warn("No OSSO", UserWarning, 2)
 
 		# Setup maemo specifics
 		try:

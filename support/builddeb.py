@@ -9,10 +9,13 @@ __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
 __version__ = constants.__version__
-__build__ = 0
+__build__ = 1
 __changelog__ = '''
 0.9.8
  * Added columns to recent view and messages view to help seperate messages
+ * Attempted refreshing session on dial/sms send
+ * Fixed a GC Bug
+ * Minor bug fixes as usual
 
 0.9.7
  * Switched to Force Refresh for when wanting to check for more messages
