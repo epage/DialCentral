@@ -331,7 +331,7 @@ class Dialcentral(object):
 					serviceId = self._defaultBackendId
 					loggedIn = True
 				except StandardError, e:
-					pass
+					warnings.warn('Session refresh failed with the following message "%s"' % e.message, UserWarning, 2)
 
 			if not loggedIn:
 				loggedIn, serviceId = self._login_by_user(numOfAttempts)
@@ -343,6 +343,9 @@ class Dialcentral(object):
 				self._errorDisplay.push_exception(e)
 
 	def refresh_session(self):
+		"""
+		@note Thread agnostic
+		"""
 		assert self._initDone, "Attempting login before app is fully loaded"
 		if not self._deviceIsOnline:
 			raise RuntimeError("Unable to login, device is not online")
@@ -357,6 +360,9 @@ class Dialcentral(object):
 			raise RuntimeError("Login Failed")
 
 	def _login_by_cookie(self):
+		"""
+		@note Thread agnostic
+		"""
 		loggedIn = self._phoneBackends[self._defaultBackendId].is_authed()
 		if loggedIn:
 			warnings.warn(
@@ -366,6 +372,9 @@ class Dialcentral(object):
 		return loggedIn
 
 	def _login_by_settings(self):
+		"""
+		@note Thread agnostic
+		"""
 		username, password = self._credentials
 		loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
 		if loggedIn:
