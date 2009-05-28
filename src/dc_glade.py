@@ -128,9 +128,13 @@ class Dialcentral(object):
 			self._window = hildon.Window()
 			oldWindow.get_child().reparent(self._window)
 			self._app.add_window(self._window)
-			self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
-			self._widgetTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
-			self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
+
+			try:
+				self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
+				self._widgetTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
+				self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
+			except TypeError, e:
+				warnings.warn(e.message)
 			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('recent_scrolledwindow'), True)
 			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('message_scrolledwindow'), True)
 			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('contacts_scrolledwindow'), True)
