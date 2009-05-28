@@ -9,8 +9,10 @@ __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
 __version__ = constants.__version__
-__build__ = 1
+__build__ = 0
 __changelog__ = '''
+0.9.9
+
 0.9.8
  * Added columns to recent view and messages view to help seperate messages
  * Attempted refreshing session on dial/sms send
