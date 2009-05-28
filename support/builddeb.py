@@ -1,13 +1,14 @@
 #!/usr/bin/python2.5
 
 from py2deb import *
+import constants
 
 
-__appname__ = "dialcentral"
+__appname__ = constants.__app_name__
 __description__ = "Simple interface to Google's GrandCentral(tm) service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
-__version__ = "0.9.8"
+__version__ = constants.__version__
 __build__ = 0
 __changelog__ = '''
 0.9.8
@@ -118,8 +119,8 @@ if __name__ == "__main__":
 	p.section = "user/communication"
 	p.arch = "all"
 	p.urgency = "low"
-	p.distribution = "chinook diablo"
-	p.repository = "extras-devel"
+	p.distribution = "chinook diablo fremantle"
+	p.repository = "extras"
 	p.changelog = __changelog__
 	p.postinstall = __postinstall__
 	p.icon="26x26-dialcentral.png"

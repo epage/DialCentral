@@ -447,9 +447,10 @@ class GVDialer(object):
 		self._token = tokenGroup.group(1)
 
 		anGroup = self._accountNumRe.search(page)
-		if anGroup is None:
-			raise RuntimeError("Could not extract account number from GoogleVoice")
-		self._accountNum = anGroup.group(1)
+		if anGroup is not None:
+			self._accountNum = anGroup.group(1)
+		else:
+			warnings.warn("Could not extract account number from GoogleVoice", UserWarning, 2)
 
 		self._callbackNumbers = {}
 		for match in self._callbackRe.finditer(page):
