@@ -169,147 +169,155 @@ class Dialcentral(object):
 		"""
 		If something can be done after the UI loads, push it here so it's not blocking the UI
 		"""
-		# Barebones UI handlers
-		import null_backend
-		import null_views
-
-		self._phoneBackends = {self.NULL_BACKEND: null_backend.NullDialer()}
-		with gtk_toolbox.gtk_lock():
-			self._dialpads = {self.NULL_BACKEND: null_views.Dialpad(self._widgetTree)}
-			self._accountViews = {self.NULL_BACKEND: null_views.AccountInfo(self._widgetTree)}
-			self._recentViews = {self.NULL_BACKEND: null_views.RecentCallsView(self._widgetTree)}
-			self._messagesViews = {self.NULL_BACKEND: null_views.MessagesView(self._widgetTree)}
-			self._contactsViews = {self.NULL_BACKEND: null_views.ContactsView(self._widgetTree)}
-
-			self._dialpads[self._selectedBackendId].enable()
-			self._accountViews[self._selectedBackendId].enable()
-			self._recentViews[self._selectedBackendId].enable()
-			self._messagesViews[self._selectedBackendId].enable()
-			self._contactsViews[self._selectedBackendId].enable()
-
-		# Setup maemo specifics
 		try:
-			import osso
-		except ImportError:
-			osso = None
-		self._osso = None
-		if osso is not None:
-			self._osso = osso.Context(constants.__app_name__, constants.__version__, False)
-			device = osso.DeviceState(self._osso)
-			device.set_device_state_callback(self._on_device_state_change, 0)
-		else:
-			pass # warnings.warn("No OSSO", UserWarning, 2)
+			# Barebones UI handlers
+			import null_backend
+			import null_views
 
-		# Setup maemo specifics
-		try:
-			import conic
-		except ImportError:
-			conic = None
-		self._connection = None
-		if conic is not None:
-			self._connection = conic.Connection()
-			self._connection.connect("connection-event", self._on_connection_change, constants.__app_magic__)
-			self._connection.request_connection(conic.CONNECT_FLAG_NONE)
-		else:
-			pass # warnings.warn("No Internet Connectivity API ", UserWarning)
+			self._phoneBackends = {self.NULL_BACKEND: null_backend.NullDialer()}
+			with gtk_toolbox.gtk_lock():
+				self._dialpads = {self.NULL_BACKEND: null_views.Dialpad(self._widgetTree)}
+				self._accountViews = {self.NULL_BACKEND: null_views.AccountInfo(self._widgetTree)}
+				self._recentViews = {self.NULL_BACKEND: null_views.RecentCallsView(self._widgetTree)}
+				self._messagesViews = {self.NULL_BACKEND: null_views.MessagesView(self._widgetTree)}
+				self._contactsViews = {self.NULL_BACKEND: null_views.ContactsView(self._widgetTree)}
 
-		# Setup costly backends
-		import gv_backend
-		import gc_backend
-		import file_backend
-		import evo_backend
-		import gc_views
+				self._dialpads[self._selectedBackendId].enable()
+				self._accountViews[self._selectedBackendId].enable()
+				self._recentViews[self._selectedBackendId].enable()
+				self._messagesViews[self._selectedBackendId].enable()
+				self._contactsViews[self._selectedBackendId].enable()
 
-		try:
-			os.makedirs(self._data_path)
-		except OSError, e:
-			if e.errno != 17:
+			# Setup maemo specifics
+			try:
+				import osso
+			except ImportError:
+				osso = None
+			self._osso = None
+			if osso is not None:
+				self._osso = osso.Context(constants.__app_name__, constants.__version__, False)
+				device = osso.DeviceState(self._osso)
+				device.set_device_state_callback(self._on_device_state_change, 0)
+			else:
+				pass # warnings.warn("No OSSO", UserWarning, 2)
+
+			# Setup maemo specifics
+			try:
+				import conic
+			except ImportError:
+				conic = None
+			self._connection = None
+			if conic is not None:
+				self._connection = conic.Connection()
+				self._connection.connect("connection-event", self._on_connection_change, constants.__app_magic__)
+				self._connection.request_connection(conic.CONNECT_FLAG_NONE)
+			else:
+				pass # warnings.warn("No Internet Connectivity API ", UserWarning)
+
+			# Setup costly backends
+			import gv_backend
+			import gc_backend
+			import file_backend
+			import evo_backend
+			import gc_views
+
+			try:
+				os.makedirs(self._data_path)
+			except OSError, e:
+				if e.errno != 17:
+					raise
+			gcCookiePath = os.path.join(self._data_path, "gc_cookies.txt")
+			gvCookiePath = os.path.join(self._data_path, "gv_cookies.txt")
+			self._defaultBackendId = self._guess_preferred_backend((
+				(self.GC_BACKEND, gcCookiePath),
+				(self.GV_BACKEND, gvCookiePath),
+			))
+
+			self._phoneBackends.update({
+				self.GC_BACKEND: gc_backend.GCDialer(gcCookiePath),
+				self.GV_BACKEND: gv_backend.GVDialer(gvCookiePath),
+			})
+			with gtk_toolbox.gtk_lock():
+				unifiedDialpad = gc_views.Dialpad(self._widgetTree, self._errorDisplay)
+				unifiedDialpad.set_number("")
+				self._dialpads.update({
+					self.GC_BACKEND: unifiedDialpad,
+					self.GV_BACKEND: unifiedDialpad,
+				})
+				self._accountViews.update({
+					self.GC_BACKEND: gc_views.AccountInfo(
+						self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
+					),
+					self.GV_BACKEND: gc_views.AccountInfo(
+						self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
+					),
+				})
+				self._recentViews.update({
+					self.GC_BACKEND: gc_views.RecentCallsView(
+						self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
+					),
+					self.GV_BACKEND: gc_views.RecentCallsView(
+						self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
+					),
+				})
+				self._messagesViews.update({
+					self.GC_BACKEND: null_views.MessagesView(self._widgetTree),
+					self.GV_BACKEND: gc_views.MessagesView(
+						self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
+					),
+				})
+				self._contactsViews.update({
+					self.GC_BACKEND: gc_views.ContactsView(
+						self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
+					),
+					self.GV_BACKEND: gc_views.ContactsView(
+						self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
+					),
+				})
+
+			evoBackend = evo_backend.EvolutionAddressBook()
+			fsContactsPath = os.path.join(self._data_path, "contacts")
+			fileBackend = file_backend.FilesystemAddressBookFactory(fsContactsPath)
+			for backendId in (self.GV_BACKEND, self.GC_BACKEND):
+				self._dialpads[backendId].number_selected = self._select_action
+				self._recentViews[backendId].number_selected = self._select_action
+				self._messagesViews[backendId].number_selected = self._select_action
+				self._contactsViews[backendId].number_selected = self._select_action
+
+				addressBooks = [
+					self._phoneBackends[backendId],
+					evoBackend,
+					fileBackend,
+				]
+				mergedBook = gc_views.MergedAddressBook(addressBooks, gc_views.MergedAddressBook.advanced_lastname_sorter)
+				self._contactsViews[backendId].append(mergedBook)
+				self._contactsViews[backendId].extend(addressBooks)
+				self._contactsViews[backendId].open_addressbook(*self._contactsViews[backendId].get_addressbooks().next()[0][0:2])
+
+			callbackMapping = {
+				"on_paste": self._on_paste,
+				"on_refresh": self._on_refresh,
+				"on_clearcookies_clicked": self._on_clearcookies_clicked,
+				"on_notebook_switch_page": self._on_notebook_switch_page,
+				"on_about_activate": self._on_about_activate,
+			}
+			self._widgetTree.signal_autoconnect(callbackMapping)
+
+			self._initDone = True
+
+			config = ConfigParser.SafeConfigParser()
+			config.read(self._user_settings)
+			with gtk_toolbox.gtk_lock():
+				self.load_settings(config)
+
+			gtk_toolbox.asynchronous_gtk_message(self._spawn_attempt_login)(2)
+		except StandardError, e:
+			warnings.warn(e.message, UserWarning, 2)
+		except BaseException, e:
+			try:
+				warnings.warn(e.message, UserWarning, 2)
+			finally:
 				raise
-		gcCookiePath = os.path.join(self._data_path, "gc_cookies.txt")
-		gvCookiePath = os.path.join(self._data_path, "gv_cookies.txt")
-		self._defaultBackendId = self._guess_preferred_backend((
-			(self.GC_BACKEND, gcCookiePath),
-			(self.GV_BACKEND, gvCookiePath),
-		))
-
-		self._phoneBackends.update({
-			self.GC_BACKEND: gc_backend.GCDialer(gcCookiePath),
-			self.GV_BACKEND: gv_backend.GVDialer(gvCookiePath),
-		})
-		with gtk_toolbox.gtk_lock():
-			unifiedDialpad = gc_views.Dialpad(self._widgetTree, self._errorDisplay)
-			unifiedDialpad.set_number("")
-			self._dialpads.update({
-				self.GC_BACKEND: unifiedDialpad,
-				self.GV_BACKEND: unifiedDialpad,
-			})
-			self._accountViews.update({
-				self.GC_BACKEND: gc_views.AccountInfo(
-					self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
-				),
-				self.GV_BACKEND: gc_views.AccountInfo(
-					self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
-				),
-			})
-			self._recentViews.update({
-				self.GC_BACKEND: gc_views.RecentCallsView(
-					self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
-				),
-				self.GV_BACKEND: gc_views.RecentCallsView(
-					self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
-				),
-			})
-			self._messagesViews.update({
-				self.GC_BACKEND: null_views.MessagesView(self._widgetTree),
-				self.GV_BACKEND: gc_views.MessagesView(
-					self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
-				),
-			})
-			self._contactsViews.update({
-				self.GC_BACKEND: gc_views.ContactsView(
-					self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
-				),
-				self.GV_BACKEND: gc_views.ContactsView(
-					self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
-				),
-			})
-
-		evoBackend = evo_backend.EvolutionAddressBook()
-		fsContactsPath = os.path.join(self._data_path, "contacts")
-		fileBackend = file_backend.FilesystemAddressBookFactory(fsContactsPath)
-		for backendId in (self.GV_BACKEND, self.GC_BACKEND):
-			self._dialpads[backendId].number_selected = self._select_action
-			self._recentViews[backendId].number_selected = self._select_action
-			self._messagesViews[backendId].number_selected = self._select_action
-			self._contactsViews[backendId].number_selected = self._select_action
-
-			addressBooks = [
-				self._phoneBackends[backendId],
-				evoBackend,
-				fileBackend,
-			]
-			mergedBook = gc_views.MergedAddressBook(addressBooks, gc_views.MergedAddressBook.advanced_lastname_sorter)
-			self._contactsViews[backendId].append(mergedBook)
-			self._contactsViews[backendId].extend(addressBooks)
-			self._contactsViews[backendId].open_addressbook(*self._contactsViews[backendId].get_addressbooks().next()[0][0:2])
-
-		callbackMapping = {
-			"on_paste": self._on_paste,
-			"on_refresh": self._on_refresh,
-			"on_clearcookies_clicked": self._on_clearcookies_clicked,
-			"on_notebook_switch_page": self._on_notebook_switch_page,
-			"on_about_activate": self._on_about_activate,
-		}
-		self._widgetTree.signal_autoconnect(callbackMapping)
-
-		self._initDone = True
-
-		config = ConfigParser.SafeConfigParser()
-		config.read(self._user_settings)
-		with gtk_toolbox.gtk_lock():
-			self.load_settings(config)
-
-		gtk_toolbox.asynchronous_gtk_message(self._spawn_attempt_login)(2)
 
 	def attempt_login(self, numOfAttempts = 10, force = False):
 		"""
