@@ -19,6 +19,7 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @bug Need to add unit tests
+@todo Look into an actor system
 @bug Session timeouts are bad, possible solutions:
 	@li For every X minutes, if logged in, attempt login
 	@li Restructure so code handling login/dial/sms is beneath everything else and login attempts are made if those fail
@@ -308,7 +309,7 @@ class Dialcentral(object):
 		with gtk_toolbox.gtk_lock():
 			self.load_settings(config)
 
-		self.attempt_login(2)
+		gtk_toolbox.asynchronous_gtk_message(self._spawn_attempt_login)(2)
 
 	def attempt_login(self, numOfAttempts = 10, force = False):
 		"""
@@ -340,6 +341,11 @@ class Dialcentral(object):
 		except StandardError, e:
 			with gtk_toolbox.gtk_lock():
 				self._errorDisplay.push_exception(e)
+
+	def _spawn_attempt_login(self, *args):
+		backgroundLogin = threading.Thread(target=self.attempt_login, args=args)
+		backgroundLogin.setDaemon(True)
+		backgroundLogin.start()
 
 	def refresh_session(self):
 		"""
@@ -571,9 +577,7 @@ class Dialcentral(object):
 		if status == conic.STATUS_CONNECTED:
 			self._deviceIsOnline = True
 			if self._initDone:
-				backgroundLogin = threading.Thread(target=self.attempt_login, args=[2])
-				backgroundLogin.setDaemon(True)
-				backgroundLogin.start()
+				self._spawn_attempt_login(2)
 		elif status == conic.STATUS_DISCONNECTED:
 			self._deviceIsOnline = False
 			if self._initDone:
@@ -607,9 +611,7 @@ class Dialcentral(object):
 		self._contactsViews[self._selectedBackendId].clear()
 		self._change_loggedin_status(self.NULL_BACKEND)
 
-		backgroundLogin = threading.Thread(target=self.attempt_login, args=[2, True])
-		backgroundLogin.setDaemon(True)
-		backgroundLogin.start()
+		self._spawn_attempt_login(2, True)
 
 	def _on_notebook_switch_page(self, notebook, page, page_num):
 		if page_num == self.RECENT_TAB:

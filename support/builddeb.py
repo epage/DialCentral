@@ -1,6 +1,10 @@
 #!/usr/bin/python2.5
 
-from py2deb import *
+import os
+import sys
+
+import py2deb
+
 import constants
 
 
@@ -115,7 +119,7 @@ if __name__ == "__main__":
 	except:
 		pass
 
-	p = Py2deb(__appname__)
+	p = py2deb.Py2deb(__appname__)
 	p.description = __description__
 	p.author = __author__
 	p.mail = __email__
