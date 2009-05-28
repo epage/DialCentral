@@ -629,9 +629,6 @@ class Dialcentral(object):
 			self._window.set_title("%s - %s" % (constants.__pretty_app_name__, tabTitle))
 
 	def _on_sms_clicked(self, number, message):
-		"""
-		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
-		"""
 		assert number
 		assert message
 		try:
@@ -657,9 +654,6 @@ class Dialcentral(object):
 			self._errorDisplay.push_exception(e)
 
 	def _on_dial_clicked(self, number):
-		"""
-		@todo Potential blocking on web access, maybe we should defer parts of this or put up a dialog?
-		"""
 		assert number
 		try:
 			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()

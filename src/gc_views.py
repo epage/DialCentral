@@ -604,9 +604,6 @@ class AccountInfo(object):
 		self._callbackCombo.get_child().set_text(make_pretty(callbackNumber))
 
 	def _set_callback_number(self, number):
-		"""
-		@todo Potential blocking on web access, maybe we should defer this or put up a dialog?
-		"""
 		try:
 			if not self._backend.is_valid_syntax(number):
 				self._errorDisplay.push_message("%s is not a valid callback number" % number)
@@ -619,9 +616,6 @@ class AccountInfo(object):
 			self._errorDisplay.push_exception(e)
 
 	def _on_callbackentry_changed(self, *args):
-		"""
-		@todo Potential blocking on web access, maybe we should defer this or put up a dialog?
-		"""
 		text = self.get_selected_callback_number()
 		self._set_callback_number(text)
 
