@@ -48,7 +48,12 @@ class CsvAddressBook(object):
 
 	@classmethod
 	def read_csv(cls, csvPath):
-		csvReader = iter(csv.reader(open(csvPath, "rU")))
+		try:
+			csvReader = iter(csv.reader(open(csvPath, "rU")))
+		except IOError, e:
+			if e.errno != 2:
+				raise
+			return
 
 		header = csvReader.next()
 		nameColumn, phoneColumns = cls._guess_columns(header)
@@ -129,7 +134,11 @@ class FilesystemAddressBookFactory(object):
 		"""
 		for root, dirs, filenames in os.walk(self.__path):
 			for filename in filenames:
-				name, ext = filename.rsplit(".", 1)
+				try:
+					name, ext = filename.rsplit(".", 1)
+				except ValueError:
+					continue
+
 				if ext in self.FILETYPE_SUPPORT:
 					yield self, os.path.join(root, filename), name
 

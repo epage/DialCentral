@@ -2,6 +2,7 @@ from __future__ import with_statement
 
 import os
 import time
+import warnings
 
 import test_utils
 
@@ -31,7 +32,8 @@ def startup(factory):
 	del handle
 
 
-def test_startup_with_no_data_dir_with_dummy_hildon():
+def atest_startup_with_no_data_dir_with_dummy_hildon():
+	warnings.simplefilter("always")
 	hildonPath = os.path.join(os.path.dirname(__file__), "dummy_hildon")
 	sys.path.insert(0, hildonPath)
 	import hildon
@@ -54,9 +56,11 @@ def test_startup_with_no_data_dir_with_dummy_hildon():
 	finally:
 		dc_glade.hildon = None
 		sys.path.remove(hildonPath)
+		warnings.resetwarnings()
 
 
-def test_startup_with_no_data_dir():
+def atest_startup_with_no_data_dir():
+	warnings.simplefilter("always")
 	dc_glade.Dialcentral._data_path = os.path.join(os.path.dirname(__file__), "notexistent_data")
 	dc_glade.Dialcentral._user_settings = "%s/settings.ini" % dc_glade.Dialcentral._data_path
 
@@ -71,9 +75,11 @@ def test_startup_with_no_data_dir():
 			os.removedirs(dc_glade.Dialcentral._data_path)
 		except:
 			pass
+		warnings.resetwarnings()
 
 
-def test_startup_with_empty_data_dir():
+def atest_startup_with_empty_data_dir():
+	warnings.simplefilter("always")
 	dc_glade.Dialcentral._data_path = os.path.join(os.path.dirname(__file__), "empty_data")
 	dc_glade.Dialcentral._user_settings = "%s/settings.ini" % dc_glade.Dialcentral._data_path
 
@@ -88,10 +94,15 @@ def test_startup_with_empty_data_dir():
 			os.removedirs(dc_glade.Dialcentral._data_path)
 		except:
 			pass
+		warnings.resetwarnings()
 
 
-def test_startup_with_basic_data_dir():
-	dc_glade.Dialcentral._data_path = os.path.join(os.path.dirname(__file__), "basic_data")
-	dc_glade.Dialcentral._user_settings = "%s/settings.ini" % dc_glade.Dialcentral._data_path
+def atest_startup_with_basic_data_dir():
+	warnings.simplefilter("always")
+	try:
+		dc_glade.Dialcentral._data_path = os.path.join(os.path.dirname(__file__), "basic_data")
+		dc_glade.Dialcentral._user_settings = "%s/settings.ini" % dc_glade.Dialcentral._data_path
 
-	startup(dc_glade.Dialcentral)
+		startup(dc_glade.Dialcentral)
+	finally:
+		warnings.resetwarnings()
