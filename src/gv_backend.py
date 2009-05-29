@@ -114,7 +114,7 @@ class GVDialer(object):
 			self._browser.cookies.load()
 
 		self._token = ""
-		self._accountNum = None
+		self._accountNum = ""
 		self._lastAuthed = 0.0
 		self._callbackNumber = ""
 		self._callbackNumbers = {}
