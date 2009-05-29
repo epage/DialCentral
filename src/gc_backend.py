@@ -240,7 +240,7 @@ class GCDialer(object):
 		for c in self._browser.cookies:
 			if c.name == "pda_forwarding_number":
 				return c.value
-		return None
+		return ""
 
 	def get_recent(self):
 		"""
