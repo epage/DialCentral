@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys
+import os
 import urllib
 import urllib2
 import traceback
@@ -13,12 +13,7 @@ import browser_emu
 import gv_backend
 
 webpages = [
-	("login", gv_backend.GVDialer._loginURL),
-	("clicktocall", gv_backend.GVDialer._clicktocallURL),
-	("sendsms", gv_backend.GVDialer._sendSmsURL),
-	("setforward", gv_backend.GVDialer._setforwardURL),
 	("contacts", gv_backend.GVDialer._contactsURL),
-	("contactdetails", gv_backend.GVDialer._contactDetailURL),
 	("voicemail", gv_backend.GVDialer._voicemailURL),
 	("sms", gv_backend.GVDialer._smsURL),
 	("forward", gv_backend.GVDialer._forwardURL),
@@ -29,7 +24,12 @@ webpages = [
 ]
 
 
+# Create Browser
 browser = browser_emu.MozillaEmulator(1)
+cookieFile = os.path.join(".", ".gv_cookies.txt")
+browser.cookies.filename = cookieFile
+
+# Get Pages
 for name, url in webpages:
 	try:
 		page = browser.download(url)
@@ -39,6 +39,7 @@ for name, url in webpages:
 	with open("not_loggedin_%s.txt" % name, "w") as f:
 		f.write(page)
 
+# Login
 username = sys.argv[1]
 password = sys.argv[2]
 
@@ -65,13 +66,9 @@ if tokenGroup is None:
 	raise RuntimeError("Could not extract authentication token from GoogleVoice")
 token = tokenGroup.group(1)
 
-browser = browser_emu.MozillaEmulator(1)
+# Get Pages
 for name, url in webpages:
 	try:
-		#data = urllib.urlencode({
-		#	"_rnr_se": token,
-		#})
-		#page = browser.download(url, data)
 		page = browser.download(url)
 	except StandardError, e:
 		warnings.warn(traceback.format_exc())

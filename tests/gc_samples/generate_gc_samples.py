@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys
+import os
 import urllib
 import urllib2
 import traceback
@@ -12,13 +12,6 @@ sys.path.append("../../src")
 import browser_emu
 import gc_backend
 
-	_forwardselectURL = "http://www.grandcentral.com/mobile/settings/forwarding_select"
-	_loginURL = "https://www.grandcentral.com/mobile/account/login"
-	_setforwardURL = "http://www.grandcentral.com/mobile/settings/set_forwarding?from=settings"
-	_clicktocallURL = "http://www.grandcentral.com/mobile/calls/click_to_call?a_t=%s&destno=%s"
-	_inboxallURL = "http://www.grandcentral.com/mobile/messages/inbox?types=all"
-	_contactsURL = "http://www.grandcentral.com/mobile/contacts"
-	_contactDetailURL = "http://www.grandcentral.com/mobile/contacts/detail"
 webpages = [
 	("forward", gc_backend.GCDialer._forwardselectURL),
 	("login", gc_backend.GCDialer._loginURL),
@@ -30,7 +23,12 @@ webpages = [
 ]
 
 
+# Create Browser
 browser = browser_emu.MozillaEmulator(1)
+cookieFile = os.path.join(".", ".gv_cookies.txt")
+browser.cookies.filename = cookieFile
+
+# Get Pages
 for name, url in webpages:
 	try:
 		page = browser.download(url)
@@ -40,6 +38,7 @@ for name, url in webpages:
 	with open("not_loggedin_%s.txt" % name, "w") as f:
 		f.write(page)
 
+# Login
 username = sys.argv[1]
 password = sys.argv[2]
 
@@ -58,21 +57,17 @@ except urllib2.URLError, e:
 	warnings.warn(traceback.format_exc())
 	raise RuntimeError("%s is not accesible" % gc_backend.GCDialer._loginURL)
 
-forwardPage = browser.download(gc_backend.GCDialer._forwardURL)
+forwardPage = browser.download(gc_backend.GCDialer._forwardselectURL)
 
-tokenGroup = gc_backend.GCDialer._tokenRe.search(forwardPage)
+tokenGroup = gc_backend.GCDialer._accessTokenRe.search(forwardPage)
 if tokenGroup is None:
 	print forwardPage
-	raise RuntimeError("Could not extract authentication token from GoogleVoice")
+	raise RuntimeError("Could not extract authentication token from GrandCentral")
 token = tokenGroup.group(1)
 
-browser = browser_emu.MozillaEmulator(1)
+# Get Pages
 for name, url in webpages:
 	try:
-		#data = urllib.urlencode({
-		#	"_rnr_se": token,
-		#})
-		#page = browser.download(url, data)
 		page = browser.download(url)
 	except StandardError, e:
 		warnings.warn(traceback.format_exc())
