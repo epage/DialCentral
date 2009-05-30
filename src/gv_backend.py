@@ -638,7 +638,7 @@ class GVDialer(object):
 			number = messageData["number"]
 			relativeTime = messageData["relTime"]
 			message = "\n".join((
-				"<b>%s (%s)</b>: %s" % messagePart
+				"<b>%s</b>: %s" % (messagePart[0], messagePart[-1])
 				for messagePart in messageData["messageParts"]
 			))
 			if not message:
