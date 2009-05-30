@@ -50,6 +50,7 @@ build: $(OBJ)
 	cp support/icons/hicolor/64x64/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/64x64-$(PROJECT_NAME).png
 	cp support/icons/hicolor/scalable/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/scale-$(PROJECT_NAME).png
 	cp support/builddeb.py $(BUILD_PATH)
+	cp support/fake_py2deb.py $(BUILD_PATH)
 
 lint: $(OBJ)
 	$(foreach file, $(SOURCE), $(LINT) $(file) ; )

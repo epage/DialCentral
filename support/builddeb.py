@@ -3,7 +3,10 @@
 import os
 import sys
 
-import py2deb
+try:
+	import py2deb
+except ImportError:
+	import fake_py2deb as py2deb
 
 import constants
 
@@ -90,9 +93,9 @@ __changelog__ = '''
 '''
 
 
-__postinstall__ = '''#!/bin/sh
+__postinstall__ = '''#!/bin/sh -e
 
-gtk-update-icon-cache /usr/share/icons/hicolor
+gtk-update-icon-cache -f /usr/share/icons/hicolor
 '''
 
 
@@ -135,7 +138,7 @@ if __name__ == "__main__":
 	p.repository = "extras"
 	p.changelog = __changelog__
 	p.postinstall = __postinstall__
-	p.icon="26x26-dialcentral.png"
+	p.icon = "26x26-dialcentral.png"
 	p["/usr/bin"] = [ "dialcentral.py" ]
 	for relPath, files in unflatten_files(find_files(".")).iteritems():
 		fullPath = "/usr/lib/dialcentral"
