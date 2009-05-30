@@ -16,6 +16,9 @@ __version__ = constants.__version__
 __build__ = 0
 __changelog__ = '''
 0.9.9
+* SMS From Dialpad
+* Display of names for messages tab
+* Condensed messages/recent's date column
 
 0.9.8
  * Added columns to recent view and messages view to help seperate messages
