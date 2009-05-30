@@ -98,6 +98,19 @@ def itergroup(iterator, count, padValue = None):
 	return itertools.izip(*nIterators)
 
 
+def abbrev_relative_date(date):
+	"""
+	>>> abbrev_relative_date("42 hours ago")
+	'42 h'
+	>>> abbrev_relative_date("2 days ago")
+	'2 d'
+	>>> abbrev_relative_date("4 weeks ago")
+	'4 w'
+	"""
+	parts = date.split(" ")
+	return "%s %s" % (parts[0], parts[1][0])
+
+
 class GVDialer(object):
 	"""
 	This class encapsulates all of the knowledge necessary to interace with the grandcentral servers
@@ -320,6 +333,7 @@ class GVDialer(object):
 		]
 		sortedRecent.sort(reverse = True)
 		for exactDate, name, number, relativeDate, action in sortedRecent:
+			relativeDate = abbrev_relative_date(relativeDate)
 			yield name, number, relativeDate, action
 
 	def get_addressbooks(self):
@@ -416,6 +430,7 @@ class GVDialer(object):
 		sortedMessages = list(allMessages)
 		sortedMessages.sort(reverse=True)
 		for exactDate, header, number, relativeDate, message in sortedMessages:
+			relativeDate = abbrev_relative_date(relativeDate)
 			yield header, number, relativeDate, message
 
 	def _grab_json(self, flatXml):
@@ -507,6 +522,7 @@ class GVDialer(object):
 	_seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class="gc-message.*?">""", re.MULTILINE | re.DOTALL)
 	_exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
 	_relativeVoicemailTimeRegex = re.compile(r"""<span class="gc-message-relative">(.*?)</span>""", re.MULTILINE)
+	_voicemailNameRegex = re.compile(r"""<a class=.*?gc-message-name-link.*?>(.*?)</a>""", re.MULTILINE | re.DOTALL)
 	_voicemailNumberRegex = re.compile(r"""<input type="hidden" class="gc-text gc-quickcall-ac" value="(.*?)"/>""", re.MULTILINE)
 	_prettyVoicemailNumberRegex = re.compile(r"""<span class="gc-message-type">(.*?)</span>""", re.MULTILINE)
 	_voicemailLocationRegex = re.compile(r"""<span class="gc-message-location">.*?<a.*?>(.*?)</a></span>""", re.MULTILINE)
@@ -523,6 +539,8 @@ class GVDialer(object):
 			locationGroup = self._voicemailLocationRegex.search(messageHtml)
 			location = locationGroup.group(1).strip() if locationGroup else ""
 
+			nameGroup = self._voicemailNameRegex.search(messageHtml)
+			name = nameGroup.group(1).strip() if nameGroup else ""
 			numberGroup = self._voicemailNumberRegex.search(messageHtml)
 			number = numberGroup.group(1).strip() if numberGroup else ""
 			prettyNumberGroup = self._prettyVoicemailNumberRegex.search(messageHtml)
@@ -536,6 +554,7 @@ class GVDialer(object):
 
 			yield {
 				"id": messageId.strip(),
+				"name": name,
 				"time": exactTime,
 				"relTime": relativeTime,
 				"prettyNumber": prettyNumber,
@@ -552,7 +571,14 @@ class GVDialer(object):
 		}
 		for voicemailData in parsedVoicemail:
 			exactTime = voicemailData["time"]
-			header = "%s %s" % (voicemailData["prettyNumber"], voicemailData["location"])
+			if voicemailData["name"]:
+				header = voicemailData["name"]
+			elif voicemailData["prettyNumber"]:
+				header = voicemailData["prettyNumber"]
+			elif voicemailData["location"]:
+				header = voicemailData["location"]
+			else:
+				header = "Unknown"
 			message = " ".join((
 				messagePartFormat[quality] % part
 				for (quality, part) in voicemailData["messageParts"]
@@ -574,6 +600,8 @@ class GVDialer(object):
 			relativeTimeGroup = self._relativeVoicemailTimeRegex.search(messageHtml)
 			relativeTime = relativeTimeGroup.group(1).strip() if relativeTimeGroup else ""
 
+			nameGroup = self._voicemailNameRegex.search(messageHtml)
+			name = nameGroup.group(1).strip() if nameGroup else ""
 			numberGroup = self._voicemailNumberRegex.search(messageHtml)
 			number = numberGroup.group(1).strip() if numberGroup else ""
 			prettyNumberGroup = self._prettyVoicemailNumberRegex.search(messageHtml)
@@ -590,6 +618,7 @@ class GVDialer(object):
 
 			yield {
 				"id": messageId.strip(),
+				"name": name,
 				"time": exactTime,
 				"relTime": relativeTime,
 				"prettyNumber": prettyNumber,
@@ -600,7 +629,12 @@ class GVDialer(object):
 	def _decorate_sms(self, parsedSms):
 		for messageData in parsedSms:
 			exactTime = messageData["time"]
-			header = "%s" % (messageData["prettyNumber"])
+			if messageData["name"]:
+				header = messageData["name"]
+			elif messageData["prettyNumber"]:
+				header = messageData["prettyNumber"]
+			else:
+				header = "Unknown"
 			number = messageData["number"]
 			relativeTime = messageData["relTime"]
 			message = "\n".join((
