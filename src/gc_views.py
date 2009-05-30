@@ -255,7 +255,7 @@ class PhoneTypeSelector(object):
 		self._widgetTree = widgetTree
 
 		self._dialog = self._widgetTree.get_widget("phonetype_dialog")
-		self._smsDialog = SmsEntryDialog(self._widgetTree, self._gcBackend)
+		self._smsDialog = SmsEntryDialog(self._widgetTree)
 
 		self._smsButton = self._widgetTree.get_widget("sms_button")
 		self._smsButton.connect("clicked", self._on_phonetype_send_sms)
@@ -369,8 +369,7 @@ class SmsEntryDialog(object):
 
 	MAX_CHAR = 160
 
-	def __init__(self, widgetTree, gcBackend):
-		self._gcBackend = gcBackend
+	def __init__(self, widgetTree):
 		self._widgetTree = widgetTree
 		self._dialog = self._widgetTree.get_widget("smsDialog")
 
@@ -410,7 +409,7 @@ class SmsEntryDialog(object):
 		else:
 			enteredMessage = ""
 
-		return enteredMessage
+		return enteredMessage.strip()
 
 	def _update_letter_count(self, *args):
 		entryLength = self._smsEntry.get_buffer().get_char_count()
@@ -435,6 +434,8 @@ class Dialpad(object):
 
 	def __init__(self, widgetTree, errorDisplay):
 		self._errorDisplay = errorDisplay
+		self._smsDialog = SmsEntryDialog(widgetTree)
+
 		self._numberdisplay = widgetTree.get_widget("numberdisplay")
 		self._dialButton = widgetTree.get_widget("dial")
 		self._phonenumber = ""
@@ -443,6 +444,7 @@ class Dialpad(object):
 
 		callbackMapping = {
 			"on_dial_clicked": self._on_dial_clicked,
+			"on_sms_clicked": self._on_sms_clicked,
 			"on_digit_clicked": self._on_digit_clicked,
 			"on_clear_number": self._on_clear_number,
 			"on_back_clicked": self._on_backspace,
@@ -450,6 +452,8 @@ class Dialpad(object):
 			"on_back_released": self._on_back_released,
 		}
 		widgetTree.signal_autoconnect(callbackMapping)
+
+		self._window = gtk_toolbox.find_parent_window(self._numberdisplay)
 
 	def enable(self):
 		self._dialButton.grab_focus()
@@ -492,6 +496,19 @@ class Dialpad(object):
 		@note Thread Agnostic
 		"""
 		pass
+
+	def _on_sms_clicked(self, widget):
+		action = PhoneTypeSelector.ACTION_SEND_SMS
+		phoneNumber = self.get_number()
+
+		message = self._smsDialog.run(phoneNumber, "", self._window)
+		if not message:
+			phoneNumber = ""
+			action = PhoneTypeSelector.ACTION_CANCEL
+
+		if action == PhoneTypeSelector.ACTION_CANCEL:
+			return
+		self.number_selected(action, phoneNumber, message)
 
 	def _on_dial_clicked(self, widget):
 		action = PhoneTypeSelector.ACTION_DIAL

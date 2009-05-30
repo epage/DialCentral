@@ -182,12 +182,38 @@
               <widget class="GtkVBox" id="keypad_vbox">
                 <property name="visible">True</property>
                 <child>
-                  <widget class="GtkLabel" id="numberdisplay">
-                    <property name="height_request">50</property>
+                  <widget class="GtkHBox" id="hbox3">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">&lt;span size="35000" weight="bold"&gt;&lt;/span&gt;</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">center</property>
+                    <child>
+                      <widget class="GtkLabel" id="numberdisplay">
+                        <property name="height_request">50</property>
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">&lt;span size="35000" weight="bold"&gt;&lt;/span&gt;</property>
+                        <property name="use_markup">True</property>
+                        <property name="justify">center</property>
+                      </widget>
+                      <packing>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkButton" id="back">
+                        <property name="label" translatable="yes">gtk-go-back</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_stock">True</property>
+                        <property name="focus_on_click">False</property>
+                        <signal name="pressed" handler="on_back_pressed"/>
+                        <signal name="clicked" handler="on_back_clicked"/>
+                        <signal name="released" handler="on_back_released"/>
+                        <accelerator key="BackSpace" signal="clicked"/>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
@@ -226,10 +252,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="2" signal="clicked"/>
-                        <accelerator key="a" signal="clicked"/>
-                        <accelerator key="b" signal="clicked"/>
                         <accelerator key="c" signal="clicked"/>
+                        <accelerator key="b" signal="clicked"/>
+                        <accelerator key="a" signal="clicked"/>
+                        <accelerator key="2" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label10">
                             <property name="visible">True</property>
@@ -252,10 +278,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="3" signal="clicked"/>
-                        <accelerator key="d" signal="clicked"/>
-                        <accelerator key="e" signal="clicked"/>
                         <accelerator key="f" signal="clicked"/>
+                        <accelerator key="e" signal="clicked"/>
+                        <accelerator key="d" signal="clicked"/>
+                        <accelerator key="3" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label11">
                             <property name="visible">True</property>
@@ -278,10 +304,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="4" signal="clicked"/>
-                        <accelerator key="g" signal="clicked"/>
-                        <accelerator key="h" signal="clicked"/>
                         <accelerator key="i" signal="clicked"/>
+                        <accelerator key="h" signal="clicked"/>
+                        <accelerator key="g" signal="clicked"/>
+                        <accelerator key="4" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label13">
                             <property name="visible">True</property>
@@ -304,10 +330,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="5" signal="clicked"/>
-                        <accelerator key="j" signal="clicked"/>
-                        <accelerator key="k" signal="clicked"/>
                         <accelerator key="l" signal="clicked"/>
+                        <accelerator key="k" signal="clicked"/>
+                        <accelerator key="j" signal="clicked"/>
+                        <accelerator key="5" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label14">
                             <property name="visible">True</property>
@@ -332,10 +358,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="6" signal="clicked"/>
-                        <accelerator key="m" signal="clicked"/>
-                        <accelerator key="n" signal="clicked"/>
                         <accelerator key="o" signal="clicked"/>
+                        <accelerator key="n" signal="clicked"/>
+                        <accelerator key="m" signal="clicked"/>
+                        <accelerator key="6" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label15">
                             <property name="visible">True</property>
@@ -360,11 +386,11 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="7" signal="clicked"/>
-                        <accelerator key="p" signal="clicked"/>
-                        <accelerator key="q" signal="clicked"/>
-                        <accelerator key="r" signal="clicked"/>
                         <accelerator key="s" signal="clicked"/>
+                        <accelerator key="r" signal="clicked"/>
+                        <accelerator key="q" signal="clicked"/>
+                        <accelerator key="p" signal="clicked"/>
+                        <accelerator key="7" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label16">
                             <property name="visible">True</property>
@@ -387,10 +413,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="8" signal="clicked"/>
-                        <accelerator key="t" signal="clicked"/>
-                        <accelerator key="u" signal="clicked"/>
                         <accelerator key="v" signal="clicked"/>
+                        <accelerator key="u" signal="clicked"/>
+                        <accelerator key="t" signal="clicked"/>
+                        <accelerator key="8" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label17">
                             <property name="visible">True</property>
@@ -415,11 +441,11 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="9" signal="clicked"/>
-                        <accelerator key="w" signal="clicked"/>
-                        <accelerator key="x" signal="clicked"/>
-                        <accelerator key="y" signal="clicked"/>
                         <accelerator key="z" signal="clicked"/>
+                        <accelerator key="y" signal="clicked"/>
+                        <accelerator key="x" signal="clicked"/>
+                        <accelerator key="w" signal="clicked"/>
+                        <accelerator key="9" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label18">
                             <property name="visible">True</property>
@@ -435,49 +461,6 @@
                         <property name="right_attach">3</property>
                         <property name="top_attach">2</property>
                         <property name="bottom_attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkButton" id="back">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="receives_default">False</property>
-                        <property name="focus_on_click">False</property>
-                        <signal name="pressed" handler="on_back_pressed"/>
-                        <signal name="clicked" handler="on_back_clicked"/>
-                        <signal name="released" handler="on_back_released"/>
-                        <accelerator key="BackSpace" signal="clicked"/>
-                        <child>
-                          <widget class="GtkHBox" id="hbox2">
-                            <property name="visible">True</property>
-                            <child>
-                              <widget class="GtkImage" id="image2">
-                                <property name="visible">True</property>
-                                <property name="xalign">1</property>
-                                <property name="stock">gtk-no</property>
-                              </widget>
-                              <packing>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <widget class="GtkLabel" id="label9">
-                                <property name="visible">True</property>
-                                <property name="xalign">0</property>
-                                <property name="xpad">5</property>
-                                <property name="label" translatable="yes">&lt;span size="17000" weight="Bold"&gt;Back&lt;/span&gt;</property>
-                                <property name="use_markup">True</property>
-                              </widget>
-                              <packing>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </widget>
-                        </child>
-                      </widget>
-                      <packing>
-                        <property name="top_attach">3</property>
-                        <property name="bottom_attach">4</property>
                       </packing>
                     </child>
                     <child>
@@ -543,6 +526,46 @@
                       <packing>
                         <property name="left_attach">2</property>
                         <property name="right_attach">3</property>
+                        <property name="top_attach">3</property>
+                        <property name="bottom_attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkButton" id="sms">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="on_sms_clicked"/>
+                        <accelerator key="Return" signal="clicked"/>
+                        <child>
+                          <widget class="GtkHBox" id="hbox2">
+                            <property name="visible">True</property>
+                            <child>
+                              <widget class="GtkImage" id="image2">
+                                <property name="visible">True</property>
+                                <property name="xalign">1</property>
+                                <property name="stock">gtk-file</property>
+                              </widget>
+                              <packing>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <widget class="GtkLabel" id="label1">
+                                <property name="visible">True</property>
+                                <property name="xalign">0</property>
+                                <property name="xpad">5</property>
+                                <property name="label" translatable="yes">&lt;span size="17000" weight="bold"&gt;SMS&lt;/span&gt;</property>
+                                <property name="use_markup">True</property>
+                              </widget>
+                              <packing>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </widget>
+                        </child>
+                      </widget>
+                      <packing>
                         <property name="top_attach">3</property>
                         <property name="bottom_attach">4</property>
                       </packing>
