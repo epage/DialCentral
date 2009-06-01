@@ -72,6 +72,7 @@ class GCDialer(object):
 		self._accessToken = None
 		self._accountNum = ""
 		self._lastAuthed = 0.0
+		self._callbackNumber = ""
 		self._callbackNumbers = {}
 
 		self.__contacts = None
@@ -220,6 +221,7 @@ class GCDialer(object):
 		Set the number that grandcental calls
 		@param callbacknumber should be a proper 10 digit number
 		"""
+		self._callbackNumber = callbacknumber
 		callbackPostData = urllib.urlencode({
 			'a_t': self._accessToken,
 			'default_number': callbacknumber
@@ -240,7 +242,7 @@ class GCDialer(object):
 		for c in self._browser.cookies:
 			if c.name == "pda_forwarding_number":
 				return c.value
-		return ""
+		return self._callbackNumber
 
 	def get_recent(self):
 		"""

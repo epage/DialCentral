@@ -12,31 +12,10 @@ sys.path.append("../../src")
 import browser_emu
 import gc_backend
 
-webpages = [
-	("forward", gc_backend.GCDialer._forwardselectURL),
-	("login", gc_backend.GCDialer._loginURL),
-	("setforward", gc_backend.GCDialer._setforwardURL),
-	("clicktocall", gc_backend.GCDialer._clicktocallURL),
-	("recent", gc_backend.GCDialer._inboxallURL),
-	("contacts", gc_backend.GCDialer._contactsURL),
-	("contactdetails", gc_backend.GCDialer._contactDetailURL),
-]
-
-
 # Create Browser
 browser = browser_emu.MozillaEmulator(1)
 cookieFile = os.path.join(".", ".gc_cookies.txt")
 browser.cookies.filename = cookieFile
-
-# Get Pages
-for name, url in webpages:
-	try:
-		page = browser.download(url)
-	except StandardError, e:
-		print e.message
-		continue
-	with open("not_loggedin_%s.txt" % name, "w") as f:
-		f.write(page)
 
 # Login
 username = sys.argv[1]
@@ -65,13 +44,9 @@ if tokenGroup is None:
 	raise RuntimeError("Could not extract authentication token from GrandCentral")
 token = tokenGroup.group(1)
 
-# Get Pages
-for name, url in webpages:
-	try:
-		page = browser.download(url)
-	except StandardError, e:
-		warnings.warn(traceback.format_exc())
-		continue
-	print "Writing to file"
-	with open("loggedin_%s.txt" % name, "w") as f:
-		f.write(page)
+
+with open("cookies.txt", "w") as f:
+	f.writelines(
+		"%s: %s\n" % (c.name, c.value)
+		for c in browser.cookies
+	)
