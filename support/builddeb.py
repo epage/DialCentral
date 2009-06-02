@@ -18,6 +18,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = 0
 __changelog__ = '''
+0.9.10
+
 0.9.9
 * SMS From Dialpad
 * Display of names for messages tab
