@@ -747,7 +747,9 @@ class RecentCallsView(object):
 		for personName, phoneNumber, date, action in recentItems:
 			if not personName:
 				personName = "Unknown"
-			description = "%s (%s)" % (phoneNumber, personName)
+			prettyNumber = phoneNumber[2:] if phoneNumber.startswith("+1") else phoneNumber
+			prettyNumber = make_pretty(prettyNumber)
+			description = "%s - %s" % (personName, prettyNumber)
 			item = (phoneNumber, date, action.capitalize(), description)
 			with gtk_toolbox.gtk_lock():
 				self._recentmodel.append(item)

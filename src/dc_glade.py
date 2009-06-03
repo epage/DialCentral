@@ -18,7 +18,6 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-@bug Need to add unit tests
 @todo Look into an actor system
 @bug Session timeouts are bad, possible solutions:
 	@li For every X minutes, if logged in, attempt login
@@ -712,7 +711,7 @@ class Dialcentral(object):
 		dlg.set_name(constants.__pretty_app_name__)
 		dlg.set_version(constants.__version__)
 		dlg.set_copyright("Copyright 2008 - LGPL")
-		dlg.set_comments("Dialer is designed to interface with your Google Grandcentral account.  This application is not affiliated with Google or Grandcentral in any way")
+		dlg.set_comments("Dialcentral is a touch screen enhanced interface to your GoogleVoice/Grandcentral account.  This application is not affiliated with Google in any way")
 		dlg.set_website("http://gc-dialer.garage.maemo.org/")
 		dlg.set_authors(["<z2n@merctech.com>", "Eric Warnke <ericew@gmail.com>", "Ed Page <edpage@byu.net>"])
 		dlg.run()

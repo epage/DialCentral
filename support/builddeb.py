@@ -12,13 +12,14 @@ import constants
 
 
 __appname__ = constants.__app_name__
-__description__ = "Simple interface to Google's GrandCentral(tm) service"
+__description__ = "Touch screen enhanced interface to the GoogleVoice/GrandCentral phone service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = 0
 __changelog__ = '''
-0.9.10
+1.0.0
+* Added names to the recent tab for GoogleVoice
 
 0.9.9
 * SMS From Dialpad

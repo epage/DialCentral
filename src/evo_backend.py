@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 Evolution Contact Support
 
-It seems the evolution contact API used is specific to the desktop.  evolution.ebook combined with abook is what is needed for Maemo.
+@bug It seems the evolution contact API used is specific to the desktop.  evolution.ebook combined with abook is what is needed for Maemo.
 	http://maemo.org/maemo_release_documentation/maemo4.1.x/node8.html#SECTION00870000000000000000
 	https://garage.maemo.org/svn/pymaemo/packages/python-abook/trunk/tests/ especially contact_get_iter amd filter_model
 	http://pymaemo.garage.maemo.org/documentation/api/abook/index.html

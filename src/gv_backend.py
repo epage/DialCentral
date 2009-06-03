@@ -491,10 +491,10 @@ class GVDialer(object):
 		"""
 		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
 		"""
-		for url in (
-			self._receivedCallsURL,
-			self._missedCallsURL,
-			self._placedCallsURL,
+		for action, url in (
+			("Recieved", self._receivedCallsURL),
+			("Missed", self._missedCallsURL),
+			("Placed", self._placedCallsURL),
 		):
 			try:
 				flatXml = self._browser.download(url)
@@ -502,22 +502,19 @@ class GVDialer(object):
 				warnings.warn(traceback.format_exc())
 				raise RuntimeError("%s is not accesible" % url)
 
-			allRecentData = self._grab_json(flatXml)
-			for recentCallData in allRecentData["messages"].itervalues():
-				number = recentCallData["displayNumber"]
-				exactDate = recentCallData["displayStartDateTime"]
-				relativeDate = recentCallData["relativeStartTime"]
-				action = ", ".join((
-					label.title()
-					for label in recentCallData["labels"]
-						if label.lower() != "all" and label.lower() != "inbox"
-				))
-				number = saxutils.unescape(number)
-				exactDate = saxutils.unescape(exactDate)
-				exactDate = datetime.datetime.strptime(exactDate, "%m/%d/%y %I:%M %p")
-				relativeDate = saxutils.unescape(relativeDate)
-				action = saxutils.unescape(action)
-				yield "", number, exactDate, relativeDate, action
+			allRecentHtml = self._grab_html(flatXml)
+			allRecentData = self._parse_voicemail(allRecentHtml)
+			for recentCallData in allRecentData:
+				exactTime = recentCallData["time"]
+				if recentCallData["name"]:
+					header = recentCallData["name"]
+				elif recentCallData["prettyNumber"]:
+					header = recentCallData["prettyNumber"]
+				elif recentCallData["location"]:
+					header = recentCallData["location"]
+				else:
+					header = "Unknown"
+				yield header, recentCallData["number"], exactTime, recentCallData["relTime"], action
 
 	_seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class="gc-message.*?">""", re.MULTILINE | re.DOTALL)
 	_exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
