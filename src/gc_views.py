@@ -367,6 +367,10 @@ class PhoneTypeSelector(object):
 
 class SmsEntryDialog(object):
 
+	"""
+	@todo Add multi-SMS messages like GoogleVoice
+	"""
+
 	MAX_CHAR = 160
 
 	def __init__(self, widgetTree):
