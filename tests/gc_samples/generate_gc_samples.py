@@ -19,7 +19,6 @@ webpages = [
 	("clicktocall", gc_backend.GCDialer._clicktocallURL),
 	("recent", gc_backend.GCDialer._inboxallURL),
 	("contacts", gc_backend.GCDialer._contactsURL),
-	("contactdetails", gc_backend.GCDialer._contactDetailURL),
 ]
 
 
@@ -43,12 +42,8 @@ username = sys.argv[1]
 password = sys.argv[2]
 
 loginPostData = urllib.urlencode({
-	'Email' : username,
-	'Passwd' : password,
-	'service': "grandcentral",
-	"ltmpl": "mobile",
-	"btmpl": "mobile",
-	"PersistentCookie": "yes",
+	'username' : username,
+	'password' : password,
 })
 
 try:
@@ -61,7 +56,9 @@ forwardPage = browser.download(gc_backend.GCDialer._forwardselectURL)
 
 tokenGroup = gc_backend.GCDialer._accessTokenRe.search(forwardPage)
 if tokenGroup is None:
+	print "="*60
 	print forwardPage
+	print "="*60
 	raise RuntimeError("Could not extract authentication token from GrandCentral")
 token = tokenGroup.group(1)
 
