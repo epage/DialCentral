@@ -44,7 +44,8 @@ class GCDialer(object):
 	_accessTokenRe = re.compile(r"""<input type="hidden" name="a_t" [^>]*value="(.*)"/>""")
 	_isLoginPageRe = re.compile(r"""<form method="post" action="https://www.grandcentral.com/mobile/account/login">""")
 	_callbackRe = re.compile(r"""name="default_number" value="(\d+)" />\s+(.*)\s$""", re.M)
-	_accountNumRe = re.compile(r"""<input type="hidden" name="gcentral_num" [^>]*value="(.*)"/>""")
+	_accountNumRe = re.compile(r"""<img src="/images/mobile/inbox_logo.gif" alt="GrandCentral" />\s*(.{14})\s*&nbsp""", re.M)
+	_upgradedAccountNumRe = re.compile(r"""<input type="hidden" name="gcentral_num" [^>]*value="(.*)"/>""")
 	_inboxRe = re.compile(r"""<td>.*?(voicemail|received|missed|call return).*?</td>\s+<td>\s+<font size="2">\s+(.*?)\s+&nbsp;\|&nbsp;\s+<a href="/mobile/contacts/.*?">(.*?)\s?</a>\s+<br/>\s+(.*?)\s?<a href=""", re.S)
 	_contactsRe = re.compile(r"""<a href="/mobile/contacts/detail/(\d+)">(.*?)</a>""", re.S)
 	_contactsNextRe = re.compile(r""".*<a href="/mobile/contacts(\?page=\d+)">Next</a>""", re.S)
@@ -333,6 +334,8 @@ class GCDialer(object):
 		self._accessToken = atGroup.group(1)
 
 		anGroup = self._accountNumRe.search(data)
+		if anGroup is None:
+			anGroup = self._upgradedAccountNumRe.search(data)
 		if anGroup is not None:
 			self._accountNum = anGroup.group(1)
 		else:
