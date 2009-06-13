@@ -136,11 +136,11 @@ def build_package(distribution):
 	p.depends = {
 		"diablo": "python2.5, python2.5-gtk2, python2.5-xml",
 		"mer": "python2.6, python-gtk2, python-xml, python-glade2",
-	}
-	p.section = "user/utilities"
+	}[distribution]
+	p.section = "user/communication"
 	p.arch = "all"
 	p.urgency = "low"
-	p.distribution = "chinook diablo fremantle"
+	p.distribution = "chinook diablo fremantle mer"
 	p.repository = "extras"
 	p.changelog = __changelog__
 	p.postinstall = __postinstall__
@@ -164,6 +164,7 @@ def build_package(distribution):
 		__version__, __build__, changelog=__changelog__,
 		tar=True, dsc=True, changes=True, build=False, src=True
 	)
+	print "Building for %s finished" % distribution
 
 
 if __name__ == "__main__":
@@ -179,4 +180,4 @@ if __name__ == "__main__":
 	else:
 		commandArgs = None
 		commandArgs = ["diablo"]
-	build_package()
+	build_package(commandArgs[0])
