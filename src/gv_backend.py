@@ -523,7 +523,7 @@ class GVDialer(object):
 	_voicemailNumberRegex = re.compile(r"""<input type="hidden" class="gc-text gc-quickcall-ac" value="(.*?)"/>""", re.MULTILINE)
 	_prettyVoicemailNumberRegex = re.compile(r"""<span class="gc-message-type">(.*?)</span>""", re.MULTILINE)
 	_voicemailLocationRegex = re.compile(r"""<span class="gc-message-location">.*?<a.*?>(.*?)</a></span>""", re.MULTILINE)
-	_voicemailMessageRegex = re.compile(r"""<span class="gc-word-(.*?)">(.*?)</span>""", re.MULTILINE)
+	_voicemailMessageRegex = re.compile(r"""<span id="\d+-\d+" class="gc-word-(.*?)">(.*?)</span>""", re.MULTILINE)
 
 	def _parse_voicemail(self, voicemailHtml):
 		splitVoicemail = self._seperateVoicemailsRegex.split(voicemailHtml)
