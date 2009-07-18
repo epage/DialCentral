@@ -1057,22 +1057,24 @@ class ContactsView(object):
 
 		# completely disable updating the treeview while we populate the data
 		self._contactsview.freeze_child_notify()
-		self._contactsview.set_model(None)
-
-		addressBook = self._addressBook
 		try:
-			contacts = addressBook.get_contacts()
-		except RuntimeError, e:
-			contacts = []
-			self._isPopulated = False
-			self._errorDisplay.push_exception_with_lock(e)
-		for contactId, contactName in contacts:
-			contactType = (addressBook.contact_source_short_name(contactId), )
-			self._contactsmodel.append(contactType + (contactName, "", contactId) + ("", ))
+			self._contactsview.set_model(None)
 
-		# restart the treeview data rendering
-		self._contactsview.set_model(self._contactsmodel)
-		self._contactsview.thaw_child_notify()
+			addressBook = self._addressBook
+			try:
+				contacts = addressBook.get_contacts()
+			except RuntimeError, e:
+				contacts = []
+				self._isPopulated = False
+				self._errorDisplay.push_exception_with_lock(e)
+			for contactId, contactName in contacts:
+				contactType = (addressBook.contact_source_short_name(contactId), )
+				self._contactsmodel.append(contactType + (contactName, "", contactId) + ("", ))
+
+			# restart the treeview data rendering
+			self._contactsview.set_model(self._contactsmodel)
+		finally:
+			self._contactsview.thaw_child_notify()
 		return False
 
 	def _on_addressbook_combo_changed(self, *args, **kwds):
