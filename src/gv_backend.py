@@ -386,7 +386,7 @@ class GVDialer(object):
 			for contact in self.__contacts:
 				yield contact
 
-	_contactDetailPhoneRe = re.compile(r"""<div.*?>([0-9\-\(\) \t]+?)<span.*?>\((\w+)\)</span>""", re.S)
+	_contactDetailPhoneRe = re.compile(r"""<div.*?>([0-9+\-\(\) \t]+?)<span.*?>\((\w+)\)</span>""", re.S)
 	_contactDetailURL = "https://www.google.com/voice/mobile/contact"
 
 	def get_contact_details(self, contactId):
