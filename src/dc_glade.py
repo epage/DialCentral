@@ -18,6 +18,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+@todo Figure out how to integrate with the Maemo contacts app
 @todo Look into an actor system
 @bug Session timeouts are bad, possible solutions:
 	@li For every X minutes, if logged in, attempt login
@@ -645,7 +646,7 @@ class Dialcentral(object):
 		assert message
 		try:
 			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
-		except RuntimeError, e:
+		except StandardError, e:
 			loggedIn = False
 			self._errorDisplay.push_exception(e)
 			return
@@ -660,7 +661,7 @@ class Dialcentral(object):
 		try:
 			self._phoneBackends[self._selectedBackendId].send_sms(number, message)
 			dialed = True
-		except RuntimeError, e:
+		except StandardError, e:
 			self._errorDisplay.push_exception(e)
 		except ValueError, e:
 			self._errorDisplay.push_exception(e)
@@ -669,7 +670,7 @@ class Dialcentral(object):
 		assert number
 		try:
 			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
-		except RuntimeError, e:
+		except StandardError, e:
 			loggedIn = False
 			self._errorDisplay.push_exception(e)
 			return
@@ -685,7 +686,7 @@ class Dialcentral(object):
 			assert self._phoneBackends[self._selectedBackendId].get_callback_number() != ""
 			self._phoneBackends[self._selectedBackendId].dial(number)
 			dialed = True
-		except RuntimeError, e:
+		except StandardError, e:
 			self._errorDisplay.push_exception(e)
 		except ValueError, e:
 			self._errorDisplay.push_exception(e)

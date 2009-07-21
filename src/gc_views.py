@@ -610,7 +610,7 @@ class AccountInfo(object):
 		self._callbackList.clear()
 		try:
 			callbackNumbers = self._backend.get_callback_numbers()
-		except RuntimeError, e:
+		except StandardError, e:
 			self._errorDisplay.push_exception(e)
 			self._isPopulated = False
 			return
@@ -629,16 +629,31 @@ class AccountInfo(object):
 			if not self._backend.is_valid_syntax(number):
 				self._errorDisplay.push_message("%s is not a valid callback number" % number)
 			elif number == self._backend.get_callback_number():
-				warnings.warn("Callback number already is %s" % self._backend.get_callback_number(), UserWarning, 2)
+				warnings.warn(
+					"Callback number already is %s" % (
+						self._backend.get_callback_number(),
+					),
+					UserWarning,
+					2
+				)
 			else:
 				self._backend.set_callback_number(number)
-				warnings.warn("Callback number set to %s" % self._backend.get_callback_number(), UserWarning, 2)
-		except RuntimeError, e:
+				assert make_ugly(number) == make_ugly(self._backend.get_callback_number()), "Callback number should be %s but instead is %s" % (
+					make_pretty(number), make_pretty(self._backend.get_callback_number())
+				)
+				warnings.warn(
+					"Callback number set to %s" % (
+						self._backend.get_callback_number(),
+					),
+					UserWarning, 2
+				)
+		except StandardError, e:
 			self._errorDisplay.push_exception(e)
 
 	def _on_callbackentry_changed(self, *args):
 		text = self.get_selected_callback_number()
-		self._set_callback_number(text)
+		number = make_ugly(text)
+		self._set_callback_number(number)
 
 
 class RecentCallsView(object):
@@ -743,7 +758,7 @@ class RecentCallsView(object):
 
 		try:
 			recentItems = self._backend.get_recent()
-		except RuntimeError, e:
+		except StandardError, e:
 			self._errorDisplay.push_exception_with_lock(e)
 			self._isPopulated = False
 			recentItems = []
@@ -885,7 +900,7 @@ class MessagesView(object):
 
 		try:
 			messageItems = self._backend.get_messages()
-		except RuntimeError, e:
+		except StandardError, e:
 			self._errorDisplay.push_exception_with_lock(e)
 			self._isPopulated = False
 			messageItems = []
@@ -1063,7 +1078,7 @@ class ContactsView(object):
 			addressBook = self._addressBook
 			try:
 				contacts = addressBook.get_contacts()
-			except RuntimeError, e:
+			except StandardError, e:
 				contacts = []
 				self._isPopulated = False
 				self._errorDisplay.push_exception_with_lock(e)
@@ -1094,7 +1109,7 @@ class ContactsView(object):
 		contactName = self._contactsmodel.get_value(itr, 1)
 		try:
 			contactDetails = self._addressBook.get_contact_details(contactId)
-		except RuntimeError, e:
+		except StandardError, e:
 			contactDetails = []
 			self._errorDisplay.push_exception(e)
 		contactPhoneNumbers = [phoneNumber for phoneNumber in contactDetails]
