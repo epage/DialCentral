@@ -141,7 +141,7 @@ class GVDialer(object):
 		@returns If authenticated
 		"""
 
-		if (time.time() - self._lastAuthed) < 60 and not force:
+		if (time.time() - self._lastAuthed) < 120 and not force:
 			return True
 
 		try:
@@ -288,10 +288,9 @@ class GVDialer(object):
 		@returns a dictionary mapping call back numbers to descriptions
 		@note These results are cached for 30 minutes.
 		"""
-		if time.time() - self._lastAuthed < 1800 or self.is_authed():
-			return self._callbackNumbers
-
-		return {}
+		if not self.is_authed():
+			return {}
+		return self._callbackNumbers
 
 	_setforwardURL = "https://www.google.com//voice/m/setphone"
 
@@ -301,17 +300,19 @@ class GVDialer(object):
 		@param callbacknumber should be a proper 10 digit number
 		"""
 		self._callbackNumber = callbacknumber
-		callbackPostData = urllib.urlencode({
-			'_rnr_se': self._token,
-			'phone': callbacknumber
-		})
-		try:
-			callbackSetPage = self._browser.download(self._setforwardURL, callbackPostData)
-		except urllib2.URLError, e:
-			warnings.warn(traceback.format_exc())
-			raise RuntimeError("%s is not accesible" % self._setforwardURL)
 
-		self._browser.cookies.save()
+		# Currently this isn't working out in GoogleVoice, but thats ok, we pass the callback on dial
+		#callbackPostData = urllib.urlencode({
+		#	'_rnr_se': self._token,
+		#	'phone': callbacknumber
+		#})
+		#try:
+		#	callbackSetPage = self._browser.download(self._setforwardURL, callbackPostData)
+		#	self._browser.cookies.save()
+		#except urllib2.URLError, e:
+		#	warnings.warn(traceback.format_exc())
+		#	raise RuntimeError("%s is not accesible" % self._setforwardURL)
+
 		return True
 
 	def get_callback_number(self):

@@ -151,10 +151,7 @@ class Dialcentral(object):
 		else:
 			pass # warnings.warn("No Hildon", UserWarning, 2)
 
-		if hildon is not None:
-			self._window.set_title("Keypad")
-		else:
-			self._window.set_title("%s - Keypad" % constants.__pretty_app_name__)
+		self._window.set_title("%s" % constants.__pretty_app_name__)
 
 		callbackMapping = {
 			"on_dialpad_quit": self._on_close,
@@ -314,7 +311,7 @@ class Dialcentral(object):
 			with gtk_toolbox.gtk_lock():
 				self.load_settings(config)
 
-			gtk_toolbox.asynchronous_gtk_message(self._spawn_attempt_login)(2)
+			self._spawn_attempt_login(2)
 		except StandardError, e:
 			warnings.warn(e.message, UserWarning, 2)
 		except BaseException, e:
@@ -634,12 +631,6 @@ class Dialcentral(object):
 			self._contactsViews[self._selectedBackendId].update()
 		elif page_num == self.ACCOUNT_TAB:
 			self._accountViews[self._selectedBackendId].update()
-
-		tabTitle = self._notebook.get_tab_label(self._notebook.get_nth_page(page_num)).get_text()
-		if hildon is not None:
-			self._window.set_title(tabTitle)
-		else:
-			self._window.set_title("%s - %s" % (constants.__pretty_app_name__, tabTitle))
 
 	def _on_sms_clicked(self, number, message):
 		assert number
