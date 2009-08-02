@@ -20,6 +20,8 @@ __build__ = 0
 __changelog__ = '''
 1.0.1
 * Fixed a voicemail transcripts due to a GoogleVoice change
+* Random bug fixes
+* Random performance improvements
 
 1.0.0
 * Added names to the recent tab for GoogleVoice
