@@ -18,10 +18,14 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = 0
 __changelog__ = '''
-1.0.1
-* Fixed a voicemail transcripts due to a GoogleVoice change
+1.0.3
+
+1.0.2
 * Random bug fixes
 * Random performance improvements
+
+1.0.1
+* Fixed a voicemail transcripts due to a GoogleVoice change
 
 1.0.0
 * Added names to the recent tab for GoogleVoice
