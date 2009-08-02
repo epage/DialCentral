@@ -700,6 +700,13 @@ class RecentCallsView(object):
 		self._window = gtk_toolbox.find_parent_window(self._recentview)
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
 
+		self._updateSink = gtk_toolbox.threaded_stage(
+			gtk_toolbox.comap(
+				self._idly_populate_recentview,
+				gtk_toolbox.null_sink(),
+			)
+		)
+
 	def enable(self):
 		assert self._backend.is_authed()
 		self._recentview.set_model(self._recentmodel)
@@ -731,9 +738,7 @@ class RecentCallsView(object):
 	def update(self, force = False):
 		if not force and self._isPopulated:
 			return
-		backgroundPopulate = threading.Thread(target=self._idly_populate_recentview)
-		backgroundPopulate.setDaemon(True)
-		backgroundPopulate.start()
+		self._updateSink.send(())
 
 	def clear(self):
 		self._isPopulated = False
@@ -842,6 +847,13 @@ class MessagesView(object):
 		self._window = gtk_toolbox.find_parent_window(self._messageview)
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
 
+		self._updateSink = gtk_toolbox.threaded_stage(
+			gtk_toolbox.comap(
+				self._idly_populate_messageview,
+				gtk_toolbox.null_sink(),
+			)
+		)
+
 	def enable(self):
 		assert self._backend.is_authed()
 		self._messageview.set_model(self._messagemodel)
@@ -873,9 +885,7 @@ class MessagesView(object):
 	def update(self, force = False):
 		if not force and self._isPopulated:
 			return
-		backgroundPopulate = threading.Thread(target=self._idly_populate_messageview)
-		backgroundPopulate.setDaemon(True)
-		backgroundPopulate.start()
+		self._updateSink.send(())
 
 	def clear(self):
 		self._isPopulated = False
@@ -972,6 +982,13 @@ class ContactsView(object):
 		self._window = gtk_toolbox.find_parent_window(self._contactsview)
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
 
+		self._updateSink = gtk_toolbox.threaded_stage(
+			gtk_toolbox.comap(
+				self._idly_populate_contactsview,
+				gtk_toolbox.null_sink(),
+			)
+		)
+
 	def enable(self):
 		assert self._backend.is_authed()
 
@@ -1034,15 +1051,11 @@ class ContactsView(object):
 	def update(self, force = False):
 		if not force and self._isPopulated:
 			return
-		backgroundPopulate = threading.Thread(target=self._idly_populate_contactsview)
-		backgroundPopulate.setDaemon(True)
-		backgroundPopulate.start()
+		self._updateSink.send(())
 
 	def clear(self):
 		self._isPopulated = False
 		self._contactsmodel.clear()
-
-	def clear_caches(self):
 		for factory in self._addressBookFactories:
 			factory.clear_caches()
 		self._addressBook.clear_caches()

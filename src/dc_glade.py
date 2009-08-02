@@ -162,6 +162,13 @@ class Dialcentral(object):
 		self._window.set_default_size(800, 300)
 		self._window.show_all()
 
+		self._loginSink = gtk_toolbox.threaded_stage(
+			gtk_toolbox.comap(
+				self.attempt_login,
+				gtk_toolbox.null_sink(),
+			)
+		)
+
 		backgroundSetup = threading.Thread(target=self._idle_setup)
 		backgroundSetup.setDaemon(True)
 		backgroundSetup.start()
@@ -352,9 +359,7 @@ class Dialcentral(object):
 				self._errorDisplay.push_exception(e)
 
 	def _spawn_attempt_login(self, *args):
-		backgroundLogin = threading.Thread(target=self.attempt_login, args=args)
-		backgroundLogin.setDaemon(True)
-		backgroundLogin.start()
+		self._loginSink.send(args)
 
 	def refresh_session(self):
 		"""

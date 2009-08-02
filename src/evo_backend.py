@@ -84,6 +84,9 @@ class EvolutionAddressBook(object):
 	def contact_source_short_name(contactId):
 		return "Evo"
 
+	def clear_caches(self):
+		pass
+
 	@staticmethod
 	def factory_name():
 		return "Evolution"
