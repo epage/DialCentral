@@ -517,7 +517,7 @@ class GVDialer(object):
 					header = "Unknown"
 				yield header, recentCallData["number"], exactTime, recentCallData["relTime"], action
 
-	_seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class="gc-message.*?">""", re.MULTILINE | re.DOTALL)
+	_seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class=".*?gc-message.*?">""", re.MULTILINE | re.DOTALL)
 	_exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
 	_relativeVoicemailTimeRegex = re.compile(r"""<span class="gc-message-relative">(.*?)</span>""", re.MULTILINE)
 	_voicemailNameRegex = re.compile(r"""<a class=.*?gc-message-name-link.*?>(.*?)</a>""", re.MULTILINE | re.DOTALL)
