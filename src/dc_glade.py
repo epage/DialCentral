@@ -39,6 +39,7 @@ import ConfigParser
 import itertools
 import warnings
 
+import gobject
 import gtk
 import gtk.glade
 
@@ -105,6 +106,7 @@ class Dialcentral(object):
 		self._messagesViews = None
 		self._recentViews = None
 		self._contactsViews = None
+		self._tabHoldTimeoutId = None
 
 		for path in self._glade_files:
 			if os.path.isfile(path):
@@ -304,12 +306,14 @@ class Dialcentral(object):
 
 			callbackMapping = {
 				"on_paste": self._on_paste,
-				"on_refresh": self._on_refresh,
+				"on_refresh": self._on_menu_refresh,
 				"on_clearcookies_clicked": self._on_clearcookies_clicked,
 				"on_notebook_switch_page": self._on_notebook_switch_page,
 				"on_about_activate": self._on_about_activate,
 			}
 			self._widgetTree.signal_autoconnect(callbackMapping)
+			self._notebook.connect("button-press-event", self._on_tab_press)
+			self._notebook.connect("button-release-event", self._on_tab_release)
 
 			self._initDone = True
 
@@ -413,10 +417,10 @@ class Dialcentral(object):
 		for attemptCount in xrange(numOfAttempts):
 			if loggedIn:
 				break
-			availableServices = {
-				self.GV_BACKEND: "Google Voice",
-				self.GC_BACKEND: "Grand Central",
-			}
+			availableServices = (
+				(self.GV_BACKEND, "Google Voice"),
+				(self.GC_BACKEND, "Grand Central"),
+			)
 			with gtk_toolbox.gtk_lock():
 				credentials = self._credentialsDialog.request_credentials_from(
 					availableServices, defaultCredentials = self._credentials
@@ -551,6 +555,15 @@ class Dialcentral(object):
 		with open(self._user_settings, "wb") as configFile:
 			config.write(configFile)
 
+	def _refresh_active_tab(self):
+		page_num = self._notebook.get_current_page()
+		if page_num == self.CONTACTS_TAB:
+			self._contactsViews[self._selectedBackendId].update(force=True)
+		elif page_num == self.RECENT_TAB:
+			self._recentViews[self._selectedBackendId].update(force=True)
+		elif page_num == self.MESSAGES_TAB:
+			self._messagesViews[self._selectedBackendId].update(force=True)
+
 	def _on_close(self, *args, **kwds):
 		try:
 			if self._osso is not None:
@@ -637,6 +650,19 @@ class Dialcentral(object):
 		elif page_num == self.ACCOUNT_TAB:
 			self._accountViews[self._selectedBackendId].update()
 
+	def _on_tab_press(self, *args):
+		self._tabHoldTimeoutId = gobject.timeout_add(1000, self._on_tab_refresh)
+
+	def _on_tab_release(self, *args):
+		if self._tabHoldTimeoutId is not None:
+			gobject.source_remove(self._tabHoldTimeoutId)
+		self._tabHoldTimeoutId = None
+
+	def _on_tab_refresh(self, *args):
+		self._tabHoldTimeoutId = None
+		self._refresh_active_tab()
+		return False
+
 	def _on_sms_clicked(self, number, message):
 		assert number
 		assert message
@@ -663,7 +689,7 @@ class Dialcentral(object):
 			self._errorDisplay.push_exception(e)
 
 	def _on_dial_clicked(self, number):
-		assert number
+		assert number, "No number to call"
 		try:
 			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
 		except StandardError, e:
@@ -679,7 +705,7 @@ class Dialcentral(object):
 
 		dialed = False
 		try:
-			assert self._phoneBackends[self._selectedBackendId].get_callback_number() != ""
+			assert self._phoneBackends[self._selectedBackendId].get_callback_number() != "", "No callback number specified"
 			self._phoneBackends[self._selectedBackendId].dial(number)
 			dialed = True
 		except StandardError, e:
@@ -690,14 +716,8 @@ class Dialcentral(object):
 		if dialed:
 			self._dialpads[self._selectedBackendId].clear()
 
-	def _on_refresh(self, *args):
-		page_num = self._notebook.get_current_page()
-		if page_num == self.CONTACTS_TAB:
-			self._contactsViews[self._selectedBackendId].update(force=True)
-		elif page_num == self.RECENT_TAB:
-			self._recentViews[self._selectedBackendId].update(force=True)
-		elif page_num == self.MESSAGES_TAB:
-			self._messagesViews[self._selectedBackendId].update(force=True)
+	def _on_menu_refresh(self, *args):
+		self._refresh_active_tab()
 
 	def _on_paste(self, *args):
 		contents = self._clipboard.wait_for_text()

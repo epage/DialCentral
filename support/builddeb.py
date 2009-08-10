@@ -19,6 +19,10 @@ __version__ = constants.__version__
 __build__ = 0
 __changelog__ = '''
 1.0.3
+* Holding down a tab for a second will now force a refresh
+* Fixed a bug dealing with overzealously refreshing the contacts tab
+* Finding some undescriptive errors and made them more descriptive
+* Swapped the order GrandCentral and GoogleVoice appear in login window
 
 1.0.2
 * Random bug fixes

@@ -273,7 +273,7 @@ class LoginWindow(object):
 			parentWindow = self._parentWindow
 
 		self._serviceList.clear()
-		for serviceIdserviceName in services.iteritems():
+		for serviceIdserviceName in services:
 			self._serviceList.append(serviceIdserviceName)
 		self._serviceCombo.set_active(0)
 		self._serviceCombo.show()

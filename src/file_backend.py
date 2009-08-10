@@ -144,7 +144,7 @@ class FilesystemAddressBookFactory(object):
 
 	def open_addressbook(self, bookId):
 		name, ext = bookId.rsplit(".", 1)
-		assert ext in self.FILETYPE_SUPPORT
+		assert ext in self.FILETYPE_SUPPORT, "Unsupported file extension %s" % ext
 		return self.FILETYPE_SUPPORT[ext](bookId)
 
 	@staticmethod

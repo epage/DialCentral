@@ -469,7 +469,7 @@ class Dialpad(object):
 		"""
 		@note Actual dial function is patched in later
 		"""
-		raise NotImplementedError
+		raise NotImplementedError("Horrible unknown error has occurred")
 
 	def get_number(self):
 		return self._phonenumber
@@ -557,7 +557,7 @@ class AccountInfo(object):
 		self._defaultCallback = ""
 
 	def enable(self):
-		assert self._backend.is_authed()
+		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
 		self._accountViewNumberDisplay.set_use_markup(True)
 		self.set_account_number("")
 		self._callbackList.clear()
@@ -708,7 +708,7 @@ class RecentCallsView(object):
 		)
 
 	def enable(self):
-		assert self._backend.is_authed()
+		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
 		self._recentview.set_model(self._recentmodel)
 
 		self._recentview.append_column(self._dateColumn)
@@ -733,7 +733,7 @@ class RecentCallsView(object):
 		"""
 		@note Actual dial function is patched in later
 		"""
-		raise NotImplementedError
+		raise NotImplementedError("Horrible unknown error has occurred")
 
 	def update(self, force = False):
 		if not force and self._isPopulated:
@@ -758,8 +758,8 @@ class RecentCallsView(object):
 		pass
 
 	def _idly_populate_recentview(self):
-		self._isPopulated = True
 		self._recentmodel.clear()
+		self._isPopulated = True
 
 		try:
 			recentItems = self._backend.get_recent()
@@ -797,7 +797,7 @@ class RecentCallsView(object):
 		)
 		if action == PhoneTypeSelector.ACTION_CANCEL:
 			return
-		assert phoneNumber
+		assert phoneNumber, "A lack of phone number exists"
 
 		self.number_selected(action, phoneNumber, message)
 		self._recentviewselection.unselect_all()
@@ -855,7 +855,7 @@ class MessagesView(object):
 		)
 
 	def enable(self):
-		assert self._backend.is_authed()
+		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
 		self._messageview.set_model(self._messagemodel)
 
 		self._messageview.append_column(self._dateColumn)
@@ -880,7 +880,7 @@ class MessagesView(object):
 		"""
 		@note Actual dial function is patched in later
 		"""
-		raise NotImplementedError
+		raise NotImplementedError("Horrible unknown error has occurred")
 
 	def update(self, force = False):
 		if not force and self._isPopulated:
@@ -905,8 +905,8 @@ class MessagesView(object):
 		pass
 
 	def _idly_populate_messageview(self):
-		self._isPopulated = True
 		self._messagemodel.clear()
+		self._isPopulated = True
 
 		try:
 			messageItems = self._backend.get_messages()
@@ -938,7 +938,7 @@ class MessagesView(object):
 		)
 		if action == PhoneTypeSelector.ACTION_CANCEL:
 			return
-		assert phoneNumber
+		assert phoneNumber, "A lock of phone number exists"
 
 		self.number_selected(action, phoneNumber, message)
 		self._messageviewselection.unselect_all()
@@ -990,7 +990,7 @@ class ContactsView(object):
 		)
 
 	def enable(self):
-		assert self._backend.is_authed()
+		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
 
 		self._contactsview.set_model(self._contactsmodel)
 		self._contactsview.append_column(self._contactColumn)
@@ -1034,7 +1034,7 @@ class ContactsView(object):
 		"""
 		@note Actual dial function is patched in later
 		"""
-		raise NotImplementedError
+		raise NotImplementedError("Horrible unknown error has occurred")
 
 	def get_addressbooks(self):
 		"""
@@ -1080,8 +1080,8 @@ class ContactsView(object):
 		pass
 
 	def _idly_populate_contactsview(self):
-		self._isPopulated = True
 		self.clear()
+		self._isPopulated = True
 
 		# completely disable updating the treeview while we populate the data
 		self._contactsview.freeze_child_notify()
@@ -1137,7 +1137,7 @@ class ContactsView(object):
 		)
 		if action == PhoneTypeSelector.ACTION_CANCEL:
 			return
-		assert phoneNumber
+		assert phoneNumber, "A lack of phone number exists"
 
 		self.number_selected(action, phoneNumber, message)
 		self._contactsviewselection.unselect_all()
