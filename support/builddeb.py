@@ -23,6 +23,7 @@ __changelog__ = '''
 * Fixed a bug dealing with overzealously refreshing the contacts tab
 * Finding some undescriptive errors and made them more descriptive
 * Swapped the order GrandCentral and GoogleVoice appear in login window
+* Fixed the "Recent" and "Message" tabs, google changed things on me again
 
 1.0.2
 * Random bug fixes
