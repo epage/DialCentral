@@ -18,6 +18,9 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = 0
 __changelog__ = '''
+1.0.4
+* Fixed the duplicate title on Maemo
+
 1.0.3
 * Holding down a tab for a second will now force a refresh
 * Fixed a bug dealing with overzealously refreshing the contacts tab
