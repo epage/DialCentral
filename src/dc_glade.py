@@ -153,7 +153,9 @@ class Dialcentral(object):
 		else:
 			pass # warnings.warn("No Hildon", UserWarning, 2)
 
-		self._window.set_title("%s" % constants.__pretty_app_name__)
+		# If under hildon, rely on the application name being shown
+		if hildon is None:
+			self._window.set_title("%s" % constants.__pretty_app_name__)
 
 		callbackMapping = {
 			"on_dialpad_quit": self._on_close,
