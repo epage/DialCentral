@@ -599,10 +599,14 @@ class TapOrHold(object):
 		print "CANCEL"
 
 	def _on_button_press(self, *args):
+		# Hack to handle weird notebook behavior
+		self._isPointerInside = True
+
 		if self._tapTimeoutId is not None:
 			gobject.source_remove(self._tapTimeoutId)
 			self._tapTimeoutId = None
 
+		# Handle double taps
 		if self._holdTimeoutId is None:
 			self._tapTimeoutId = None
 
@@ -613,6 +617,7 @@ class TapOrHold(object):
 
 	def _on_button_release(self, *args):
 		assert self._tapTimeoutId is None
+		# Handle release after timeout if user hasn't double-clicked
 		self._tapTimeoutId = gobject.timeout_add(100, self._on_tap_timeout)
 
 	def _on_actual_press(self, *args):

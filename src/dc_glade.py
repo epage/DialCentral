@@ -105,7 +105,6 @@ class Dialcentral(object):
 		self._messagesViews = None
 		self._recentViews = None
 		self._contactsViews = None
-		self._tabHoldTimeoutId = None
 
 		for path in self._glade_files:
 			if os.path.isfile(path):
@@ -313,8 +312,16 @@ class Dialcentral(object):
 				"on_about_activate": self._on_about_activate,
 			}
 			self._widgetTree.signal_autoconnect(callbackMapping)
-			self._notebook.connect("button-press-event", self._on_tab_press)
-			self._notebook.connect("button-release-event", self._on_tab_release)
+
+			self._originalCurrentLabel = ""
+			with gtk_toolbox.gtk_lock():
+				self._backup_tab_name()
+				self._notebookTapHandler = gtk_toolbox.TapOrHold(self._notebook)
+				self._notebookTapHandler.enable()
+			self._notebookTapHandler.on_tap = self._reset_tab_refresh
+			self._notebookTapHandler.on_hold = self._on_tab_refresh
+			self._notebookTapHandler.on_holding = self._set_tab_refresh
+			self._notebookTapHandler.on_cancel = self._reset_tab_refresh
 
 			self._initDone = True
 
@@ -553,12 +560,12 @@ class Dialcentral(object):
 			config.write(configFile)
 
 	def _refresh_active_tab(self):
-		page_num = self._notebook.get_current_page()
-		if page_num == self.CONTACTS_TAB:
+		pageIndex = self._notebook.get_current_page()
+		if pageIndex == self.CONTACTS_TAB:
 			self._contactsViews[self._selectedBackendId].update(force=True)
-		elif page_num == self.RECENT_TAB:
+		elif pageIndex == self.RECENT_TAB:
 			self._recentViews[self._selectedBackendId].update(force=True)
-		elif page_num == self.MESSAGES_TAB:
+		elif pageIndex == self.MESSAGES_TAB:
 			self._messagesViews[self._selectedBackendId].update(force=True)
 
 	def _on_close(self, *args, **kwds):
@@ -635,32 +642,44 @@ class Dialcentral(object):
 
 		self._spawn_attempt_login(2, True)
 
-	def _on_notebook_switch_page(self, notebook, page, page_num):
-		if page_num == self.RECENT_TAB:
+	def _on_notebook_switch_page(self, notebook, page, pageIndex):
+		self._reset_tab_refresh()
+		self._backup_tab_name(pageIndex)
+		if pageIndex == self.RECENT_TAB:
 			self._recentViews[self._selectedBackendId].update()
-		elif page_num == self.MESSAGES_TAB:
+		elif pageIndex == self.MESSAGES_TAB:
 			self._messagesViews[self._selectedBackendId].update()
-		elif page_num == self.CONTACTS_TAB:
+		elif pageIndex == self.CONTACTS_TAB:
 			self._contactsViews[self._selectedBackendId].update()
-		elif page_num == self.ACCOUNT_TAB:
+		elif pageIndex == self.ACCOUNT_TAB:
 			self._accountViews[self._selectedBackendId].update()
 
-	def _on_tab_press(self, *args):
-		self._tabHoldTimeoutId = gobject.timeout_add(1000, self._on_tab_refresh)
+	def _backup_tab_name(self, pageIndex = -1):
+		if pageIndex == -1:
+			pageIndex = self._notebook.get_current_page()
+		child = self._notebook.get_nth_page(pageIndex)
+		self._originalCurrentLabel = self._notebook.get_tab_label(child).get_text()
 
-	def _on_tab_release(self, *args):
-		if self._tabHoldTimeoutId is not None:
-			gobject.source_remove(self._tabHoldTimeoutId)
-		self._tabHoldTimeoutId = None
+	def _set_tab_refresh(self, *args):
+		pageIndex = self._notebook.get_current_page()
+		child = self._notebook.get_nth_page(pageIndex)
+		self._notebook.get_tab_label(child).set_text("Refresh?")
+		return False
+
+	def _reset_tab_refresh(self, *args):
+		pageIndex = self._notebook.get_current_page()
+		child = self._notebook.get_nth_page(pageIndex)
+		self._notebook.get_tab_label(child).set_text(self._originalCurrentLabel)
+		return False
 
 	def _on_tab_refresh(self, *args):
-		self._tabHoldTimeoutId = None
 		self._refresh_active_tab()
+		self._reset_tab_refresh()
 		return False
 
 	def _on_sms_clicked(self, number, message):
-		assert number
-		assert message
+		assert number, "No number specified"
+		assert message, "Empty message"
 		try:
 			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
 		except StandardError, e:

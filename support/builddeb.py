@@ -19,6 +19,7 @@ __version__ = constants.__version__
 __build__ = 0
 __changelog__ = '''
 1.0.4
+* "Back" button and tabs now visually indicate when they've entered a "hold" state
 * Fixed the duplicate title on Maemo
 * Removing some device connection observer code due to high bug to low benefit ratio
 
