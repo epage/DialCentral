@@ -442,28 +442,34 @@ class Dialpad(object):
 
 		self._numberdisplay = widgetTree.get_widget("numberdisplay")
 		self._dialButton = widgetTree.get_widget("dial")
+		self._backButton = widgetTree.get_widget("back")
 		self._phonenumber = ""
 		self._prettynumber = ""
-		self._clearall_id = None
 
 		callbackMapping = {
 			"on_dial_clicked": self._on_dial_clicked,
 			"on_sms_clicked": self._on_sms_clicked,
 			"on_digit_clicked": self._on_digit_clicked,
 			"on_clear_number": self._on_clear_number,
-			"on_back_clicked": self._on_backspace,
-			"on_back_pressed": self._on_back_pressed,
-			"on_back_released": self._on_back_released,
 		}
 		widgetTree.signal_autoconnect(callbackMapping)
+
+		self._originalLabel = self._backButton.get_label()
+		self._backTapHandler = gtk_toolbox.TapOrHold(self._backButton)
+		self._backTapHandler.on_tap = self._on_backspace
+		self._backTapHandler.on_hold = self._on_clearall
+		self._backTapHandler.on_holding = self._set_clear_button
+		self._backTapHandler.on_cancel = self._reset_back_button
 
 		self._window = gtk_toolbox.find_parent_window(self._numberdisplay)
 
 	def enable(self):
 		self._dialButton.grab_focus()
+		self._backTapHandler.enable()
 
 	def disable(self):
-		pass
+		self._reset_back_button()
+		self._backTapHandler.disable()
 
 	def number_selected(self, action, number, message):
 		"""
@@ -526,20 +532,20 @@ class Dialpad(object):
 	def _on_digit_clicked(self, widget):
 		self.set_number(self._phonenumber + widget.get_name()[-1])
 
-	def _on_backspace(self, widget):
-		self.set_number(self._phonenumber[:-1])
+	def _on_backspace(self, taps):
+		self.set_number(self._phonenumber[:-taps])
+		self._reset_back_button()
 
-	def _on_clearall(self):
+	def _on_clearall(self, *args):
 		self.clear()
+		self._reset_back_button()
 		return False
 
-	def _on_back_pressed(self, widget):
-		self._clearall_id = gobject.timeout_add(1000, self._on_clearall)
+	def _set_clear_button(self):
+		self._backButton.set_label("gtk-clear")
 
-	def _on_back_released(self, widget):
-		if self._clearall_id is not None:
-			gobject.source_remove(self._clearall_id)
-		self._clearall_id = None
+	def _reset_back_button(self):
+		self._backButton.set_label(self._originalLabel)
 
 
 class AccountInfo(object):
