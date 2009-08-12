@@ -96,7 +96,6 @@ class Dialcentral(object):
 		self._osso = None
 		self._clipboard = gtk.clipboard_get()
 
-		self._deviceIsOnline = True
 		self._credentials = ("", "")
 		self._selectedBackendId = self.NULL_BACKEND
 		self._defaultBackendId = self.GC_BACKEND
@@ -342,8 +341,6 @@ class Dialcentral(object):
 		try:
 			assert 0 <= numOfAttempts, "That was pointless having 0 or less login attempts"
 			assert self._initDone, "Attempting login before app is fully loaded"
-			if not self._deviceIsOnline:
-				raise RuntimeError("Unable to login, device is not online")
 
 			serviceId = self.NULL_BACKEND
 			loggedIn = False
@@ -372,8 +369,6 @@ class Dialcentral(object):
 		@note Thread agnostic
 		"""
 		assert self._initDone, "Attempting login before app is fully loaded"
-		if not self._deviceIsOnline:
-			raise RuntimeError("Unable to login, device is not online")
 
 		loggedIn = False
 		if not loggedIn:
@@ -604,11 +599,9 @@ class Dialcentral(object):
 		bearer = event.get_bearer_type()
 
 		if status == conic.STATUS_CONNECTED:
-			self._deviceIsOnline = True
 			if self._initDone:
 				self._spawn_attempt_login(2)
 		elif status == conic.STATUS_DISCONNECTED:
-			self._deviceIsOnline = False
 			if self._initDone:
 				self._defaultBackendId = self._selectedBackendId
 				self._change_loggedin_status(self.NULL_BACKEND)

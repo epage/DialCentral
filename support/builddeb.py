@@ -20,6 +20,7 @@ __build__ = 0
 __changelog__ = '''
 1.0.4
 * Fixed the duplicate title on Maemo
+* Removing some device connection observer code due to high bug to low benefit ratio
 
 1.0.3
 * Holding down a tab for a second will now force a refresh

@@ -765,7 +765,7 @@
                 <child>
                   <widget class="GtkLabel" id="gcnumber_display">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">&lt;span size="15000" weight="bold"&gt;(518) 555-1212&lt;/span&gt;</property>
+                    <property name="label" translatable="yes">No Number Available</property>
                     <property name="use_markup">True</property>
                   </widget>
                   <packing>
@@ -779,7 +779,7 @@
                     <property name="visible">True</property>
                     <property name="xalign">1</property>
                     <property name="xpad">5</property>
-                    <property name="label" translatable="yes">GrandCentral
+                    <property name="label" translatable="yes">Google Voice
 Number:</property>
                     <property name="justify">right</property>
                   </widget>
