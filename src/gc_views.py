@@ -536,7 +536,7 @@ class Dialpad(object):
 		self.set_number(self._phonenumber[:-taps])
 		self._reset_back_button()
 
-	def _on_clearall(self, *args):
+	def _on_clearall(self, taps):
 		self.clear()
 		self._reset_back_button()
 		return False
