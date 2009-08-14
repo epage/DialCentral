@@ -305,6 +305,21 @@ class LoginWindow(object):
 		self._dialog.response(gtk.RESPONSE_CANCEL)
 
 
+def safecall(f, errorDisplay=None, default=None, exception=Exception):
+	'''
+	Returns modified f. When the modified f is called and throws an
+	exception, the default value is returned
+	'''
+	def _safecall(*args, **argv):
+		try:
+			return f(*args,**argv)
+		except exception, e:
+			if errorDisplay is not None:
+				errorDisplay.push_exception(e)
+			return default
+	return _safecall
+
+
 class ErrorDisplay(object):
 
 	def __init__(self, widgetTree):
@@ -341,7 +356,7 @@ class ErrorDisplay(object):
 			userMessage = str(exception)
 			warningMessage = str(exception)
 		self.push_message(userMessage)
-		warnings.warn(warningMessage, stacklevel=3)
+		warnings.warn(warningMessage, stacklevel=2)
 
 	def pop_message(self):
 		if 0 < len(self.__messages):

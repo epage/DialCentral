@@ -105,6 +105,7 @@ class Dialcentral(object):
 		self._messagesViews = None
 		self._recentViews = None
 		self._contactsViews = None
+		self._originalCurrentLabels = []
 
 		for path in self._glade_files:
 			if os.path.isfile(path):
@@ -313,9 +314,11 @@ class Dialcentral(object):
 			}
 			self._widgetTree.signal_autoconnect(callbackMapping)
 
-			self._originalCurrentLabel = ""
 			with gtk_toolbox.gtk_lock():
-				self._backup_tab_name()
+				self._originalCurrentLabels = [
+					self._notebook.get_tab_label(self._notebook.get_nth_page(pageIndex)).get_text()
+					for pageIndex in xrange(self._notebook.get_n_pages())
+				]
 				self._notebookTapHandler = gtk_toolbox.TapOrHold(self._notebook)
 				self._notebookTapHandler.enable()
 			self._notebookTapHandler.on_tap = self._reset_tab_refresh
@@ -331,13 +334,9 @@ class Dialcentral(object):
 				self.load_settings(config)
 
 			self._spawn_attempt_login(2)
-		except StandardError, e:
-			warnings.warn(e.message, UserWarning, 2)
-		except BaseException, e:
-			try:
-				warnings.warn(e.message, UserWarning, 2)
-			finally:
-				raise
+		except Exception, e:
+			with gtk_toolbox.gtk_lock():
+				self._errorDisplay.push_exception(e)
 
 	def attempt_login(self, numOfAttempts = 10, force = False):
 		"""
@@ -644,7 +643,6 @@ class Dialcentral(object):
 
 	def _on_notebook_switch_page(self, notebook, page, pageIndex):
 		self._reset_tab_refresh()
-		self._backup_tab_name(pageIndex)
 		if pageIndex == self.RECENT_TAB:
 			self._recentViews[self._selectedBackendId].update()
 		elif pageIndex == self.MESSAGES_TAB:
@@ -653,12 +651,6 @@ class Dialcentral(object):
 			self._contactsViews[self._selectedBackendId].update()
 		elif pageIndex == self.ACCOUNT_TAB:
 			self._accountViews[self._selectedBackendId].update()
-
-	def _backup_tab_name(self, pageIndex = -1):
-		if pageIndex == -1:
-			pageIndex = self._notebook.get_current_page()
-		child = self._notebook.get_nth_page(pageIndex)
-		self._originalCurrentLabel = self._notebook.get_tab_label(child).get_text()
 
 	def _set_tab_refresh(self, *args):
 		pageIndex = self._notebook.get_current_page()
@@ -669,7 +661,7 @@ class Dialcentral(object):
 	def _reset_tab_refresh(self, *args):
 		pageIndex = self._notebook.get_current_page()
 		child = self._notebook.get_nth_page(pageIndex)
-		self._notebook.get_tab_label(child).set_text(self._originalCurrentLabel)
+		self._notebook.get_tab_label(child).set_text(self._originalCurrentLabels[pageIndex])
 		return False
 
 	def _on_tab_refresh(self, *args):
