@@ -2,7 +2,10 @@
 
 from __future__ import with_statement
 
+import os
+import errno
 import sys
+import time
 import traceback
 import functools
 import contextlib
@@ -12,6 +15,33 @@ import Queue
 
 import gobject
 import gtk
+
+
+@contextlib.contextmanager
+def flock(path, timeout=-1):
+	WAIT_FOREVER = -1
+	DELAY = 0.1
+	timeSpent = 0
+
+	acquired = False
+
+	while timeSpent <= timeout or timeout == WAIT_FOREVER:
+		try:
+			fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+			acquired = True
+			break
+		except OSError, e:
+			if e.errno != errno.EEXIST:
+				raise
+		time.sleep(DELAY)
+		timeSpent += DELAY
+
+	assert acquired, "Failed to grab file-lock %s within timeout %d" % (path, timeout)
+
+	try:
+		yield fd
+	finally:
+		os.unlink(path)
 
 
 @contextlib.contextmanager
@@ -344,11 +374,11 @@ class ErrorDisplay(object):
 		else:
 			self.__show_message(message)
 
-	def push_exception_with_lock(self, exception = None):
+	def push_exception_with_lock(self, exception = None, stacklevel=3):
 		with gtk_lock():
-			self.push_exception(exception)
+			self.push_exception(exception, stacklevel=stacklevel)
 
-	def push_exception(self, exception = None):
+	def push_exception(self, exception = None, stacklevel=2):
 		if exception is None:
 			userMessage = str(sys.exc_value)
 			warningMessage = str(traceback.format_exc())
@@ -356,7 +386,7 @@ class ErrorDisplay(object):
 			userMessage = str(exception)
 			warningMessage = str(exception)
 		self.push_message(userMessage)
-		warnings.warn(warningMessage, stacklevel=2)
+		warnings.warn(warningMessage, stacklevel=stacklevel)
 
 	def pop_message(self):
 		if 0 < len(self.__messages):

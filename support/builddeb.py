@@ -22,6 +22,7 @@ __changelog__ = '''
 * "Back" button and tabs now visually indicate when they've entered a "hold" state
 * Fixed the duplicate title on Maemo
 * Removing some device connection observer code due to high bug to low benefit ratio
+* Notification support
 
 1.0.3
 * Holding down a tab for a second will now force a refresh

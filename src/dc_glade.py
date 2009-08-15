@@ -39,7 +39,6 @@ import ConfigParser
 import itertools
 import warnings
 
-import gobject
 import gtk
 import gtk.glade
 
@@ -71,9 +70,9 @@ def display_error_message(msg):
 class Dialcentral(object):
 
 	_glade_files = [
-		'/usr/lib/dialcentral/dialcentral.glade',
 		os.path.join(os.path.dirname(__file__), "dialcentral.glade"),
 		os.path.join(os.path.dirname(__file__), "../lib/dialcentral.glade"),
+		'/usr/lib/dialcentral/dialcentral.glade',
 	]
 
 	KEYPAD_TAB = 0
@@ -86,9 +85,6 @@ class Dialcentral(object):
 	GC_BACKEND = 1
 	GV_BACKEND = 2
 	BACKENDS = (NULL_BACKEND, GC_BACKEND, GV_BACKEND)
-
-	_data_path = os.path.join(os.path.expanduser("~"), ".dialcentral")
-	_user_settings = "%s/settings.ini" % _data_path
 
 	def __init__(self):
 		self._initDone = False
@@ -105,6 +101,8 @@ class Dialcentral(object):
 		self._messagesViews = None
 		self._recentViews = None
 		self._contactsViews = None
+		self._alarmHandler = None
+		self._ledHandler = None
 		self._originalCurrentLabels = []
 
 		for path in self._glade_files:
@@ -212,6 +210,16 @@ class Dialcentral(object):
 			else:
 				pass # warnings.warn("No OSSO", UserWarning, 2)
 
+			try:
+				import alarm_handler
+				self._alarmHandler = alarm_handler.AlarmHandler()
+			except ImportError:
+				alarm_handler = None
+			if hildon is not None:
+				import led_handler
+				self._ledHandler = led_handler.LedHandler()
+				self._ledHandler.off()
+
 			# Setup maemo specifics
 			try:
 				import conic
@@ -233,12 +241,12 @@ class Dialcentral(object):
 			import gc_views
 
 			try:
-				os.makedirs(self._data_path)
+				os.makedirs(constants._data_path_)
 			except OSError, e:
 				if e.errno != 17:
 					raise
-			gcCookiePath = os.path.join(self._data_path, "gc_cookies.txt")
-			gvCookiePath = os.path.join(self._data_path, "gv_cookies.txt")
+			gcCookiePath = os.path.join(constants._data_path_, "gc_cookies.txt")
+			gvCookiePath = os.path.join(constants._data_path_, "gv_cookies.txt")
 			self._defaultBackendId = self._guess_preferred_backend((
 				(self.GC_BACKEND, gcCookiePath),
 				(self.GV_BACKEND, gvCookiePath),
@@ -257,12 +265,14 @@ class Dialcentral(object):
 				})
 				self._accountViews.update({
 					self.GC_BACKEND: gc_views.AccountInfo(
-						self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
+						self._widgetTree, self._phoneBackends[self.GC_BACKEND], None, self._errorDisplay
 					),
 					self.GV_BACKEND: gc_views.AccountInfo(
-						self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
+						self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._alarmHandler, self._errorDisplay
 					),
 				})
+				self._accountViews[self.GC_BACKEND].save_everything = lambda *args: None
+				self._accountViews[self.GV_BACKEND].save_everything = self._save_settings
 				self._recentViews.update({
 					self.GC_BACKEND: gc_views.RecentCallsView(
 						self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
@@ -287,7 +297,7 @@ class Dialcentral(object):
 				})
 
 			evoBackend = evo_backend.EvolutionAddressBook()
-			fsContactsPath = os.path.join(self._data_path, "contacts")
+			fsContactsPath = os.path.join(constants._data_path_, "contacts")
 			fileBackend = file_backend.FilesystemAddressBookFactory(fsContactsPath)
 			for backendId in (self.GV_BACKEND, self.GC_BACKEND):
 				self._dialpads[backendId].number_selected = self._select_action
@@ -329,14 +339,14 @@ class Dialcentral(object):
 			self._initDone = True
 
 			config = ConfigParser.SafeConfigParser()
-			config.read(self._user_settings)
+			config.read(constants._user_settings_)
 			with gtk_toolbox.gtk_lock():
 				self.load_settings(config)
 
 			self._spawn_attempt_login(2)
 		except Exception, e:
 			with gtk_toolbox.gtk_lock():
-				self._errorDisplay.push_exception(e)
+				self._errorDisplay.push_exception()
 
 	def attempt_login(self, numOfAttempts = 10, force = False):
 		"""
@@ -365,7 +375,7 @@ class Dialcentral(object):
 				self._change_loggedin_status(serviceId)
 		except StandardError, e:
 			with gtk_toolbox.gtk_lock():
-				self._errorDisplay.push_exception(e)
+				self._errorDisplay.push_exception()
 
 	def _spawn_attempt_login(self, *args):
 		self._loginSink.send(args)
@@ -493,10 +503,21 @@ class Dialcentral(object):
 				for blob in blobs
 			)
 			self._credentials = tuple(creds)
+
+			if self._alarmHandler is not None:
+				self._alarmHandler.load_settings(config, "alarm")
+		except ConfigParser.NoOptionError, e:
+			warnings.warn(
+				"Settings file %s is missing section %s" % (
+					constants._user_settings_,
+					e.section,
+				),
+				stacklevel=2
+			)
 		except ConfigParser.NoSectionError, e:
 			warnings.warn(
 				"Settings file %s is missing section %s" % (
-					self._user_settings,
+					constants._user_settings_,
 					e.section,
 				),
 				stacklevel=2
@@ -512,10 +533,18 @@ class Dialcentral(object):
 			sectionName = "%s - %s" % (backendId, view.name())
 			try:
 				view.load_settings(config, sectionName)
+			except ConfigParser.NoOptionError, e:
+				warnings.warn(
+					"Settings file %s is missing section %s" % (
+						constants._user_settings_,
+						e.section,
+					),
+					stacklevel=2
+				)
 			except ConfigParser.NoSectionError, e:
 				warnings.warn(
 					"Settings file %s is missing section %s" % (
-						self._user_settings,
+						constants._user_settings_,
 						e.section,
 					),
 					stacklevel=2
@@ -530,6 +559,10 @@ class Dialcentral(object):
 		for i, value in enumerate(self._credentials):
 			blob = base64.b64encode(value)
 			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
+		config.add_section("alarm")
+		if self._alarmHandler is not None:
+			self._alarmHandler.save_settings(config, "alarm")
+
 		for backendId, view in itertools.chain(
 			self._dialpads.iteritems(),
 			self._accountViews.iteritems(),
@@ -555,10 +588,13 @@ class Dialcentral(object):
 		"""
 		config = ConfigParser.SafeConfigParser()
 		self.save_settings(config)
-		with open(self._user_settings, "wb") as configFile:
+		with open(constants._user_settings_, "wb") as configFile:
 			config.write(configFile)
 
 	def _refresh_active_tab(self):
+		if self._ledHandler is not None:
+			self._ledHandler.off()
+
 		pageIndex = self._notebook.get_current_page()
 		if pageIndex == self.CONTACTS_TAB:
 			self._contactsViews[self._selectedBackendId].update(force=True)
@@ -676,7 +712,7 @@ class Dialcentral(object):
 			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
 		except StandardError, e:
 			loggedIn = False
-			self._errorDisplay.push_exception(e)
+			self._errorDisplay.push_exception()
 			return
 
 		if not loggedIn:
@@ -690,9 +726,9 @@ class Dialcentral(object):
 			self._phoneBackends[self._selectedBackendId].send_sms(number, message)
 			dialed = True
 		except StandardError, e:
-			self._errorDisplay.push_exception(e)
+			self._errorDisplay.push_exception()
 		except ValueError, e:
-			self._errorDisplay.push_exception(e)
+			self._errorDisplay.push_exception()
 
 	def _on_dial_clicked(self, number):
 		assert number, "No number to call"
@@ -700,7 +736,7 @@ class Dialcentral(object):
 			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
 		except StandardError, e:
 			loggedIn = False
-			self._errorDisplay.push_exception(e)
+			self._errorDisplay.push_exception()
 			return
 
 		if not loggedIn:
@@ -715,9 +751,9 @@ class Dialcentral(object):
 			self._phoneBackends[self._selectedBackendId].dial(number)
 			dialed = True
 		except StandardError, e:
-			self._errorDisplay.push_exception(e)
+			self._errorDisplay.push_exception()
 		except ValueError, e:
-			self._errorDisplay.push_exception(e)
+			self._errorDisplay.push_exception()
 
 		if dialed:
 			self._dialpads[self._selectedBackendId].clear()
@@ -753,11 +789,14 @@ def run_doctest():
 
 
 def run_dialpad():
-	gtk.gdk.threads_init()
-	if hildon is not None:
-		gtk.set_application_name(constants.__pretty_app_name__)
-	handle = Dialcentral()
-	gtk.main()
+	_lock_file = os.path.join(constants._data_path_, ".lock")
+	with gtk_toolbox.flock(_lock_file, 0):
+		gtk.gdk.threads_init()
+
+		if hildon is not None:
+			gtk.set_application_name(constants.__pretty_app_name__)
+		handle = Dialcentral()
+		gtk.main()
 
 
 class DummyOptions(object):

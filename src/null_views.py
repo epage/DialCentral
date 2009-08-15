@@ -57,15 +57,33 @@ class AccountInfo(object):
 		self._callbackCombo = widgetTree.get_widget("callbackcombo")
 		self._clearCookiesButton = widgetTree.get_widget("clearcookies")
 
+		self._notifyCheckbox = widgetTree.get_widget("notifyCheckbox")
+		self._minutesEntry = widgetTree.get_widget("minutesEntry")
+		self._missedCheckbox = widgetTree.get_widget("missedCheckbox")
+		self._voicemailCheckbox = widgetTree.get_widget("voicemailCheckbox")
+		self._smsCheckbox = widgetTree.get_widget("smsCheckbox")
+
 	def enable(self):
 		self._callbackCombo.set_sensitive(False)
 		self._clearCookiesButton.set_sensitive(False)
 
+		self._notifyCheckbox.set_sensitive(False)
+		self._minutesEntry.set_sensitive(False)
+		self._missedCheckbox.set_sensitive(False)
+		self._voicemailCheckbox.set_sensitive(False)
+		self._smsCheckbox.set_sensitive(False)
+
 		self._accountViewNumberDisplay.set_text("")
 
 	def disable(self):
-		self._clearCookiesButton.set_sensitive(True)
 		self._callbackCombo.set_sensitive(True)
+		self._clearCookiesButton.set_sensitive(True)
+
+		self._notifyCheckbox.set_sensitive(True)
+		self._minutesEntry.set_sensitive(True)
+		self._missedCheckbox.set_sensitive(True)
+		self._voicemailCheckbox.set_sensitive(True)
+		self._smsCheckbox.set_sensitive(True)
 
 	@staticmethod
 	def update():

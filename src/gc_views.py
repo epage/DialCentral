@@ -491,7 +491,7 @@ class Dialpad(object):
 			self._prettynumber = make_pretty(self._phonenumber)
 			self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % (self._prettynumber))
 		except TypeError, e:
-			self._errorDisplay.push_exception(e)
+			self._errorDisplay.push_exception()
 
 	def clear(self):
 		self.set_number("")
@@ -552,31 +552,85 @@ class Dialpad(object):
 
 class AccountInfo(object):
 
-	def __init__(self, widgetTree, backend, errorDisplay):
+	def __init__(self, widgetTree, backend, alarmHandler, errorDisplay):
 		self._errorDisplay = errorDisplay
 		self._backend = backend
 		self._isPopulated = False
+		self._alarmHandler = alarmHandler
+		self._notifyOnMissed = False
+		self._notifyOnVoicemail = False
+		self._notifyOnSms = False
 
 		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
 		self._accountViewNumberDisplay = widgetTree.get_widget("gcnumber_display")
 		self._callbackCombo = widgetTree.get_widget("callbackcombo")
 		self._onCallbackentryChangedId = 0
 
+		self._notifyCheckbox = widgetTree.get_widget("notifyCheckbox")
+		self._minutesEntry = widgetTree.get_widget("minutesEntry")
+		self._missedCheckbox = widgetTree.get_widget("missedCheckbox")
+		self._voicemailCheckbox = widgetTree.get_widget("voicemailCheckbox")
+		self._smsCheckbox = widgetTree.get_widget("smsCheckbox")
+		self._onNotifyToggled = 0
+		self._onMinutesChanged = 0
+		self._onMissedToggled = 0
+		self._onVoicemailToggled = 0
+		self._onSmsToggled = 0
+
 		self._defaultCallback = ""
 
 	def enable(self):
 		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
+
 		self._accountViewNumberDisplay.set_use_markup(True)
 		self.set_account_number("")
+
 		self._callbackList.clear()
 		self._onCallbackentryChangedId = self._callbackCombo.get_child().connect("changed", self._on_callbackentry_changed)
+
+		if self._alarmHandler is not None:
+			self._notifyCheckbox.set_active(self._alarmHandler.isEnabled)
+			self._minutesEntry.set_value(self._alarmHandler.recurrence)
+			self._missedCheckbox.set_active(self._notifyOnMissed)
+			self._voicemailCheckbox.set_active(self._notifyOnVoicemail)
+			self._smsCheckbox.set_active(self._notifyOnSms)
+			self._onNotifyToggled = self._notifyCheckbox.connect("toggled", self._on_notify_toggled)
+			self._onMinutesChanged = self._minutesEntry.connect("value-changed", self._on_minutes_changed)
+			self._onMissedToggled = self._missedCheckbox.connect("toggled", self._on_missed_toggled)
+			self._onVoicemailToggled = self._voicemailCheckbox.connect("toggled", self._on_voicemail_toggled)
+			self._onSmsToggled = self._smsCheckbox.connect("toggled", self._on_sms_toggled)
+		else:
+			self._notifyCheckbox.set_sensitive(False)
+			self._minutesEntry.set_sensitive(False)
+			self._missedCheckbox.set_sensitive(False)
+			self._voicemailCheckbox.set_sensitive(False)
+			self._smsCheckbox.set_sensitive(False)
+
 		self.update(force=True)
 
 	def disable(self):
 		self._callbackCombo.get_child().disconnect(self._onCallbackentryChangedId)
+		self._onCallbackentryChangedId = 0
+
+		if self._alarmHandler is not None:
+			self._notifyCheckbox.disconnect(self._onNotifyToggled)
+			self._minutesEntry.disconnect(self._onMinutesChanged)
+			self._missedCheckbox.disconnect(self._onNotifyToggled)
+			self._voicemailCheckbox.disconnect(self._onNotifyToggled)
+			self._smsCheckbox.disconnect(self._onNotifyToggled)
+			self._onNotifyToggled = 0
+			self._onMinutesChanged = 0
+			self._onMissedToggled = 0
+			self._onVoicemailToggled = 0
+			self._onSmsToggled = 0
+		else:
+			self._notifyCheckbox.set_sensitive(True)
+			self._minutesEntry.set_sensitive(True)
+			self._missedCheckbox.set_sensitive(True)
+			self._voicemailCheckbox.set_sensitive(True)
+			self._smsCheckbox.set_sensitive(True)
 
 		self.clear()
-
 		self._callbackList.clear()
 
 	def get_selected_callback_number(self):
@@ -599,12 +653,18 @@ class AccountInfo(object):
 		self.set_account_number("")
 		self._isPopulated = False
 
+	def save_everything(self):
+		raise NotImplementedError
+
 	@staticmethod
 	def name():
 		return "Account Info"
 
 	def load_settings(self, config, section):
 		self._defaultCallback = config.get(section, "callback")
+		self._notifyOnMissed = config.getboolean(section, "notifyOnMissed")
+		self._notifyOnVoicemail = config.getboolean(section, "notifyOnVoicemail")
+		self._notifyOnSms = config.getboolean(section, "notifyOnSms")
 
 	def save_settings(self, config, section):
 		"""
@@ -612,6 +672,9 @@ class AccountInfo(object):
 		"""
 		callback = self.get_selected_callback_number()
 		config.set(section, "callback", callback)
+		config.set(section, "notifyOnMissed", repr(self._notifyOnMissed))
+		config.set(section, "notifyOnVoicemail", repr(self._notifyOnVoicemail))
+		config.set(section, "notifyOnSms", repr(self._notifyOnSms))
 
 	def _populate_callback_combo(self):
 		self._isPopulated = True
@@ -619,7 +682,7 @@ class AccountInfo(object):
 		try:
 			callbackNumbers = self._backend.get_callback_numbers()
 		except StandardError, e:
-			self._errorDisplay.push_exception(e)
+			self._errorDisplay.push_exception()
 			self._isPopulated = False
 			return
 
@@ -656,12 +719,40 @@ class AccountInfo(object):
 					UserWarning, 2
 				)
 		except StandardError, e:
-			self._errorDisplay.push_exception(e)
+			self._errorDisplay.push_exception()
+
+	def _update_alarm_settings(self):
+		try:
+			isEnabled = self._notifyCheckbox.get_active()
+			recurrence = self._minutesEntry.get_value()
+			if isEnabled != self._alarmHandler.isEnabled and recurrence != self.recurrence:
+				self._alarmHandler.apply_settings(isEnabled, recurrence)
+		finally:
+			self.save_everything()
+			self._notifyCheckbox.set_active(self._alarmHandler.isEnabled)
+			self._minutesEntry.set_value(self._alarmHandler.recurrence)
 
 	def _on_callbackentry_changed(self, *args):
 		text = self.get_selected_callback_number()
 		number = make_ugly(text)
 		self._set_callback_number(number)
+
+		self.save_everything()
+
+	def _on_notify_toggled(self, *args):
+		self._update_alarm_settings()
+
+	def _on_minutes_changed(self, *args):
+		self._update_alarm_settings()
+
+	def _on_missed_toggled(self, *args):
+		self.save_everything()
+
+	def _on_voicemail_toggled(self, *args):
+		self.save_everything()
+
+	def _on_sms_toggled(self, *args):
+		self.save_everything()
 
 
 class RecentCallsView(object):
@@ -772,7 +863,7 @@ class RecentCallsView(object):
 		try:
 			recentItems = self._backend.get_recent()
 		except StandardError, e:
-			self._errorDisplay.push_exception_with_lock(e)
+			self._errorDisplay.push_exception_with_lock()
 			self._isPopulated = False
 			recentItems = []
 
@@ -919,7 +1010,7 @@ class MessagesView(object):
 		try:
 			messageItems = self._backend.get_messages()
 		except StandardError, e:
-			self._errorDisplay.push_exception_with_lock(e)
+			self._errorDisplay.push_exception_with_lock()
 			self._isPopulated = False
 			messageItems = []
 
@@ -1102,7 +1193,7 @@ class ContactsView(object):
 			except StandardError, e:
 				contacts = []
 				self._isPopulated = False
-				self._errorDisplay.push_exception_with_lock(e)
+				self._errorDisplay.push_exception_with_lock()
 			for contactId, contactName in contacts:
 				contactType = (addressBook.contact_source_short_name(contactId), )
 				self._contactsmodel.append(contactType + (contactName, "", contactId) + ("", ))
@@ -1132,7 +1223,7 @@ class ContactsView(object):
 			contactDetails = self._addressBook.get_contact_details(contactId)
 		except StandardError, e:
 			contactDetails = []
-			self._errorDisplay.push_exception(e)
+			self._errorDisplay.push_exception()
 		contactPhoneNumbers = [phoneNumber for phoneNumber in contactDetails]
 
 		if len(contactPhoneNumbers) == 0:
