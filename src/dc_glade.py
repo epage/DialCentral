@@ -218,7 +218,6 @@ class Dialcentral(object):
 			if hildon is not None:
 				import led_handler
 				self._ledHandler = led_handler.LedHandler()
-				self._ledHandler.off()
 
 			# Setup maemo specifics
 			try:
@@ -592,9 +591,6 @@ class Dialcentral(object):
 			config.write(configFile)
 
 	def _refresh_active_tab(self):
-		if self._ledHandler is not None:
-			self._ledHandler.off()
-
 		pageIndex = self._notebook.get_current_page()
 		if pageIndex == self.CONTACTS_TAB:
 			self._contactsViews[self._selectedBackendId].update(force=True)
@@ -602,6 +598,10 @@ class Dialcentral(object):
 			self._recentViews[self._selectedBackendId].update(force=True)
 		elif pageIndex == self.MESSAGES_TAB:
 			self._messagesViews[self._selectedBackendId].update(force=True)
+
+		if pageIndex in (self.RECENT_TAB, self.MESSAGES_TAB):
+			if self._ledHandler is not None:
+				self._ledHandler.off()
 
 	def _on_close(self, *args, **kwds):
 		try:
