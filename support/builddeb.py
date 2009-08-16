@@ -23,6 +23,7 @@ __changelog__ = '''
 * Fixed the duplicate title on Maemo
 * Removing some device connection observer code due to high bug to low benefit ratio
 * Notification support
+* Fixed a bug from 1.0.3 where once you refreshed a tab by holding on it, every tab would then be forced to refresh
 
 1.0.3
 * Holding down a tab for a second will now force a refresh
