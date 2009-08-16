@@ -594,6 +594,7 @@ class AccountInfo(object):
 			self._missedCheckbox.set_active(self._notifyOnMissed)
 			self._voicemailCheckbox.set_active(self._notifyOnVoicemail)
 			self._smsCheckbox.set_active(self._notifyOnSms)
+
 			self._onNotifyToggled = self._notifyCheckbox.connect("toggled", self._on_notify_toggled)
 			self._onMinutesChanged = self._minutesEntry.connect("value-changed", self._on_minutes_changed)
 			self._onMissedToggled = self._missedCheckbox.connect("toggled", self._on_missed_toggled)
@@ -724,8 +725,8 @@ class AccountInfo(object):
 	def _update_alarm_settings(self):
 		try:
 			isEnabled = self._notifyCheckbox.get_active()
-			recurrence = self._minutesEntry.get_value()
-			if isEnabled != self._alarmHandler.isEnabled and recurrence != self.recurrence:
+			recurrence = self._minutesEntry.get_value_as_int()
+			if isEnabled != self._alarmHandler.isEnabled or recurrence != self._alarmHandler.recurrence:
 				self._alarmHandler.apply_settings(isEnabled, recurrence)
 		finally:
 			self.save_everything()
@@ -746,12 +747,15 @@ class AccountInfo(object):
 		self._update_alarm_settings()
 
 	def _on_missed_toggled(self, *args):
+		self._notifyOnMissed = self._missedCheckbox.get_active()
 		self.save_everything()
 
 	def _on_voicemail_toggled(self, *args):
+		self._notifyOnVoicemail = self._voicemailCheckbox.get_active()
 		self.save_everything()
 
 	def _on_sms_toggled(self, *args):
+		self._notifyOnSms = self._smsCheckbox.get_active()
 		self.save_everything()
 
 

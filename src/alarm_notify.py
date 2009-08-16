@@ -54,7 +54,7 @@ def is_changed(backend, type, get_material):
 		currentSnapshot.close()
 
 	if not previousExists:
-		return True
+		return False
 
 	seemEqual = filecmp.cmp(previousSnapshotPath, currentSnapshotPath)
 	return not seemEqual
@@ -112,11 +112,7 @@ def notify():
 		notifySources.append(("sms", get_sms))
 
 	notifyUser = False
-	for type, get_material in (
-		("missed", get_missed),
-		("voicemail", get_voicemail),
-		("sms", get_sms),
-	):
+	for type, get_material in notifySources:
 		if is_changed(backend, type, get_material):
 			notifyUser = True
 

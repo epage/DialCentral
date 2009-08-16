@@ -12,7 +12,7 @@ class AlarmHandler(object):
 
 	_INVALID_COOKIE = -1
 	_TITLE = "Dialcentral Notifications"
-	_LAUNCHER = os.path.join(os.path.dirname(__file__), "alarm_notifier.py"),
+	_LAUNCHER = os.abspath(os.path.join(os.path.dirname(__file__), "alarm_notify.py"))
 	_REPEAT_FOREVER = -1
 	_DEFAULT_FLAGS = (
 		alarmd.ALARM_EVENT_NO_DIALOG |
@@ -36,10 +36,10 @@ class AlarmHandler(object):
 		config.set(sectionName, "alarmCookie", str(self._alarmCookie))
 
 	def apply_settings(self, enabled, recurrence):
-		if recurrence != self._recurrence and enabled != self.isEnabled:
+		if recurrence != self._recurrence or enabled != self.isEnabled:
 			if self.isEnabled:
 				self.delete_alarm()
-			elif enabled:
+			if enabled:
 				self._set_alarm(recurrence)
 		self._recurrence = int(recurrence)
 
