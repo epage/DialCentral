@@ -646,6 +646,7 @@ class TapOrHold(object):
 	def _on_button_press(self, *args):
 		# Hack to handle weird notebook behavior
 		self._isPointerInside = True
+		self._isTap = True
 
 		if self._tapTimeoutId is not None:
 			gobject.source_remove(self._tapTimeoutId)
