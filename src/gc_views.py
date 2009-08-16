@@ -645,9 +645,10 @@ class AccountInfo(object):
 
 	def update(self, force = False):
 		if not force and self._isPopulated:
-			return
+			return False
 		self._populate_callback_combo()
 		self.set_account_number(self._backend.get_account_number())
+		return True
 
 	def clear(self):
 		self._callbackCombo.get_child().set_text("")
@@ -840,8 +841,9 @@ class RecentCallsView(object):
 
 	def update(self, force = False):
 		if not force and self._isPopulated:
-			return
+			return False
 		self._updateSink.send(())
+		return True
 
 	def clear(self):
 		self._isPopulated = False
@@ -987,8 +989,9 @@ class MessagesView(object):
 
 	def update(self, force = False):
 		if not force and self._isPopulated:
-			return
+			return False
 		self._updateSink.send(())
+		return True
 
 	def clear(self):
 		self._isPopulated = False
@@ -1153,8 +1156,9 @@ class ContactsView(object):
 
 	def update(self, force = False):
 		if not force and self._isPopulated:
-			return
+			return False
 		self._updateSink.send(())
+		return True
 
 	def clear(self):
 		self._isPopulated = False

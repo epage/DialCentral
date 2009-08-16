@@ -87,7 +87,7 @@ class AccountInfo(object):
 
 	@staticmethod
 	def update():
-		pass
+		return False
 
 	@staticmethod
 	def clear():
@@ -119,7 +119,7 @@ class RecentCallsView(object):
 		pass
 
 	def update(self):
-		pass
+		return False
 
 	@staticmethod
 	def clear():
@@ -151,7 +151,7 @@ class MessagesView(object):
 		pass
 
 	def update(self):
-		pass
+		return False
 
 	@staticmethod
 	def clear():
@@ -183,7 +183,7 @@ class ContactsView(object):
 		self._booksSelectionBox.set_sensitive(True)
 
 	def update(self):
-		pass
+		return False
 
 	@staticmethod
 	def clear():

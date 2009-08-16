@@ -680,13 +680,17 @@ class Dialcentral(object):
 	def _on_notebook_switch_page(self, notebook, page, pageIndex):
 		self._reset_tab_refresh()
 		if pageIndex == self.RECENT_TAB:
-			self._recentViews[self._selectedBackendId].update()
+			didRecentUpdate = self._recentViews[self._selectedBackendId].update()
 		elif pageIndex == self.MESSAGES_TAB:
-			self._messagesViews[self._selectedBackendId].update()
+			didMessagesUpdate = self._messagesViews[self._selectedBackendId].update()
 		elif pageIndex == self.CONTACTS_TAB:
 			self._contactsViews[self._selectedBackendId].update()
 		elif pageIndex == self.ACCOUNT_TAB:
 			self._accountViews[self._selectedBackendId].update()
+
+		if didRecentUpdate or didMessagesUpdate:
+			if self._ledHandler is not None:
+				self._ledHandler.off()
 
 	def _set_tab_refresh(self, *args):
 		pageIndex = self._notebook.get_current_page()
