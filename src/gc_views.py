@@ -589,7 +589,7 @@ class AccountInfo(object):
 		self._onCallbackentryChangedId = self._callbackCombo.get_child().connect("changed", self._on_callbackentry_changed)
 
 		if self._alarmHandler is not None:
-			self._minutesEntry.set_range(0, 60)
+			self._minutesEntry.set_range(1, 60)
 			self._minutesEntry.set_increments(1, 5)
 
 			self._notifyCheckbox.set_active(self._alarmHandler.isEnabled)

@@ -493,7 +493,7 @@ class GVDialer(object):
 		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
 		"""
 		for action, url in (
-			("Recieved", self._receivedCallsURL),
+			("Receivead", self._receivedCallsURL),
 			("Missed", self._missedCallsURL),
 			("Placed", self._placedCallsURL),
 		):

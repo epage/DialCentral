@@ -38,17 +38,10 @@ class AlarmHandler(object):
 	def apply_settings(self, enabled, recurrence):
 		if recurrence != self._recurrence or enabled != self.isEnabled:
 			if self.isEnabled:
-				self.delete_alarm()
+				self._clear_alarm()
 			if enabled:
 				self._set_alarm(recurrence)
 		self._recurrence = int(recurrence)
-
-	def delete_alarm(self):
-		if self._alarmCookie == self._INVALID_COOKIE:
-			return
-		deleteResult = self._alarmdDBus.del_event(dbus.Int32(self._alarmCookie))
-		self._alarmCookie = self._INVALID_COOKIE
-		assert deleteResult != -1, "Deleting of alarm event failed"
 
 	@property
 	def recurrence(self):
@@ -66,6 +59,7 @@ class AlarmHandler(object):
 		return timestamp
 
 	def _set_alarm(self, recurrence):
+		assert 1 <= recurrence, "Notifications set to occur too frequently: %d" % recurrence
 		alarmTime = self._get_start_time(recurrence)
 
 		#Setup the alarm arguments so that they can be passed to the D-Bus add_event method
@@ -91,6 +85,13 @@ class AlarmHandler(object):
 		event.extend(['recurr_count', dbus.Int32(self._REPEAT_FOREVER)])
 
 		self._alarmCookie = self._alarmdDBus.add_event(*event);
+
+	def _clear_alarm(self):
+		if self._alarmCookie == self._INVALID_COOKIE:
+			return
+		deleteResult = self._alarmdDBus.del_event(dbus.Int32(self._alarmCookie))
+		self._alarmCookie = self._INVALID_COOKIE
+		assert deleteResult != -1, "Deleting of alarm event failed"
 
 
 def main():
