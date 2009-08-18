@@ -73,7 +73,7 @@ class AccountInfo(object):
 		self._voicemailCheckbox.set_sensitive(False)
 		self._smsCheckbox.set_sensitive(False)
 
-		self._accountViewNumberDisplay.set_text("")
+		self._accountViewNumberDisplay.set_label("")
 
 	def disable(self):
 		self._callbackCombo.set_sensitive(True)

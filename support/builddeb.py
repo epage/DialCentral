@@ -16,7 +16,7 @@ __description__ = "Touch screen enhanced interface to the GoogleVoice/GrandCentr
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
 __version__ = constants.__version__
-__build__ = 0
+__build__ = 4
 __changelog__ = '''
 1.0.4
 * "Back" button and tabs now visually indicate when they've entered a "hold" state

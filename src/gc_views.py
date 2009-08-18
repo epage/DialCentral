@@ -589,6 +589,9 @@ class AccountInfo(object):
 		self._onCallbackentryChangedId = self._callbackCombo.get_child().connect("changed", self._on_callbackentry_changed)
 
 		if self._alarmHandler is not None:
+			self._minutesEntry.set_range(0, 60)
+			self._minutesEntry.set_increments(1, 5)
+
 			self._notifyCheckbox.set_active(self._alarmHandler.isEnabled)
 			self._minutesEntry.set_value(self._alarmHandler.recurrence)
 			self._missedCheckbox.set_active(self._notifyOnMissed)

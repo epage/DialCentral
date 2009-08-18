@@ -11,24 +11,31 @@ import gv_backend
 
 def get_missed(backend):
 	missedPage = backend._browser.download(backend._missedCallsURL)
-	missedJson = pprint.pformat(backend._grab_json(missedPage))
+	missedJson = backend._grab_json(missedPage)
 	return missedJson
 
 
 def get_voicemail(backend):
 	voicemailPage = backend._browser.download(backend._voicemailURL)
-	voicemailJson = pprint.pformat(backend._grab_json(voicemailPage))
+	voicemailJson = backend._grab_json(voicemailPage)
 	return voicemailJson
 
 
 def get_sms(backend):
 	smsPage = backend._browser.download(backend._smsURL)
-	smsJson = pprint.pformat(backend._grab_json(smsPage))
+	smsJson = backend._grab_json(smsPage)
 	return smsJson
 
 
-def is_changed(backend, type, get_material):
-	currentMaterial = get_material(backend)
+def remove_reltime(data):
+	for messageData in data["messages"].itervalues():
+		del messageData["relativeStartTime"]
+
+
+def is_type_changed(backend, type, get_material):
+	jsonMaterial = get_material(backend)
+	unreadCount = jsonMaterial["unreadCounts"][type]
+
 	previousSnapshotPath = os.path.join(constants._data_path_, "snapshot_%s.old.json" % type)
 	currentSnapshotPath = os.path.join(constants._data_path_, "snapshot_%s.json" % type)
 
@@ -42,25 +49,27 @@ def is_changed(backend, type, get_material):
 		os.rename(currentSnapshotPath, previousSnapshotPath)
 		previousExists = True
 	except OSError, e:
-		# check if failed purely because the old file didn't exist, which is fine
+		# check if failed purely because the new old file didn't exist, which is fine
 		if e.errno != 2:
 			raise
 		previousExists = False
 
+	remove_reltime(jsonMaterial)
+	textMaterial = pprint.pformat(jsonMaterial)
 	currentSnapshot = file(currentSnapshotPath, "w")
 	try:
-		currentSnapshot.write(currentMaterial)
+		currentSnapshot.write(textMaterial)
 	finally:
 		currentSnapshot.close()
 
-	if not previousExists:
+	if unreadCount == 0 or not previousExists:
 		return False
 
 	seemEqual = filecmp.cmp(previousSnapshotPath, currentSnapshotPath)
 	return not seemEqual
 
 
-def notify():
+def is_changed():
 	gvCookiePath = os.path.join(constants._data_path_, "gv_cookies.txt")
 	backend = gv_backend.GVDialer(gvCookiePath)
 
@@ -113,8 +122,13 @@ def notify():
 
 	notifyUser = False
 	for type, get_material in notifySources:
-		if is_changed(backend, type, get_material):
+		if is_type_changed(backend, type, get_material):
 			notifyUser = True
+	return notifyUser
+
+
+def notify_on_change():
+	notifyUser = is_changed()
 
 	if notifyUser:
 		import led_handler
@@ -123,4 +137,4 @@ def notify():
 
 
 if __name__ == "__main__":
-	notify()
+	notify_on_change()

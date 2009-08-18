@@ -215,6 +215,10 @@ class Dialcentral(object):
 				self._alarmHandler = alarm_handler.AlarmHandler()
 			except ImportError:
 				alarm_handler = None
+			except Exception:
+				with gtk_toolbox.gtk_lock():
+					self._errorDisplay.push_exception()
+				alarm_handler = None
 			if hildon is not None:
 				import led_handler
 				self._ledHandler = led_handler.LedHandler()
@@ -679,6 +683,10 @@ class Dialcentral(object):
 
 	def _on_notebook_switch_page(self, notebook, page, pageIndex):
 		self._reset_tab_refresh()
+
+		didRecentUpdate = False
+		didMessagesUpdate = False
+
 		if pageIndex == self.RECENT_TAB:
 			didRecentUpdate = self._recentViews[self._selectedBackendId].update()
 		elif pageIndex == self.MESSAGES_TAB:
@@ -794,13 +802,13 @@ def run_doctest():
 
 def run_dialpad():
 	_lock_file = os.path.join(constants._data_path_, ".lock")
-	with gtk_toolbox.flock(_lock_file, 0):
-		gtk.gdk.threads_init()
+	#with gtk_toolbox.flock(_lock_file, 0):
+	gtk.gdk.threads_init()
 
-		if hildon is not None:
-			gtk.set_application_name(constants.__pretty_app_name__)
-		handle = Dialcentral()
-		gtk.main()
+	if hildon is not None:
+		gtk.set_application_name(constants.__pretty_app_name__)
+	handle = Dialcentral()
+	gtk.main()
 
 
 class DummyOptions(object):

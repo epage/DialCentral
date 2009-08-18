@@ -12,7 +12,7 @@ class AlarmHandler(object):
 
 	_INVALID_COOKIE = -1
 	_TITLE = "Dialcentral Notifications"
-	_LAUNCHER = os.abspath(os.path.join(os.path.dirname(__file__), "alarm_notify.py"))
+	_LAUNCHER = os.path.abspath(os.path.join(os.path.dirname(__file__), "alarm_notify.py"))
 	_REPEAT_FOREVER = -1
 	_DEFAULT_FLAGS = (
 		alarmd.ALARM_EVENT_NO_DIALOG |
