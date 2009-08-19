@@ -3,6 +3,7 @@
 import os
 import time
 import datetime
+import ConfigParser
 
 import dbus
 import osso.alarmd as alarmd
@@ -26,14 +27,23 @@ class AlarmHandler(object):
 		bus = dbus.SystemBus()
 		self._alarmdDBus = bus.get_object("com.nokia.alarmd", "/com/nokia/alarmd");
 		self._alarmCookie = self._INVALID_COOKIE
+		self._launcher = self._LAUNCHER
 
 	def load_settings(self, config, sectionName):
 		self._recurrence = config.getint(sectionName, "recurrence")
 		self._alarmCookie = config.getint(sectionName, "alarmCookie")
+		try:
+			launcher = config.get(sectionName, "notifier")
+			if launcher:
+				self._launcher = launcher
+		except ConfigParser.NoOptionError:
+			pass
 
 	def save_settings(self, config, sectionName):
 		config.set(sectionName, "recurrence", str(self._recurrence))
 		config.set(sectionName, "alarmCookie", str(self._alarmCookie))
+		launcher = self._launcher if self._launcher != self._LAUNCHER else ""
+		config.set(sectionName, "notifier", launcher)
 
 	def apply_settings(self, enabled, recurrence):
 		if recurrence != self._recurrence or enabled != self.isEnabled:
@@ -66,7 +76,7 @@ class AlarmHandler(object):
 		action = []
 		action.extend(['flags', self._DEFAULT_FLAGS])
 		action.extend(['title', self._TITLE])
-		action.extend(['path', self._LAUNCHER])
+		action.extend(['path', self._launcher])
 		action.extend([
 			'arguments',
 			dbus.Array(

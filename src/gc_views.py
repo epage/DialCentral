@@ -23,7 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 from __future__ import with_statement
 
-import threading
 import warnings
 
 import gobject
@@ -576,6 +575,7 @@ class AccountInfo(object):
 		self._onMissedToggled = 0
 		self._onVoicemailToggled = 0
 		self._onSmsToggled = 0
+		self._applyAlarmTimeoutId = None
 
 		self._defaultCallback = ""
 
@@ -745,10 +745,22 @@ class AccountInfo(object):
 		self.save_everything()
 
 	def _on_notify_toggled(self, *args):
-		self._update_alarm_settings()
+		if self._applyAlarmTimeoutId is not None:
+			gobject.source_remove(self._applyAlarmTimeoutId)
+			self._applyAlarmTimeoutId = None
+		self._applyAlarmTimeoutId = gobject.timeout_add(500, self._on_apply_timeout)
 
 	def _on_minutes_changed(self, *args):
+		if self._applyAlarmTimeoutId is not None:
+			gobject.source_remove(self._applyAlarmTimeoutId)
+			self._applyAlarmTimeoutId = None
+		self._applyAlarmTimeoutId = gobject.timeout_add(500, self._on_apply_timeout)
+
+	def _on_apply_timeout(self, *args):
+		self._applyAlarmTimeoutId = None
+
 		self._update_alarm_settings()
+		return False
 
 	def _on_missed_toggled(self, *args):
 		self._notifyOnMissed = self._missedCheckbox.get_active()
