@@ -18,11 +18,11 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-@bug Crashes when switching contact lists, see http://talk.maemo.org/showpost.php?p=312920&postcount=176
-@bug Refeshing SMS a lot, then go to contacts and send a message, see http://talk.maemo.org/showpost.php?p=312920&postcount=176
-@bug Can't send sms from dialpad, see http://talk.maemo.org/showpost.php?p=312922&postcount=177
-@bug Sending an sms from contacts gave an error
-@bug Getting into a bad state on connection loss, see http://talk.maemo.org/showpost.php?p=312912&postcount=175
+@todo Try gogol's bigger tree view items
+@todo Try gogol's wrapping for messages
+@bug Does special notifiers even work?
+@bug Messaging UI is bad(?)
+@bug Not logging back in on network reconnect
 
 @todo Figure out how to integrate with the Maemo contacts app
 @bug Session timeouts are bad, possible solutions:
