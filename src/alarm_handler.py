@@ -30,9 +30,9 @@ class AlarmHandler(object):
 		self._launcher = self._LAUNCHER
 
 	def load_settings(self, config, sectionName):
-		self._recurrence = config.getint(sectionName, "recurrence")
-		self._alarmCookie = config.getint(sectionName, "alarmCookie")
 		try:
+			self._recurrence = config.getint(sectionName, "recurrence")
+			self._alarmCookie = config.getint(sectionName, "alarmCookie")
 			launcher = config.get(sectionName, "notifier")
 			if launcher:
 				self._launcher = launcher
