@@ -244,7 +244,6 @@ class Dialcentral(object):
 			import gv_backend
 			import gc_backend
 			import file_backend
-			import evo_backend
 			import gc_views
 
 			try:
@@ -303,7 +302,6 @@ class Dialcentral(object):
 					),
 				})
 
-			evoBackend = evo_backend.EvolutionAddressBook()
 			fsContactsPath = os.path.join(constants._data_path_, "contacts")
 			fileBackend = file_backend.FilesystemAddressBookFactory(fsContactsPath)
 			for backendId in (self.GV_BACKEND, self.GC_BACKEND):
@@ -314,7 +312,6 @@ class Dialcentral(object):
 
 				addressBooks = [
 					self._phoneBackends[backendId],
-					evoBackend,
 					fileBackend,
 				]
 				mergedBook = gc_views.MergedAddressBook(addressBooks, gc_views.MergedAddressBook.advanced_lastname_sorter)

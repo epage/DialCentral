@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 from __future__ import with_statement
 
+import ConfigParser
 import warnings
 
 import gobject
@@ -483,7 +484,7 @@ class Dialpad(object):
 
 	def set_number(self, number):
 		"""
-		Set the callback phonenumber
+		Set the number to dial
 		"""
 		try:
 			self._phonenumber = make_ugly(number)
@@ -741,8 +742,6 @@ class AccountInfo(object):
 		text = self.get_selected_callback_number()
 		number = make_ugly(text)
 		self._set_callback_number(number)
-
-		self.save_everything()
 
 	def _on_notify_toggled(self, *args):
 		if self._applyAlarmTimeoutId is not None:
@@ -1072,6 +1071,7 @@ class ContactsView(object):
 		self._backend = backend
 
 		self._addressBook = None
+		self._selectedComboIndex = 0
 		self._addressBookFactories = [null_backend.NullAddressBook()]
 
 		self._booksList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
@@ -1135,10 +1135,11 @@ class ContactsView(object):
 		cell = gtk.CellRendererText()
 		self._booksSelectionBox.pack_start(cell, True)
 		self._booksSelectionBox.add_attribute(cell, 'text', 2)
-		self._booksSelectionBox.set_active(0)
 
 		self._onContactsviewRowActivatedId = self._contactsview.connect("row-activated", self._on_contactsview_row_activated)
 		self._onAddressbookComboChangedId = self._booksSelectionBox.connect("changed", self._on_addressbook_combo_changed)
+
+		self._booksSelectionBox.set_active(self._selectedComboIndex)
 
 	def disable(self):
 		self._contactsview.disconnect(self._onContactsviewRowActivatedId)
@@ -1163,11 +1164,16 @@ class ContactsView(object):
 		"""
 		for i, factory in enumerate(self._addressBookFactories):
 			for bookFactory, bookId, bookName in factory.get_addressbooks():
-				yield (i, bookId), (factory.factory_name(), bookName)
+				yield (str(i), bookId), (factory.factory_name(), bookName)
 
 	def open_addressbook(self, bookFactoryId, bookId):
-		self._addressBook = self._addressBookFactories[bookFactoryId].open_addressbook(bookId)
-		self.update(force=True)
+		bookFactoryIndex = int(bookFactoryId)
+		addressBook = self._addressBookFactories[bookFactoryIndex].open_addressbook(bookId)
+
+		forceUpdate = True if addressBook is not self._addressBook else False
+
+		self._addressBook = addressBook
+		self.update(force=forceUpdate)
 
 	def update(self, force = False):
 		if not force and self._isPopulated:
@@ -1192,25 +1198,23 @@ class ContactsView(object):
 	def name():
 		return "Contacts"
 
-	def load_settings(self, config, section):
-		pass
+	def load_settings(self, config, sectionName):
+		try:
+			self._selectedComboIndex = config.getint(sectionName, "selectedAddressbook")
+		except ConfigParser.NoOptionError:
+			self._selectedComboIndex = 0
 
-	def save_settings(self, config, section):
-		"""
-		@note Thread Agnostic
-		"""
-		pass
+	def save_settings(self, config, sectionName):
+		config.set(sectionName, "selectedAddressbook", str(self._selectedComboIndex))
 
 	def _idly_populate_contactsview(self):
-		self.clear()
-		self._isPopulated = True
-
-		# completely disable updating the treeview while we populate the data
-		self._contactsview.freeze_child_notify()
-		try:
-			self._contactsview.set_model(None)
-
+		addressBook = None
+		while addressBook is not self._addressBook:
 			addressBook = self._addressBook
+			with gtk_toolbox.gtk_lock():
+				self._contactsview.set_model(None)
+				self.clear()
+
 			try:
 				contacts = addressBook.get_contacts()
 			except StandardError, e:
@@ -1221,19 +1225,20 @@ class ContactsView(object):
 				contactType = (addressBook.contact_source_short_name(contactId), )
 				self._contactsmodel.append(contactType + (contactName, "", contactId) + ("", ))
 
-			# restart the treeview data rendering
-			self._contactsview.set_model(self._contactsmodel)
-		finally:
-			self._contactsview.thaw_child_notify()
+			with gtk_toolbox.gtk_lock():
+				self._contactsview.set_model(self._contactsmodel)
+
+		self._isPopulated = True
 		return False
 
 	def _on_addressbook_combo_changed(self, *args, **kwds):
 		itr = self._booksSelectionBox.get_active_iter()
 		if itr is None:
 			return
-		factoryId = int(self._booksList.get_value(itr, 0))
-		bookId = self._booksList.get_value(itr, 1)
-		self.open_addressbook(factoryId, bookId)
+		self._selectedComboIndex = self._booksSelectionBox.get_active()
+		selectedFactoryId = self._booksList.get_value(itr, 0)
+		selectedBookId = self._booksList.get_value(itr, 1)
+		self.open_addressbook(selectedFactoryId, selectedBookId)
 
 	def _on_contactsview_row_activated(self, treeview, path, view_column):
 		model, itr = self._contactsviewselection.get_selected()
