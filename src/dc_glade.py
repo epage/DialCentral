@@ -138,9 +138,16 @@ class Dialcentral(object):
 				self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
 			except TypeError, e:
 				warnings.warn(e.message)
-			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('recent_scrolledwindow'), True)
-			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('message_scrolledwindow'), True)
-			hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget('contacts_scrolledwindow'), True)
+			for scrollingWidget in (
+				'recent_scrolledwindow',
+				'message_scrolledwindow',
+				'contacts_scrolledwindow',
+				"phoneSelectionMessage_scrolledwindow",
+				"phonetypes_scrolledwindow",
+				"smsMessage_scrolledwindow",
+				"smsMessage_scrolledEntry",
+			):
+				hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget(scrollingWidget), True)
 
 			gtkMenu = self._widgetTree.get_widget("dialpad_menubar")
 			menu = gtk.Menu()
