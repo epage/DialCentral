@@ -28,12 +28,15 @@ class Dialpad(object):
 	def __init__(self, widgetTree):
 		self._numberdisplay = widgetTree.get_widget("numberdisplay")
 		self._dialButton = widgetTree.get_widget("dial")
+		self._smsButton = widgetTree.get_widget("sms")
 
 	def enable(self):
 		self._dialButton.set_sensitive(False)
+		self._smsButton.set_sensitive(False)
 
 	def disable(self):
 		self._dialButton.set_sensitive(True)
+		self._smsButton.set_sensitive(True)
 
 	@staticmethod
 	def name():

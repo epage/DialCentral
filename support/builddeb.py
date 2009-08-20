@@ -21,6 +21,7 @@ __changelog__ = '''
 1.0.5
 * Feature: Contacts Tab remembers the last address book viewed on restart
 * Bug Fix: Not clearing the entered number on sending an SMS
+* Bug Fix: Disabling SMS button when logged off
 
 1.0.4
 * "Back" button and tabs now visually indicate when they've entered a "hold" state
