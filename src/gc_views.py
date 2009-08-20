@@ -1139,6 +1139,8 @@ class ContactsView(object):
 		self._onContactsviewRowActivatedId = self._contactsview.connect("row-activated", self._on_contactsview_row_activated)
 		self._onAddressbookComboChangedId = self._booksSelectionBox.connect("changed", self._on_addressbook_combo_changed)
 
+		if len(self._booksList) <= self._selectedComboIndex:
+			self._selectedComboIndex = 0
 		self._booksSelectionBox.set_active(self._selectedComboIndex)
 
 	def disable(self):
