@@ -27,6 +27,7 @@ import ConfigParser
 import warnings
 
 import gobject
+import pango
 import gtk
 
 import gtk_toolbox
@@ -810,6 +811,7 @@ class RecentCallsView(object):
 
 		textrenderer = gtk.CellRendererText()
 		textrenderer.set_property("yalign", 0)
+		textrenderer.set_property("scale", 1.5)
 		self._fromColumn = gtk.TreeViewColumn("From")
 		self._fromColumn.pack_start(textrenderer, expand=True)
 		self._fromColumn.add_attribute(textrenderer, "text", self.FROM_IDX)
@@ -958,6 +960,9 @@ class MessagesView(object):
 
 		textrenderer = gtk.CellRendererText()
 		textrenderer.set_property("yalign", 0)
+		textrenderer.set_property("scale", 1.5)
+		textrenderer.set_property("wrap-mode", pango.WRAP_WORD)
+		textrenderer.set_property("wrap-width", 500)
 		self._messageColumn = gtk.TreeViewColumn("Messages")
 		self._messageColumn.pack_start(textrenderer, expand=True)
 		self._messageColumn.add_attribute(textrenderer, "markup", self.MESSAGE_IDX)
@@ -1089,6 +1094,7 @@ class ContactsView(object):
 			self._contactColumn.pack_start(textrenderer, expand=False)
 			self._contactColumn.add_attribute(textrenderer, 'text', 0)
 		textrenderer = gtk.CellRendererText()
+		textrenderer.set_property("scale", 1.5)
 		self._contactColumn.pack_start(textrenderer, expand=True)
 		self._contactColumn.add_attribute(textrenderer, 'text', 1)
 		textrenderer = gtk.CellRendererText()
