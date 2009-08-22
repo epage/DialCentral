@@ -959,14 +959,14 @@ class MessagesView(object):
 		self._headerColumn.pack_start(self._nameRenderer, expand=True)
 		self._headerColumn.add_attribute(self._nameRenderer, "markup", self.HEADER_IDX)
 
-		messageRenderer = gtk.CellRendererText()
-		messageRenderer.set_property("yalign", 0)
-		messageRenderer.set_property("scale", 1.5)
-		messageRenderer.set_property("wrap-mode", pango.WRAP_WORD)
-		messageRenderer.set_property("wrap-width", 500)
+		self._messageRenderer = gtk.CellRendererText()
+		self._messageRenderer.set_property("yalign", 0)
+		self._messageRenderer.set_property("scale", 1.5)
+		self._messageRenderer.set_property("wrap-mode", pango.WRAP_WORD)
+		self._messageRenderer.set_property("wrap-width", 500)
 		self._messageColumn = gtk.TreeViewColumn("Messages")
-		self._messageColumn.pack_start(messageRenderer, expand=True)
-		self._messageColumn.add_attribute(messageRenderer, "markup", self.MESSAGE_IDX)
+		self._messageColumn.pack_start(self._messageRenderer, expand=True)
+		self._messageColumn.add_attribute(self._messageRenderer, "markup", self.MESSAGE_IDX)
 		self._messageColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 		self._window = gtk_toolbox.find_parent_window(self._messageview)
@@ -1041,21 +1041,27 @@ class MessagesView(object):
 			self._isPopulated = False
 			messageItems = []
 
+		maxHeaderLength = 0
 		combinedHeaderLength = 0
 		headerCount = 0
 		for header, number, relativeDate, message in messageItems:
 			number = make_ugly(number)
 			row = (number, relativeDate, header, message)
-			combinedHeaderLength += len(header)
-			headerCount += 1
 			with gtk_toolbox.gtk_lock():
 				self._messagemodel.append(row)
+
+			maxHeaderLength = max(maxHeaderLength, len(header))
+			combinedHeaderLength += len(header)
+			headerCount += 1
+
+		if 0 < headerCount:
+			cellWidth = min(int((4 * combinedHeaderLength) / (3 * headerCount)), maxHeaderLength)
+		else:
+			cellWidth = 10
 		with gtk_toolbox.gtk_lock():
-			if 0 < headerCount:
-				cellWidth = int((4 * combinedHeaderLength) / (3 * headerCount))
-			else:
-				cellWidth = 10
 			self._nameRenderer.set_property("width-chars", cellWidth)
+			cellPosAndDim = self._messageRenderer.get_size(self._messageview, None)
+			self._messageRenderer.set_property("wrap-width", cellPosAndDim[2])
 
 		return False
 
