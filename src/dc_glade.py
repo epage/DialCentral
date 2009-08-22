@@ -17,18 +17,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-@todo Determine if scale or setting font size is better
-@todo Have phone selector and messaging dialogs auto-scroll to bottom
-@bug Does special notifiers even work?
-@bug Messaging UI is bad(?)
-@bug Not logging back in on network reconnect
-
-@todo Figure out how to integrate with the Maemo contacts app
-@bug Session timeouts are bad, possible solutions:
-	@li For every X minutes, if logged in, attempt login
-	@li Restructure so code handling login/dial/sms is beneath everything else and login attempts are made if those fail
-@todo Add logging support to make debugging issues for people a lot easier
 """
 
 
