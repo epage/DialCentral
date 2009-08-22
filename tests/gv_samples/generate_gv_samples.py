@@ -13,6 +13,7 @@ import browser_emu
 import gv_backend
 
 webpages = [
+	("login", gv_backend.GVDialer._loginURL),
 	("contacts", gv_backend.GVDialer._contactsURL),
 	("voicemail", gv_backend.GVDialer._voicemailURL),
 	("sms", gv_backend.GVDialer._smsURL),
@@ -57,6 +58,8 @@ try:
 except urllib2.URLError, e:
 	warnings.warn(traceback.format_exc())
 	raise RuntimeError("%s is not accesible" % gv_backend.GVDialer._loginURL)
+with open("loggingin.txt", "w") as f:
+	f.write(page)
 
 forwardPage = browser.download(gv_backend.GVDialer._forwardURL)
 
