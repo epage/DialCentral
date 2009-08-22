@@ -17,8 +17,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-@todo Feature request: The ability to go to relevant thing in web browser
 """
 
 from __future__ import with_statement
@@ -467,12 +465,14 @@ class Dialpad(object):
 		self._window = gtk_toolbox.find_parent_window(self._numberdisplay)
 
 	def enable(self):
+		self.set_number(self._phonenumber)
 		self._dialButton.grab_focus()
 		self._backTapHandler.enable()
 
 	def disable(self):
 		self._reset_back_button()
 		self._backTapHandler.disable()
+		self.set_number("")
 
 	def number_selected(self, action, number, message):
 		"""
@@ -946,26 +946,27 @@ class MessagesView(object):
 		self._messageviewselection = None
 		self._onMessageviewRowActivatedId = 0
 
-		textrenderer = gtk.CellRendererText()
-		textrenderer.set_property("yalign", 0)
+		dateRenderer = gtk.CellRendererText()
+		dateRenderer.set_property("yalign", 0)
 		self._dateColumn = gtk.TreeViewColumn("Date")
-		self._dateColumn.pack_start(textrenderer, expand=True)
-		self._dateColumn.add_attribute(textrenderer, "markup", self.DATE_IDX)
+		self._dateColumn.pack_start(dateRenderer, expand=True)
+		self._dateColumn.add_attribute(dateRenderer, "markup", self.DATE_IDX)
 
-		textrenderer = gtk.CellRendererText()
-		textrenderer.set_property("yalign", 0)
+		self._nameRenderer = gtk.CellRendererText()
+		self._nameRenderer.set_property("ellipsize", pango.ELLIPSIZE_END)
+		self._nameRenderer.set_property("yalign", 0)
 		self._headerColumn = gtk.TreeViewColumn("From")
-		self._headerColumn.pack_start(textrenderer, expand=True)
-		self._headerColumn.add_attribute(textrenderer, "markup", self.HEADER_IDX)
+		self._headerColumn.pack_start(self._nameRenderer, expand=True)
+		self._headerColumn.add_attribute(self._nameRenderer, "markup", self.HEADER_IDX)
 
-		textrenderer = gtk.CellRendererText()
-		textrenderer.set_property("yalign", 0)
-		textrenderer.set_property("scale", 1.5)
-		textrenderer.set_property("wrap-mode", pango.WRAP_WORD)
-		textrenderer.set_property("wrap-width", 500)
+		messageRenderer = gtk.CellRendererText()
+		messageRenderer.set_property("yalign", 0)
+		messageRenderer.set_property("scale", 1.5)
+		messageRenderer.set_property("wrap-mode", pango.WRAP_WORD)
+		messageRenderer.set_property("wrap-width", 500)
 		self._messageColumn = gtk.TreeViewColumn("Messages")
-		self._messageColumn.pack_start(textrenderer, expand=True)
-		self._messageColumn.add_attribute(textrenderer, "markup", self.MESSAGE_IDX)
+		self._messageColumn.pack_start(messageRenderer, expand=True)
+		self._messageColumn.add_attribute(messageRenderer, "markup", self.MESSAGE_IDX)
 		self._messageColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 		self._window = gtk_toolbox.find_parent_window(self._messageview)
@@ -1040,11 +1041,21 @@ class MessagesView(object):
 			self._isPopulated = False
 			messageItems = []
 
+		combinedHeaderLength = 0
+		headerCount = 0
 		for header, number, relativeDate, message in messageItems:
 			number = make_ugly(number)
 			row = (number, relativeDate, header, message)
+			combinedHeaderLength += len(header)
+			headerCount += 1
 			with gtk_toolbox.gtk_lock():
 				self._messagemodel.append(row)
+		with gtk_toolbox.gtk_lock():
+			if 0 < headerCount:
+				cellWidth = int((4 * combinedHeaderLength) / (3 * headerCount))
+			else:
+				cellWidth = 10
+			self._nameRenderer.set_property("width-chars", cellWidth)
 
 		return False
 
