@@ -162,8 +162,8 @@ def build_package(distribution):
 	p.mail = __email__
 	p.license = "lgpl"
 	p.depends = {
-		"diablo": "python2.5, python2.5-gtk2, python2.5-xml",
-		"mer": "python2.6, python-gtk2, python-xml, python-glade2",
+		"diablo": "python2.5, python2.5-gtk2, python2.5-xml, python2.5-dbus",
+		"mer": "python2.6, python-gtk2, python-xml, python-glade2, python-dbus",
 	}[distribution]
 	p.section = "user/communication"
 	p.arch = "all"
