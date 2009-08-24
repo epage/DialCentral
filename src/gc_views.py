@@ -592,7 +592,6 @@ class AccountInfo(object):
 
 		if self._alarmHandler is not None:
 			self._minutesEntry.set_range(1, 60)
-			self._minutesEntry.set_increments(1, 5)
 
 			self._notifyCheckbox.set_active(self._alarmHandler.isEnabled)
 			self._minutesEntry.set_value(self._alarmHandler.recurrence)
