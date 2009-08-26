@@ -98,19 +98,6 @@ def itergroup(iterator, count, padValue = None):
 	return itertools.izip(*nIterators)
 
 
-def abbrev_relative_date(date):
-	"""
-	>>> abbrev_relative_date("42 hours ago")
-	'42 h'
-	>>> abbrev_relative_date("2 days ago")
-	'2 d'
-	>>> abbrev_relative_date("4 weeks ago")
-	'4 w'
-	"""
-	parts = date.split(" ")
-	return "%s %s" % (parts[0], parts[1][0])
-
-
 class GVDialer(object):
 	"""
 	This class encapsulates all of the knowledge necessary to interace with the grandcentral servers
@@ -334,7 +321,6 @@ class GVDialer(object):
 		]
 		sortedRecent.sort(reverse = True)
 		for exactDate, name, number, relativeDate, action in sortedRecent:
-			relativeDate = abbrev_relative_date(relativeDate)
 			yield name, number, relativeDate, action
 
 	def get_addressbooks(self):
@@ -431,7 +417,6 @@ class GVDialer(object):
 		sortedMessages = list(allMessages)
 		sortedMessages.sort(reverse=True)
 		for exactDate, header, number, relativeDate, message in sortedMessages:
-			relativeDate = abbrev_relative_date(relativeDate)
 			yield header, number, relativeDate, message
 
 	def _grab_json(self, flatXml):

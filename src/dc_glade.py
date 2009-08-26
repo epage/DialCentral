@@ -34,12 +34,8 @@ import warnings
 import gtk
 import gtk.glade
 
-try:
-	import hildon
-except ImportError:
-	hildon = None
-
 import constants
+import hildonize
 import gtk_toolbox
 
 
@@ -111,47 +107,33 @@ class Dialcentral(object):
 		self._errorDisplay = gtk_toolbox.ErrorDisplay(self._widgetTree)
 		self._credentialsDialog = gtk_toolbox.LoginWindow(self._widgetTree)
 
-		self._app = None
 		self._isFullScreen = False
-		if hildon is not None:
-			self._app = hildon.Program()
-			oldWindow = self._window
-			self._window = hildon.Window()
-			oldWindow.get_child().reparent(self._window)
-			self._app.add_window(self._window)
+		self._app = hildonize.get_app_class()()
+		self._window = hildonize.hildonize_window(self._app, self._window)
+		hildonize.hildonize_text_entry(self._widgetTree.get_widget("usernameentry"))
+		hildonize.hildonize_password_entry(self._widgetTree.get_widget("passwordentry"))
+		hildonize.hildonize_combo_entry(self._widgetTree.get_widget("callbackcombo").get_child())
 
-			try:
-				self._widgetTree.get_widget("usernameentry").set_property('hildon-input-mode', 7)
-				self._widgetTree.get_widget("passwordentry").set_property('hildon-input-mode', 7|(1 << 29))
-				self._widgetTree.get_widget("callbackcombo").get_child().set_property('hildon-input-mode', (1 << 4))
-			except TypeError, e:
-				warnings.warn(e.message)
-			for scrollingWidget in (
-				'recent_scrolledwindow',
-				'message_scrolledwindow',
-				'contacts_scrolledwindow',
-				"phoneSelectionMessage_scrolledwindow",
-				"phonetypes_scrolledwindow",
-				"smsMessage_scrolledwindow",
-				"smsMessage_scrolledEntry",
-			):
-				hildon.hildon_helper_set_thumb_scrollbar(self._widgetTree.get_widget(scrollingWidget), True)
+		for scrollingWidget in (
+			'recent_scrolledwindow',
+			'message_scrolledwindow',
+			'contacts_scrolledwindow',
+			"phoneSelectionMessage_scrolledwindow",
+			"phonetypes_scrolledwindow",
+			"smsMessage_scrolledwindow",
+			"smsMessage_scrolledEntry",
+		):
+			hildonize.set_thumb_scrollbar(self._widgetTree.get_widget(scrollingWidget))
 
-			gtkMenu = self._widgetTree.get_widget("dialpad_menubar")
-			menu = gtk.Menu()
-			for child in gtkMenu.get_children():
-				child.reparent(menu)
-			self._window.set_menu(menu)
-			gtkMenu.destroy()
+		hildonize.hildonize_menu(self._window, self._widgetTree.get_widget("dialpad_menubar"))
 
+		if hildonize.IS_HILDON:
 			self._window.connect("key-press-event", self._on_key_press)
 			self._window.connect("window-state-event", self._on_window_state_change)
 		else:
 			pass # warnings.warn("No Hildon", UserWarning, 2)
 
-		# If under hildon, rely on the application name being shown
-		if hildon is None:
-			self._window.set_title("%s" % constants.__pretty_app_name__)
+		hildonize.set_application_title(self._window, "%s" % constants.__pretty_app_name__)
 
 		callbackMapping = {
 			"on_dialpad_quit": self._on_close,
@@ -218,7 +200,7 @@ class Dialcentral(object):
 				with gtk_toolbox.gtk_lock():
 					self._errorDisplay.push_exception()
 				alarm_handler = None
-			if hildon is not None:
+			if hildonize.IS_HILDON:
 				import led_handler
 				self._ledHandler = led_handler.LedHandler()
 
@@ -804,7 +786,7 @@ def run_dialpad():
 	#with gtk_toolbox.flock(_lock_file, 0):
 	gtk.gdk.threads_init()
 
-	if hildon is not None:
+	if hildonize.IS_HILDON:
 		gtk.set_application_name(constants.__pretty_app_name__)
 	handle = Dialcentral()
 	gtk.main()

@@ -29,6 +29,7 @@ import pango
 import gtk
 
 import gtk_toolbox
+import hildonize
 import null_backend
 
 
@@ -810,7 +811,7 @@ class RecentCallsView(object):
 
 		textrenderer = gtk.CellRendererText()
 		textrenderer.set_property("yalign", 0)
-		textrenderer.set_property("scale", 1.5)
+		hildonize.set_cell_thumb_selectable(textrenderer)
 		self._fromColumn = gtk.TreeViewColumn("From")
 		self._fromColumn.pack_start(textrenderer, expand=True)
 		self._fromColumn.add_attribute(textrenderer, "text", self.FROM_IDX)
@@ -960,7 +961,7 @@ class MessagesView(object):
 
 		self._messageRenderer = gtk.CellRendererText()
 		self._messageRenderer.set_property("yalign", 0)
-		self._messageRenderer.set_property("scale", 1.5)
+		hildonize.set_cell_thumb_selectable(self._messageRenderer)
 		self._messageRenderer.set_property("wrap-mode", pango.WRAP_WORD)
 		self._messageRenderer.set_property("wrap-width", 500)
 		self._messageColumn = gtk.TreeViewColumn("Messages")
@@ -1110,7 +1111,7 @@ class ContactsView(object):
 			self._contactColumn.pack_start(textrenderer, expand=False)
 			self._contactColumn.add_attribute(textrenderer, 'text', 0)
 		textrenderer = gtk.CellRendererText()
-		textrenderer.set_property("scale", 1.5)
+		hildonize.set_cell_thumb_selectable(textrenderer)
 		self._contactColumn.pack_start(textrenderer, expand=True)
 		self._contactColumn.add_attribute(textrenderer, 'text', 1)
 		textrenderer = gtk.CellRendererText()
