@@ -799,12 +799,14 @@ class RecentCallsView(object):
 
 		textrenderer = gtk.CellRendererText()
 		textrenderer.set_property("yalign", 0)
+		hildonize.set_cell_thumb_selectable(textrenderer)
 		self._dateColumn = gtk.TreeViewColumn("Date")
 		self._dateColumn.pack_start(textrenderer, expand=True)
 		self._dateColumn.add_attribute(textrenderer, "text", self.DATE_IDX)
 
 		textrenderer = gtk.CellRendererText()
 		textrenderer.set_property("yalign", 0)
+		hildonize.set_cell_thumb_selectable(textrenderer)
 		self._actionColumn = gtk.TreeViewColumn("Action")
 		self._actionColumn.pack_start(textrenderer, expand=True)
 		self._actionColumn.add_attribute(textrenderer, "text", self.ACTION_IDX)
@@ -812,10 +814,17 @@ class RecentCallsView(object):
 		textrenderer = gtk.CellRendererText()
 		textrenderer.set_property("yalign", 0)
 		hildonize.set_cell_thumb_selectable(textrenderer)
-		self._fromColumn = gtk.TreeViewColumn("From")
-		self._fromColumn.pack_start(textrenderer, expand=True)
-		self._fromColumn.add_attribute(textrenderer, "text", self.FROM_IDX)
-		self._fromColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._nameColumn = gtk.TreeViewColumn("From")
+		self._nameColumn.pack_start(textrenderer, expand=True)
+		self._nameColumn.add_attribute(textrenderer, "text", self.FROM_IDX)
+		self._nameColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+
+		textrenderer = gtk.CellRendererText()
+		textrenderer.set_property("yalign", 0)
+		hildonize.set_cell_thumb_selectable(textrenderer)
+		self._numberColumn = gtk.TreeViewColumn("Number")
+		self._numberColumn.pack_start(textrenderer, expand=True)
+		self._numberColumn.add_attribute(textrenderer, "text", self.NUMBER_IDX)
 
 		self._window = gtk_toolbox.find_parent_window(self._recentview)
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
@@ -833,7 +842,8 @@ class RecentCallsView(object):
 
 		self._recentview.append_column(self._dateColumn)
 		self._recentview.append_column(self._actionColumn)
-		self._recentview.append_column(self._fromColumn)
+		self._recentview.append_column(self._numberColumn)
+		self._recentview.append_column(self._nameColumn)
 		self._recentviewselection = self._recentview.get_selection()
 		self._recentviewselection.set_mode(gtk.SELECTION_SINGLE)
 
@@ -846,7 +856,8 @@ class RecentCallsView(object):
 
 		self._recentview.remove_column(self._dateColumn)
 		self._recentview.remove_column(self._actionColumn)
-		self._recentview.remove_column(self._fromColumn)
+		self._recentview.remove_column(self._nameColumn)
+		self._recentview.remove_column(self._numberColumn)
 		self._recentview.set_model(None)
 
 	def number_selected(self, action, number, message):
@@ -894,8 +905,7 @@ class RecentCallsView(object):
 				personName = "Unknown"
 			prettyNumber = phoneNumber[2:] if phoneNumber.startswith("+1") else phoneNumber
 			prettyNumber = make_pretty(prettyNumber)
-			description = "%s - %s" % (personName, prettyNumber)
-			item = (phoneNumber, date, action.capitalize(), description)
+			item = (prettyNumber, date, action.capitalize(), personName)
 			with gtk_toolbox.gtk_lock():
 				self._recentmodel.append(item)
 
@@ -1026,7 +1036,9 @@ class MessagesView(object):
 			messageItems = []
 
 		for header, number, relativeDate, message in messageItems:
-			message = "<b>%s - %s</b> <i>(%s)</i>\n\n%s" % (header, make_pretty(number), relativeDate, message)
+			prettyNumber = number[2:] if number.startswith("+1") else number
+			prettyNumber = make_pretty(prettyNumber)
+			message = "<b>%s - %s</b> <i>(%s)</i>\n\n%s" % (header, prettyNumber, relativeDate, message)
 			number = make_ugly(number)
 			row = (number, relativeDate, header, message)
 			with gtk_toolbox.gtk_lock():
