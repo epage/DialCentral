@@ -946,24 +946,10 @@ class MessagesView(object):
 		self._messageviewselection = None
 		self._onMessageviewRowActivatedId = 0
 
-		dateRenderer = gtk.CellRendererText()
-		dateRenderer.set_property("yalign", 0)
-		self._dateColumn = gtk.TreeViewColumn("Date")
-		self._dateColumn.pack_start(dateRenderer, expand=True)
-		self._dateColumn.add_attribute(dateRenderer, "markup", self.DATE_IDX)
-
-		self._nameRenderer = gtk.CellRendererText()
-		self._nameRenderer.set_property("ellipsize", pango.ELLIPSIZE_END)
-		self._nameRenderer.set_property("yalign", 0)
-		self._headerColumn = gtk.TreeViewColumn("From")
-		self._headerColumn.pack_start(self._nameRenderer, expand=True)
-		self._headerColumn.add_attribute(self._nameRenderer, "markup", self.HEADER_IDX)
-
 		self._messageRenderer = gtk.CellRendererText()
-		self._messageRenderer.set_property("yalign", 0)
 		hildonize.set_cell_thumb_selectable(self._messageRenderer)
 		self._messageRenderer.set_property("wrap-mode", pango.WRAP_WORD)
-		self._messageRenderer.set_property("wrap-width", 500)
+		self._messageRenderer.set_property("wrap-width", 650)
 		self._messageColumn = gtk.TreeViewColumn("Messages")
 		self._messageColumn.pack_start(self._messageRenderer, expand=True)
 		self._messageColumn.add_attribute(self._messageRenderer, "markup", self.MESSAGE_IDX)
@@ -983,8 +969,6 @@ class MessagesView(object):
 		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
 		self._messageview.set_model(self._messagemodel)
 
-		self._messageview.append_column(self._dateColumn)
-		self._messageview.append_column(self._headerColumn)
 		self._messageview.append_column(self._messageColumn)
 		self._messageviewselection = self._messageview.get_selection()
 		self._messageviewselection.set_mode(gtk.SELECTION_SINGLE)
@@ -1041,27 +1025,12 @@ class MessagesView(object):
 			self._isPopulated = False
 			messageItems = []
 
-		maxHeaderLength = 0
-		combinedHeaderLength = 0
-		headerCount = 0
 		for header, number, relativeDate, message in messageItems:
+			message = "<b>%s - %s</b> <i>(%s)</i>\n\n%s" % (header, make_pretty(number), relativeDate, message)
 			number = make_ugly(number)
 			row = (number, relativeDate, header, message)
 			with gtk_toolbox.gtk_lock():
 				self._messagemodel.append(row)
-
-			maxHeaderLength = max(maxHeaderLength, len(header))
-			combinedHeaderLength += len(header)
-			headerCount += 1
-
-		if 0 < headerCount:
-			cellWidth = min(int((4 * combinedHeaderLength) / (3 * headerCount)), maxHeaderLength)
-		else:
-			cellWidth = 10
-		with gtk_toolbox.gtk_lock():
-			self._nameRenderer.set_property("width-chars", cellWidth)
-			cellPosAndDim = self._messageRenderer.get_size(self._messageview, None)
-			self._messageRenderer.set_property("wrap-width", cellPosAndDim[2])
 
 		return False
 
