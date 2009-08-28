@@ -19,7 +19,9 @@ __version__ = constants.__version__
 __build__ = 0
 __changelog__ = '''
 1.0.5
-* Feature: Contacts Tab remembers the last address book viewed on restart
+* Contacts Tab remembers the last address book viewed on restart
+* Applied some suggested changes for being more thumb friendly
+* Messaging Dialog auto-scrolls to bottom
 * Bug Fix: Not clearing the entered number on sending an SMS
 * Bug Fix: Disabling SMS button when logged off
 * Bug Fix: Trying to make SMS and phone selection dialogs more readable
