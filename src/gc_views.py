@@ -275,6 +275,8 @@ class PhoneTypeSelector(object):
 		self._typeviewselection = None
 
 		self._message = self._widgetTree.get_widget("phoneSelectionMessage")
+		self._messageViewport = self._widgetTree.get_widget("phoneSelectionMessage_viewport")
+		self._scrollWindow = self._widgetTree.get_widget("phoneSelectionMessage_scrolledwindow")
 		self._typeview = self._widgetTree.get_widget("phonetypes")
 		self._typeview.connect("row-activated", self._on_phonetype_select)
 
@@ -315,6 +317,12 @@ class PhoneTypeSelector(object):
 			self._dialog.set_transient_for(parent)
 
 		try:
+			self._dialog.show()
+			adjustment = self._scrollWindow.get_vadjustment()
+			dx = self._message.get_allocation().height - self._messageViewport.get_allocation().height
+			dx = max(dx, 0)
+			adjustment.value = dx
+
 			userResponse = self._dialog.run()
 		finally:
 			self._dialog.hide()
@@ -387,6 +395,8 @@ class SmsEntryDialog(object):
 
 		self._letterCountLabel = self._widgetTree.get_widget("smsLetterCount")
 		self._message = self._widgetTree.get_widget("smsMessage")
+		self._messageViewport = self._widgetTree.get_widget("smsMessage_viewport")
+		self._scrollWindow = self._widgetTree.get_widget("smsMessage_scrolledwindow")
 		self._smsEntry = self._widgetTree.get_widget("smsEntry")
 		self._smsEntry.get_buffer().connect("changed", self._on_entry_changed)
 
@@ -404,6 +414,12 @@ class SmsEntryDialog(object):
 			self._dialog.set_transient_for(parent)
 
 		try:
+			self._dialog.show()
+			adjustment = self._scrollWindow.get_vadjustment()
+			dx = self._message.get_allocation().height - self._messageViewport.get_allocation().height
+			dx = max(dx, 0)
+			adjustment.value = dx
+
 			userResponse = self._dialog.run()
 		finally:
 			self._dialog.hide()
