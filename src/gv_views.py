@@ -583,7 +583,7 @@ class AccountInfo(object):
 		self._onCallbackentryChangedId = 0
 
 		self._notifyCheckbox = widgetTree.get_widget("notifyCheckbox")
-		self._minutesEntry = widgetTree.get_widget("minutesEntry")
+		self._minutesEntryButton = widgetTree.get_widget("minutesEntryButton")
 		self._missedCheckbox = widgetTree.get_widget("missedCheckbox")
 		self._voicemailCheckbox = widgetTree.get_widget("voicemailCheckbox")
 		self._smsCheckbox = widgetTree.get_widget("smsCheckbox")
@@ -594,6 +594,7 @@ class AccountInfo(object):
 		self._onSmsToggled = 0
 		self._applyAlarmTimeoutId = None
 
+		self._window = gtk_toolbox.find_parent_window(self._minutesEntryButton)
 		self._defaultCallback = ""
 
 	def enable(self):
@@ -606,22 +607,20 @@ class AccountInfo(object):
 		self._onCallbackentryChangedId = self._callbackCombo.get_child().connect("changed", self._on_callbackentry_changed)
 
 		if self._alarmHandler is not None:
-			self._minutesEntry.set_range(1, 60)
-
 			self._notifyCheckbox.set_active(self._alarmHandler.isEnabled)
-			self._minutesEntry.set_value(self._alarmHandler.recurrence)
+			self._minutesEntryButton.set_label("%d minutes" % self._alarmHandler.recurrence)
 			self._missedCheckbox.set_active(self._notifyOnMissed)
 			self._voicemailCheckbox.set_active(self._notifyOnVoicemail)
 			self._smsCheckbox.set_active(self._notifyOnSms)
 
 			self._onNotifyToggled = self._notifyCheckbox.connect("toggled", self._on_notify_toggled)
-			self._onMinutesChanged = self._minutesEntry.connect("value-changed", self._on_minutes_changed)
+			self._onMinutesChanged = self._minutesEntryButton.connect("clicked", self._on_minutes_changed)
 			self._onMissedToggled = self._missedCheckbox.connect("toggled", self._on_missed_toggled)
 			self._onVoicemailToggled = self._voicemailCheckbox.connect("toggled", self._on_voicemail_toggled)
 			self._onSmsToggled = self._smsCheckbox.connect("toggled", self._on_sms_toggled)
 		else:
 			self._notifyCheckbox.set_sensitive(False)
-			self._minutesEntry.set_sensitive(False)
+			self._minutesEntryButton.set_sensitive(False)
 			self._missedCheckbox.set_sensitive(False)
 			self._voicemailCheckbox.set_sensitive(False)
 			self._smsCheckbox.set_sensitive(False)
@@ -634,7 +633,7 @@ class AccountInfo(object):
 
 		if self._alarmHandler is not None:
 			self._notifyCheckbox.disconnect(self._onNotifyToggled)
-			self._minutesEntry.disconnect(self._onMinutesChanged)
+			self._minutesEntryButton.disconnect(self._onMinutesChanged)
 			self._missedCheckbox.disconnect(self._onNotifyToggled)
 			self._voicemailCheckbox.disconnect(self._onNotifyToggled)
 			self._smsCheckbox.disconnect(self._onNotifyToggled)
@@ -645,7 +644,7 @@ class AccountInfo(object):
 			self._onSmsToggled = 0
 		else:
 			self._notifyCheckbox.set_sensitive(True)
-			self._minutesEntry.set_sensitive(True)
+			self._minutesEntryButton.set_sensitive(True)
 			self._missedCheckbox.set_sensitive(True)
 			self._voicemailCheckbox.set_sensitive(True)
 			self._smsCheckbox.set_sensitive(True)
@@ -742,16 +741,15 @@ class AccountInfo(object):
 		except StandardError, e:
 			self._errorDisplay.push_exception()
 
-	def _update_alarm_settings(self):
+	def _update_alarm_settings(self, recurrence):
 		try:
 			isEnabled = self._notifyCheckbox.get_active()
-			recurrence = self._minutesEntry.get_value_as_int()
 			if isEnabled != self._alarmHandler.isEnabled or recurrence != self._alarmHandler.recurrence:
 				self._alarmHandler.apply_settings(isEnabled, recurrence)
 		finally:
 			self.save_everything()
 			self._notifyCheckbox.set_active(self._alarmHandler.isEnabled)
-			self._minutesEntry.set_value(self._alarmHandler.recurrence)
+			self._minutesEntryButton.set_label("%d Minutes" % self._alarmHandler.recurrence)
 
 	def _on_callbackentry_changed(self, *args):
 		text = self.get_selected_callback_number()
@@ -765,15 +763,15 @@ class AccountInfo(object):
 		self._applyAlarmTimeoutId = gobject.timeout_add(500, self._on_apply_timeout)
 
 	def _on_minutes_changed(self, *args):
-		if self._applyAlarmTimeoutId is not None:
-			gobject.source_remove(self._applyAlarmTimeoutId)
-			self._applyAlarmTimeoutId = None
-		self._applyAlarmTimeoutId = gobject.timeout_add(500, self._on_apply_timeout)
+		recurrence = hildonize.request_number(
+			self._window, "Minutes", (1, 50), self._alarmHandler.recurrence
+		)
+		self._update_alarm_settings(recurrence)
 
 	def _on_apply_timeout(self, *args):
 		self._applyAlarmTimeoutId = None
 
-		self._update_alarm_settings()
+		self._update_alarm_settings(self._alarmHandler.recurrence)
 		return False
 
 	def _on_missed_toggled(self, *args):
