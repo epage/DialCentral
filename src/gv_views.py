@@ -973,7 +973,7 @@ class MessagesView(object):
 		self._messageRenderer = gtk.CellRendererText()
 		hildonize.set_cell_thumb_selectable(self._messageRenderer)
 		self._messageRenderer.set_property("wrap-mode", pango.WRAP_WORD)
-		self._messageRenderer.set_property("wrap-width", 650)
+		self._messageRenderer.set_property("wrap-width", 500)
 		self._messageColumn = gtk.TreeViewColumn("Messages")
 		self._messageColumn.pack_start(self._messageRenderer, expand=True)
 		self._messageColumn.add_attribute(self._messageRenderer, "markup", self.MESSAGE_IDX)
