@@ -65,7 +65,7 @@ else:
 
 if IS_HILDON:
 	def set_cell_thumb_selectable(renderer):
-		renderer.set_property(scale=1.5)
+		renderer.set_property("scale", 1.5)
 else:
 	def set_cell_thumb_selectable(renderer):
 		pass
@@ -101,42 +101,3 @@ if IS_HILDON:
 else:
 	def set_thumb_scrollbar(scrolledWindow):
 		pass
-
-
-class WidgetSwapper(object):
-
-	def __init__(self, parentWidget, newWidget = None):
-		self._parentWidget = parentWidget
-		self._oldWidget = parentWidget.get_child()
-
-		self._activeWidget = self._oldWidget
-		self._widget = newWidget if newWidget is not None else self._oldWidget
-		self._isEnabled = False
-
-	def enable(self):
-		assert not self._isEnabled, "Internal Error"
-		self._parentWidget.remove(self._oldWidget)
-		self._parentWidget.add(self._widget)
-		self._activeWidget = self.widget
-
-	def disable(self):
-		assert self._isEnabled, "Internal Error"
-		self._parentWidget.remove(self._widget)
-		self._parentWidget.add(self._oldWidget)
-		self._activeWidget = self._oldWidget
-
-	@property
-	def activeWidget(self):
-		return self._activeWidget
-
-	@property
-	def widget(self):
-		return self._widget
-
-
-if IS_HILDON:
-	def create_number_swapper(parentWidget):
-		return WidgetSwapper(parentWidget, hildon.NumberEditor())
-else:
-	def create_number_swapper(parentWidget):
-		return WidgetSwapper(parentWidget)
