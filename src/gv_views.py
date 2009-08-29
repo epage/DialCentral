@@ -482,14 +482,12 @@ class Dialpad(object):
 		self._window = gtk_toolbox.find_parent_window(self._numberdisplay)
 
 	def enable(self):
-		self.set_number(self._phonenumber)
 		self._dialButton.grab_focus()
 		self._backTapHandler.enable()
 
 	def disable(self):
 		self._reset_back_button()
 		self._backTapHandler.disable()
-		self.set_number("")
 
 	def number_selected(self, action, number, message):
 		"""

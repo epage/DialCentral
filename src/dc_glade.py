@@ -226,18 +226,13 @@ class Dialcentral(object):
 			except OSError, e:
 				if e.errno != 17:
 					raise
-			gcCookiePath = os.path.join(constants._data_path_, "gc_cookies.txt")
 			gvCookiePath = os.path.join(constants._data_path_, "gv_cookies.txt")
-			self._defaultBackendId = self._guess_preferred_backend((
-				(self.GV_BACKEND, gvCookiePath),
-			))
 
 			self._phoneBackends.update({
 				self.GV_BACKEND: gv_backend.GVDialer(gvCookiePath),
 			})
 			with gtk_toolbox.gtk_lock():
 				unifiedDialpad = gv_views.Dialpad(self._widgetTree, self._errorDisplay)
-				unifiedDialpad.set_number("")
 				self._dialpads.update({
 					self.GV_BACKEND: unifiedDialpad,
 				})
@@ -265,20 +260,20 @@ class Dialcentral(object):
 
 			fsContactsPath = os.path.join(constants._data_path_, "contacts")
 			fileBackend = file_backend.FilesystemAddressBookFactory(fsContactsPath)
-			for backendId in (self.GV_BACKEND, ):
-				self._dialpads[backendId].number_selected = self._select_action
-				self._recentViews[backendId].number_selected = self._select_action
-				self._messagesViews[backendId].number_selected = self._select_action
-				self._contactsViews[backendId].number_selected = self._select_action
 
-				addressBooks = [
-					self._phoneBackends[backendId],
-					fileBackend,
-				]
-				mergedBook = gv_views.MergedAddressBook(addressBooks, gv_views.MergedAddressBook.advanced_lastname_sorter)
-				self._contactsViews[backendId].append(mergedBook)
-				self._contactsViews[backendId].extend(addressBooks)
-				self._contactsViews[backendId].open_addressbook(*self._contactsViews[backendId].get_addressbooks().next()[0][0:2])
+			self._dialpads[self.GV_BACKEND].number_selected = self._select_action
+			self._recentViews[self.GV_BACKEND].number_selected = self._select_action
+			self._messagesViews[self.GV_BACKEND].number_selected = self._select_action
+			self._contactsViews[self.GV_BACKEND].number_selected = self._select_action
+
+			addressBooks = [
+				self._phoneBackends[self.GV_BACKEND],
+				fileBackend,
+			]
+			mergedBook = gv_views.MergedAddressBook(addressBooks, gv_views.MergedAddressBook.advanced_lastname_sorter)
+			self._contactsViews[self.GV_BACKEND].append(mergedBook)
+			self._contactsViews[self.GV_BACKEND].extend(addressBooks)
+			self._contactsViews[self.GV_BACKEND].open_addressbook(*self._contactsViews[self.GV_BACKEND].get_addressbooks().next()[0][0:2])
 
 			callbackMapping = {
 				"on_paste": self._on_paste,
@@ -395,12 +390,9 @@ class Dialcentral(object):
 		for attemptCount in xrange(numOfAttempts):
 			if loggedIn:
 				break
-			availableServices = (
-				(self.GV_BACKEND, "Google Voice"),
-			)
 			with gtk_toolbox.gtk_lock():
-				credentials = self._credentialsDialog.request_credentials_from(
-					availableServices, defaultCredentials = self._credentials
+				credentials = self._credentialsDialog.request_credentials(
+					defaultCredentials = self._credentials
 				)
 			tmpServiceId, username, password = credentials
 			loggedIn = self._phoneBackends[tmpServiceId].login(username, password)
@@ -537,14 +529,6 @@ class Dialcentral(object):
 			sectionName = "%s - %s" % (backendId, view.name())
 			config.add_section(sectionName)
 			view.save_settings(config, sectionName)
-
-	def _guess_preferred_backend(self, backendAndCookiePaths):
-		modTimeAndPath = [
-			(getmtime_nothrow(path), backendId, path)
-			for backendId, path in backendAndCookiePaths
-		]
-		modTimeAndPath.sort()
-		return modTimeAndPath[-1][1]
 
 	def _save_settings(self):
 		"""
