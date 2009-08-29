@@ -70,9 +70,8 @@ class Dialcentral(object):
 	ACCOUNT_TAB = 4
 
 	NULL_BACKEND = 0
-	GC_BACKEND = 1
 	GV_BACKEND = 2
-	BACKENDS = (NULL_BACKEND, GC_BACKEND, GV_BACKEND)
+	BACKENDS = (NULL_BACKEND, GV_BACKEND)
 
 	def __init__(self):
 		self._initDone = False
@@ -82,7 +81,7 @@ class Dialcentral(object):
 
 		self._credentials = ("", "")
 		self._selectedBackendId = self.NULL_BACKEND
-		self._defaultBackendId = self.GC_BACKEND
+		self._defaultBackendId = self.GV_BACKEND
 		self._phoneBackends = None
 		self._dialpads = None
 		self._accountViews = None
@@ -219,9 +218,8 @@ class Dialcentral(object):
 
 			# Setup costly backends
 			import gv_backend
-			import gc_backend
 			import file_backend
-			import gc_views
+			import gv_views
 
 			try:
 				os.makedirs(constants._data_path_)
@@ -231,57 +229,43 @@ class Dialcentral(object):
 			gcCookiePath = os.path.join(constants._data_path_, "gc_cookies.txt")
 			gvCookiePath = os.path.join(constants._data_path_, "gv_cookies.txt")
 			self._defaultBackendId = self._guess_preferred_backend((
-				(self.GC_BACKEND, gcCookiePath),
 				(self.GV_BACKEND, gvCookiePath),
 			))
 
 			self._phoneBackends.update({
-				self.GC_BACKEND: gc_backend.GCDialer(gcCookiePath),
 				self.GV_BACKEND: gv_backend.GVDialer(gvCookiePath),
 			})
 			with gtk_toolbox.gtk_lock():
-				unifiedDialpad = gc_views.Dialpad(self._widgetTree, self._errorDisplay)
+				unifiedDialpad = gv_views.Dialpad(self._widgetTree, self._errorDisplay)
 				unifiedDialpad.set_number("")
 				self._dialpads.update({
-					self.GC_BACKEND: unifiedDialpad,
 					self.GV_BACKEND: unifiedDialpad,
 				})
 				self._accountViews.update({
-					self.GC_BACKEND: gc_views.AccountInfo(
-						self._widgetTree, self._phoneBackends[self.GC_BACKEND], None, self._errorDisplay
-					),
-					self.GV_BACKEND: gc_views.AccountInfo(
+					self.GV_BACKEND: gv_views.AccountInfo(
 						self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._alarmHandler, self._errorDisplay
 					),
 				})
-				self._accountViews[self.GC_BACKEND].save_everything = lambda *args: None
 				self._accountViews[self.GV_BACKEND].save_everything = self._save_settings
 				self._recentViews.update({
-					self.GC_BACKEND: gc_views.RecentCallsView(
-						self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
-					),
-					self.GV_BACKEND: gc_views.RecentCallsView(
+					self.GV_BACKEND: gv_views.RecentCallsView(
 						self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
 					),
 				})
 				self._messagesViews.update({
-					self.GC_BACKEND: null_views.MessagesView(self._widgetTree),
-					self.GV_BACKEND: gc_views.MessagesView(
+					self.GV_BACKEND: gv_views.MessagesView(
 						self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
 					),
 				})
 				self._contactsViews.update({
-					self.GC_BACKEND: gc_views.ContactsView(
-						self._widgetTree, self._phoneBackends[self.GC_BACKEND], self._errorDisplay
-					),
-					self.GV_BACKEND: gc_views.ContactsView(
+					self.GV_BACKEND: gv_views.ContactsView(
 						self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
 					),
 				})
 
 			fsContactsPath = os.path.join(constants._data_path_, "contacts")
 			fileBackend = file_backend.FilesystemAddressBookFactory(fsContactsPath)
-			for backendId in (self.GV_BACKEND, self.GC_BACKEND):
+			for backendId in (self.GV_BACKEND, ):
 				self._dialpads[backendId].number_selected = self._select_action
 				self._recentViews[backendId].number_selected = self._select_action
 				self._messagesViews[backendId].number_selected = self._select_action
@@ -291,7 +275,7 @@ class Dialcentral(object):
 					self._phoneBackends[backendId],
 					fileBackend,
 				]
-				mergedBook = gc_views.MergedAddressBook(addressBooks, gc_views.MergedAddressBook.advanced_lastname_sorter)
+				mergedBook = gv_views.MergedAddressBook(addressBooks, gv_views.MergedAddressBook.advanced_lastname_sorter)
 				self._contactsViews[backendId].append(mergedBook)
 				self._contactsViews[backendId].extend(addressBooks)
 				self._contactsViews[backendId].open_addressbook(*self._contactsViews[backendId].get_addressbooks().next()[0][0:2])
@@ -413,7 +397,6 @@ class Dialcentral(object):
 				break
 			availableServices = (
 				(self.GV_BACKEND, "Google Voice"),
-				(self.GC_BACKEND, "Grand Central"),
 			)
 			with gtk_toolbox.gtk_lock():
 				credentials = self._credentialsDialog.request_credentials_from(

@@ -1006,8 +1006,6 @@ class MessagesView(object):
 
 		self.clear()
 
-		self._messageview.remove_column(self._dateColumn)
-		self._messageview.remove_column(self._headerColumn)
 		self._messageview.remove_column(self._messageColumn)
 		self._messageview.set_model(None)
 
