@@ -22,6 +22,8 @@ __changelog__ = '''
 * Contacts Tab remembers the last address book viewed on restart
 * Applied some suggested changes for being more thumb friendly
 * Messaging Dialog auto-scrolls to bottom
+* Removed GrandCentral support
+* Numbers can now be entered immediately, before login
 * Bug Fix: Not clearing the entered number on sending an SMS
 * Bug Fix: Disabling SMS button when logged off
 * Bug Fix: Trying to make SMS and phone selection dialogs more readable
