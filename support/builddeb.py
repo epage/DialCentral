@@ -16,7 +16,7 @@ __description__ = "Touch screen enhanced interface to the GoogleVoice/GrandCentr
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
 __version__ = constants.__version__
-__build__ = 0
+__build__ = constants.__build__
 __changelog__ = '''
 1.0.5
 * Contacts Tab remembers the last address book viewed on restart

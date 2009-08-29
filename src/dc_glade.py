@@ -728,7 +728,7 @@ class Dialcentral(object):
 	def _on_about_activate(self, *args):
 		dlg = gtk.AboutDialog()
 		dlg.set_name(constants.__pretty_app_name__)
-		dlg.set_version(constants.__version__)
+		dlg.set_version("%s-%d" % (constants.__version__, constants.__build__))
 		dlg.set_copyright("Copyright 2008 - LGPL")
 		dlg.set_comments("Dialcentral is a touch screen enhanced interface to your GoogleVoice/Grandcentral account.  This application is not affiliated with Google in any way")
 		dlg.set_website("http://gc-dialer.garage.maemo.org/")
