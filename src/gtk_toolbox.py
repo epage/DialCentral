@@ -280,7 +280,10 @@ class LoginWindow(object):
 		}
 		widgetTree.signal_autoconnect(callbackMapping)
 
-	def request_credentials(self, parentWindow = None):
+	def request_credentials(self,
+		parentWindow = None,
+		defaultCredentials = ("", "")
+	):
 		"""
 		@note UI Thread
 		"""
@@ -289,6 +292,9 @@ class LoginWindow(object):
 
 		self._serviceCombo.hide()
 		self._serviceList.clear()
+
+		self._usernameEntry.set_text(defaultCredentials[0])
+		self._passwordEntry.set_text(defaultCredentials[1])
 
 		try:
 			self._dialog.set_transient_for(parentWindow)

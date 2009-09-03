@@ -386,7 +386,7 @@ class Dialcentral(object):
 		@note This must be run outside of the UI lock
 		"""
 		loggedIn, (username, password) = False, self._credentials
-		tmpServiceId = self.NULL_BACKEND
+		tmpServiceId = self.GV_BACKEND
 		for attemptCount in xrange(numOfAttempts):
 			if loggedIn:
 				break
@@ -394,7 +394,7 @@ class Dialcentral(object):
 				credentials = self._credentialsDialog.request_credentials(
 					defaultCredentials = self._credentials
 				)
-			tmpServiceId, username, password = credentials
+			username, password = credentials
 			loggedIn = self._phoneBackends[tmpServiceId].login(username, password)
 
 		if loggedIn:

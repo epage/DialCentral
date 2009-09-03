@@ -96,6 +96,19 @@ def make_pretty(phonenumber):
 	return prettynumber
 
 
+def abbrev_relative_date(date):
+	"""
+	>>> abbrev_relative_date("42 hours ago")
+	'42 h'
+	>>> abbrev_relative_date("2 days ago")
+	'2 d'
+	>>> abbrev_relative_date("4 weeks ago")
+	'4 w'
+	"""
+	parts = date.split(" ")
+	return "%s %s" % (parts[0], parts[1][0])
+
+
 class MergedAddressBook(object):
 	"""
 	Merger of all addressbooks
@@ -811,14 +824,12 @@ class RecentCallsView(object):
 
 		textrenderer = gtk.CellRendererText()
 		textrenderer.set_property("yalign", 0)
-		hildonize.set_cell_thumb_selectable(textrenderer)
 		self._dateColumn = gtk.TreeViewColumn("Date")
 		self._dateColumn.pack_start(textrenderer, expand=True)
 		self._dateColumn.add_attribute(textrenderer, "text", self.DATE_IDX)
 
 		textrenderer = gtk.CellRendererText()
 		textrenderer.set_property("yalign", 0)
-		hildonize.set_cell_thumb_selectable(textrenderer)
 		self._actionColumn = gtk.TreeViewColumn("Action")
 		self._actionColumn.pack_start(textrenderer, expand=True)
 		self._actionColumn.add_attribute(textrenderer, "text", self.ACTION_IDX)
@@ -915,6 +926,7 @@ class RecentCallsView(object):
 		for personName, phoneNumber, date, action in recentItems:
 			if not personName:
 				personName = "Unknown"
+			date = abbrev_relative_date(date)
 			prettyNumber = phoneNumber[2:] if phoneNumber.startswith("+1") else phoneNumber
 			prettyNumber = make_pretty(prettyNumber)
 			item = (prettyNumber, date, action.capitalize(), personName)
@@ -969,7 +981,6 @@ class MessagesView(object):
 		self._onMessageviewRowActivatedId = 0
 
 		self._messageRenderer = gtk.CellRendererText()
-		hildonize.set_cell_thumb_selectable(self._messageRenderer)
 		self._messageRenderer.set_property("wrap-mode", pango.WRAP_WORD)
 		self._messageRenderer.set_property("wrap-width", 500)
 		self._messageColumn = gtk.TreeViewColumn("Messages")
