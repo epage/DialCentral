@@ -33,8 +33,7 @@ import urllib2
 import time
 import datetime
 import itertools
-import warnings
-import traceback
+import logging
 from xml.sax import saxutils
 
 from xml.etree import ElementTree
@@ -134,7 +133,7 @@ class GVDialer(object):
 		try:
 			self._grab_account_info()
 		except StandardError, e:
-			warnings.warn(traceback.format_exc())
+			logging.exception(str(e))
 			return False
 
 		self._browser.cookies.save()
@@ -163,7 +162,7 @@ class GVDialer(object):
 		try:
 			loginSuccessOrFailurePage = self._browser.download(self._loginURL, loginPostData)
 		except urllib2.URLError, e:
-			warnings.warn(traceback.format_exc())
+			logging.exception(str(e))
 			raise RuntimeError("%s is not accesible" % self._loginURL)
 
 		return self.is_authed()
@@ -194,7 +193,7 @@ class GVDialer(object):
 			}
 			callSuccessPage = self._browser.download(self._clicktocallURL, clickToCallData, None, otherData)
 		except urllib2.URLError, e:
-			warnings.warn(traceback.format_exc())
+			logging.exception(str(e))
 			raise RuntimeError("%s is not accesible" % self._clicktocallURL)
 
 		if self._gvDialingStrRe.search(callSuccessPage) is None:
@@ -219,7 +218,7 @@ class GVDialer(object):
 			}
 			smsSuccessPage = self._browser.download(self._sendSmsURL, smsData, None, otherData)
 		except urllib2.URLError, e:
-			warnings.warn(traceback.format_exc())
+			logging.exception(str(e))
 			raise RuntimeError("%s is not accesible" % self._sendSmsURL)
 
 		return True
@@ -287,28 +286,12 @@ class GVDialer(object):
 		@param callbacknumber should be a proper 10 digit number
 		"""
 		self._callbackNumber = callbacknumber
-
-		# Currently this isn't working out in GoogleVoice, but thats ok, we pass the callback on dial
-		#callbackPostData = urllib.urlencode({
-		#	'_rnr_se': self._token,
-		#	'phone': callbacknumber
-		#})
-		#try:
-		#	callbackSetPage = self._browser.download(self._setforwardURL, callbackPostData)
-		#	self._browser.cookies.save()
-		#except urllib2.URLError, e:
-		#	warnings.warn(traceback.format_exc())
-		#	raise RuntimeError("%s is not accesible" % self._setforwardURL)
-
 		return True
 
 	def get_callback_number(self):
 		"""
 		@returns Current callback number or None
 		"""
-		#for c in self._browser.cookies:
-		#	if c.name == "gv-ph":
-		#		return c.value
 		return self._callbackNumber
 
 	def get_recent(self):
@@ -356,7 +339,7 @@ class GVDialer(object):
 				try:
 					contactsPage = self._browser.download(contactsPageUrl)
 				except urllib2.URLError, e:
-					warnings.warn(traceback.format_exc())
+					logging.exception(str(e))
 					raise RuntimeError("%s is not accesible" % contactsPageUrl)
 				for contact_match in self._contactsRe.finditer(contactsPage):
 					contactId = contact_match.group(1)
@@ -383,7 +366,7 @@ class GVDialer(object):
 		try:
 			detailPage = self._browser.download(self._contactDetailURL + '/' + contactId)
 		except urllib2.URLError, e:
-			warnings.warn(traceback.format_exc())
+			logging.exception(str(e))
 			raise RuntimeError("%s is not accesible" % self._contactDetailURL)
 
 		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
@@ -398,7 +381,7 @@ class GVDialer(object):
 		try:
 			voicemailPage = self._browser.download(self._voicemailURL)
 		except urllib2.URLError, e:
-			warnings.warn(traceback.format_exc())
+			logging.exception(str(e))
 			raise RuntimeError("%s is not accesible" % self._voicemailURL)
 		voicemailHtml = self._grab_html(voicemailPage)
 		parsedVoicemail = self._parse_voicemail(voicemailHtml)
@@ -407,7 +390,7 @@ class GVDialer(object):
 		try:
 			smsPage = self._browser.download(self._smsURL)
 		except urllib2.URLError, e:
-			warnings.warn(traceback.format_exc())
+			logging.exception(str(e))
 			raise RuntimeError("%s is not accesible" % self._smsURL)
 		smsHtml = self._grab_html(smsPage)
 		parsedSms = self._parse_sms(smsHtml)
@@ -449,7 +432,7 @@ class GVDialer(object):
 		if anGroup is not None:
 			self._accountNum = anGroup.group(1)
 		else:
-			warnings.warn("Could not extract account number from GoogleVoice", UserWarning, 2)
+			logging.debug("Could not extract account number from GoogleVoice")
 
 		self._callbackNumbers = {}
 		for match in self._callbackRe.finditer(page):
@@ -485,7 +468,7 @@ class GVDialer(object):
 			try:
 				flatXml = self._browser.download(url)
 			except urllib2.URLError, e:
-				warnings.warn(traceback.format_exc())
+				logging.exception(str(e))
 				raise RuntimeError("%s is not accesible" % url)
 
 			allRecentHtml = self._grab_html(flatXml)
@@ -630,7 +613,6 @@ class GVDialer(object):
 
 
 def test_backend(username, password):
-	import pprint
 	backend = GVDialer()
 	print "Authenticated: ", backend.is_authed()
 	print "Login?: ", backend.login(username, password)
@@ -639,6 +621,7 @@ def test_backend(username, password):
 	print "Account: ", backend.get_account_number()
 	print "Callback: ", backend.get_callback_number()
 	# print "All Callback: ",
+	#import pprint
 	# pprint.pprint(backend.get_callback_numbers())
 	# print "Recent: ",
 	# pprint.pprint(list(backend.get_recent()))

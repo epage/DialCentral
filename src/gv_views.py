@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 from __future__ import with_statement
 
 import ConfigParser
-import warnings
+import logging
 
 import gobject
 import pango
@@ -733,23 +733,20 @@ class AccountInfo(object):
 			if not self._backend.is_valid_syntax(number):
 				self._errorDisplay.push_message("%s is not a valid callback number" % number)
 			elif number == self._backend.get_callback_number():
-				warnings.warn(
+				logging.warning(
 					"Callback number already is %s" % (
 						self._backend.get_callback_number(),
 					),
-					UserWarning,
-					2
 				)
 			else:
 				self._backend.set_callback_number(number)
 				assert make_ugly(number) == make_ugly(self._backend.get_callback_number()), "Callback number should be %s but instead is %s" % (
 					make_pretty(number), make_pretty(self._backend.get_callback_number())
 				)
-				warnings.warn(
+				logging.info(
 					"Callback number set to %s" % (
 						self._backend.get_callback_number(),
 					),
-					UserWarning, 2
 				)
 		except StandardError, e:
 			self._errorDisplay.push_exception()

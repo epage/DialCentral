@@ -27,7 +27,7 @@ Optional steps:
 
 import urllib2
 import cookielib
-import warnings
+import logging
 
 import socket
 
@@ -100,7 +100,7 @@ class MozillaEmulator(object):
 
 		@return: The raw HTML page data
 		"""
-		warnings.warn("Performing download of %s" % url, UserWarning, 2)
+		logging.warning("Performing download of %s" % url)
 
 		if extraheaders is None:
 			extraheaders = {}

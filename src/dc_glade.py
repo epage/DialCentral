@@ -29,7 +29,7 @@ import threading
 import base64
 import ConfigParser
 import itertools
-import warnings
+import logging
 
 import gtk
 import gtk.glade
@@ -130,7 +130,8 @@ class Dialcentral(object):
 			self._window.connect("key-press-event", self._on_key_press)
 			self._window.connect("window-state-event", self._on_window_state_change)
 		else:
-			pass # warnings.warn("No Hildon", UserWarning, 2)
+			logging.warning("No hildonization support")
+
 
 		hildonize.set_application_title(self._window, "%s" % constants.__pretty_app_name__)
 
@@ -188,7 +189,7 @@ class Dialcentral(object):
 				device = osso.DeviceState(self._osso)
 				device.set_device_state_callback(self._on_device_state_change, 0)
 			else:
-				pass # warnings.warn("No OSSO", UserWarning, 2)
+				logging.warning("No device state support")
 
 			try:
 				import alarm_handler
@@ -199,6 +200,7 @@ class Dialcentral(object):
 				with gtk_toolbox.gtk_lock():
 					self._errorDisplay.push_exception()
 				alarm_handler = None
+				logging.warning("No notification support")
 			if hildonize.IS_HILDON:
 				import led_handler
 				self._ledHandler = led_handler.LedHandler()
@@ -214,7 +216,7 @@ class Dialcentral(object):
 				self._connection.connect("connection-event", self._on_connection_change, constants.__app_magic__)
 				self._connection.request_connection(conic.CONNECT_FLAG_NONE)
 			else:
-				pass # warnings.warn("No Internet Connectivity API ", UserWarning)
+				logging.warning("No connection support")
 
 			# Setup costly backends
 			import gv_backend
@@ -326,7 +328,7 @@ class Dialcentral(object):
 					serviceId = self._defaultBackendId
 					loggedIn = True
 				except StandardError, e:
-					warnings.warn('Session refresh failed with the following message "%s"' % e.message, UserWarning, 2)
+					logging.exception('Session refresh failed with the following message "%s"' % e.message)
 
 			if not loggedIn:
 				loggedIn, serviceId = self._login_by_user(numOfAttempts)
@@ -361,10 +363,7 @@ class Dialcentral(object):
 		"""
 		loggedIn = self._phoneBackends[self._defaultBackendId].is_authed()
 		if loggedIn:
-			warnings.warn(
-				"Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId],
-				UserWarning, 2
-			)
+			logging.info("Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId])
 		return loggedIn
 
 	def _login_by_settings(self):
@@ -375,10 +374,7 @@ class Dialcentral(object):
 		loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
 		if loggedIn:
 			self._credentials = username, password
-			warnings.warn(
-				"Logged into %r through settings" % self._phoneBackends[self._defaultBackendId],
-				UserWarning, 2
-			)
+			logging.info("Logged into %r through settings" % self._phoneBackends[self._defaultBackendId])
 		return loggedIn
 
 	def _login_by_user(self, numOfAttempts):
@@ -400,10 +396,7 @@ class Dialcentral(object):
 		if loggedIn:
 			serviceId = tmpServiceId
 			self._credentials = username, password
-			warnings.warn(
-				"Logged into %r through user request" % self._phoneBackends[serviceId],
-				UserWarning, 2
-			)
+			logging.info("Logged into %r through user request" % self._phoneBackends[serviceId])
 		else:
 			serviceId = self.NULL_BACKEND
 
@@ -463,20 +456,18 @@ class Dialcentral(object):
 			if self._alarmHandler is not None:
 				self._alarmHandler.load_settings(config, "alarm")
 		except ConfigParser.NoOptionError, e:
-			warnings.warn(
+			logging.exception(
 				"Settings file %s is missing section %s" % (
 					constants._user_settings_,
 					e.section,
 				),
-				stacklevel=2
 			)
 		except ConfigParser.NoSectionError, e:
-			warnings.warn(
+			logging.exception(
 				"Settings file %s is missing section %s" % (
 					constants._user_settings_,
 					e.section,
 				),
-				stacklevel=2
 			)
 
 		for backendId, view in itertools.chain(
@@ -490,20 +481,18 @@ class Dialcentral(object):
 			try:
 				view.load_settings(config, sectionName)
 			except ConfigParser.NoOptionError, e:
-				warnings.warn(
+				logging.exception(
 					"Settings file %s is missing section %s" % (
 						constants._user_settings_,
 						e.section,
 					),
-					stacklevel=2
 				)
 			except ConfigParser.NoSectionError, e:
-				warnings.warn(
+				logging.exception(
 					"Settings file %s is missing section %s" % (
 						constants._user_settings_,
 						e.section,
 					),
-					stacklevel=2
 				)
 
 	def save_settings(self, config):
@@ -766,21 +755,29 @@ class DummyOptions(object):
 
 
 if __name__ == "__main__":
-	if len(sys.argv) > 1:
-		try:
-			import optparse
-		except ImportError:
-			optparse = None
-
-		if optparse is not None:
-			parser = optparse.OptionParser()
-			parser.add_option("-t", "--test", action="store_true", dest="test", help="Run tests")
-			(commandOptions, commandArgs) = parser.parse_args()
+	if hildonize.IS_HILDON:
+		userLogPath = "%s/dialcentral.log" % constants._data_path_
+		logging.basicConfig(level=logging.DEBUG, filename=userLogPath)
 	else:
-		commandOptions = DummyOptions()
-		commandArgs = []
+		logging.basicConfig(level=logging.DEBUG)
+	try:
+		if len(sys.argv) > 1:
+			try:
+				import optparse
+			except ImportError:
+				optparse = None
 
-	if commandOptions.test:
-		run_doctest()
-	else:
-		run_dialpad()
+			if optparse is not None:
+				parser = optparse.OptionParser()
+				parser.add_option("-t", "--test", action="store_true", dest="test", help="Run tests")
+				(commandOptions, commandArgs) = parser.parse_args()
+		else:
+			commandOptions = DummyOptions()
+			commandArgs = []
+
+		if commandOptions.test:
+			run_doctest()
+		else:
+			run_dialpad()
+	finally:
+		logging.shutdown()

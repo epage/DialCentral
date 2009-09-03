@@ -6,10 +6,9 @@ import os
 import errno
 import sys
 import time
-import traceback
 import functools
 import contextlib
-import warnings
+import logging
 import threading
 import Queue
 
@@ -394,19 +393,14 @@ class ErrorDisplay(object):
 		else:
 			self.__show_message(message)
 
-	def push_exception_with_lock(self, exception = None, stacklevel=3):
+	def push_exception_with_lock(self):
 		with gtk_lock():
-			self.push_exception(exception, stacklevel=stacklevel)
+			self.push_exception()
 
-	def push_exception(self, exception = None, stacklevel=2):
-		if exception is None:
-			userMessage = str(sys.exc_value)
-			warningMessage = str(traceback.format_exc())
-		else:
-			userMessage = str(exception)
-			warningMessage = str(exception)
+	def push_exception(self):
+		userMessage = str(sys.exc_value)
 		self.push_message(userMessage)
-		warnings.warn(warningMessage, stacklevel=stacklevel)
+		logging.exception(userMessage)
 
 	def pop_message(self):
 		if 0 < len(self.__messages):
@@ -445,11 +439,8 @@ class DummyErrorDisplay(object):
 			self.__show_message(message)
 
 	def push_exception(self, exception = None):
-		if exception is None:
-			warningMessage = traceback.format_exc()
-		else:
-			warningMessage = exception
-		warnings.warn(warningMessage, stacklevel=3)
+		userMessage = str(sys.exc_value)
+		logging.exception(userMessage)
 
 	def pop_message(self):
 		if 0 < len(self.__messages):
@@ -457,7 +448,7 @@ class DummyErrorDisplay(object):
 			del self.__messages[0]
 
 	def __show_message(self, message):
-		warnings.warn(message, stacklevel=2)
+		logging.debug(message)
 
 
 class MessageBox(gtk.MessageDialog):
@@ -531,7 +522,7 @@ class PopupCalendar(object):
 			self._calendar.select_month(self._displayDate.month, self._displayDate.year)
 			self._calendar.select_day(self._displayDate.day)
 		except StandardError, e:
-			warnings.warn(e.message)
+			logging.exception(e.message)
 
 
 class QuickAddView(object):
