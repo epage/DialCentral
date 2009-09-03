@@ -188,7 +188,7 @@ def comap(function, target):
 			item = yield
 			mappedItem = function(*item)
 			target.send(mappedItem)
-		except StandardError, e:
+		except Exception, e:
 			target.throw(e.__class__, e.message)
 
 
@@ -214,7 +214,7 @@ def queue_sink(queue):
 		try:
 			item = yield
 			queue.put((None, item))
-		except StandardError, e:
+		except Exception, e:
 			queue.put((e.__class__, str(e)))
 		except GeneratorExit:
 			queue.put((GeneratorExit, None))
@@ -521,7 +521,7 @@ class PopupCalendar(object):
 		try:
 			self._calendar.select_month(self._displayDate.month, self._displayDate.year)
 			self._calendar.select_day(self._displayDate.day)
-		except StandardError, e:
+		except Exception, e:
 			logging.exception(e.message)
 
 
@@ -572,7 +572,7 @@ class QuickAddView(object):
 			self._taskNameEntry.set_text("")
 
 			self._signalSink.stage.send(("add", name))
-		except StandardError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_add_edit(self, *args):
@@ -581,13 +581,13 @@ class QuickAddView(object):
 			self._taskNameEntry.set_text("")
 
 			self._signalSink.stage.send(("add-edit", name))
-		except StandardError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_add_pressed(self, widget):
 		try:
 			self._addToEditTimerId = gobject.timeout_add(1000, self._on_add_edit)
-		except StandardError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_add_released(self, widget):
@@ -595,7 +595,7 @@ class QuickAddView(object):
 			if self._addToEditTimerId is not None:
 				gobject.source_remove(self._addToEditTimerId)
 			self._addToEditTimerId = None
-		except StandardError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_paste(self, *args):
@@ -605,13 +605,13 @@ class QuickAddView(object):
 			if addedText:
 				entry += addedText
 			self._taskNameEntry.set_text(entry)
-		except StandardError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_clear(self, *args):
 		try:
 			self._taskNameEntry.set_text("")
-		except StandardError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 

@@ -539,44 +539,68 @@ class Dialpad(object):
 		pass
 
 	def _on_sms_clicked(self, widget):
-		action = PhoneTypeSelector.ACTION_SEND_SMS
-		phoneNumber = self.get_number()
+		try:
+			action = PhoneTypeSelector.ACTION_SEND_SMS
+			phoneNumber = self.get_number()
 
-		message = self._smsDialog.run(phoneNumber, "", self._window)
-		if not message:
-			phoneNumber = ""
-			action = PhoneTypeSelector.ACTION_CANCEL
+			message = self._smsDialog.run(phoneNumber, "", self._window)
+			if not message:
+				phoneNumber = ""
+				action = PhoneTypeSelector.ACTION_CANCEL
 
-		if action == PhoneTypeSelector.ACTION_CANCEL:
-			return
-		self.number_selected(action, phoneNumber, message)
+			if action == PhoneTypeSelector.ACTION_CANCEL:
+				return
+			self.number_selected(action, phoneNumber, message)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_dial_clicked(self, widget):
-		action = PhoneTypeSelector.ACTION_DIAL
-		phoneNumber = self.get_number()
-		message = ""
-		self.number_selected(action, phoneNumber, message)
+		try:
+			action = PhoneTypeSelector.ACTION_DIAL
+			phoneNumber = self.get_number()
+			message = ""
+			self.number_selected(action, phoneNumber, message)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_clear_number(self, *args):
-		self.clear()
+		try:
+			self.clear()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_digit_clicked(self, widget):
-		self.set_number(self._phonenumber + widget.get_name()[-1])
+		try:
+			self.set_number(self._phonenumber + widget.get_name()[-1])
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_backspace(self, taps):
-		self.set_number(self._phonenumber[:-taps])
-		self._reset_back_button()
+		try:
+			self.set_number(self._phonenumber[:-taps])
+			self._reset_back_button()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_clearall(self, taps):
-		self.clear()
-		self._reset_back_button()
+		try:
+			self.clear()
+			self._reset_back_button()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 		return False
 
 	def _set_clear_button(self):
-		self._backButton.set_label("gtk-clear")
+		try:
+			self._backButton.set_label("gtk-clear")
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _reset_back_button(self):
-		self._backButton.set_label(self._originalLabel)
+		try:
+			self._backButton.set_label(self._originalLabel)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 
 class AccountInfo(object):
@@ -714,7 +738,7 @@ class AccountInfo(object):
 		self._callbackList.clear()
 		try:
 			callbackNumbers = self._backend.get_callback_numbers()
-		except StandardError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 			self._isPopulated = False
 			return
@@ -748,7 +772,7 @@ class AccountInfo(object):
 						self._backend.get_callback_number(),
 					),
 				)
-		except StandardError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _update_alarm_settings(self, recurrence):
@@ -762,39 +786,60 @@ class AccountInfo(object):
 			self._minutesEntryButton.set_label("%d Minutes" % self._alarmHandler.recurrence)
 
 	def _on_callbackentry_changed(self, *args):
-		text = self.get_selected_callback_number()
-		number = make_ugly(text)
-		self._set_callback_number(number)
+		try:
+			text = self.get_selected_callback_number()
+			number = make_ugly(text)
+			self._set_callback_number(number)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_notify_toggled(self, *args):
-		if self._applyAlarmTimeoutId is not None:
-			gobject.source_remove(self._applyAlarmTimeoutId)
-			self._applyAlarmTimeoutId = None
-		self._applyAlarmTimeoutId = gobject.timeout_add(500, self._on_apply_timeout)
+		try:
+			if self._applyAlarmTimeoutId is not None:
+				gobject.source_remove(self._applyAlarmTimeoutId)
+				self._applyAlarmTimeoutId = None
+			self._applyAlarmTimeoutId = gobject.timeout_add(500, self._on_apply_timeout)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_minutes_changed(self, *args):
-		recurrence = hildonize.request_number(
-			self._window, "Minutes", (1, 50), self._alarmHandler.recurrence
-		)
-		self._update_alarm_settings(recurrence)
+		try:
+			recurrence = hildonize.request_number(
+				self._window, "Minutes", (1, 50), self._alarmHandler.recurrence
+			)
+			self._update_alarm_settings(recurrence)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_apply_timeout(self, *args):
-		self._applyAlarmTimeoutId = None
+		try:
+			self._applyAlarmTimeoutId = None
 
-		self._update_alarm_settings(self._alarmHandler.recurrence)
+			self._update_alarm_settings(self._alarmHandler.recurrence)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 		return False
 
 	def _on_missed_toggled(self, *args):
-		self._notifyOnMissed = self._missedCheckbox.get_active()
-		self.save_everything()
+		try:
+			self._notifyOnMissed = self._missedCheckbox.get_active()
+			self.save_everything()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_voicemail_toggled(self, *args):
-		self._notifyOnVoicemail = self._voicemailCheckbox.get_active()
-		self.save_everything()
+		try:
+			self._notifyOnVoicemail = self._voicemailCheckbox.get_active()
+			self.save_everything()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_sms_toggled(self, *args):
-		self._notifyOnSms = self._smsCheckbox.get_active()
-		self.save_everything()
+		try:
+			self._notifyOnSms = self._smsCheckbox.get_active()
+			self.save_everything()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 
 class RecentCallsView(object):
@@ -910,49 +955,55 @@ class RecentCallsView(object):
 		pass
 
 	def _idly_populate_recentview(self):
-		self._recentmodel.clear()
-		self._isPopulated = True
-
 		try:
-			recentItems = self._backend.get_recent()
-		except StandardError, e:
-			self._errorDisplay.push_exception_with_lock()
-			self._isPopulated = False
-			recentItems = []
+			self._recentmodel.clear()
+			self._isPopulated = True
 
-		for personName, phoneNumber, date, action in recentItems:
-			if not personName:
-				personName = "Unknown"
-			date = abbrev_relative_date(date)
-			prettyNumber = phoneNumber[2:] if phoneNumber.startswith("+1") else phoneNumber
-			prettyNumber = make_pretty(prettyNumber)
-			item = (prettyNumber, date, action.capitalize(), personName)
-			with gtk_toolbox.gtk_lock():
-				self._recentmodel.append(item)
+			try:
+				recentItems = self._backend.get_recent()
+			except Exception, e:
+				self._errorDisplay.push_exception_with_lock()
+				self._isPopulated = False
+				recentItems = []
+
+			for personName, phoneNumber, date, action in recentItems:
+				if not personName:
+					personName = "Unknown"
+				date = abbrev_relative_date(date)
+				prettyNumber = phoneNumber[2:] if phoneNumber.startswith("+1") else phoneNumber
+				prettyNumber = make_pretty(prettyNumber)
+				item = (prettyNumber, date, action.capitalize(), personName)
+				with gtk_toolbox.gtk_lock():
+					self._recentmodel.append(item)
+		except Exception, e:
+			self._errorDisplay.push_exception_with_lock()
 
 		return False
 
 	def _on_recentview_row_activated(self, treeview, path, view_column):
-		model, itr = self._recentviewselection.get_selected()
-		if not itr:
-			return
+		try:
+			model, itr = self._recentviewselection.get_selected()
+			if not itr:
+				return
 
-		number = self._recentmodel.get_value(itr, self.NUMBER_IDX)
-		number = make_ugly(number)
-		contactPhoneNumbers = [("Phone", number)]
-		description = self._recentmodel.get_value(itr, self.FROM_IDX)
+			number = self._recentmodel.get_value(itr, self.NUMBER_IDX)
+			number = make_ugly(number)
+			contactPhoneNumbers = [("Phone", number)]
+			description = self._recentmodel.get_value(itr, self.FROM_IDX)
 
-		action, phoneNumber, message = self._phoneTypeSelector.run(
-			contactPhoneNumbers,
-			message = description,
-			parent = self._window,
-		)
-		if action == PhoneTypeSelector.ACTION_CANCEL:
-			return
-		assert phoneNumber, "A lack of phone number exists"
+			action, phoneNumber, message = self._phoneTypeSelector.run(
+				contactPhoneNumbers,
+				message = description,
+				parent = self._window,
+			)
+			if action == PhoneTypeSelector.ACTION_CANCEL:
+				return
+			assert phoneNumber, "A lack of phone number exists"
 
-		self.number_selected(action, phoneNumber, message)
-		self._recentviewselection.unselect_all()
+			self.number_selected(action, phoneNumber, message)
+			self._recentviewselection.unselect_all()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 
 class MessagesView(object):
@@ -1043,46 +1094,52 @@ class MessagesView(object):
 		pass
 
 	def _idly_populate_messageview(self):
-		self._messagemodel.clear()
-		self._isPopulated = True
-
 		try:
-			messageItems = self._backend.get_messages()
-		except StandardError, e:
-			self._errorDisplay.push_exception_with_lock()
-			self._isPopulated = False
-			messageItems = []
+			self._messagemodel.clear()
+			self._isPopulated = True
 
-		for header, number, relativeDate, message in messageItems:
-			prettyNumber = number[2:] if number.startswith("+1") else number
-			prettyNumber = make_pretty(prettyNumber)
-			message = "<b>%s - %s</b> <i>(%s)</i>\n\n%s" % (header, prettyNumber, relativeDate, message)
-			number = make_ugly(number)
-			row = (number, relativeDate, header, message)
-			with gtk_toolbox.gtk_lock():
-				self._messagemodel.append(row)
+			try:
+				messageItems = self._backend.get_messages()
+			except Exception, e:
+				self._errorDisplay.push_exception_with_lock()
+				self._isPopulated = False
+				messageItems = []
+
+			for header, number, relativeDate, message in messageItems:
+				prettyNumber = number[2:] if number.startswith("+1") else number
+				prettyNumber = make_pretty(prettyNumber)
+				message = "<b>%s - %s</b> <i>(%s)</i>\n\n%s" % (header, prettyNumber, relativeDate, message)
+				number = make_ugly(number)
+				row = (number, relativeDate, header, message)
+				with gtk_toolbox.gtk_lock():
+					self._messagemodel.append(row)
+		except Exception, e:
+			self._errorDisplay.push_exception_with_lock()
 
 		return False
 
 	def _on_messageview_row_activated(self, treeview, path, view_column):
-		model, itr = self._messageviewselection.get_selected()
-		if not itr:
-			return
+		try:
+			model, itr = self._messageviewselection.get_selected()
+			if not itr:
+				return
 
-		contactPhoneNumbers = [("Phone", self._messagemodel.get_value(itr, self.NUMBER_IDX))]
-		description = self._messagemodel.get_value(itr, self.MESSAGE_IDX)
+			contactPhoneNumbers = [("Phone", self._messagemodel.get_value(itr, self.NUMBER_IDX))]
+			description = self._messagemodel.get_value(itr, self.MESSAGE_IDX)
 
-		action, phoneNumber, message = self._phoneTypeSelector.run(
-			contactPhoneNumbers,
-			message = description,
-			parent = self._window,
-		)
-		if action == PhoneTypeSelector.ACTION_CANCEL:
-			return
-		assert phoneNumber, "A lock of phone number exists"
+			action, phoneNumber, message = self._phoneTypeSelector.run(
+				contactPhoneNumbers,
+				message = description,
+				parent = self._window,
+			)
+			if action == PhoneTypeSelector.ACTION_CANCEL:
+				return
+			assert phoneNumber, "A lock of phone number exists"
 
-		self.number_selected(action, phoneNumber, message)
-		self._messageviewselection.unselect_all()
+			self.number_selected(action, phoneNumber, message)
+			self._messageviewselection.unselect_all()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 
 class ContactsView(object):
@@ -1232,63 +1289,72 @@ class ContactsView(object):
 		config.set(sectionName, "selectedAddressbook", str(self._selectedComboIndex))
 
 	def _idly_populate_contactsview(self):
-		addressBook = None
-		while addressBook is not self._addressBook:
-			addressBook = self._addressBook
-			with gtk_toolbox.gtk_lock():
-				self._contactsview.set_model(None)
-				self.clear()
+		try:
+			addressBook = None
+			while addressBook is not self._addressBook:
+				addressBook = self._addressBook
+				with gtk_toolbox.gtk_lock():
+					self._contactsview.set_model(None)
+					self.clear()
 
-			try:
-				contacts = addressBook.get_contacts()
-			except StandardError, e:
-				contacts = []
-				self._isPopulated = False
-				self._errorDisplay.push_exception_with_lock()
-			for contactId, contactName in contacts:
-				contactType = (addressBook.contact_source_short_name(contactId), )
-				self._contactsmodel.append(contactType + (contactName, "", contactId) + ("", ))
+				try:
+					contacts = addressBook.get_contacts()
+				except Exception, e:
+					contacts = []
+					self._isPopulated = False
+					self._errorDisplay.push_exception_with_lock()
+				for contactId, contactName in contacts:
+					contactType = (addressBook.contact_source_short_name(contactId), )
+					self._contactsmodel.append(contactType + (contactName, "", contactId) + ("", ))
 
-			with gtk_toolbox.gtk_lock():
-				self._contactsview.set_model(self._contactsmodel)
+				with gtk_toolbox.gtk_lock():
+					self._contactsview.set_model(self._contactsmodel)
 
-		self._isPopulated = True
+			self._isPopulated = True
+		except Exception, e:
+			self._errorDisplay.push_exception_with_lock()
 		return False
 
 	def _on_addressbook_combo_changed(self, *args, **kwds):
-		itr = self._booksSelectionBox.get_active_iter()
-		if itr is None:
-			return
-		self._selectedComboIndex = self._booksSelectionBox.get_active()
-		selectedFactoryId = self._booksList.get_value(itr, 0)
-		selectedBookId = self._booksList.get_value(itr, 1)
-		self.open_addressbook(selectedFactoryId, selectedBookId)
+		try:
+			itr = self._booksSelectionBox.get_active_iter()
+			if itr is None:
+				return
+			self._selectedComboIndex = self._booksSelectionBox.get_active()
+			selectedFactoryId = self._booksList.get_value(itr, 0)
+			selectedBookId = self._booksList.get_value(itr, 1)
+			self.open_addressbook(selectedFactoryId, selectedBookId)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_contactsview_row_activated(self, treeview, path, view_column):
-		model, itr = self._contactsviewselection.get_selected()
-		if not itr:
-			return
-
-		contactId = self._contactsmodel.get_value(itr, 3)
-		contactName = self._contactsmodel.get_value(itr, 1)
 		try:
-			contactDetails = self._addressBook.get_contact_details(contactId)
-		except StandardError, e:
-			contactDetails = []
+			model, itr = self._contactsviewselection.get_selected()
+			if not itr:
+				return
+
+			contactId = self._contactsmodel.get_value(itr, 3)
+			contactName = self._contactsmodel.get_value(itr, 1)
+			try:
+				contactDetails = self._addressBook.get_contact_details(contactId)
+			except Exception, e:
+				contactDetails = []
+				self._errorDisplay.push_exception()
+			contactPhoneNumbers = [phoneNumber for phoneNumber in contactDetails]
+
+			if len(contactPhoneNumbers) == 0:
+				return
+
+			action, phoneNumber, message = self._phoneTypeSelector.run(
+				contactPhoneNumbers,
+				message = contactName,
+				parent = self._window,
+			)
+			if action == PhoneTypeSelector.ACTION_CANCEL:
+				return
+			assert phoneNumber, "A lack of phone number exists"
+
+			self.number_selected(action, phoneNumber, message)
+			self._contactsviewselection.unselect_all()
+		except Exception, e:
 			self._errorDisplay.push_exception()
-		contactPhoneNumbers = [phoneNumber for phoneNumber in contactDetails]
-
-		if len(contactPhoneNumbers) == 0:
-			return
-
-		action, phoneNumber, message = self._phoneTypeSelector.run(
-			contactPhoneNumbers,
-			message = contactName,
-			parent = self._window,
-		)
-		if action == PhoneTypeSelector.ACTION_CANCEL:
-			return
-		assert phoneNumber, "A lack of phone number exists"
-
-		self.number_selected(action, phoneNumber, message)
-		self._contactsviewselection.unselect_all()

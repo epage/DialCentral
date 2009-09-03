@@ -132,7 +132,7 @@ class GVDialer(object):
 
 		try:
 			self._grab_account_info()
-		except StandardError, e:
+		except Exception, e:
 			logging.exception(str(e))
 			return False
 

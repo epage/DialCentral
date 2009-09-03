@@ -42,7 +42,7 @@ import gtk_toolbox
 def getmtime_nothrow(path):
 	try:
 		return os.path.getmtime(path)
-	except StandardError:
+	except Exception:
 		return 0
 
 
@@ -327,7 +327,7 @@ class Dialcentral(object):
 					self.refresh_session()
 					serviceId = self._defaultBackendId
 					loggedIn = True
-				except StandardError, e:
+				except Exception, e:
 					logging.exception('Session refresh failed with the following message "%s"' % e.message)
 
 			if not loggedIn:
@@ -335,7 +335,7 @@ class Dialcentral(object):
 
 			with gtk_toolbox.gtk_lock():
 				self._change_loggedin_status(serviceId)
-		except StandardError, e:
+		except Exception, e:
 			with gtk_toolbox.gtk_lock():
 				self._errorDisplay.push_exception()
 
@@ -558,172 +558,210 @@ class Dialcentral(object):
 
 		@note Hildon specific
 		"""
-		if memory_low:
-			for backendId in self.BACKENDS:
-				self._phoneBackends[backendId].clear_caches()
-			self._contactsViews[self._selectedBackendId].clear_caches()
-			gc.collect()
+		try:
+			if memory_low:
+				for backendId in self.BACKENDS:
+					self._phoneBackends[backendId].clear_caches()
+				self._contactsViews[self._selectedBackendId].clear_caches()
+				gc.collect()
 
-		if save_unsaved_data or shutdown:
-			self._save_settings()
+			if save_unsaved_data or shutdown:
+				self._save_settings()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_connection_change(self, connection, event, magicIdentifier):
 		"""
 		@note Hildon specific
 		"""
-		import conic
+		try:
+			import conic
 
-		status = event.get_status()
-		error = event.get_error()
-		iap_id = event.get_iap_id()
-		bearer = event.get_bearer_type()
+			status = event.get_status()
+			error = event.get_error()
+			iap_id = event.get_iap_id()
+			bearer = event.get_bearer_type()
 
-		if status == conic.STATUS_CONNECTED:
-			if self._initDone:
-				self._spawn_attempt_login(2)
-		elif status == conic.STATUS_DISCONNECTED:
-			if self._initDone:
-				self._defaultBackendId = self._selectedBackendId
-				self._change_loggedin_status(self.NULL_BACKEND)
+			if status == conic.STATUS_CONNECTED:
+				if self._initDone:
+					self._spawn_attempt_login(2)
+			elif status == conic.STATUS_DISCONNECTED:
+				if self._initDone:
+					self._defaultBackendId = self._selectedBackendId
+					self._change_loggedin_status(self.NULL_BACKEND)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_window_state_change(self, widget, event, *args):
 		"""
 		@note Hildon specific
 		"""
-		if event.new_window_state & gtk.gdk.WINDOW_STATE_FULLSCREEN:
-			self._isFullScreen = True
-		else:
-			self._isFullScreen = False
+		try:
+			if event.new_window_state & gtk.gdk.WINDOW_STATE_FULLSCREEN:
+				self._isFullScreen = True
+			else:
+				self._isFullScreen = False
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_key_press(self, widget, event, *args):
 		"""
 		@note Hildon specific
 		"""
-		if event.keyval == gtk.keysyms.F6:
-			if self._isFullScreen:
-				self._window.unfullscreen()
-			else:
-				self._window.fullscreen()
+		try:
+			if event.keyval == gtk.keysyms.F6:
+				if self._isFullScreen:
+					self._window.unfullscreen()
+				else:
+					self._window.fullscreen()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_clearcookies_clicked(self, *args):
-		self._phoneBackends[self._selectedBackendId].logout()
-		self._accountViews[self._selectedBackendId].clear()
-		self._recentViews[self._selectedBackendId].clear()
-		self._messagesViews[self._selectedBackendId].clear()
-		self._contactsViews[self._selectedBackendId].clear()
-		self._change_loggedin_status(self.NULL_BACKEND)
+		try:
+			self._phoneBackends[self._selectedBackendId].logout()
+			self._accountViews[self._selectedBackendId].clear()
+			self._recentViews[self._selectedBackendId].clear()
+			self._messagesViews[self._selectedBackendId].clear()
+			self._contactsViews[self._selectedBackendId].clear()
+			self._change_loggedin_status(self.NULL_BACKEND)
 
-		self._spawn_attempt_login(2, True)
+			self._spawn_attempt_login(2, True)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_notebook_switch_page(self, notebook, page, pageIndex):
-		self._reset_tab_refresh()
+		try:
+			self._reset_tab_refresh()
 
-		didRecentUpdate = False
-		didMessagesUpdate = False
+			didRecentUpdate = False
+			didMessagesUpdate = False
 
-		if pageIndex == self.RECENT_TAB:
-			didRecentUpdate = self._recentViews[self._selectedBackendId].update()
-		elif pageIndex == self.MESSAGES_TAB:
-			didMessagesUpdate = self._messagesViews[self._selectedBackendId].update()
-		elif pageIndex == self.CONTACTS_TAB:
-			self._contactsViews[self._selectedBackendId].update()
-		elif pageIndex == self.ACCOUNT_TAB:
-			self._accountViews[self._selectedBackendId].update()
+			if pageIndex == self.RECENT_TAB:
+				didRecentUpdate = self._recentViews[self._selectedBackendId].update()
+			elif pageIndex == self.MESSAGES_TAB:
+				didMessagesUpdate = self._messagesViews[self._selectedBackendId].update()
+			elif pageIndex == self.CONTACTS_TAB:
+				self._contactsViews[self._selectedBackendId].update()
+			elif pageIndex == self.ACCOUNT_TAB:
+				self._accountViews[self._selectedBackendId].update()
 
-		if didRecentUpdate or didMessagesUpdate:
-			if self._ledHandler is not None:
-				self._ledHandler.off()
+			if didRecentUpdate or didMessagesUpdate:
+				if self._ledHandler is not None:
+					self._ledHandler.off()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _set_tab_refresh(self, *args):
-		pageIndex = self._notebook.get_current_page()
-		child = self._notebook.get_nth_page(pageIndex)
-		self._notebook.get_tab_label(child).set_text("Refresh?")
+		try:
+			pageIndex = self._notebook.get_current_page()
+			child = self._notebook.get_nth_page(pageIndex)
+			self._notebook.get_tab_label(child).set_text("Refresh?")
+		except Exception, e:
+			self._errorDisplay.push_exception()
 		return False
 
 	def _reset_tab_refresh(self, *args):
-		pageIndex = self._notebook.get_current_page()
-		child = self._notebook.get_nth_page(pageIndex)
-		self._notebook.get_tab_label(child).set_text(self._originalCurrentLabels[pageIndex])
+		try:
+			pageIndex = self._notebook.get_current_page()
+			child = self._notebook.get_nth_page(pageIndex)
+			self._notebook.get_tab_label(child).set_text(self._originalCurrentLabels[pageIndex])
+		except Exception, e:
+			self._errorDisplay.push_exception()
 		return False
 
 	def _on_tab_refresh(self, *args):
-		self._refresh_active_tab()
-		self._reset_tab_refresh()
+		try:
+			self._refresh_active_tab()
+			self._reset_tab_refresh()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 		return False
 
 	def _on_sms_clicked(self, number, message):
-		assert number, "No number specified"
-		assert message, "Empty message"
 		try:
-			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
-		except StandardError, e:
-			loggedIn = False
-			self._errorDisplay.push_exception()
-			return
+			assert number, "No number specified"
+			assert message, "Empty message"
+			try:
+				loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
+			except Exception, e:
+				loggedIn = False
+				self._errorDisplay.push_exception()
+				return
 
-		if not loggedIn:
-			self._errorDisplay.push_message(
-				"Backend link with grandcentral is not working, please try again"
-			)
-			return
+			if not loggedIn:
+				self._errorDisplay.push_message(
+					"Backend link with grandcentral is not working, please try again"
+				)
+				return
 
-		dialed = False
-		try:
-			self._phoneBackends[self._selectedBackendId].send_sms(number, message)
-			dialed = True
-		except StandardError, e:
-			self._errorDisplay.push_exception()
-		except ValueError, e:
-			self._errorDisplay.push_exception()
+			dialed = False
+			try:
+				self._phoneBackends[self._selectedBackendId].send_sms(number, message)
+				dialed = True
+			except Exception, e:
+				self._errorDisplay.push_exception()
 
-		if dialed:
-			self._dialpads[self._selectedBackendId].clear()
+			if dialed:
+				self._dialpads[self._selectedBackendId].clear()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_dial_clicked(self, number):
-		assert number, "No number to call"
 		try:
-			loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
-		except StandardError, e:
-			loggedIn = False
-			self._errorDisplay.push_exception()
-			return
+			assert number, "No number to call"
+			try:
+				loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
+			except Exception, e:
+				loggedIn = False
+				self._errorDisplay.push_exception()
+				return
 
-		if not loggedIn:
-			self._errorDisplay.push_message(
-				"Backend link with grandcentral is not working, please try again"
-			)
-			return
+			if not loggedIn:
+				self._errorDisplay.push_message(
+					"Backend link with grandcentral is not working, please try again"
+				)
+				return
 
-		dialed = False
-		try:
-			assert self._phoneBackends[self._selectedBackendId].get_callback_number() != "", "No callback number specified"
-			self._phoneBackends[self._selectedBackendId].dial(number)
-			dialed = True
-		except StandardError, e:
-			self._errorDisplay.push_exception()
-		except ValueError, e:
-			self._errorDisplay.push_exception()
+			dialed = False
+			try:
+				assert self._phoneBackends[self._selectedBackendId].get_callback_number() != "", "No callback number specified"
+				self._phoneBackends[self._selectedBackendId].dial(number)
+				dialed = True
+			except Exception, e:
+				self._errorDisplay.push_exception()
 
-		if dialed:
-			self._dialpads[self._selectedBackendId].clear()
+			if dialed:
+				self._dialpads[self._selectedBackendId].clear()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_menu_refresh(self, *args):
-		self._refresh_active_tab()
+		try:
+			self._refresh_active_tab()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_paste(self, *args):
-		contents = self._clipboard.wait_for_text()
-		self._dialpads[self._selectedBackendId].set_number(contents)
+		try:
+			contents = self._clipboard.wait_for_text()
+			self._dialpads[self._selectedBackendId].set_number(contents)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_about_activate(self, *args):
-		dlg = gtk.AboutDialog()
-		dlg.set_name(constants.__pretty_app_name__)
-		dlg.set_version("%s-%d" % (constants.__version__, constants.__build__))
-		dlg.set_copyright("Copyright 2008 - LGPL")
-		dlg.set_comments("Dialcentral is a touch screen enhanced interface to your GoogleVoice/Grandcentral account.  This application is not affiliated with Google in any way")
-		dlg.set_website("http://gc-dialer.garage.maemo.org/")
-		dlg.set_authors(["<z2n@merctech.com>", "Eric Warnke <ericew@gmail.com>", "Ed Page <edpage@byu.net>"])
-		dlg.run()
-		dlg.destroy()
+		try:
+			dlg = gtk.AboutDialog()
+			dlg.set_name(constants.__pretty_app_name__)
+			dlg.set_version("%s-%d" % (constants.__version__, constants.__build__))
+			dlg.set_copyright("Copyright 2008 - LGPL")
+			dlg.set_comments("Dialcentral is a touch screen enhanced interface to your GoogleVoice/Grandcentral account.  This application is not affiliated with Google in any way")
+			dlg.set_website("http://gc-dialer.garage.maemo.org/")
+			dlg.set_authors(["<z2n@merctech.com>", "Eric Warnke <ericew@gmail.com>", "Ed Page <edpage@byu.net>"])
+			dlg.run()
+			dlg.destroy()
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 
 def run_doctest():
