@@ -20,6 +20,11 @@ __build__ = constants.__build__
 __changelog__ = '''
 1.0.6
 * Fixing some dependencies for Diablo
+* Fixed error on refreshing tabs when not logged in
+* Adding seperator between dialcentral launches in log
+* Fixed Bug #4471 Notification Checkbox Won't Stay Checked (hour roll over error)
+* Implemented a work around for https://bugs.maemo.org/show_bug.cgi?id=4957
+* Fixing a bug where phone numbers in texts wouldn't appear
 
 1.0.5
 * Contacts Tab remembers the last address book viewed on restart
