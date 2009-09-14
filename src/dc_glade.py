@@ -793,11 +793,7 @@ class DummyOptions(object):
 
 
 if __name__ == "__main__":
-	if hildonize.IS_HILDON:
-		userLogPath = "%s/dialcentral.log" % constants._data_path_
-		logging.basicConfig(level=logging.DEBUG, filename=userLogPath)
-	else:
-		logging.basicConfig(level=logging.DEBUG)
+	logging.basicConfig(level=logging.DEBUG)
 	try:
 		if len(sys.argv) > 1:
 			try:
