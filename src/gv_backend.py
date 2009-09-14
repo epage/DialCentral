@@ -492,7 +492,17 @@ class GVDialer(object):
 	_voicemailNumberRegex = re.compile(r"""<input type="hidden" class="gc-text gc-quickcall-ac" value="(.*?)"/>""", re.MULTILINE)
 	_prettyVoicemailNumberRegex = re.compile(r"""<span class="gc-message-type">(.*?)</span>""", re.MULTILINE)
 	_voicemailLocationRegex = re.compile(r"""<span class="gc-message-location">.*?<a.*?>(.*?)</a></span>""", re.MULTILINE)
-	_voicemailMessageRegex = re.compile(r"""<span id="\d+-\d+" class="gc-word-(.*?)">(.*?)</span>""", re.MULTILINE)
+	#_voicemailMessageRegex = re.compile(r"""<span id="\d+-\d+" class="gc-word-(.*?)">(.*?)</span>""", re.MULTILINE)
+	#_voicemailMessageRegex = re.compile(r"""<a .*? class="gc-message-mni">(.*?)</a>""", re.MULTILINE)
+	_voicemailMessageRegex = re.compile(r"""(<span id="\d+-\d+" class="gc-word-(.*?)">(.*?)</span>|<a .*? class="gc-message-mni">(.*?)</a>)""", re.MULTILINE)
+
+	@staticmethod
+	def _interpret_voicemail_regex(group):
+		quality, content, number = group.group(2), group.group(3), group.group(4)
+		if quality is not None and content is not None:
+			return quality, content
+		elif number is not None:
+			return "high", number
 
 	def _parse_voicemail(self, voicemailHtml):
 		splitVoicemail = self._seperateVoicemailsRegex.split(voicemailHtml)
@@ -514,7 +524,7 @@ class GVDialer(object):
 
 			messageGroups = self._voicemailMessageRegex.finditer(messageHtml)
 			messageParts = (
-				(group.group(1).strip(), group.group(2).strip())
+				self._interpret_voicemail_regex(group)
 				for group in messageGroups
 			) if messageGroups else ()
 
@@ -621,7 +631,7 @@ def test_backend(username, password):
 	print "Account: ", backend.get_account_number()
 	print "Callback: ", backend.get_callback_number()
 	# print "All Callback: ",
-	#import pprint
+	import pprint
 	# pprint.pprint(backend.get_callback_numbers())
 	# print "Recent: ",
 	# pprint.pprint(list(backend.get_recent()))
@@ -629,5 +639,7 @@ def test_backend(username, password):
 	# for contact in backend.get_contacts():
 	#	print contact
 	#	pprint.pprint(list(backend.get_contact_details(contact[0])))
+	for message in backend.get_messages():
+	  pprint.pprint(message)
 
 	return backend
