@@ -181,7 +181,7 @@ class Dialcentral(object):
 			# Setup maemo specifics
 			try:
 				import osso
-			except ImportError:
+			except (ImportError, OSError):
 				osso = None
 			self._osso = None
 			if osso is not None:
@@ -194,7 +194,7 @@ class Dialcentral(object):
 			try:
 				import alarm_handler
 				self._alarmHandler = alarm_handler.AlarmHandler()
-			except ImportError:
+			except (ImportError, OSError):
 				alarm_handler = None
 			except Exception:
 				with gtk_toolbox.gtk_lock():
@@ -208,7 +208,7 @@ class Dialcentral(object):
 			# Setup maemo specifics
 			try:
 				import conic
-			except ImportError:
+			except (ImportError, OSError):
 				conic = None
 			self._connection = None
 			if conic is not None:

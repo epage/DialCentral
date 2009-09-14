@@ -10,7 +10,7 @@ class FakeHildonModule(object):
 
 try:
 	import hildon
-except ImportError:
+except (ImportError, OSError):
 	hildon = FakeHildonModule
 
 
