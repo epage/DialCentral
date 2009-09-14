@@ -63,7 +63,9 @@ class AlarmHandler(object):
 
 	def _get_start_time(self, recurrence):
 		now = datetime.datetime.now()
-		startTimeMinute = now.minute + 2 * recurrence #2*r for extra safety
+		startTimeMinute = now.minute + max(recurrence, 5) # being safe
+		startTimeHour = now.hour + int(startTimeMinute / 60)
+		startTimeMinute = startTimeMinute % 59
 		now.replace(minute=startTimeMinute)
 		timestamp = int(time.mktime(now.timetuple()))
 		return timestamp
