@@ -89,7 +89,7 @@ class AccountInfo(object):
 		self._smsCheckbox.set_sensitive(True)
 
 	@staticmethod
-	def update():
+	def update(force = False):
 		return False
 
 	@staticmethod
@@ -121,7 +121,7 @@ class RecentCallsView(object):
 	def disable(self):
 		pass
 
-	def update(self):
+	def update(self, force = False):
 		return False
 
 	@staticmethod
@@ -153,7 +153,7 @@ class MessagesView(object):
 	def disable(self):
 		pass
 
-	def update(self):
+	def update(self, force = False):
 		return False
 
 	@staticmethod
@@ -185,7 +185,7 @@ class ContactsView(object):
 	def disable(self):
 		self._booksSelectionBox.set_sensitive(True)
 
-	def update(self):
+	def update(self, force = False):
 		return False
 
 	@staticmethod

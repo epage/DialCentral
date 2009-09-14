@@ -18,6 +18,9 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = '''
+1.0.6
+* Fixing some dependencies for Diablo
+
 1.0.5
 * Contacts Tab remembers the last address book viewed on restart
 * Applied some suggested changes for being more thumb friendly
@@ -166,7 +169,7 @@ def build_package(distribution):
 	p.mail = __email__
 	p.license = "lgpl"
 	p.depends = {
-		"diablo": "python2.5, python2.5-gtk2, python2.5-xml, python2.5-dbus",
+		"diablo": "python2.5, python2.5-gtk2, python2.5-xml, python2.5-dbus, python2.5-hildon",
 		"mer": "python2.6, python-gtk2, python-xml, python-glade2, python-dbus",
 	}[distribution]
 	p.section = "user/communication"
