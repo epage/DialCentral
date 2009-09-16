@@ -17,7 +17,7 @@ __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
-__changelog__ = '''
+__changelog__ = """
 1.0.6
 * Fixing some dependencies for Diablo
 * Fixed error on refreshing tabs when not logged in
@@ -25,6 +25,13 @@ __changelog__ = '''
 * Fixed Bug #4471 Notification Checkbox Won't Stay Checked (hour roll over error)
 * Implemented a work around for https://bugs.maemo.org/show_bug.cgi?id=4957
 * Fixing a bug where phone numbers in texts wouldn't appear
+* Deletes notifications on uninstall
+* Fixed category for Fremantle/Diablo
+* Fixed needing to manually create "~/.dialcentral" due to earlier logging changes
+* Fixed dependencies for fremantle
+* Including a vastly improved py2deb
+* Tweaked sizes of stuff on recent tab
+* Starting some work on rotation support for fremantle
 
 1.0.5
 * Contacts Tab remembers the last address book viewed on restart
@@ -133,13 +140,18 @@ __changelog__ = '''
  * Hold down back to clear number
  * Standard about dialog
  * many more smaller fixes
-'''
+"""
 
 
-__postinstall__ = '''#!/bin/sh -e
+__postinstall__ = """#!/bin/sh -e
 
 gtk-update-icon-cache -f /usr/share/icons/hicolor
-'''
+"""
+
+__preremove__ = """#!/bin/sh -e
+
+/usr/lib/dialcentral/alarm_handler.py -d
+"""
 
 
 def find_files(path):
@@ -168,22 +180,41 @@ def build_package(distribution):
 	except:
 		pass
 
+	py2deb.Py2deb.SECTIONS = py2deb.SECTIONS_BY_POLICY[distribution]
 	p = py2deb.Py2deb(__appname__)
 	p.description = __description__
 	p.author = __author__
 	p.mail = __email__
 	p.license = "lgpl"
-	p.depends = {
-		"diablo": "python2.5, python2.5-gtk2, python2.5-xml, python2.5-dbus, python2.5-hildon",
-		"mer": "python2.6, python-gtk2, python-xml, python-glade2, python-dbus",
+	p.depends = ", ".join([
+		"python2.6 | python2.5",
+		"python-gtk2 | python2.5-gtk2",
+		"python-xml | python2.5-xml",
+	])
+	p.depends += {
+		"chinook": "",
+		"diablo": "",
+		"fremantle": ", python-glade2",
+		"mer": ", python-glade2",
 	}[distribution]
-	p.section = "user/communication"
+	p.recommends = ", ".join([
+		"python-osso | python2.5-osso",
+		"python-dbus | python2.5-dbus",
+		"python-hildon | python2.5-hildon",
+	])
+	p.section = {
+		"chinook": "communication",
+		"diablo": "user/network",
+		"fremantle": "user/network",
+		"mer": "user/network",
+	}[distribution]
 	p.arch = "all"
 	p.urgency = "low"
 	p.distribution = "chinook diablo fremantle mer"
 	p.repository = "extras"
 	p.changelog = __changelog__
 	p.postinstall = __postinstall__
+	p.preremove = __preremove__
 	p.icon = "26x26-dialcentral.png"
 	p["/usr/bin"] = [ "dialcentral.py" ]
 	for relPath, files in unflatten_files(find_files(".")).iteritems():
@@ -201,8 +232,12 @@ def build_package(distribution):
 
 	print p
 	print p.generate(
-		__version__, __build__, changelog=__changelog__,
-		tar=True, dsc=True, changes=True, build=False, src=True
+		version="%s-%s" % (__version__, __build__),
+		changelog=__changelog__,
+		build=False,
+		tar=True,
+		changes=True,
+		dsc=True,
 	)
 	print "Building for %s finished" % distribution
 

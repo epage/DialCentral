@@ -6,6 +6,7 @@ import os
 import errno
 import sys
 import time
+import itertools
 import functools
 import contextlib
 import logging
@@ -14,6 +15,31 @@ import Queue
 
 import gobject
 import gtk
+
+
+def get_screen_orientation():
+	width, height = gtk.gdk.get_default_root_window().get_size()
+	if width < height:
+		return gtk.ORIENTATION_VERTICAL
+	else:
+		return gtk.ORIENTATION_HORIZONTAL
+
+
+def orientation_change_connect(handler, *args):
+	"""
+	@param handler(orientation, *args) -> None(?)
+	"""
+	initialScreenOrientation = get_screen_orientation()
+	orientationAndArgs = list(itertools.chain((initialScreenOrientation, ), args))
+
+	def _on_screen_size_changed(screen):
+		newScreenOrientation = get_screen_orientation()
+		if newScreenOrientation != orientationAndArgs[0]:
+			orientationAndArgs[0] = newScreenOrientation
+			handler(*orientationAndArgs)
+
+	rootScreen = gtk.gdk.get_default_root_window()
+	return gtk.connect(rootScreen, "size-changed", _on_screen_size_changed)
 
 
 @contextlib.contextmanager

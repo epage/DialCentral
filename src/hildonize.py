@@ -2,6 +2,7 @@
 
 
 import gtk
+import dbus
 
 
 class FakeHildonModule(object):
@@ -77,6 +78,54 @@ if IS_HILDON:
 else:
 	def hildonize_text_entry(textEntry):
 		pass
+
+
+if IS_HILDON:
+	def mark_window_rotatable(window):
+		raise NotImplementedError("TODO distinguish between Diablo and Fremantle")
+		# gtk documentation is unclear whether this does a "=" or a "|="
+		window.set_flags(hildon.HILDON_PORTRAIT_MODE_SUPPORT)
+else:
+	def mark_window_rotatable(window):
+		pass
+
+
+if IS_HILDON:
+	def window_to_portrait(window):
+		raise NotImplementedError("TODO distinguish between Diablo and Fremantle")
+		# gtk documentation is unclear whether this does a "=" or a "|="
+		window.set_flags(hildon.HILDON_PORTRAIT_MODE_SUPPORT)
+
+	def window_to_landscape(window):
+		raise NotImplementedError("TODO distinguish between Diablo and Fremantle")
+		# gtk documentation is unclear whether this does a "=" or a "&= ~"
+		window.unset_flags(hildon.HILDON_PORTRAIT_MODE_REQUEST)
+else:
+	def window_to_portrait(window):
+		pass
+
+	def window_to_landscape(window):
+		pass
+
+
+def get_device_orientation():
+	raise NotImplementedError()
+	bus = dbus.SystemBus()
+	try:
+		rawMceRequest = bus.get_object("com.nokia.mce", "/com/nokia/mce/request")
+		mceRequest = dbus.Interface(rawMceRequest, dbus_interface="com.nokia.mce.request")
+		orientation, standState, faceState, xAxis, yAxis, zAxis = mceRequest.get_device_orientation()
+	except dbus.exception.DBusException:
+		# catching for documentation purposes that when a system doesn't
+		# support this, this is what to expect
+		raise
+
+	if orientation == "":
+		return gtk.ORIENTATION_HORIZONTAL
+	elif orientation == "":
+		return gtk.ORIENTATION_VERTICAL
+	else:
+		raise RuntimeError("Unknown orientation: %s" % orientation)
 
 
 if IS_HILDON:

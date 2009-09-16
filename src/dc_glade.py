@@ -280,6 +280,7 @@ class Dialcentral(object):
 			callbackMapping = {
 				"on_paste": self._on_paste,
 				"on_refresh": self._on_menu_refresh,
+				"on_rotate": self._on_menu_rotate,
 				"on_clearcookies_clicked": self._on_clearcookies_clicked,
 				"on_notebook_switch_page": self._on_notebook_switch_page,
 				"on_about_activate": self._on_about_activate,
@@ -442,7 +443,7 @@ class Dialcentral(object):
 		@note UI Thread
 		"""
 		try:
-			self._defaultBackendId = int(config.get(constants.__pretty_app_name__, "active"))
+			self._defaultBackendId = config.getint(constants.__pretty_app_name__, "active")
 			blobs = (
 				config.get(constants.__pretty_app_name__, "bin_blob_%i" % i)
 				for i in xrange(len(self._credentials))
@@ -455,6 +456,12 @@ class Dialcentral(object):
 
 			if self._alarmHandler is not None:
 				self._alarmHandler.load_settings(config, "alarm")
+
+			previousOrientation = config.getint(constants.__pretty_app_name__, "orientation")
+			if previousOrientation == gtk.ORIENTATION_HORIZONTAL:
+				hildonize.window_to_landscape(self._window)
+			elif previousOrientation == gtk.ORIENTATION_VERTICAL:
+				hildonize.window_to_portrait(self._window)
 		except ConfigParser.NoOptionError, e:
 			logging.exception(
 				"Settings file %s is missing section %s" % (
@@ -501,6 +508,7 @@ class Dialcentral(object):
 		"""
 		config.add_section(constants.__pretty_app_name__)
 		config.set(constants.__pretty_app_name__, "active", str(self._selectedBackendId))
+		config.set(constants.__pretty_app_name__, "orientation", str(int(gtk_toolbox.get_screen_orientation())))
 		for i, value in enumerate(self._credentials):
 			blob = base64.b64encode(value)
 			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
@@ -739,6 +747,16 @@ class Dialcentral(object):
 	def _on_menu_refresh(self, *args):
 		try:
 			self._refresh_active_tab()
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_menu_rotate(self, *args):
+		try:
+			orientation = gtk_toolbox.get_screen_orientation()
+			if orientation == gtk.ORIENTATION_HORIZONTAL:
+				hildonize.window_to_portrait(self._window)
+			elif orientation == gtk.ORIENTATION_VERTICAL:
+				hildonize.window_to_landscape(self._window)
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

@@ -5,7 +5,7 @@ PROGRAM=$(SOURCE_PATH)/$(PROJECT_NAME).py
 DATA_TYPES=*.ini *.map *.glade *.png
 DATA=$(foreach type, $(DATA_TYPES), $(shell find $(SOURCE_PATH) -iname "$(type)"))
 OBJ=$(SOURCE:.py=.pyc)
-BUILD_PATH=./build/
+BUILD_PATH=./build
 TAG_FILE=~/.ctags/$(PROJECT_NAME).tags
 TODO_FILE=./TODO
 
@@ -37,20 +37,33 @@ debug: $(OBJ)
 test: $(OBJ)
 	$(UNIT_TEST)
 
-build: $(OBJ)
+package: $(OBJ)
 	rm -Rf $(BUILD_PATH)
-	mkdir $(BUILD_PATH)
-	cp $(SOURCE_PATH)/constants.py  $(BUILD_PATH)
-	cp $(SOURCE_PATH)/$(PROJECT_NAME).py  $(BUILD_PATH)
-	$(foreach file, $(DATA), cp $(file) $(BUILD_PATH)/$(subst /,-,$(file)) ; )
-	$(foreach file, $(SOURCE), cp $(file) $(BUILD_PATH)/$(subst /,-,$(file)) ; )
-	$(foreach file, $(OBJ), cp $(file) $(BUILD_PATH)/$(subst /,-,$(file)) ; )
-	cp support/$(PROJECT_NAME).desktop $(BUILD_PATH)
-	cp support/icons/hicolor/26x26/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/26x26-$(PROJECT_NAME).png
-	cp support/icons/hicolor/64x64/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/64x64-$(PROJECT_NAME).png
-	cp support/icons/hicolor/scalable/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/scale-$(PROJECT_NAME).png
-	cp support/builddeb.py $(BUILD_PATH)
-	cp support/fake_py2deb.py $(BUILD_PATH)
+	mkdir -p $(BUILD_PATH)/generic
+	cp $(SOURCE_PATH)/constants.py  $(BUILD_PATH)/generic
+	cp $(SOURCE_PATH)/$(PROJECT_NAME).py  $(BUILD_PATH)/generic
+	$(foreach file, $(DATA), cp $(file) $(BUILD_PATH)/generic/$(subst /,-,$(file)) ; )
+	$(foreach file, $(SOURCE), cp $(file) $(BUILD_PATH)/generic/$(subst /,-,$(file)) ; )
+	$(foreach file, $(OBJ), cp $(file) $(BUILD_PATH)/generic/$(subst /,-,$(file)) ; )
+	cp support/$(PROJECT_NAME).desktop $(BUILD_PATH)/generic
+	cp support/icons/hicolor/26x26/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/generic/26x26-$(PROJECT_NAME).png
+	cp support/icons/hicolor/64x64/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/generic/64x64-$(PROJECT_NAME).png
+	cp support/icons/hicolor/scalable/hildon/$(PROJECT_NAME).png $(BUILD_PATH)/generic/scale-$(PROJECT_NAME).png
+	cp support/builddeb.py $(BUILD_PATH)/generic
+	cp support/py2deb.py $(BUILD_PATH)/generic
+	cp support/fake_py2deb.py $(BUILD_PATH)/generic
+	mkdir -p $(BUILD_PATH)/chinook
+	cp -R $(BUILD_PATH)/generic/* $(BUILD_PATH)/chinook
+	cd $(BUILD_PATH)/chinook ; python builddeb.py chinook
+	mkdir -p $(BUILD_PATH)/diablo
+	cp -R $(BUILD_PATH)/generic/* $(BUILD_PATH)/diablo
+	cd $(BUILD_PATH)/diablo ; python builddeb.py diablo
+	mkdir -p $(BUILD_PATH)/fremantle
+	cp -R $(BUILD_PATH)/generic/* $(BUILD_PATH)/fremantle
+	cd $(BUILD_PATH)/fremantle ; python builddeb.py fremantle
+	mkdir -p $(BUILD_PATH)/mer
+	cp -R $(BUILD_PATH)/generic/* $(BUILD_PATH)/mer
+	cd $(BUILD_PATH)/mer ; python builddeb.py mer
 
 lint: $(OBJ)
 	$(foreach file, $(SOURCE), $(LINT) $(file) ; )

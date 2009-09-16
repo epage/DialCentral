@@ -886,7 +886,6 @@ class RecentCallsView(object):
 
 		textrenderer = gtk.CellRendererText()
 		textrenderer.set_property("yalign", 0)
-		hildonize.set_cell_thumb_selectable(textrenderer)
 		self._numberColumn = gtk.TreeViewColumn("Number")
 		self._numberColumn.pack_start(textrenderer, expand=True)
 		self._numberColumn.add_attribute(textrenderer, "text", self.NUMBER_IDX)
