@@ -463,12 +463,6 @@ class Dialcentral(object):
 
 			if self._alarmHandler is not None:
 				self._alarmHandler.load_settings(config, "alarm")
-
-			previousOrientation = config.getint(constants.__pretty_app_name__, "orientation")
-			if previousOrientation == gtk.ORIENTATION_HORIZONTAL:
-				hildonize.window_to_landscape(self._window)
-			elif previousOrientation == gtk.ORIENTATION_VERTICAL:
-				hildonize.window_to_portrait(self._window)
 		except ConfigParser.NoOptionError, e:
 			logging.exception(
 				"Settings file %s is missing section %s" % (
@@ -508,6 +502,28 @@ class Dialcentral(object):
 						e.section,
 					),
 				)
+
+		# @todo down here till this issue is fixed
+		try:
+			previousOrientation = config.getint(constants.__pretty_app_name__, "orientation")
+			if previousOrientation == gtk.ORIENTATION_HORIZONTAL:
+				hildonize.window_to_landscape(self._window)
+			elif previousOrientation == gtk.ORIENTATION_VERTICAL:
+				hildonize.window_to_portrait(self._window)
+		except ConfigParser.NoOptionError, e:
+			logging.exception(
+				"Settings file %s is missing section %s" % (
+					constants._user_settings_,
+					e.section,
+				),
+			)
+		except ConfigParser.NoSectionError, e:
+			logging.exception(
+				"Settings file %s is missing section %s" % (
+					constants._user_settings_,
+					e.section,
+				),
+			)
 
 	def save_settings(self, config):
 		"""
