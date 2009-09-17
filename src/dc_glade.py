@@ -159,8 +159,8 @@ class Dialcentral(object):
 		"""
 		If something can be done after the UI loads, push it here so it's not blocking the UI
 		"""
+		# Barebones UI handlers
 		try:
-			# Barebones UI handlers
 			import null_backend
 			import null_views
 
@@ -177,8 +177,12 @@ class Dialcentral(object):
 				self._recentViews[self._selectedBackendId].enable()
 				self._messagesViews[self._selectedBackendId].enable()
 				self._contactsViews[self._selectedBackendId].enable()
+		except Exception, e:
+			with gtk_toolbox.gtk_lock():
+				self._errorDisplay.push_exception()
 
-			# Setup maemo specifics
+		# Setup maemo specifics
+		try:
 			try:
 				import osso
 			except (ImportError, OSError):
@@ -205,7 +209,6 @@ class Dialcentral(object):
 				import led_handler
 				self._ledHandler = led_handler.LedHandler()
 
-			# Setup maemo specifics
 			try:
 				import conic
 			except (ImportError, OSError):
@@ -217,8 +220,12 @@ class Dialcentral(object):
 				self._connection.request_connection(conic.CONNECT_FLAG_NONE)
 			else:
 				logging.warning("No connection support")
+		except Exception, e:
+			with gtk_toolbox.gtk_lock():
+				self._errorDisplay.push_exception()
 
-			# Setup costly backends
+		# Setup costly backends
+		try:
 			import gv_backend
 			import file_backend
 			import gv_views
@@ -305,11 +312,11 @@ class Dialcentral(object):
 			config.read(constants._user_settings_)
 			with gtk_toolbox.gtk_lock():
 				self.load_settings(config)
-
-			self._spawn_attempt_login(2)
 		except Exception, e:
 			with gtk_toolbox.gtk_lock():
 				self._errorDisplay.push_exception()
+		finally:
+			self._spawn_attempt_login(2)
 
 	def attempt_login(self, numOfAttempts = 10, force = False):
 		"""

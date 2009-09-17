@@ -32,6 +32,7 @@ __changelog__ = """
 * Including a vastly improved py2deb
 * Tweaked sizes of stuff on recent tab
 * Starting some work on rotation support for fremantle
+* Made startup more error resistant
 
 1.0.5
 * Contacts Tab remembers the last address book viewed on restart
@@ -150,7 +151,7 @@ gtk-update-icon-cache -f /usr/share/icons/hicolor
 
 __preremove__ = """#!/bin/sh -e
 
-/usr/lib/dialcentral/alarm_handler.py -d
+python /usr/lib/dialcentral/alarm_handler.py -d || true
 """
 
 
@@ -192,17 +193,18 @@ def build_package(distribution):
 		"python-xml | python2.5-xml",
 		"python-dbus | python2.5-dbus",
 	])
+	maemoSpecificDepends = ", python-osso | python2.5-osso, python-hildon | python2.5-hildon"
 	p.depends += {
-		"chinook": "",
-		"diablo": "",
-		"fremantle": ", python-glade2",
-		"mer": ", python-glade2",
+		"debian": "",
+		"chinook": maemoSpecificDepends,
+		"diablo": maemoSpecificDepends,
+		"fremantle": maemoSpecificDepends,
+		"mer": maemoSpecificDepends,
 	}[distribution]
 	p.recommends = ", ".join([
-		"python-osso | python2.5-osso",
-		"python-hildon | python2.5-hildon",
 	])
 	p.section = {
+		"debian": "comm",
 		"chinook": "communication",
 		"diablo": "user/network",
 		"fremantle": "user/network",
@@ -210,7 +212,7 @@ def build_package(distribution):
 	}[distribution]
 	p.arch = "all"
 	p.urgency = "low"
-	p.distribution = "chinook diablo fremantle mer"
+	p.distribution = "chinook diablo fremantle mer debian"
 	p.repository = "extras"
 	p.changelog = __changelog__
 	p.postinstall = __postinstall__
