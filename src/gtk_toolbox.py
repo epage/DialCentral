@@ -414,9 +414,8 @@ class ErrorDisplay(object):
 			self.push_message(message)
 
 	def push_message(self, message):
-		if 0 < len(self.__messages):
-			self.__messages.append(message)
-		else:
+		self.__messages.append(message)
+		if 1 == len(self.__messages):
 			self.__show_message(message)
 
 	def push_exception_with_lock(self):
@@ -429,11 +428,11 @@ class ErrorDisplay(object):
 		logging.exception(userMessage)
 
 	def pop_message(self):
-		if 0 < len(self.__messages):
-			self.__show_message(self.__messages[0])
-			del self.__messages[0]
-		else:
+		del self.__messages[0]
+		if 0 == len(self.__messages):
 			self.__hide_message()
+		else:
+			self.__errorDescription.set_text(self.__messages[0])
 
 	def _on_close(self, *args):
 		self.pop_message()
