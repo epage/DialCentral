@@ -33,6 +33,8 @@ __changelog__ = """
 * Bug Fix: category for Fremantle/Diablo
 * Bug Fix: needing to manually create "~/.dialcentral" due to earlier logging changes
 * Bug Fix: dependencies for fremantle
+* Bug Fix: Issues when trying to stack error messages
+* Bug Fix: Python2.6 deprecates some stuff I did
 
 1.0.5
 * Contacts Tab remembers the last address book viewed on restart
