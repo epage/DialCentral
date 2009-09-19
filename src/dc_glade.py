@@ -206,8 +206,14 @@ class Dialcentral(object):
 				alarm_handler = None
 				logging.warning("No notification support")
 			if hildonize.IS_HILDON:
-				import led_handler
-				self._ledHandler = led_handler.LedHandler()
+				try:
+					import led_handler
+					self._ledHandler = led_handler.LedHandler()
+				except Exception, e:
+					logging.exception('LED Handling failed: "%s"' % str(e))
+					self._ledHandler = None
+			else:
+				self._ledHandler = None
 
 			try:
 				import conic
@@ -336,7 +342,7 @@ class Dialcentral(object):
 					serviceId = self._defaultBackendId
 					loggedIn = True
 				except Exception, e:
-					logging.exception('Session refresh failed with the following message "%s"' % e.message)
+					logging.exception('Session refresh failed with the following message "%s"' % str(e))
 
 			if not loggedIn:
 				loggedIn, serviceId = self._login_by_user(numOfAttempts)
