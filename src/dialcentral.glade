@@ -660,6 +660,7 @@
               </widget>
               <packing>
                 <property name="position">2</property>
+                <property name="tab_expand">True</property>
                 <property name="tab_fill">False</property>
                 <property name="type">tab</property>
               </packing>
