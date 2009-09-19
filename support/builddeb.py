@@ -195,11 +195,11 @@ def build_package(distribution):
 	])
 	maemoSpecificDepends = ", python-osso | python2.5-osso, python-hildon | python2.5-hildon"
 	p.depends += {
-		"debian": "",
+		"debian": ", python-glade2",
 		"chinook": maemoSpecificDepends,
 		"diablo": maemoSpecificDepends,
-		"fremantle": maemoSpecificDepends,
-		"mer": maemoSpecificDepends,
+		"fremantle": maemoSpecificDepends + ", python-glade2",
+		"mer": maemoSpecificDepends + ", python-glade2",
 	}[distribution]
 	p.recommends = ", ".join([
 	])
