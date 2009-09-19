@@ -19,7 +19,6 @@ IS_HILDON = hildon is not FakeHildonModule
 
 
 class FakeHildonProgram(object):
-
 	pass
 
 
@@ -80,27 +79,29 @@ else:
 		pass
 
 
-if IS_HILDON:
+try:
+	hildon.HILDON_PORTRAIT_MODE_SUPPORT
+
 	def mark_window_rotatable(window):
-		raise NotImplementedError("TODO distinguish between Diablo and Fremantle")
 		# gtk documentation is unclear whether this does a "=" or a "|="
 		window.set_flags(hildon.HILDON_PORTRAIT_MODE_SUPPORT)
-else:
+except AttributeError:
 	def mark_window_rotatable(window):
 		pass
 
 
-if IS_HILDON:
+try:
+	hildon.HILDON_PORTRAIT_MODE_SUPPORT
+	hildon.HILDON_PORTRAIT_MODE_REQUEST
+
 	def window_to_portrait(window):
-		raise NotImplementedError("TODO distinguish between Diablo and Fremantle")
 		# gtk documentation is unclear whether this does a "=" or a "|="
 		window.set_flags(hildon.HILDON_PORTRAIT_MODE_SUPPORT)
 
 	def window_to_landscape(window):
-		raise NotImplementedError("TODO distinguish between Diablo and Fremantle")
 		# gtk documentation is unclear whether this does a "=" or a "&= ~"
 		window.unset_flags(hildon.HILDON_PORTRAIT_MODE_REQUEST)
-else:
+except AttributeError:
 	def window_to_portrait(window):
 		pass
 
@@ -109,7 +110,6 @@ else:
 
 
 def get_device_orientation():
-	raise NotImplementedError()
 	bus = dbus.SystemBus()
 	try:
 		rawMceRequest = bus.get_object("com.nokia.mce", "/com/nokia/mce/request")
@@ -144,15 +144,34 @@ else:
 		pass
 
 
-if IS_HILDON:
+try:
+	hildon.PannableArea
+	None.TODO
 	def set_thumb_scrollbar(scrolledWindow):
-		hildon.hildon_helper_set_thumb_scrollbar(scrolledWindow, True)
-else:
-	def set_thumb_scrollbar(scrolledWindow):
-		pass
+		pannableWindow = hildon.PannableArea()
+
+		child = scrolledWindow.get_child()
+		scrolledWindow.remove(child)
+		pannableWindow.add(child)
+
+		parent = scrolledWindow.get_parent()
+		parent.remove(scrolledWindow)
+		parent.add(pannableWindow)
+
+		return pannableWindow
+except AttributeError:
+	try:
+		hildon.hildon_helper_set_thumb_scrollbar
+		def set_thumb_scrollbar(scrolledWindow):
+			hildon.hildon_helper_set_thumb_scrollbar(scrolledWindow, True)
+			return scrolledWindow
+	except AttributeError:
+		def set_thumb_scrollbar(scrolledWindow):
+			return scrolledWindow
 
 
-if IS_HILDON:
+try:
+	hildon.NumberEditor # TODO deprecated in fremantle
 	def request_number(parent, title, range, default):
 		spinner = hildon.NumberEditor(*range)
 		spinner.set_value(default)
@@ -178,7 +197,7 @@ if IS_HILDON:
 			raise RuntimeError("User cancelled request")
 		else:
 			raise RuntimeError("Unrecognized response %r", response)
-else:
+except AttributeError:
 	def request_number(parent, title, range, default):
 		adjustment = gtk.Adjustment(default, range[0], range[1], 1, 5, 0)
 		spinner = gtk.SpinButton(adjustment, 0, 0)
