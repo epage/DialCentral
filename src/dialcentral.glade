@@ -13,80 +13,35 @@
           <widget class="GtkMenuBar" id="dialpad_menubar">
             <property name="visible">True</property>
             <child>
-              <widget class="GtkMenuItem" id="file_menu_item">
+              <widget class="GtkMenuItem" id="login_menu_item">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">_File</property>
+                <property name="label">_Login</property>
                 <property name="use_underline">True</property>
-                <child>
-                  <widget class="GtkMenu" id="file_menu">
-                    <property name="visible">True</property>
-                    <child>
-                      <widget class="GtkImageMenuItem" id="login_menu_item">
-                        <property name="label">_New Login</property>
-                        <property name="visible">True</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">False</property>
-                        <signal name="activate" handler="on_clearcookies_clicked"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="image3">
-                            <property name="visible">True</property>
-                            <property name="stock">gtk-connect</property>
-                          </widget>
-                        </child>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
+                <signal name="activate" handler="on_clearcookies_clicked"/>
               </widget>
             </child>
             <child>
-              <widget class="GtkMenuItem" id="edit_menu_item">
+              <widget class="GtkMenuItem" id="paste_menu_item">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">_Edit</property>
+                <property name="label" translatable="yes">Paste</property>
                 <property name="use_underline">True</property>
-                <child>
-                  <widget class="GtkMenu" id="edit_menu">
-                    <property name="visible">True</property>
-                    <child>
-                      <widget class="GtkImageMenuItem" id="paste_menu_item">
-                        <property name="label">gtk-paste</property>
-                        <property name="visible">True</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
-                        <signal name="activate" handler="on_paste"/>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
+                <signal name="activate" handler="on_paste"/>
               </widget>
             </child>
             <child>
-              <widget class="GtkMenuItem" id="viewMenuItem">
+              <widget class="GtkMenuItem" id="refreshMenuItem">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">_View</property>
+                <property name="label" translatable="yes">Refresh</property>
                 <property name="use_underline">True</property>
-                <child>
-                  <widget class="GtkMenu" id="view_menu">
-                    <property name="visible">True</property>
-                    <child>
-                      <widget class="GtkImageMenuItem" id="refreshMenuItem">
-                        <property name="label">gtk-refresh</property>
-                        <property name="visible">True</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
-                        <signal name="activate" handler="on_refresh"/>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkMenuItem" id="rotateMenuItem">
-                        <property name="visible">True</property>
-                        <property name="label" translatable="yes">_Rotate</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="on_rotate"/>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
+                <signal name="activate" handler="on_refresh"/>
+              </widget>
+            </child>
+            <child>
+              <widget class="GtkMenuItem" id="rotateMenuItem">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">_Rotate</property>
+                <property name="use_underline">True</property>
+                <signal name="activate" handler="on_rotate"/>
               </widget>
             </child>
             <child>
@@ -846,7 +801,7 @@
                 </child>
                 <child>
                   <widget class="GtkButton" id="clearcookies">
-                    <property name="label" translatable="yes">Clear Account Information</property>
+                    <property name="label" translatable="yes">Login</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>

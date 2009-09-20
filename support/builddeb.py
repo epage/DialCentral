@@ -26,6 +26,7 @@ __changelog__ = """
 * Tweaked sizes of stuff on recent tab
 * Starting some work on rotation support for fremantle
 * Made startup more error resistant
+* Simplified menus
 * Fremantle: Making various areas pannable
 * Bug Fix: some dependencies for Diablo
 * Bug Fix: Error on refreshing tabs when not logged in
