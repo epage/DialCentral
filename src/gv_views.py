@@ -472,18 +472,18 @@ class Dialpad(object):
 		self._smsDialog = SmsEntryDialog(widgetTree)
 
 		self._numberdisplay = widgetTree.get_widget("numberdisplay")
+		self._smsButton = widgetTree.get_widget("sms")
 		self._dialButton = widgetTree.get_widget("dial")
 		self._backButton = widgetTree.get_widget("back")
 		self._phonenumber = ""
 		self._prettynumber = ""
 
 		callbackMapping = {
-			"on_dial_clicked": self._on_dial_clicked,
-			"on_sms_clicked": self._on_sms_clicked,
 			"on_digit_clicked": self._on_digit_clicked,
-			"on_clear_number": self._on_clear_number,
 		}
 		widgetTree.signal_autoconnect(callbackMapping)
+		self._dialButton.connect("clicked", self._on_dial_clicked)
+		self._smsButton.connect("clicked", self._on_sms_clicked)
 
 		self._originalLabel = self._backButton.get_label()
 		self._backTapHandler = gtk_toolbox.TapOrHold(self._backButton)
@@ -560,12 +560,6 @@ class Dialpad(object):
 			phoneNumber = self.get_number()
 			message = ""
 			self.number_selected(action, phoneNumber, message)
-		except Exception, e:
-			self._errorDisplay.push_exception()
-
-	def _on_clear_number(self, *args):
-		try:
-			self.clear()
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

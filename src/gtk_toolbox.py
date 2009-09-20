@@ -299,11 +299,8 @@ class LoginWindow(object):
 		self._serviceCombo.add_attribute(cell, 'text', 1)
 		self._serviceCombo.set_active(0)
 
-		callbackMapping = {
-			"on_loginbutton_clicked": self._on_loginbutton_clicked,
-			"on_loginclose_clicked": self._on_loginclose_clicked,
-		}
-		widgetTree.signal_autoconnect(callbackMapping)
+		widgetTree.get_widget("loginbutton").connect("clicked", self._on_loginbutton_clicked)
+		widgetTree.get_widget("logins_close_button").connect("clicked", self._on_loginclose_clicked)
 
 	def request_credentials(self,
 		parentWindow = None,

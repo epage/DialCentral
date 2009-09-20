@@ -117,28 +117,30 @@ class Dialcentral(object):
 			'recent_scrolledwindow',
 			'message_scrolledwindow',
 			'contacts_scrolledwindow',
+		):
+			hildonize.hildonize_scrollwindow(self._widgetTree.get_widget(scrollingWidget))
+		for scrollingWidget in (
 			"phoneSelectionMessage_scrolledwindow",
 			"phonetypes_scrolledwindow",
 			"smsMessage_scrolledwindow",
 			"smsMessage_scrolledEntry",
 		):
-			hildonize.set_thumb_scrollbar(self._widgetTree.get_widget(scrollingWidget))
+			hildonize.hildonize_scrollwindow_with_viewport(self._widgetTree.get_widget(scrollingWidget))
 
-		hildonize.hildonize_menu(self._window, self._widgetTree.get_widget("dialpad_menubar"))
+		replacementButtons = [gtk.Button("Test")]
+		menu = hildonize.hildonize_menu(
+			self._window,
+			self._widgetTree.get_widget("dialpad_menubar"),
+			replacementButtons
+		)
 
-		if hildonize.IS_HILDON:
+		if hildonize.IS_HILDON_SUPPORTED:
 			self._window.connect("key-press-event", self._on_key_press)
 			self._window.connect("window-state-event", self._on_window_state_change)
 		else:
 			logging.warning("No hildonization support")
 
-
 		hildonize.set_application_title(self._window, "%s" % constants.__pretty_app_name__)
-
-		callbackMapping = {
-			"on_dialpad_quit": self._on_close,
-		}
-		self._widgetTree.signal_autoconnect(callbackMapping)
 
 		self._window.connect("destroy", self._on_close)
 		self._window.set_default_size(800, 300)
@@ -205,7 +207,7 @@ class Dialcentral(object):
 					self._errorDisplay.push_exception()
 				alarm_handler = None
 				logging.warning("No notification support")
-			if hildonize.IS_HILDON:
+			if hildonize.IS_HILDON_SUPPORTED:
 				try:
 					import led_handler
 					self._ledHandler = led_handler.LedHandler()
@@ -295,10 +297,12 @@ class Dialcentral(object):
 				"on_refresh": self._on_menu_refresh,
 				"on_rotate": self._on_menu_rotate,
 				"on_clearcookies_clicked": self._on_clearcookies_clicked,
-				"on_notebook_switch_page": self._on_notebook_switch_page,
 				"on_about_activate": self._on_about_activate,
 			}
-			self._widgetTree.signal_autoconnect(callbackMapping)
+			if hildonize.GTK_MENU_USED:
+				self._widgetTree.signal_autoconnect(callbackMapping)
+			self._notebook.connect("switch-page", self._on_notebook_switch_page)
+			self._widgetTree.get_widget("clearcookies").connect("clicked", self._on_clearcookies_clicked)
 
 			with gtk_toolbox.gtk_lock():
 				self._originalCurrentLabels = [
@@ -792,7 +796,8 @@ class Dialcentral(object):
 	def _on_paste(self, *args):
 		try:
 			contents = self._clipboard.wait_for_text()
-			self._dialpads[self._selectedBackendId].set_number(contents)
+			if contents is not None:
+				self._dialpads[self._selectedBackendId].set_number(contents)
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
@@ -827,7 +832,7 @@ def run_dialpad():
 	#with gtk_toolbox.flock(_lock_file, 0):
 	gtk.gdk.threads_init()
 
-	if hildonize.IS_HILDON:
+	if hildonize.IS_HILDON_SUPPORTED:
 		gtk.set_application_name(constants.__pretty_app_name__)
 	handle = Dialcentral()
 	gtk.main()
