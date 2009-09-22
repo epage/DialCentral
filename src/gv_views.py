@@ -19,9 +19,10 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @todo Add CTRL-V support to Dialpad
-@todo Touch selector for notification time
-@todo Test if hildonize should do stackables by default
-@todo Alternate UI for dialogs
+@todo Touch selector for addressbook selection
+@todo Touch selector for callback number
+@todo Look into top half of dialogs being a treeview rather than a label
+@todo Alternate UI for dialogs (stackables)
 """
 
 from __future__ import with_statement
