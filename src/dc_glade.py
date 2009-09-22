@@ -516,7 +516,6 @@ class Dialcentral(object):
 					),
 				)
 
-		# @todo down here till this issue is fixed
 		try:
 			previousOrientation = config.getint(constants.__pretty_app_name__, "orientation")
 			if previousOrientation == gtk.ORIENTATION_HORIZONTAL:
