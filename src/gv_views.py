@@ -661,8 +661,6 @@ class AccountInfo(object):
 			self._missedCheckbox.set_sensitive(False)
 			self._voicemailCheckbox.set_sensitive(False)
 			self._smsCheckbox.set_sensitive(False)
-		self._minutesEntryButton.set_sensitive(True)
-		self._onMinutesChanged = self._minutesEntryButton.connect("clicked", self._on_minutes_clicked)
 
 		self.update(force=True)
 
