@@ -408,6 +408,9 @@ class Dialcentral(object):
 				credentials = self._credentialsDialog.request_credentials(
 					defaultCredentials = self._credentials
 				)
+				if not self._phoneBackends[tmpServiceId].get_callback_number():
+					# subtle reminder to the users to configure things
+					self._notebook.set_current_page(self.ACCOUNT_TAB)
 			username, password = credentials
 			loggedIn = self._phoneBackends[tmpServiceId].login(username, password)
 

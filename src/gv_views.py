@@ -17,6 +17,10 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+@todo Touch selector for notification time
+@todo Test if hildonize should do stackables by default
+@todo Alternate UI for dialogs
 """
 
 from __future__ import with_statement
@@ -748,7 +752,7 @@ class AccountInfo(object):
 
 	def _set_callback_number(self, number):
 		try:
-			if not self._backend.is_valid_syntax(number):
+			if not self._backend.is_valid_syntax(number) and 0 < len(number):
 				self._errorDisplay.push_message("%s is not a valid callback number" % number)
 			elif number == self._backend.get_callback_number():
 				logging.warning(
