@@ -410,4 +410,8 @@ except AttributeError:
 
 
 if __name__ == "__main__":
-	pass
+	app = get_app_class()()
+	win = gtk.Window()
+	win = hildonize_window(app, win)
+	if True:
+		print touch_selector(win, "Test", ["1", "2", "3", "4"], 2)
