@@ -34,9 +34,10 @@ def _null_get_app_class():
 	return _NullHildonProgram
 
 
-if IS_HILDON_SUPPORTED:
+try:
+	hildon.Program
 	get_app_class = _hildon_get_app_class
-else:
+except AttributeError:
 	get_app_class = _null_get_app_class
 
 
@@ -365,27 +366,43 @@ def _hildon_touch_selector(parent, title, items, defaultIndex):
 		raise RuntimeError("Unrecognized response %r", response)
 
 
+def _on_null_touch_selector_activated(treeView, path, column, dialog):
+	dialog.response(gtk.RESPONSE_OK)
+
+
 def _null_touch_selector(parent, title, items, defaultIndex = -1):
 	model = gtk.ListStore(gobject.TYPE_STRING)
 	for item in items:
 		model.append((item, ))
 
 	cell = gtk.CellRendererText()
+	set_cell_thumb_selectable(cell)
+	column = gtk.TreeViewColumn(title)
+	column .pack_start(cell, expand=True)
+	column.add_attribute(cell, "text", 0)
 
-	combo = gtk.ComboBox()
-	combo.set_model(model)
-	combo.pack_start(cell, True)
-	combo.add_attribute(cell, 'text', 0)
-	combo.set_active(defaultIndex)
+	treeView = gtk.TreeView()
+	treeView.set_model(model)
+	treeView.append_column(column)
+	selection = treeView.get_selection()
+	selection.set_mode(gtk.SELECTION_SINGLE)
+	if 0 < defaultIndex:
+		selection.select_path((defaultIndex, ))
+
+	scrolledWin = gtk.ScrolledWindow()
+	scrolledWin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+	scrolledWin.add(treeView)
+	hildonize_scrollwindow(scrolledWin)
 
 	dialog = gtk.Dialog(
 		title,
 		parent,
 		gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
-		(gtk.STOCK_OK, gtk.RESPONSE_OK, gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL),
+		(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL),
 	)
 	dialog.set_default_response(gtk.RESPONSE_CANCEL)
-	dialog.get_child().add(combo)
+	dialog.get_child().add(scrolledWin)
+	treeView.connect("row-activated", _on_null_touch_selector_activated, dialog)
 
 	try:
 		dialog.show_all()
@@ -394,7 +411,10 @@ def _null_touch_selector(parent, title, items, defaultIndex = -1):
 		dialog.hide()
 
 	if response == gtk.RESPONSE_OK:
-		return combo.get_active()
+		model, itr = selection.get_selected()
+		if itr is None:
+			raise RuntimeError("No selection made")
+		return model.get_path(itr)[0]
 	elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
 		raise RuntimeError("User cancelled request")
 	else:
@@ -414,4 +434,4 @@ if __name__ == "__main__":
 	win = gtk.Window()
 	win = hildonize_window(app, win)
 	if True:
-		print touch_selector(win, "Test", ["1", "2", "3", "4"], 2)
+		print touch_selector(win, "Test", ["A", "B", "C", "D"], 2)
