@@ -5,7 +5,7 @@ import gtk
 import dbus
 
 
-class FakeHildonModule(object):
+class _NullHildonModule(object):
 	pass
 
 
@@ -13,14 +13,16 @@ try:
 	import hildon as _hildon
 	hildon  = _hildon # Dumb but gets around pyflakiness
 except (ImportError, OSError):
-	hildon = FakeHildonModule
+	hildon = _NullHildonModule
 
 
-IS_HILDON_SUPPORTED = hildon is not FakeHildonModule
+IS_HILDON_SUPPORTED = hildon is not _NullHildonModule
 
 
-class FakeHildonProgram(object):
-	pass
+class _NullHildonProgram(object):
+
+	def add_window(self, window):
+		pass
 
 
 def _hildon_get_app_class():
@@ -28,7 +30,7 @@ def _hildon_get_app_class():
 
 
 def _null_get_app_class():
-	return FakeHildonProgram
+	return _NullHildonProgram
 
 
 if IS_HILDON_SUPPORTED:
@@ -51,6 +53,14 @@ else:
 	set_application_title = _null_set_application_title
 
 
+def _fremantle_hildonize_window(app, window):
+	oldWindow = window
+	newWindow = hildon.StackableWindow()
+	oldWindow.get_child().reparent(newWindow)
+	app.add_window(newWindow)
+	return newWindow
+
+
 def _hildon_hildonize_window(app, window):
 	oldWindow = window
 	newWindow = hildon.Window()
@@ -63,10 +73,15 @@ def _null_hildonize_window(app, window):
 	return window
 
 
-if IS_HILDON_SUPPORTED:
-	hildonize_window = _hildon_hildonize_window
-else:
-	hildonize_window = _null_hildonize_window
+try:
+	hildon.StackableWindow
+	hildonize_window = _fremantle_hildonize_window
+except AttributeError:
+	try:
+		hildon.Window
+		hildonize_window = _hildon_hildonize_window
+	except AttributeError:
+		hildonize_window = _null_hildonize_window
 
 
 def _fremantle_hildonize_menu(window, gtkMenu, buttons):
