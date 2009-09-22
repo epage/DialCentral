@@ -18,6 +18,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+@todo Add CTRL-V support to Dialpad
 @todo Touch selector for notification time
 @todo Test if hildonize should do stackables by default
 @todo Alternate UI for dialogs
@@ -649,7 +650,7 @@ class AccountInfo(object):
 			self._smsCheckbox.set_active(self._notifyOnSms)
 
 			self._onNotifyToggled = self._notifyCheckbox.connect("toggled", self._on_notify_toggled)
-			self._onMinutesChanged = self._minutesEntryButton.connect("clicked", self._on_minutes_changed)
+			self._onMinutesChanged = self._minutesEntryButton.connect("clicked", self._on_minutes_clicked)
 			self._onMissedToggled = self._missedCheckbox.connect("toggled", self._on_missed_toggled)
 			self._onVoicemailToggled = self._voicemailCheckbox.connect("toggled", self._on_voicemail_toggled)
 			self._onSmsToggled = self._smsCheckbox.connect("toggled", self._on_sms_toggled)
@@ -659,6 +660,8 @@ class AccountInfo(object):
 			self._missedCheckbox.set_sensitive(False)
 			self._voicemailCheckbox.set_sensitive(False)
 			self._smsCheckbox.set_sensitive(False)
+		self._minutesEntryButton.set_sensitive(True)
+		self._onMinutesChanged = self._minutesEntryButton.connect("clicked", self._on_minutes_clicked)
 
 		self.update(force=True)
 
@@ -800,11 +803,33 @@ class AccountInfo(object):
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
-	def _on_minutes_changed(self, *args):
+	def _on_minutes_clicked(self, *args):
+		recurrenceChoices = [
+			(1, "1 minute"),
+			(3, "3 minutes"),
+			(5, "5 minutes"),
+			(10, "10 minutes"),
+			(15, "15 minutes"),
+			(30, "30 minutes"),
+			(45, "45 minutes"),
+			(60, "1 hour"),
+			(12*60, "12 hours"),
+		]
 		try:
-			recurrence = hildonize.request_number(
-				self._window, "Minutes", (1, 50), self._alarmHandler.recurrence
+			actualSelection = self._alarmHandler.recurrence
+
+			closestSelectionIndex = 0
+			for i, possible in enumerate(recurrenceChoices):
+				if possible[0] <= actualSelection:
+					closestSelectionIndex = i
+			recurrenceIndex = hildonize.touch_selector(
+				self._window,
+				"Minutes",
+				(("%s" % m[1]) for m in recurrenceChoices),
+				closestSelectionIndex,
 			)
+			recurrence = recurrenceChoices[recurrenceIndex][0]
+
 			self._update_alarm_settings(recurrence)
 		except Exception, e:
 			self._errorDisplay.push_exception()

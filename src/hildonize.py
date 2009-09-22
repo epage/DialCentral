@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+import gobject
 import gtk
 import dbus
 
@@ -335,3 +336,78 @@ try:
 	request_number = _hildon_request_number
 except AttributeError:
 	request_number = _null_request_number
+
+
+def _hildon_touch_selector(parent, title, items, defaultIndex):
+	model = gtk.ListStore(gobject.TYPE_STRING)
+	for item in items:
+		model.append((item, ))
+
+	selector = hildon.TouchSelector()
+	selector.append_text_column(model, True)
+	selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
+	selector.set_active(0, defaultIndex)
+
+	dialog = hildon.PickerDialog(parent)
+	dialog.set_selector(selector)
+
+	try:
+		dialog.show_all()
+		response = dialog.run()
+	finally:
+		dialog.hide()
+
+	if response == gtk.RESPONSE_OK:
+		return selector.get_active(0)
+	elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
+		raise RuntimeError("User cancelled request")
+	else:
+		raise RuntimeError("Unrecognized response %r", response)
+
+
+def _null_touch_selector(parent, title, items, defaultIndex = -1):
+	model = gtk.ListStore(gobject.TYPE_STRING)
+	for item in items:
+		model.append((item, ))
+
+	cell = gtk.CellRendererText()
+
+	combo = gtk.ComboBox()
+	combo.set_model(model)
+	combo.pack_start(cell, True)
+	combo.add_attribute(cell, 'text', 0)
+	combo.set_active(defaultIndex)
+
+	dialog = gtk.Dialog(
+		title,
+		parent,
+		gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
+		(gtk.STOCK_OK, gtk.RESPONSE_OK, gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL),
+	)
+	dialog.set_default_response(gtk.RESPONSE_CANCEL)
+	dialog.get_child().add(combo)
+
+	try:
+		dialog.show_all()
+		response = dialog.run()
+	finally:
+		dialog.hide()
+
+	if response == gtk.RESPONSE_OK:
+		return combo.get_active()
+	elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
+		raise RuntimeError("User cancelled request")
+	else:
+		raise RuntimeError("Unrecognized response %r", response)
+
+
+try:
+	hildon.PickerDialog
+	hildon.TouchSelector
+	touch_selector = _hildon_touch_selector
+except AttributeError:
+	touch_selector = _null_touch_selector
+
+
+if __name__ == "__main__":
+	pass
