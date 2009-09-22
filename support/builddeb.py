@@ -28,6 +28,7 @@ __changelog__ = """
 * Made startup more error resistant
 * Simplified menus
 * Fremantle: Making various areas pannable
+* UI Tweak: Switch to accounts tab when logging in and callback is blank as a sublte hint to configure it
 * Bug Fix: some dependencies for Diablo
 * Bug Fix: Error on refreshing tabs when not logged in
 * Bug Fix: #4471 Notification Checkbox Won't Stay Checked (hour roll over error)
@@ -221,7 +222,13 @@ def build_package(distribution):
 	p.changelog = __changelog__
 	p.postinstall = __postinstall__
 	p.preremove = __preremove__
-	p.icon = "26x26-dialcentral.png"
+	p.icon = {
+		"debian": "26x26-dialcentral.png",
+		"chinook": "26x26-dialcentral.png",
+		"diablo": "26x26-dialcentral.png",
+		"fremantle": "64x64-dialcentral.png", # Fremantle natively uses 48x48
+		"mer": "64x64-dialcentral.png",
+	}
 	p["/usr/bin"] = [ "dialcentral.py" ]
 	for relPath, files in unflatten_files(find_files(".")).iteritems():
 		fullPath = "/usr/lib/dialcentral"
