@@ -348,7 +348,6 @@ class PhoneTypeSelector(object):
 			messagesSelection = self._messagesView.get_selection()
 			messagesSelection.select_path((len(messages)-1, ))
 		else:
-			self._messagesView.set_markup("")
 			self._messagesView.hide()
 			self._scrollWindow.hide()
 
@@ -357,7 +356,8 @@ class PhoneTypeSelector(object):
 
 		try:
 			self._dialog.show()
-			self._messagesView.scroll_to_cell((len(messages)-1, ))
+			if messages:
+				self._messagesView.scroll_to_cell((len(messages)-1, ))
 
 			userResponse = self._dialog.run()
 		finally:
@@ -464,7 +464,6 @@ class SmsEntryDialog(object):
 			messagesSelection = self._messagesView.get_selection()
 			messagesSelection.select_path((len(messages)-1, ))
 		else:
-			self._messagesView.set_markup("")
 			self._messagesView.hide()
 			self._scrollWindow.hide()
 
@@ -476,7 +475,8 @@ class SmsEntryDialog(object):
 
 		try:
 			self._dialog.show()
-			self._messagesView.scroll_to_cell((len(messages)-1, ))
+			if messages:
+				self._messagesView.scroll_to_cell((len(messages)-1, ))
 			self._smsEntry.grab_focus()
 
 			userResponse = self._dialog.run()
