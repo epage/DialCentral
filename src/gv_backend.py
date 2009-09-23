@@ -561,7 +561,7 @@ class GVDialer(object):
 			)).strip()
 			if not message:
 				message = "No Transcription"
-			yield exactTime, header, voicemailData["number"], voicemailData["relTime"], message
+			yield exactTime, header, voicemailData["number"], voicemailData["relTime"], (message, )
 
 	_smsFromRegex = re.compile(r"""<span class="gc-message-sms-from">(.*?)</span>""", re.MULTILINE | re.DOTALL)
 	_smsTextRegex = re.compile(r"""<span class="gc-message-sms-time">(.*?)</span>""", re.MULTILINE | re.DOTALL)
@@ -613,13 +613,13 @@ class GVDialer(object):
 				header = "Unknown"
 			number = messageData["number"]
 			relativeTime = messageData["relTime"]
-			message = "\n".join((
+			messages = [
 				"<b>%s</b>: %s" % (messagePart[0], messagePart[-1])
 				for messagePart in messageData["messageParts"]
-			))
-			if not message:
-				message = "No Transcription"
-			yield exactTime, header, number, relativeTime, message
+			]
+			if not messages:
+				messages = ("No Transcription", )
+			yield exactTime, header, number, relativeTime, messages
 
 
 def test_backend(username, password):

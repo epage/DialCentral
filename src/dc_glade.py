@@ -17,6 +17,8 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+@bug When switching to tab while logging in, it doesn't refresh once logged int
 """
 
 
@@ -117,12 +119,12 @@ class Dialcentral(object):
 			'recent_scrolledwindow',
 			'message_scrolledwindow',
 			'contacts_scrolledwindow',
+			"phoneSelectionMessages_scrolledwindow",
+			"smsMessages_scrolledwindow",
 		):
 			hildonize.hildonize_scrollwindow(self._widgetTree.get_widget(scrollingWidget))
 		for scrollingWidget in (
-			"phoneSelectionMessage_scrolledwindow",
 			"phonetypes_scrolledwindow",
-			"smsMessage_scrolledwindow",
 			"smsMessage_scrolledEntry",
 		):
 			hildonize.hildonize_scrollwindow_with_viewport(self._widgetTree.get_widget(scrollingWidget))
@@ -455,6 +457,7 @@ class Dialcentral(object):
 		if self._phoneBackends[self._selectedBackendId].get_callback_number() is None:
 			self._phoneBackends[self._selectedBackendId].set_sane_callback()
 		self._accountViews[self._selectedBackendId].update()
+		self._refresh_active_tab()
 
 		self._selectedBackendId = newStatus
 

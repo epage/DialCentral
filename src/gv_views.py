@@ -19,7 +19,6 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @todo Add CTRL-V support to Dialpad
-@todo Touch selector for addressbook selection
 @todo Touch selector for callback number
 @todo Look into top half of dialogs being a treeview rather than a label
 @todo Alternate UI for dialogs (stackables)
@@ -290,23 +289,24 @@ class PhoneTypeSelector(object):
 		self._cancelButton = self._widgetTree.get_widget("cancel_button")
 		self._cancelButton.connect("clicked", self._on_phonetype_cancel)
 
+		self._messagemodel = gtk.ListStore(gobject.TYPE_STRING)
+		self._messagesView = self._widgetTree.get_widget("phoneSelectionMessages")
+		self._scrollWindow = self._messagesView.get_parent()
+
 		self._typemodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
 		self._typeviewselection = None
-
-		self._message = self._widgetTree.get_widget("phoneSelectionMessage")
-		self._messageViewport = self._widgetTree.get_widget("phoneSelectionMessage_viewport")
-		self._scrollWindow = self._widgetTree.get_widget("phoneSelectionMessage_scrolledwindow")
 		self._typeview = self._widgetTree.get_widget("phonetypes")
 		self._typeview.connect("row-activated", self._on_phonetype_select)
 
 		self._action = self.ACTION_CANCEL
 
-	def run(self, contactDetails, message = "", parent = None):
+	def run(self, contactDetails, messages = (), parent = None):
 		self._action = self.ACTION_CANCEL
+
+		# Add the column to the phone selection tree view
 		self._typemodel.clear()
 		self._typeview.set_model(self._typemodel)
 
-		# Add the column to the treeview
 		textrenderer = gtk.CellRendererText()
 		numberColumn = gtk.TreeViewColumn("Phone Numbers", textrenderer, text=0)
 		self._typeview.append_column(numberColumn)
@@ -315,32 +315,49 @@ class PhoneTypeSelector(object):
 		typeColumn = gtk.TreeViewColumn("Phone Type", textrenderer, text=1)
 		self._typeview.append_column(typeColumn)
 
-		self._typeviewselection = self._typeview.get_selection()
-		self._typeviewselection.set_mode(gtk.SELECTION_SINGLE)
-
 		for phoneType, phoneNumber in contactDetails:
 			display = " - ".join((phoneNumber, phoneType))
 			display = phoneType
 			row = (phoneNumber, display)
 			self._typemodel.append(row)
 
+		self._typeviewselection = self._typeview.get_selection()
+		self._typeviewselection.set_mode(gtk.SELECTION_SINGLE)
 		self._typeviewselection.select_iter(self._typemodel.get_iter_first())
-		if message:
-			self._message.set_markup(message)
-			self._message.show()
+
+		# Add the column to the messages tree view
+		self._messagemodel.clear()
+		self._messagesView.set_model(self._messagemodel)
+
+		textrenderer = gtk.CellRendererText()
+		textrenderer.set_property("wrap-mode", pango.WRAP_WORD)
+		textrenderer.set_property("wrap-width", 450)
+		messageColumn = gtk.TreeViewColumn("")
+		messageColumn.pack_start(textrenderer, expand=True)
+		messageColumn.add_attribute(textrenderer, "markup", 0)
+		messageColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._messagesView.append_column(messageColumn)
+		self._messagesView.set_headers_visible(False)
+
+		if messages:
+			for message in messages:
+				row = (message, )
+				self._messagemodel.append(row)
+			self._messagesView.show()
+			self._scrollWindow.show()
+			messagesSelection = self._messagesView.get_selection()
+			messagesSelection.select_path((len(messages)-1, ))
 		else:
-			self._message.set_markup("")
-			self._message.hide()
+			self._messagesView.set_markup("")
+			self._messagesView.hide()
+			self._scrollWindow.hide()
 
 		if parent is not None:
 			self._dialog.set_transient_for(parent)
 
 		try:
 			self._dialog.show()
-			adjustment = self._scrollWindow.get_vadjustment()
-			dx = self._message.get_allocation().height - self._messageViewport.get_allocation().height
-			dx = max(dx, 0)
-			adjustment.value = dx
+			self._messagesView.scroll_to_cell((len(messages)-1, ))
 
 			userResponse = self._dialog.run()
 		finally:
@@ -355,12 +372,15 @@ class PhoneTypeSelector(object):
 			self._action = self.ACTION_CANCEL
 
 		if self._action == self.ACTION_SEND_SMS:
-			smsMessage = self._smsDialog.run(phoneNumber, message, parent)
+			smsMessage = self._smsDialog.run(phoneNumber, messages, parent)
 			if not smsMessage:
 				phoneNumber = ""
 				self._action = self.ACTION_CANCEL
 		else:
 			smsMessage = ""
+
+		self._messagesView.remove_column(messageColumn)
+		self._messagesView.set_model(None)
 
 		self._typeviewselection.unselect_all()
 		self._typeview.remove_column(numberColumn)
@@ -395,7 +415,6 @@ class PhoneTypeSelector(object):
 
 
 class SmsEntryDialog(object):
-
 	"""
 	@todo Add multi-SMS messages like GoogleVoice
 	"""
@@ -413,19 +432,42 @@ class SmsEntryDialog(object):
 		self._cancelButton.connect("clicked", self._on_cancel)
 
 		self._letterCountLabel = self._widgetTree.get_widget("smsLetterCount")
-		self._message = self._widgetTree.get_widget("smsMessage")
-		self._messageViewport = self._widgetTree.get_widget("smsMessage_viewport")
-		self._scrollWindow = self._widgetTree.get_widget("smsMessage_scrolledwindow")
+
+		self._messagemodel = gtk.ListStore(gobject.TYPE_STRING)
+		self._messagesView = self._widgetTree.get_widget("smsMessages")
+		self._scrollWindow = self._messagesView.get_parent()
+
 		self._smsEntry = self._widgetTree.get_widget("smsEntry")
 		self._smsEntry.get_buffer().connect("changed", self._on_entry_changed)
 
-	def run(self, number, message = "", parent = None):
-		if message:
-			self._message.set_markup(message)
-			self._message.show()
+	def run(self, number, messages = (), parent = None):
+		# Add the column to the messages tree view
+		self._messagemodel.clear()
+		self._messagesView.set_model(self._messagemodel)
+
+		textrenderer = gtk.CellRendererText()
+		textrenderer.set_property("wrap-mode", pango.WRAP_WORD)
+		textrenderer.set_property("wrap-width", 450)
+		messageColumn = gtk.TreeViewColumn("")
+		messageColumn.pack_start(textrenderer, expand=True)
+		messageColumn.add_attribute(textrenderer, "markup", 0)
+		messageColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._messagesView.append_column(messageColumn)
+		self._messagesView.set_headers_visible(False)
+
+		if messages:
+			for message in messages:
+				row = (message, )
+				self._messagemodel.append(row)
+			self._messagesView.show()
+			self._scrollWindow.show()
+			messagesSelection = self._messagesView.get_selection()
+			messagesSelection.select_path((len(messages)-1, ))
 		else:
-			self._message.set_markup("")
-			self._message.hide()
+			self._messagesView.set_markup("")
+			self._messagesView.hide()
+			self._scrollWindow.hide()
+
 		self._smsEntry.get_buffer().set_text("")
 		self._update_letter_count()
 
@@ -434,10 +476,8 @@ class SmsEntryDialog(object):
 
 		try:
 			self._dialog.show()
-			adjustment = self._scrollWindow.get_vadjustment()
-			dx = self._message.get_allocation().height - self._messageViewport.get_allocation().height
-			dx = max(dx, 0)
-			adjustment.value = dx
+			self._messagesView.scroll_to_cell((len(messages)-1, ))
+			self._smsEntry.grab_focus()
 
 			userResponse = self._dialog.run()
 		finally:
@@ -449,6 +489,9 @@ class SmsEntryDialog(object):
 			enteredMessage = enteredMessage[0:self.MAX_CHAR]
 		else:
 			enteredMessage = ""
+
+		self._messagesView.remove_column(messageColumn)
+		self._messagesView.set_model(None)
 
 		return enteredMessage.strip()
 
@@ -549,7 +592,7 @@ class Dialpad(object):
 			action = PhoneTypeSelector.ACTION_SEND_SMS
 			phoneNumber = self.get_number()
 
-			message = self._smsDialog.run(phoneNumber, "", self._window)
+			message = self._smsDialog.run(phoneNumber, (), self._window)
 			if not message:
 				phoneNumber = ""
 				action = PhoneTypeSelector.ACTION_CANCEL
@@ -1014,7 +1057,7 @@ class RecentCallsView(object):
 
 			action, phoneNumber, message = self._phoneTypeSelector.run(
 				contactPhoneNumbers,
-				message = description,
+				messages = (description, ),
 				parent = self._window,
 			)
 			if action == PhoneTypeSelector.ACTION_CANCEL:
@@ -1033,6 +1076,7 @@ class MessagesView(object):
 	DATE_IDX = 1
 	HEADER_IDX = 2
 	MESSAGE_IDX = 3
+	MESSAGES_IDX = 4
 
 	def __init__(self, widgetTree, backend, errorDisplay):
 		self._errorDisplay = errorDisplay
@@ -1044,6 +1088,7 @@ class MessagesView(object):
 			gobject.TYPE_STRING, # date
 			gobject.TYPE_STRING, # header
 			gobject.TYPE_STRING, # message
+			object, # messages
 		)
 		self._messageview = widgetTree.get_widget("messages_view")
 		self._messageviewselection = None
@@ -1126,12 +1171,17 @@ class MessagesView(object):
 				self._isPopulated = False
 				messageItems = []
 
-			for header, number, relativeDate, message in messageItems:
+			for header, number, relativeDate, messages in messageItems:
 				prettyNumber = number[2:] if number.startswith("+1") else number
 				prettyNumber = make_pretty(prettyNumber)
-				message = "<b>%s - %s</b> <i>(%s)</i>\n\n%s" % (header, prettyNumber, relativeDate, message)
+
+				firstMessage = "<b>%s - %s</b> <i>(%s)</i>" % (header, prettyNumber, relativeDate)
+				newMessages = [firstMessage]
+				newMessages.extend(messages)
+
 				number = make_ugly(number)
-				row = (number, relativeDate, header, message)
+
+				row = (number, relativeDate, header, "\n".join(newMessages), newMessages)
 				with gtk_toolbox.gtk_lock():
 					self._messagemodel.append(row)
 		except Exception, e:
@@ -1146,11 +1196,11 @@ class MessagesView(object):
 				return
 
 			contactPhoneNumbers = [("Phone", self._messagemodel.get_value(itr, self.NUMBER_IDX))]
-			description = self._messagemodel.get_value(itr, self.MESSAGE_IDX)
+			description = self._messagemodel.get_value(itr, self.MESSAGES_IDX)
 
 			action, phoneNumber, message = self._phoneTypeSelector.run(
 				contactPhoneNumbers,
-				message = description,
+				messages = description,
 				parent = self._window,
 			)
 			if action == PhoneTypeSelector.ACTION_CANCEL:
@@ -1374,7 +1424,7 @@ class ContactsView(object):
 
 			action, phoneNumber, message = self._phoneTypeSelector.run(
 				contactPhoneNumbers,
-				message = contactName,
+				messages = (contactName, ),
 				parent = self._window,
 			)
 			if action == PhoneTypeSelector.ACTION_CANCEL:

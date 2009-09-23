@@ -1018,22 +1018,15 @@
             <property name="visible">True</property>
             <property name="orientation">vertical</property>
             <child>
-              <widget class="GtkScrolledWindow" id="phoneSelectionMessage_scrolledwindow">
+              <widget class="GtkScrolledWindow" id="phoneSelectionMessages_scrolledwindow">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="hscrollbar_policy">never</property>
                 <property name="vscrollbar_policy">automatic</property>
                 <child>
-                  <widget class="GtkViewport" id="phoneSelectionMessage_viewport">
+                  <widget class="GtkTreeView" id="phoneSelectionMessages">
                     <property name="visible">True</property>
-                    <property name="resize_mode">queue</property>
-                    <child>
-                      <widget class="GtkLabel" id="phoneSelectionMessage">
-                        <property name="visible">True</property>
-                        <property name="use_markup">True</property>
-                        <property name="wrap">True</property>
-                      </widget>
-                    </child>
+                    <property name="can_focus">True</property>
                   </widget>
                 </child>
               </widget>
@@ -1044,6 +1037,15 @@
           </widget>
           <packing>
             <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkHSeparator" id="hseparator1">
+            <property name="visible">True</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -1073,7 +1075,7 @@
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child internal-child="action_area">
@@ -1166,22 +1168,15 @@
             <property name="visible">True</property>
             <property name="orientation">vertical</property>
             <child>
-              <widget class="GtkScrolledWindow" id="smsMessage_scrolledwindow">
+              <widget class="GtkScrolledWindow" id="smsMessages_scrolledwindow">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="hscrollbar_policy">never</property>
                 <property name="vscrollbar_policy">automatic</property>
                 <child>
-                  <widget class="GtkViewport" id="smsMessage_viewport">
+                  <widget class="GtkTreeView" id="smsMessages">
                     <property name="visible">True</property>
-                    <property name="resize_mode">queue</property>
-                    <child>
-                      <widget class="GtkLabel" id="smsMessage">
-                        <property name="visible">True</property>
-                        <property name="use_markup">True</property>
-                        <property name="wrap">True</property>
-                      </widget>
-                    </child>
+                    <property name="can_focus">True</property>
                   </widget>
                 </child>
               </widget>
@@ -1192,6 +1187,15 @@
           </widget>
           <packing>
             <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkHSeparator" id="hseparator1">
+            <property name="visible">True</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -1218,7 +1222,7 @@
             </child>
           </widget>
           <packing>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -1248,7 +1252,7 @@
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child internal-child="action_area">
