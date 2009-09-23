@@ -182,10 +182,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="2" signal="clicked"/>
-                        <accelerator key="a" signal="clicked"/>
-                        <accelerator key="b" signal="clicked"/>
                         <accelerator key="c" signal="clicked"/>
+                        <accelerator key="b" signal="clicked"/>
+                        <accelerator key="a" signal="clicked"/>
+                        <accelerator key="2" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label10">
                             <property name="visible">True</property>
@@ -208,10 +208,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="3" signal="clicked"/>
-                        <accelerator key="d" signal="clicked"/>
-                        <accelerator key="e" signal="clicked"/>
                         <accelerator key="f" signal="clicked"/>
+                        <accelerator key="e" signal="clicked"/>
+                        <accelerator key="d" signal="clicked"/>
+                        <accelerator key="3" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label11">
                             <property name="visible">True</property>
@@ -234,10 +234,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="4" signal="clicked"/>
-                        <accelerator key="g" signal="clicked"/>
-                        <accelerator key="h" signal="clicked"/>
                         <accelerator key="i" signal="clicked"/>
+                        <accelerator key="h" signal="clicked"/>
+                        <accelerator key="g" signal="clicked"/>
+                        <accelerator key="4" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label13">
                             <property name="visible">True</property>
@@ -260,10 +260,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="5" signal="clicked"/>
-                        <accelerator key="j" signal="clicked"/>
-                        <accelerator key="k" signal="clicked"/>
                         <accelerator key="l" signal="clicked"/>
+                        <accelerator key="k" signal="clicked"/>
+                        <accelerator key="j" signal="clicked"/>
+                        <accelerator key="5" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label14">
                             <property name="visible">True</property>
@@ -288,10 +288,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="6" signal="clicked"/>
-                        <accelerator key="m" signal="clicked"/>
-                        <accelerator key="n" signal="clicked"/>
                         <accelerator key="o" signal="clicked"/>
+                        <accelerator key="n" signal="clicked"/>
+                        <accelerator key="m" signal="clicked"/>
+                        <accelerator key="6" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label15">
                             <property name="visible">True</property>
@@ -316,11 +316,11 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="7" signal="clicked"/>
-                        <accelerator key="p" signal="clicked"/>
-                        <accelerator key="q" signal="clicked"/>
-                        <accelerator key="r" signal="clicked"/>
                         <accelerator key="s" signal="clicked"/>
+                        <accelerator key="r" signal="clicked"/>
+                        <accelerator key="q" signal="clicked"/>
+                        <accelerator key="p" signal="clicked"/>
+                        <accelerator key="7" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label16">
                             <property name="visible">True</property>
@@ -343,10 +343,10 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="8" signal="clicked"/>
-                        <accelerator key="t" signal="clicked"/>
-                        <accelerator key="u" signal="clicked"/>
                         <accelerator key="v" signal="clicked"/>
+                        <accelerator key="u" signal="clicked"/>
+                        <accelerator key="t" signal="clicked"/>
+                        <accelerator key="8" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label17">
                             <property name="visible">True</property>
@@ -371,11 +371,11 @@
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
                         <signal name="clicked" handler="on_digit_clicked"/>
-                        <accelerator key="9" signal="clicked"/>
-                        <accelerator key="w" signal="clicked"/>
-                        <accelerator key="x" signal="clicked"/>
-                        <accelerator key="y" signal="clicked"/>
                         <accelerator key="z" signal="clicked"/>
+                        <accelerator key="y" signal="clicked"/>
+                        <accelerator key="x" signal="clicked"/>
+                        <accelerator key="w" signal="clicked"/>
+                        <accelerator key="9" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label18">
                             <property name="visible">True</property>
@@ -610,8 +610,10 @@
                 <property name="visible">True</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <widget class="GtkComboBox" id="addressbook_combo">
+                  <widget class="GtkButton" id="addressbookSelectButton">
                     <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
                   </widget>
                   <packing>
                     <property name="expand">False</property>

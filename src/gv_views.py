@@ -1173,8 +1173,8 @@ class ContactsView(object):
 		self._selectedComboIndex = 0
 		self._addressBookFactories = [null_backend.NullAddressBook()]
 
-		self._booksList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
-		self._booksSelectionBox = widgetTree.get_widget("addressbook_combo")
+		self._booksList = []
+		self._bookSelectionButton = widgetTree.get_widget("addressbookSelectButton")
 
 		self._isPopulated = False
 		self._contactsmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
@@ -1199,7 +1199,7 @@ class ContactsView(object):
 		self._contactColumn.set_visible(True)
 
 		self._onContactsviewRowActivatedId = 0
-		self._onAddressbookComboChangedId = 0
+		self._onAddressbookButtonChangedId = 0
 		self._window = gtk_toolbox.find_parent_window(self._contactsview)
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
 
@@ -1218,7 +1218,7 @@ class ContactsView(object):
 		self._contactsviewselection = self._contactsview.get_selection()
 		self._contactsviewselection.set_mode(gtk.SELECTION_SINGLE)
 
-		self._booksList.clear()
+		del self._booksList[:]
 		for (factoryId, bookId), (factoryName, bookName) in self.get_addressbooks():
 			if factoryName and bookName:
 				entryName = "%s: %s" % (factoryName, bookName)
@@ -1231,26 +1231,24 @@ class ContactsView(object):
 			row = (str(factoryId), bookId, entryName)
 			self._booksList.append(row)
 
-		self._booksSelectionBox.set_model(self._booksList)
-		cell = gtk.CellRendererText()
-		self._booksSelectionBox.pack_start(cell, True)
-		self._booksSelectionBox.add_attribute(cell, 'text', 2)
-
 		self._onContactsviewRowActivatedId = self._contactsview.connect("row-activated", self._on_contactsview_row_activated)
-		self._onAddressbookComboChangedId = self._booksSelectionBox.connect("changed", self._on_addressbook_combo_changed)
+		self._onAddressbookButtonChangedId = self._bookSelectionButton.connect("clicked", self._on_addressbook_button_changed)
 
 		if len(self._booksList) <= self._selectedComboIndex:
 			self._selectedComboIndex = 0
-		self._booksSelectionBox.set_active(self._selectedComboIndex)
+		self._bookSelectionButton.set_label(self._booksList[self._selectedComboIndex][2])
+
+		selectedFactoryId = self._booksList[self._selectedComboIndex][0]
+		selectedBookId = self._booksList[self._selectedComboIndex][1]
+		self.open_addressbook(selectedFactoryId, selectedBookId)
 
 	def disable(self):
 		self._contactsview.disconnect(self._onContactsviewRowActivatedId)
-		self._booksSelectionBox.disconnect(self._onAddressbookComboChangedId)
+		self._bookSelectionButton.disconnect(self._onAddressbookButtonChangedId)
 
 		self.clear()
 
-		self._booksSelectionBox.clear()
-		self._booksSelectionBox.set_model(None)
+		self._bookSelectionButton.set_label("")
 		self._contactsview.set_model(None)
 		self._contactsview.remove_column(self._contactColumn)
 
@@ -1336,15 +1334,23 @@ class ContactsView(object):
 			self._errorDisplay.push_exception_with_lock()
 		return False
 
-	def _on_addressbook_combo_changed(self, *args, **kwds):
+	def _on_addressbook_button_changed(self, *args, **kwds):
 		try:
-			itr = self._booksSelectionBox.get_active_iter()
-			if itr is None:
+			try:
+				newSelectedComboIndex = hildonize.touch_selector(
+					self._window,
+					"Addressbook",
+					(("%s" % m[2]) for m in self._booksList),
+					self._selectedComboIndex,
+				)
+			except RuntimeError:
 				return
-			self._selectedComboIndex = self._booksSelectionBox.get_active()
-			selectedFactoryId = self._booksList.get_value(itr, 0)
-			selectedBookId = self._booksList.get_value(itr, 1)
+
+			selectedFactoryId = self._booksList[newSelectedComboIndex][0]
+			selectedBookId = self._booksList[newSelectedComboIndex][1]
 			self.open_addressbook(selectedFactoryId, selectedBookId)
+			self._selectedComboIndex = newSelectedComboIndex
+			self._bookSelectionButton.set_label(self._booksList[self._selectedComboIndex][2])
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

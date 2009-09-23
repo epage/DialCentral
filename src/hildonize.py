@@ -402,6 +402,8 @@ def _null_touch_selector(parent, title, items, defaultIndex = -1):
 	)
 	dialog.set_default_response(gtk.RESPONSE_CANCEL)
 	dialog.get_child().add(scrolledWin)
+	parentSize = parent.get_size()
+	dialog.resize(parentSize[0], max(parentSize[1]-100, 100))
 	treeView.connect("row-activated", _on_null_touch_selector_activated, dialog)
 
 	try:

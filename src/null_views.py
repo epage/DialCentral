@@ -177,13 +177,13 @@ class MessagesView(object):
 class ContactsView(object):
 
 	def __init__(self, widgetTree):
-		self._booksSelectionBox = widgetTree.get_widget("addressbook_combo")
+		self._bookSelectionButton = widgetTree.get_widget("addressbookSelectButton")
 
 	def enable(self):
-		self._booksSelectionBox.set_sensitive(False)
+		self._bookSelectionButton.set_sensitive(False)
 
 	def disable(self):
-		self._booksSelectionBox.set_sensitive(True)
+		self._bookSelectionButton.set_sensitive(True)
 
 	def update(self, force = False):
 		return False
