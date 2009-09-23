@@ -20,7 +20,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @todo Add CTRL-V support to Dialpad
 @todo Touch selector for callback number
-@todo Look into top half of dialogs being a treeview rather than a label
 @todo Alternate UI for dialogs (stackables)
 """
 
@@ -517,6 +516,7 @@ class SmsEntryDialog(object):
 class Dialpad(object):
 
 	def __init__(self, widgetTree, errorDisplay):
+		self._clipboard = gtk.clipboard_get()
 		self._errorDisplay = errorDisplay
 		self._smsDialog = SmsEntryDialog(widgetTree)
 
@@ -542,12 +542,16 @@ class Dialpad(object):
 		self._backTapHandler.on_cancel = self._reset_back_button
 
 		self._window = gtk_toolbox.find_parent_window(self._numberdisplay)
+		self._keyPressEventId = 0
 
 	def enable(self):
 		self._dialButton.grab_focus()
 		self._backTapHandler.enable()
+		self._keyPressEventId = self._window.connect("key-press-event", self._on_key_press)
 
 	def disable(self):
+		self._window.disconnect(self._keyPressEventId)
+		self._keyPressEventId = 0
 		self._reset_back_button()
 		self._backTapHandler.disable()
 
@@ -586,6 +590,15 @@ class Dialpad(object):
 		@note Thread Agnostic
 		"""
 		pass
+
+	def _on_key_press(self, widget, event):
+		try:
+			if event.keyval == ord("v") and event.get_state() & gtk.gdk.CONTROL_MASK:
+				contents = self._clipboard.wait_for_text()
+				if contents is not None:
+					self.set_number(contents)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _on_sms_clicked(self, widget):
 		try:

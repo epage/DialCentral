@@ -297,7 +297,6 @@ class Dialcentral(object):
 			callbackMapping = {
 				"on_paste": self._on_paste,
 				"on_refresh": self._on_menu_refresh,
-				"on_rotate": self._on_menu_rotate,
 				"on_clearcookies_clicked": self._on_clearcookies_clicked,
 				"on_about_activate": self._on_about_activate,
 			}
@@ -785,16 +784,6 @@ class Dialcentral(object):
 	def _on_menu_refresh(self, *args):
 		try:
 			self._refresh_active_tab()
-		except Exception, e:
-			self._errorDisplay.push_exception()
-
-	def _on_menu_rotate(self, *args):
-		try:
-			orientation = gtk_toolbox.get_screen_orientation()
-			if orientation == gtk.ORIENTATION_HORIZONTAL:
-				hildonize.window_to_portrait(self._window)
-			elif orientation == gtk.ORIENTATION_VERTICAL:
-				hildonize.window_to_landscape(self._window)
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

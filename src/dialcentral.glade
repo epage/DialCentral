@@ -37,14 +37,6 @@
               </widget>
             </child>
             <child>
-              <widget class="GtkMenuItem" id="rotateMenuItem">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">_Rotate</property>
-                <property name="use_underline">True</property>
-                <signal name="activate" handler="on_rotate"/>
-              </widget>
-            </child>
-            <child>
               <widget class="GtkMenuItem" id="about">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">_About</property>
