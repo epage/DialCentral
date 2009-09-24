@@ -421,6 +421,7 @@ class Dialcentral(object):
 			logging.info("Logged into %r through user request" % self._phoneBackends[serviceId])
 		else:
 			serviceId = self.NULL_BACKEND
+			self._notebook.set_current_page(self.ACCOUNT_TAB)
 
 		return loggedIn, serviceId
 

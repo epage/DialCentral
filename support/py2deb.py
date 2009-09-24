@@ -427,6 +427,7 @@ class Py2deb(object):
 
         self.name = name
         self.description = description
+        self.upgradeDescription = ""
         self.license = license
         self.depends = depends
         self.recommends = ""
@@ -665,6 +666,9 @@ Architecture: %(arch)s
 Depends: %(depends)s
 Recommends: %(recommends)s
 Description: %(description)s""" % locals()
+            if self.upgradeDescription:
+                upgradeDescription = "XB-Maemo-Upgrade-Description: %s" % self.upgradeDescription.strip()
+                txt = "\n".join((txt, "\n  ".join(upgradeDescription.split("\n")), ""))
             if self.icon:
                 f = open(self.icon, "rb")
                 try:

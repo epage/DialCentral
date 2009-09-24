@@ -28,7 +28,9 @@ __changelog__ = """
 * Made startup more error resistant
 * Simplified menus
 * Fremantle: Making various areas pannable
+* Phone selection and SMS Message dialogs now use a tree view for the top part.  This gives highlighting of the last message, easier scrolling, easier code, etc
 * UI Tweak: Switch to accounts tab when logging in and callback is blank as a sublte hint to configure it
+* UI Tweak: Switch to accounts tab on failed login to remind the user they are not logged in
 * Bug Fix: some dependencies for Diablo
 * Bug Fix: Error on refreshing tabs when not logged in
 * Bug Fix: #4471 Notification Checkbox Won't Stay Checked (hour roll over error)
@@ -189,6 +191,7 @@ def build_package(distribution):
 	py2deb.Py2deb.SECTIONS = py2deb.SECTIONS_BY_POLICY[distribution]
 	p = py2deb.Py2deb(__appname__)
 	p.description = __description__
+	p.upgradeDescription = __changelog__.split("\n\n", 1)[0]
 	p.author = __author__
 	p.mail = __email__
 	p.license = "lgpl"
@@ -228,7 +231,7 @@ def build_package(distribution):
 		"diablo": "26x26-dialcentral.png",
 		"fremantle": "64x64-dialcentral.png", # Fremantle natively uses 48x48
 		"mer": "64x64-dialcentral.png",
-	}
+	}[distribution]
 	p["/usr/bin"] = [ "dialcentral.py" ]
 	for relPath, files in unflatten_files(find_files(".")).iteritems():
 		fullPath = "/usr/lib/dialcentral"
