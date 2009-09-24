@@ -17,8 +17,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-@bug When switching to tab while logging in, it doesn't refresh once logged int
 """
 
 
@@ -456,10 +454,11 @@ class Dialcentral(object):
 
 		if self._phoneBackends[self._selectedBackendId].get_callback_number() is None:
 			self._phoneBackends[self._selectedBackendId].set_sane_callback()
-		self._accountViews[self._selectedBackendId].update()
-		self._refresh_active_tab()
 
 		self._selectedBackendId = newStatus
+
+		self._accountViews[self._selectedBackendId].update()
+		self._refresh_active_tab()
 
 	def load_settings(self, config):
 		"""

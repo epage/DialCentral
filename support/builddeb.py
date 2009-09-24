@@ -192,7 +192,7 @@ def build_package(distribution):
 	py2deb.Py2deb.SECTIONS = py2deb.SECTIONS_BY_POLICY[distribution]
 	p = py2deb.Py2deb(__appname__)
 	p.description = __description__
-	#p.upgradeDescription = __changelog__.split("\n\n", 1)[0]
+	p.upgradeDescription = __changelog__.split("\n\n", 1)[0]
 	p.author = __author__
 	p.mail = __email__
 	p.license = "lgpl"
