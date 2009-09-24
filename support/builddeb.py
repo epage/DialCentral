@@ -29,6 +29,7 @@ __changelog__ = """
 * Simplified menus
 * Fremantle: Making various areas pannable
 * Phone selection and SMS Message dialogs now use a tree view for the top part.  This gives highlighting of the last message, easier scrolling, easier code, etc
+* Added notifcations for various things like login and dialing
 * UI Tweak: Switch to accounts tab when logging in and callback is blank as a sublte hint to configure it
 * UI Tweak: Switch to accounts tab on failed login to remind the user they are not logged in
 * Bug Fix: some dependencies for Diablo

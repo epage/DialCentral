@@ -215,7 +215,8 @@ def comap(function, target):
 			mappedItem = function(*item)
 			target.send(mappedItem)
 		except Exception, e:
-			target.throw(e.__class__, e.message)
+			logging.exception("Forwarding exception!")
+			target.throw(e.__class__, str(e))
 
 
 def _flush_queue(queue):
@@ -420,7 +421,7 @@ class ErrorDisplay(object):
 			self.push_exception()
 
 	def push_exception(self):
-		userMessage = str(sys.exc_value)
+		userMessage = str(sys.exc_info()[1])
 		self.push_message(userMessage)
 		logging.exception(userMessage)
 
@@ -544,7 +545,7 @@ class PopupCalendar(object):
 			self._calendar.select_month(self._displayDate.month, self._displayDate.year)
 			self._calendar.select_day(self._displayDate.day)
 		except Exception, e:
-			logging.exception(e.message)
+			logging.exception(e)
 
 
 class QuickAddView(object):

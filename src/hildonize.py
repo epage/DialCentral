@@ -134,6 +134,60 @@ else:
 	set_cell_thumb_selectable = _null_set_cell_thumb_selectable
 
 
+def _hildon_show_information_banner(parent, message):
+	hildon.hildon_banner_show_information(parent, "", message)
+
+
+def _null_show_information_banner(parent, message):
+	pass
+
+
+try:
+	hildon.hildon_banner_show_information
+	show_information_banner = _hildon_show_information_banner
+except AttributeError:
+	show_information_banner = _null_show_information_banner
+
+
+def _fremantle_show_busy_banner_start(parent, message):
+	hildon.hildon_gtk_window_set_progress_indicator(parent, True)
+	return parent
+
+
+def _fremantle_show_busy_banner_end(parent):
+	hildon.hildon_gtk_window_set_progress_indicator(parent, False)
+
+
+def _hildon_show_busy_banner_start(parent, message):
+	return hildon.hildon_banner_show_animation(parent, "", message)
+
+
+def _hildon_show_busy_banner_end(banner):
+	banner.destroy()
+
+
+def _null_show_busy_banner_start(parent, message):
+	return None
+
+
+def _null_show_busy_banner_end(banner):
+	return None
+
+
+try:
+	hildon.hildon_gtk_window_set_progress_indicator
+	show_busy_banner_start = _fremantle_show_busy_banner_start
+	show_busy_banner_end = _fremantle_show_busy_banner_end
+except AttributeError:
+	try:
+		hildon.hildon_banner_show_animation
+		show_busy_banner_start = _hildon_show_busy_banner_start
+		show_busy_banner_end = _hildon_show_busy_banner_end
+	except AttributeError:
+		show_busy_banner_start = _null_show_busy_banner_start
+		show_busy_banner_end = _null_show_busy_banner_end
+
+
 def _hildon_hildonize_text_entry(textEntry):
 	textEntry.set_property('hildon-input-mode', 7)
 

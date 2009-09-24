@@ -150,7 +150,7 @@ class Dialcentral(object):
 
 		self._loginSink = gtk_toolbox.threaded_stage(
 			gtk_toolbox.comap(
-				self.attempt_login,
+				self._attempt_login,
 				gtk_toolbox.null_sink(),
 			)
 		)
@@ -329,7 +329,10 @@ class Dialcentral(object):
 		finally:
 			self._spawn_attempt_login(2)
 
-	def attempt_login(self, numOfAttempts = 10, force = False):
+	def _spawn_attempt_login(self, *args):
+		self._loginSink.send(args)
+
+	def _attempt_login(self, numOfAttempts = 10, force = False):
 		"""
 		@todo Handle user notification better like attempting to login and failed login
 
@@ -354,12 +357,11 @@ class Dialcentral(object):
 
 			with gtk_toolbox.gtk_lock():
 				self._change_loggedin_status(serviceId)
+				if loggedIn:
+					hildonize.show_information_banner(self._window, "Logged In")
 		except Exception, e:
 			with gtk_toolbox.gtk_lock():
 				self._errorDisplay.push_exception()
-
-	def _spawn_attempt_login(self, *args):
-		self._loginSink.send(args)
 
 	def refresh_session(self):
 		"""
@@ -744,6 +746,7 @@ class Dialcentral(object):
 			dialed = False
 			try:
 				self._phoneBackends[self._selectedBackendId].send_sms(number, message)
+				hildonize.show_information_banner(self._window, "Sending to %s" % number)
 				dialed = True
 			except Exception, e:
 				self._errorDisplay.push_exception()
@@ -773,6 +776,7 @@ class Dialcentral(object):
 			try:
 				assert self._phoneBackends[self._selectedBackendId].get_callback_number() != "", "No callback number specified"
 				self._phoneBackends[self._selectedBackendId].dial(number)
+				hildonize.show_information_banner(self._window, "Calling %s" % number)
 				dialed = True
 			except Exception, e:
 				self._errorDisplay.push_exception()

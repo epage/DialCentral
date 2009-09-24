@@ -1031,6 +1031,8 @@ class RecentCallsView(object):
 		pass
 
 	def _idly_populate_recentview(self):
+		with gtk_toolbox.gtk_lock():
+			banner = hildonize.show_busy_banner_start(self._window, "Loading Recent History")
 		try:
 			self._recentmodel.clear()
 			self._isPopulated = True
@@ -1053,6 +1055,9 @@ class RecentCallsView(object):
 					self._recentmodel.append(item)
 		except Exception, e:
 			self._errorDisplay.push_exception_with_lock()
+		finally:
+			with gtk_toolbox.gtk_lock():
+				hildonize.show_busy_banner_end(banner)
 
 		return False
 
@@ -1172,6 +1177,8 @@ class MessagesView(object):
 		pass
 
 	def _idly_populate_messageview(self):
+		with gtk_toolbox.gtk_lock():
+			banner = hildonize.show_busy_banner_start(self._window, "Loading Messages")
 		try:
 			self._messagemodel.clear()
 			self._isPopulated = True
@@ -1198,6 +1205,9 @@ class MessagesView(object):
 					self._messagemodel.append(row)
 		except Exception, e:
 			self._errorDisplay.push_exception_with_lock()
+		finally:
+			with gtk_toolbox.gtk_lock():
+				hildonize.show_busy_banner_end(banner)
 
 		return False
 
@@ -1370,6 +1380,8 @@ class ContactsView(object):
 		config.set(sectionName, "selectedAddressbook", str(self._selectedComboIndex))
 
 	def _idly_populate_contactsview(self):
+		with gtk_toolbox.gtk_lock():
+			banner = hildonize.show_busy_banner_start(self._window, "Loading Contacts")
 		try:
 			addressBook = None
 			while addressBook is not self._addressBook:
@@ -1394,6 +1406,9 @@ class ContactsView(object):
 			self._isPopulated = True
 		except Exception, e:
 			self._errorDisplay.push_exception_with_lock()
+		finally:
+			with gtk_toolbox.gtk_lock():
+				hildonize.show_busy_banner_end(banner)
 		return False
 
 	def _on_addressbook_button_changed(self, *args, **kwds):
