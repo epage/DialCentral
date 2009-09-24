@@ -111,9 +111,11 @@ def _null_hildonize_menu(window, gtkMenu, ignoredButtons):
 try:
 	hildon.AppMenu
 	GTK_MENU_USED = False
+	IS_FREMANTLE_SUPPORTED = True
 	hildonize_menu = _fremantle_hildonize_menu
 except AttributeError:
 	GTK_MENU_USED = True
+	IS_FREMANTLE_SUPPORTED = False
 	if IS_HILDON_SUPPORTED:
 		hildonize_menu = _hildon_hildonize_menu
 	else:
@@ -134,19 +136,26 @@ else:
 	set_cell_thumb_selectable = _null_set_cell_thumb_selectable
 
 
-def _hildon_show_information_banner(parent, message):
+def _fremantle_show_information_banner(parent, message):
 	hildon.hildon_banner_show_information(parent, "", message)
+
+
+def _hildon_show_information_banner(parent, message):
+	hildon.hildon_banner_show_information(parent, None, message)
 
 
 def _null_show_information_banner(parent, message):
 	pass
 
 
-try:
-	hildon.hildon_banner_show_information
-	show_information_banner = _hildon_show_information_banner
-except AttributeError:
-	show_information_banner = _null_show_information_banner
+if IS_FREMANTLE_SUPPORTED:
+	show_information_banner = _fremantle_show_information_banner
+else:
+	try:
+		hildon.hildon_banner_show_information
+		show_information_banner = _hildon_show_information_banner
+	except AttributeError:
+		show_information_banner = _null_show_information_banner
 
 
 def _fremantle_show_busy_banner_start(parent, message):
@@ -154,12 +163,12 @@ def _fremantle_show_busy_banner_start(parent, message):
 	return parent
 
 
-def _fremantle_show_busy_banner_end(parent):
-	hildon.hildon_gtk_window_set_progress_indicator(parent, False)
+def _fremantle_show_busy_banner_end(banner):
+	hildon.hildon_gtk_window_set_progress_indicator(banner, False)
 
 
 def _hildon_show_busy_banner_start(parent, message):
-	return hildon.hildon_banner_show_animation(parent, "", message)
+	return hildon.hildon_banner_show_animation(parent, None, message)
 
 
 def _hildon_show_busy_banner_end(banner):
@@ -171,7 +180,7 @@ def _null_show_busy_banner_start(parent, message):
 
 
 def _null_show_busy_banner_end(banner):
-	return None
+	assert banner is None
 
 
 try:
@@ -487,7 +496,28 @@ except AttributeError:
 
 if __name__ == "__main__":
 	app = get_app_class()()
+
+	label = gtk.Label("Hello World from a Label!")
+
 	win = gtk.Window()
+	win.add(label)
 	win = hildonize_window(app, win)
-	if True:
+	if False:
 		print touch_selector(win, "Test", ["A", "B", "C", "D"], 2)
+	if True:
+		import pprint
+		name, value = "", ""
+		goodLocals = [
+			(name, value) for (name, value) in locals().iteritems()
+			if not name.startswith("_")
+		]
+		pprint.pprint(goodLocals)
+	if False:
+		import time
+		show_information_banner(win, "Hello World")
+		time.sleep(5)
+	if True:
+		import time
+		banner = show_busy_banner_start(win, "Hello World")
+		time.sleep(5)
+		show_busy_banner_end(banner)

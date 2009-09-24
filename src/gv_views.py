@@ -20,10 +20,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @todo Touch selector for callback number
 @todo Alternate UI for dialogs (stackables)
-@bug Contacts don't populate
-@bug large scrollbars aren't working
-@bug exception when killing banner on contacts
-@bug No showing of any banners
+@todo Switch to a selector with entry for notification time
+@bug Messages can't refresh
 """
 
 from __future__ import with_statement
@@ -864,13 +862,17 @@ class AccountInfo(object):
 	def _on_minutes_clicked(self, *args):
 		recurrenceChoices = [
 			(1, "1 minute"),
+			(2, "2 minutes"),
 			(3, "3 minutes"),
 			(5, "5 minutes"),
+			(8, "8 minutes"),
 			(10, "10 minutes"),
 			(15, "15 minutes"),
 			(30, "30 minutes"),
 			(45, "45 minutes"),
 			(60, "1 hour"),
+			(3*60, "3 hours"),
+			(6*60, "6 hours"),
 			(12*60, "12 hours"),
 		]
 		try:
@@ -889,6 +891,8 @@ class AccountInfo(object):
 			recurrence = recurrenceChoices[recurrenceIndex][0]
 
 			self._update_alarm_settings(recurrence)
+		except RuntimeError, e:
+			logging.exception("%s" % str(e))
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
@@ -959,17 +963,19 @@ class RecentCallsView(object):
 
 		textrenderer = gtk.CellRendererText()
 		textrenderer.set_property("yalign", 0)
+		textrenderer.set_property("ellipsize", pango.ELLIPSIZE_END)
+		textrenderer.set_property("width-chars", len("1 (555) 555-1234"))
+		self._numberColumn = gtk.TreeViewColumn("Number")
+		self._numberColumn.pack_start(textrenderer, expand=True)
+		self._numberColumn.add_attribute(textrenderer, "text", self.NUMBER_IDX)
+
+		textrenderer = gtk.CellRendererText()
+		textrenderer.set_property("yalign", 0)
 		hildonize.set_cell_thumb_selectable(textrenderer)
 		self._nameColumn = gtk.TreeViewColumn("From")
 		self._nameColumn.pack_start(textrenderer, expand=True)
 		self._nameColumn.add_attribute(textrenderer, "text", self.FROM_IDX)
 		self._nameColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-
-		textrenderer = gtk.CellRendererText()
-		textrenderer.set_property("yalign", 0)
-		self._numberColumn = gtk.TreeViewColumn("Number")
-		self._numberColumn.pack_start(textrenderer, expand=True)
-		self._numberColumn.add_attribute(textrenderer, "text", self.NUMBER_IDX)
 
 		self._window = gtk_toolbox.find_parent_window(self._recentview)
 		self._phoneTypeSelector = PhoneTypeSelector(widgetTree, self._backend)
