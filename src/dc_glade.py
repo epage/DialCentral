@@ -334,8 +334,6 @@ class Dialcentral(object):
 
 	def _attempt_login(self, numOfAttempts = 10, force = False):
 		"""
-		@todo Handle user notification better like attempting to login and failed login
-
 		@note This must be run outside of the UI lock
 		"""
 		try:
