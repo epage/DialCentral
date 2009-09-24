@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-DialCentral - Front end for Google's Grand Central service.
+DialCentral - Front end for Google's GoogleVoice service.
 Copyright (C) 2008  Eric Warnke ericew AT gmail DOT com
 
 This library is free software; you can redistribute it and/or
@@ -99,7 +99,7 @@ def itergroup(iterator, count, padValue = None):
 
 class GVDialer(object):
 	"""
-	This class encapsulates all of the knowledge necessary to interace with the grandcentral servers
+	This class encapsulates all of the knowledge necessary to interact with the GoogleVoice servers
 	the functions include login, setting up a callback number, and initalting a callback
 	"""
 
@@ -144,7 +144,7 @@ class GVDialer(object):
 
 	def login(self, username, password):
 		"""
-		Attempt to login to grandcentral
+		Attempt to login to GoogleVoice
 		@returns Whether login was successful or not
 		"""
 		if self.is_authed():
@@ -236,7 +236,7 @@ class GVDialer(object):
 
 	def get_account_number(self):
 		"""
-		@returns The grand central phone number
+		@returns The GoogleVoice phone number
 		"""
 		return self._accountNum
 
@@ -282,7 +282,7 @@ class GVDialer(object):
 
 	def set_callback_number(self, callbacknumber):
 		"""
-		Set the number that grandcental calls
+		Set the number that GoogleVoice calls
 		@param callbacknumber should be a proper 10 digit number
 		"""
 		self._callbackNumber = callbacknumber

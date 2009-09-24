@@ -1,7 +1,7 @@
 #!/usr/bin/python2.5
 
 """
-DialCentral - Front end for Google's Grand Central service.
+DialCentral - Front end for Google's GoogleVoice service.
 Copyright (C) 2008  Mark Bergman bergman AT merctech DOT com
 
 This library is free software; you can redistribute it and/or
@@ -739,7 +739,7 @@ class Dialcentral(object):
 
 			if not loggedIn:
 				self._errorDisplay.push_message(
-					"Backend link with grandcentral is not working, please try again"
+					"Backend link with GoogleVoice is not working, please try again"
 				)
 				return
 
@@ -768,7 +768,7 @@ class Dialcentral(object):
 
 			if not loggedIn:
 				self._errorDisplay.push_message(
-					"Backend link with grandcentral is not working, please try again"
+					"Backend link with GoogleVoice is not working, please try again"
 				)
 				return
 
@@ -806,7 +806,7 @@ class Dialcentral(object):
 			dlg.set_name(constants.__pretty_app_name__)
 			dlg.set_version("%s-%d" % (constants.__version__, constants.__build__))
 			dlg.set_copyright("Copyright 2008 - LGPL")
-			dlg.set_comments("Dialcentral is a touch screen enhanced interface to your GoogleVoice/Grandcentral account.  This application is not affiliated with Google in any way")
+			dlg.set_comments("Dialcentral is a touch screen enhanced interface to your GoogleVoice account.  This application is not affiliated with Google in any way")
 			dlg.set_website("http://gc-dialer.garage.maemo.org/")
 			dlg.set_authors(["<z2n@merctech.com>", "Eric Warnke <ericew@gmail.com>", "Ed Page <edpage@byu.net>"])
 			dlg.run()

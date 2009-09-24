@@ -1,7 +1,7 @@
 #!/usr/bin/python2.5
 
 """
-DialCentral - Front end for Google's Grand Central service.
+DialCentral - Front end for Google's GoogleVoice service.
 Copyright (C) 2008  Mark Bergman bergman AT merctech DOT com
 
 This library is free software; you can redistribute it and/or
