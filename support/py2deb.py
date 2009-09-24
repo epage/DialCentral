@@ -668,7 +668,7 @@ Recommends: %(recommends)s
 Description: %(description)s""" % locals()
             if self.upgradeDescription:
                 upgradeDescription = "XB-Maemo-Upgrade-Description: %s" % self.upgradeDescription.strip()
-                txt = "\n".join((txt, "\n  ".join(upgradeDescription.split("\n")), ""))
+                txt = "%s\n%s" % (txt, "\n  ".join(upgradeDescription.split("\n")))
             if self.icon:
                 f = open(self.icon, "rb")
                 try:

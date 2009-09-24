@@ -323,7 +323,7 @@ try:
 	hildonize_scrollwindow_with_viewport = _hildon_hildonize_scrollwindow
 except AttributeError:
 	try:
-		hildon.hildon_helper_hildonize_scrollwindow
+		hildon.hildon_helper_set_thumb_scrollbar
 		hildonize_scrollwindow = _hildon_hildonize_scrollwindow
 		hildonize_scrollwindow_with_viewport = _hildon_hildonize_scrollwindow
 	except AttributeError:

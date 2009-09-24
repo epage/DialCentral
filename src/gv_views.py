@@ -20,6 +20,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @todo Touch selector for callback number
 @todo Alternate UI for dialogs (stackables)
+@bug Contacts don't populate
+@bug large scrollbars aren't working
+@bug exception when killing banner on contacts
+@bug No showing of any banners
 """
 
 from __future__ import with_statement
