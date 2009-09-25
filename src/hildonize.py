@@ -494,6 +494,130 @@ except AttributeError:
 	touch_selector = _null_touch_selector
 
 
+def _hildon_touch_selector_entry(parent, title, items, defaultItem):
+	# Got a segfault when using append_text_column with TouchSelectorEntry, so using this way
+	selector = hildon.hildon_touch_selector_entry_new_text()
+	defaultIndex = -1
+	for i, item in enumerate(items):
+		selector.append_text(item)
+		if item == defaultItem:
+			defaultIndex = i
+
+	dialog = hildon.PickerDialog(parent)
+	dialog.set_selector(selector)
+
+	if 0 < defaultIndex:
+		selector.set_active(0, defaultIndex)
+	else:
+		selector.get_entry().set_text(defaultItem)
+
+	try:
+		dialog.show_all()
+		response = dialog.run()
+	finally:
+		dialog.hide()
+
+	if response == gtk.RESPONSE_OK:
+		selectedIndex = selector.get_active(0)
+		if 0 < selectedIndex:
+			return items[selectedIndex]
+		else:
+			return selector.get_entry().get_text()
+	elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
+		raise RuntimeError("User cancelled request")
+	else:
+		raise RuntimeError("Unrecognized response %r", response)
+
+
+def _on_null_touch_selector_entry_entry_activated(entry, dialog, customEntry, result):
+	dialog.response(gtk.RESPONSE_OK)
+	result.append(customEntry.get_text())
+
+
+def _on_null_touch_selector_entry_tree_activated(treeView, path, column, dialog, selection, result):
+	dialog.response(gtk.RESPONSE_OK)
+	model, itr = selection.get_selected()
+	if itr is not None:
+		result.append(model.get_value(itr, 0))
+
+
+def _null_touch_selector_entry(parent, title, items, defaultItem):
+	model = gtk.ListStore(gobject.TYPE_STRING)
+	defaultIndex = -1
+	for i, item in enumerate(items):
+		model.append((item, ))
+		if item == defaultItem:
+			defaultIndex = i
+
+	cell = gtk.CellRendererText()
+	set_cell_thumb_selectable(cell)
+	column = gtk.TreeViewColumn(title)
+	column .pack_start(cell, expand=True)
+	column.add_attribute(cell, "text", 0)
+
+	treeView = gtk.TreeView()
+	treeView.set_model(model)
+	treeView.append_column(column)
+	selection = treeView.get_selection()
+	selection.set_mode(gtk.SELECTION_SINGLE)
+
+	scrolledWin = gtk.ScrolledWindow()
+	scrolledWin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+	scrolledWin.add(treeView)
+
+	customEntry = gtk.Entry()
+
+	layout = gtk.VBox()
+	layout.pack_start(customEntry)
+	layout.pack_start(scrolledWin)
+
+	hildonize_scrollwindow(layout)
+
+	dialog = gtk.Dialog(
+		title,
+		parent,
+		gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
+		(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL),
+	)
+	dialog.set_default_response(gtk.RESPONSE_CANCEL)
+	dialog.get_child().add(layout)
+	parentSize = parent.get_size()
+	dialog.resize(parentSize[0], max(parentSize[1]-100, 100))
+
+	if 0 < defaultIndex:
+		selection.select_path((defaultIndex, ))
+	else:
+		customEntry.set_text(defaultItem)
+	result = []
+	customEntry.connect("activate", _on_null_touch_selector_entry_entry_activated, dialog, customEntry, result)
+	treeView.connect("row-activated", _on_null_touch_selector_entry_tree_activated, dialog, selection, result)
+
+	try:
+		dialog.show_all()
+		response = dialog.run()
+	finally:
+		dialog.hide()
+
+	if response == gtk.RESPONSE_OK:
+		model, itr = selection.get_selected()
+		if len(result) != 1:
+			raise RuntimeError("No selection made")
+		else:
+			return result[0]
+	elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
+		raise RuntimeError("User cancelled request")
+	else:
+		raise RuntimeError("Unrecognized response %r", response)
+
+
+try:
+	hildon.PickerDialog
+	hildon.TouchSelectorEntry
+	touch_selector_entry = _hildon_touch_selector_entry
+except AttributeError:
+	touch_selector_entry = _null_touch_selector_entry
+
+
 if __name__ == "__main__":
 	app = get_app_class()()
 
@@ -505,6 +629,9 @@ if __name__ == "__main__":
 	if False:
 		print touch_selector(win, "Test", ["A", "B", "C", "D"], 2)
 	if True:
+		print touch_selector_entry(win, "Test", ["A", "B", "C", "D"], "C")
+		print touch_selector_entry(win, "Test", ["A", "B", "C", "D"], "Blah")
+	if False:
 		import pprint
 		name, value = "", ""
 		goodLocals = [
@@ -516,7 +643,7 @@ if __name__ == "__main__":
 		import time
 		show_information_banner(win, "Hello World")
 		time.sleep(5)
-	if True:
+	if False:
 		import time
 		banner = show_busy_banner_start(win, "Hello World")
 		time.sleep(5)
