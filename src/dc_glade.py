@@ -134,10 +134,9 @@ class Dialcentral(object):
 			replacementButtons
 		)
 
-		if hildonize.IS_HILDON_SUPPORTED:
-			self._window.connect("key-press-event", self._on_key_press)
-			self._window.connect("window-state-event", self._on_window_state_change)
-		else:
+		self._window.connect("key-press-event", self._on_key_press)
+		self._window.connect("window-state-event", self._on_window_state_change)
+		if not hildonize.IS_HILDON_SUPPORTED:
 			logging.warning("No hildonization support")
 
 		hildonize.set_application_title(self._window, "%s" % constants.__pretty_app_name__)
@@ -654,7 +653,10 @@ class Dialcentral(object):
 		@note Hildon specific
 		"""
 		try:
-			if event.keyval == gtk.keysyms.F6:
+			if (
+				event.keyval == gtk.keysyms.F6 or
+				event.keyval == gtk.keysyms.Return and event.get_state() & gtk.gdk.CONTROL_MASK
+			):
 				if self._isFullScreen:
 					self._window.unfullscreen()
 				else:

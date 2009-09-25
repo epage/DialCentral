@@ -28,6 +28,8 @@ __changelog__ = """
 * Made startup more error resistant
 * Simplified menus
 * Fremantle: Making various areas pannable
+* Fremantle: CTRL-V added for paste for Dialpad
+* Fremantle: CTRL-Enter added for fullscreen
 * Phone selection and SMS Message dialogs now use a tree view for the top part.  This gives highlighting of the last message, easier scrolling, easier code, etc
 * Added notifcations for various things like login and dialing
 * UI Tweak: Switch to accounts tab when logging in and callback is blank as a sublte hint to configure it
