@@ -1150,6 +1150,7 @@ class MessagesView(object):
 	def enable(self):
 		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
 		self._messageview.set_model(self._messagemodel)
+		self._messageview.set_headers_visible(False)
 
 		self._messageview.append_column(self._messageColumn)
 		self._messageviewselection = self._messageview.get_selection()
