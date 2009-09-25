@@ -22,7 +22,7 @@ __changelog__ = """
 * Fremantle Prep: Simplified menus in prep for no menu or the Fremantle App Menu
 * Fremantle Prep: Implemented a work around for https://bugs.maemo.org/show_bug.cgi?id=4957
 * Fremantle Prep: Switched to touch selectors for notification time, callback number, and contact addressbook
-* Fremantle Prep: Making various areas pannable
+* Fremantle Prep: Making various widgets pannable rather than scrollable
 * Fremantle Prep: CTRL-V added for paste for Dialpad
 * Fremantle Prep: CTRL-Enter added for fullscreen
 * UI Tweak: Phone selection and SMS Message dialogs now highlight the last message and are easier to scroll
