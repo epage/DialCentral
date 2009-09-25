@@ -57,7 +57,7 @@ class AccountInfo(object):
 	def __init__(self, widgetTree):
 		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
 		self._accountViewNumberDisplay = widgetTree.get_widget("gcnumber_display")
-		self._callbackCombo = widgetTree.get_widget("callbackcombo")
+		self._callbackSelectButton = widgetTree.get_widget("callbackSelectButton")
 		self._clearCookiesButton = widgetTree.get_widget("clearcookies")
 
 		self._notifyCheckbox = widgetTree.get_widget("notifyCheckbox")
@@ -67,7 +67,7 @@ class AccountInfo(object):
 		self._smsCheckbox = widgetTree.get_widget("smsCheckbox")
 
 	def enable(self):
-		self._callbackCombo.set_sensitive(False)
+		self._callbackSelectButton.set_sensitive(False)
 		self._clearCookiesButton.set_sensitive(False)
 
 		self._notifyCheckbox.set_sensitive(False)
@@ -79,7 +79,7 @@ class AccountInfo(object):
 		self._accountViewNumberDisplay.set_label("")
 
 	def disable(self):
-		self._callbackCombo.set_sensitive(True)
+		self._callbackSelectButton.set_sensitive(True)
 		self._clearCookiesButton.set_sensitive(True)
 
 		self._notifyCheckbox.set_sensitive(True)

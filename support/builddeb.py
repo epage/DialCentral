@@ -19,21 +19,21 @@ __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
 1.0.6
-* Adding seperator between dialcentral launches in log
-* Implemented a work around for https://bugs.maemo.org/show_bug.cgi?id=4957
-* Disables notifications on uninstall
-* Including a vastly improved py2deb for better packages (icons on package, etc)
-* Tweaked sizes of stuff on recent tab
-* Starting some work on rotation support for fremantle
-* Made startup more error resistant
-* Simplified menus
-* Fremantle: Making various areas pannable
-* Fremantle: CTRL-V added for paste for Dialpad
-* Fremantle: CTRL-Enter added for fullscreen
-* Phone selection and SMS Message dialogs now use a tree view for the top part.  This gives highlighting of the last message, easier scrolling, easier code, etc
-* Added notifcations for various things like login and dialing
+* Fremantle Prep: Simplified menus in prep for no menu or the Fremantle App Menu
+* Fremantle Prep: Implemented a work around for https://bugs.maemo.org/show_bug.cgi?id=4957
+* Fremantle Prep: Switched to touch selectors for notification time, callback number, and contact addressbook
+* Fremantle Prep: Making various areas pannable
+* Fremantle Prep: CTRL-V added for paste for Dialpad
+* Fremantle Prep: CTRL-Enter added for fullscreen
+* UI Tweak: Phone selection and SMS Message dialogs now highlight the last message and are easier to scroll
+* UI Tweak: Tweaked sizes of stuff on recent tab
+* UI Tweak: Added notifcations for various things like login and dialing
 * UI Tweak: Switch to accounts tab when logging in and callback is blank as a sublte hint to configure it
 * UI Tweak: Switch to accounts tab on failed login to remind the user they are not logged in
+* Packaging: Disables notifications on uninstall
+* Packaging: Including a vastly improved py2deb for better packages (icons on package, etc)
+* Debugging: Adding seperator between dialcentral launches in log
+* Bug Fix: Made startup more error resistant
 * Bug Fix: some dependencies for Diablo
 * Bug Fix: Error on refreshing tabs when not logged in
 * Bug Fix: #4471 Notification Checkbox Won't Stay Checked (hour roll over error)

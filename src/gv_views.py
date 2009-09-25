@@ -18,9 +18,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-@todo Touch selector for callback number
 @todo Alternate UI for dialogs (stackables)
-@todo Switch to a selector with entry for notification time
 """
 
 from __future__ import with_statement
@@ -670,10 +668,10 @@ class AccountInfo(object):
 		self._notifyOnVoicemail = False
 		self._notifyOnSms = False
 
-		self._callbackList = gtk.ListStore(gobject.TYPE_STRING)
+		self._callbackList = []
 		self._accountViewNumberDisplay = widgetTree.get_widget("gcnumber_display")
-		self._callbackCombo = widgetTree.get_widget("callbackcombo")
-		self._onCallbackentryChangedId = 0
+		self._callbackSelectButton = widgetTree.get_widget("callbackSelectButton")
+		self._onCallbackSelectChangedId = 0
 
 		self._notifyCheckbox = widgetTree.get_widget("notifyCheckbox")
 		self._minutesEntryButton = widgetTree.get_widget("minutesEntryButton")
@@ -696,8 +694,8 @@ class AccountInfo(object):
 		self._accountViewNumberDisplay.set_use_markup(True)
 		self.set_account_number("")
 
-		self._callbackList.clear()
-		self._onCallbackentryChangedId = self._callbackCombo.get_child().connect("changed", self._on_callbackentry_changed)
+		del self._callbackList[:]
+		self._onCallbackSelectChangedId = self._callbackSelectButton.connect("clicked", self._on_callbackentry_clicked)
 
 		if self._alarmHandler is not None:
 			self._notifyCheckbox.set_active(self._alarmHandler.isEnabled)
@@ -721,8 +719,8 @@ class AccountInfo(object):
 		self.update(force=True)
 
 	def disable(self):
-		self._callbackCombo.get_child().disconnect(self._onCallbackentryChangedId)
-		self._onCallbackentryChangedId = 0
+		self._callbackSelectButton.disconnect(self._onCallbackSelectChangedId)
+		self._onCallbackSelectChangedId = 0
 
 		if self._alarmHandler is not None:
 			self._notifyCheckbox.disconnect(self._onNotifyToggled)
@@ -743,10 +741,10 @@ class AccountInfo(object):
 			self._smsCheckbox.set_sensitive(True)
 
 		self.clear()
-		self._callbackList.clear()
+		del self._callbackList[:]
 
 	def get_selected_callback_number(self):
-		return make_ugly(self._callbackCombo.get_child().get_text())
+		return make_ugly(self._callbackSelectButton.get_label())
 
 	def set_account_number(self, number):
 		"""
@@ -762,7 +760,7 @@ class AccountInfo(object):
 		return True
 
 	def clear(self):
-		self._callbackCombo.get_child().set_text("")
+		self._callbackSelectButton.set_label("")
 		self.set_account_number("")
 		self._isPopulated = False
 
@@ -791,7 +789,7 @@ class AccountInfo(object):
 
 	def _populate_callback_combo(self):
 		self._isPopulated = True
-		self._callbackList.clear()
+		del self._callbackList[:]
 		try:
 			callbackNumbers = self._backend.get_callback_numbers()
 		except Exception, e:
@@ -800,13 +798,10 @@ class AccountInfo(object):
 			return
 
 		for number, description in callbackNumbers.iteritems():
-			self._callbackList.append((make_pretty(number),))
+			self._callbackList.append(make_pretty(number))
 
-		self._callbackCombo.set_model(self._callbackList)
-		self._callbackCombo.set_text_column(0)
-		#callbackNumber = self._backend.get_callback_number()
 		callbackNumber = self._defaultCallback
-		self._callbackCombo.get_child().set_text(make_pretty(callbackNumber))
+		self._callbackSelectButton.set_label(make_pretty(callbackNumber))
 
 	def _set_callback_number(self, number):
 		try:
@@ -841,11 +836,20 @@ class AccountInfo(object):
 			self._notifyCheckbox.set_active(self._alarmHandler.isEnabled)
 			self._minutesEntryButton.set_label("%d Minutes" % self._alarmHandler.recurrence)
 
-	def _on_callbackentry_changed(self, *args):
+	def _on_callbackentry_clicked(self, *args):
 		try:
-			text = self.get_selected_callback_number()
-			number = make_ugly(text)
+			actualSelection = make_pretty(self.get_selected_callback_number())
+
+			userSelection = hildonize.touch_selector_entry(
+				self._window,
+				"Callback Number",
+				self._callbackList,
+				actualSelection,
+			)
+			number = make_ugly(userSelection)
 			self._set_callback_number(number)
+		except RuntimeError, e:
+			logging.exception("%s" % str(e))
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

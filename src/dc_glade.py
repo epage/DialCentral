@@ -111,7 +111,6 @@ class Dialcentral(object):
 		self._window = hildonize.hildonize_window(self._app, self._window)
 		hildonize.hildonize_text_entry(self._widgetTree.get_widget("usernameentry"))
 		hildonize.hildonize_password_entry(self._widgetTree.get_widget("passwordentry"))
-		hildonize.hildonize_combo_entry(self._widgetTree.get_widget("callbackcombo").get_child())
 
 		for scrollingWidget in (
 			'recent_scrolledwindow',

@@ -568,7 +568,7 @@ def _null_touch_selector_entry(parent, title, items, defaultItem):
 	customEntry = gtk.Entry()
 
 	layout = gtk.VBox()
-	layout.pack_start(customEntry)
+	layout.pack_start(customEntry, expand=False)
 	layout.pack_start(scrolledWin)
 
 	hildonize_scrollwindow(layout)
