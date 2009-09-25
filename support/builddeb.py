@@ -43,6 +43,7 @@ __changelog__ = """
 * Bug Fix: dependencies for fremantle
 * Bug Fix: Issues when trying to stack error messages
 * Bug Fix: Python2.6 deprecates some stuff I did
+* Bug Fix: On refreshing the Accounts tab, the callback number resets to the number from startup
 
 1.0.5
 * Contacts Tab remembers the last address book viewed on restart

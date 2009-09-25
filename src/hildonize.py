@@ -519,10 +519,7 @@ def _hildon_touch_selector_entry(parent, title, items, defaultItem):
 
 	if response == gtk.RESPONSE_OK:
 		selectedIndex = selector.get_active(0)
-		if 0 < selectedIndex:
-			return items[selectedIndex]
-		else:
-			return selector.get_entry().get_text()
+		return selector.get_entry().get_text()
 	elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
 		raise RuntimeError("User cancelled request")
 	else:

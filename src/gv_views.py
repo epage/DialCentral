@@ -744,7 +744,11 @@ class AccountInfo(object):
 		del self._callbackList[:]
 
 	def get_selected_callback_number(self):
-		return make_ugly(self._callbackSelectButton.get_label())
+		currentLabel = self._callbackSelectButton.get_label()
+		if currentLabel is not None:
+			return make_ugly(currentLabel)
+		else:
+			return ""
 
 	def set_account_number(self, number):
 		"""
@@ -800,8 +804,8 @@ class AccountInfo(object):
 		for number, description in callbackNumbers.iteritems():
 			self._callbackList.append(make_pretty(number))
 
-		callbackNumber = self._defaultCallback
-		self._callbackSelectButton.set_label(make_pretty(callbackNumber))
+		if not self.get_selected_callback_number():
+			self._set_callback_number(self._defaultCallback)
 
 	def _set_callback_number(self, number):
 		try:
@@ -818,6 +822,7 @@ class AccountInfo(object):
 				assert make_ugly(number) == make_ugly(self._backend.get_callback_number()), "Callback number should be %s but instead is %s" % (
 					make_pretty(number), make_pretty(self._backend.get_callback_number())
 				)
+				self._callbackSelectButton.set_label(make_pretty(number))
 				logging.info(
 					"Callback number set to %s" % (
 						self._backend.get_callback_number(),
