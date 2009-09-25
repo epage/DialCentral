@@ -561,14 +561,13 @@ def _null_touch_selector_entry(parent, title, items, defaultItem):
 	scrolledWin = gtk.ScrolledWindow()
 	scrolledWin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 	scrolledWin.add(treeView)
+	hildonize_scrollwindow(scrolledWin)
 
 	customEntry = gtk.Entry()
 
 	layout = gtk.VBox()
 	layout.pack_start(customEntry, expand=False)
 	layout.pack_start(scrolledWin)
-
-	hildonize_scrollwindow(layout)
 
 	dialog = gtk.Dialog(
 		title,

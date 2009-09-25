@@ -1,5 +1,9 @@
 #!/usr/bin/python2.5
 
+"""
+@bug In update desrcription stuff
+"""
+
 import os
 import sys
 
