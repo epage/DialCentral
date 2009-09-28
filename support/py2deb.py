@@ -24,12 +24,16 @@ depends on :
 - fakeroot
 
 changelog
- - ??? 9/14/2009 (By epage)
+ - ??? ?/??/20?? (By epage)
     - PEP8
     - added recommends
     - fixed bug where it couldn't handle the contents of the pre/post scripts being specified
     - Added customization based on the targeted policy for sections (Maemo support)
     - Added maemo specific tarball, dsc, changes file generation support (including icon support)
+    - Added armel architecture
+    - Reduced the size of params being passed around by reducing the calls to locals()
+    - Added respository, distribution, priority
+    - Made setting control file a bit more flexible
  - 0.5 05/09/2009
     - pre/post install/remove scripts enabled
     - deb package install py2deb in dist-packages for py2.6
@@ -49,7 +53,7 @@ import StringIO
 import stat
 import commands
 import base64
-from tarfile import TarFile
+import tarfile
 from glob import glob
 from datetime import datetime
 import socket # gethostname()
@@ -83,7 +87,7 @@ def deb2rpm(file):
 
 
 def py2src(TEMP, name):
-    l=glob("%(TEMP)s/%(name)s*.tar.gz"%locals())
+    l=glob("%(TEMP)s/%(name)s*.tar.gz" % locals())
     if len(l) != 1:
         raise Py2debException("don't find source package tar.gz")
 
@@ -139,24 +143,24 @@ class Py2changes(object):
 
 def py2changes(params):
     changescontent = Py2changes(
-                    "%(author)s <%(mail)s>" % params,
-                    "%(description)s" % params,
-                    "%(changelog)s" % params,
-                    (
-                           "%(TEMP)s/%(name)s_%(version)s.tar.gz" % params,
-                           "%(TEMP)s/%(name)s_%(version)s.dsc" % params,
-                    ),
-                    "%(section)s" % params,
-                    "", #"%(repository)s" % params,
-                    Format='1.7',
-                    Date=time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
-                    Source="%(name)s" % params,
-                    Architecture="%(arch)s" % params,
-                    Version="%(version)s" % params,
-                    Distribution="", #"%(distribution)s" % params,
-                    Urgency="", #"%(urgency)s" % params,
-                    Maintainer="%(author)s <%(mail)s>" % params
-                    )
+        "%(author)s <%(mail)s>" % params,
+        "%(description)s" % params,
+        "%(changelog)s" % params,
+        (
+            "%(TEMP)s/%(name)s_%(version)s.tar.gz" % params,
+            "%(TEMP)s/%(name)s_%(version)s.dsc" % params,
+        ),
+        "%(section)s" % params,
+        "%(repository)s" % params,
+        Format='1.7',
+        Date=time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
+        Source="%(name)s" % params,
+        Architecture="%(arch)s" % params,
+        Version="%(version)s" % params,
+        Distribution="%(distribution)s" % params,
+        Urgency="%(urgency)s" % params,
+        Maintainer="%(author)s <%(mail)s>" % params
+    )
     f = open("%(TEMP)s/%(name)s_%(version)s.changes" % params,"wb")
     f.write(changescontent.getContent())
     f.close()
@@ -227,14 +231,15 @@ class Py2dsc(object):
 
 
 def py2dsc(TEMP, name, version, depends, author, mail, arch):
-    dsccontent = Py2dsc("%(version)s" % locals(),
-             "%(depends)s" % locals(),
-             ("%(TEMP)s/%(name)s_%(version)s.tar.gz" % locals(),),
-             Format='1.0',
-             Source="%(name)s" % locals(),
-             Version="%(version)s" % locals(),
-             Maintainer="%(author)s <%(mail)s>" % locals(),
-             Architecture="%(arch)s" % locals(),
+    dsccontent = Py2dsc(
+        "%(version)s" % locals(),
+        "%(depends)s" % locals(),
+        ("%(TEMP)s/%(name)s_%(version)s.tar.gz" % locals(),),
+        Format='1.0',
+        Source="%(name)s" % locals(),
+        Version="%(version)s" % locals(),
+        Maintainer="%(author)s <%(mail)s>" % locals(),
+        Architecture="%(arch)s" % locals(),
     )
 
     filename = "%(TEMP)s/%(name)s_%(version)s.dsc" % locals()
@@ -275,7 +280,7 @@ class Py2tar(object):
 
         outputFileObj = StringIO.StringIO() # TODO: Do more transparently?
 
-        tarOutput = TarFile.open('sources',
+        tarOutput = tarfile.TarFile.open('sources',
                                  mode = "w:gz",
                                  fileobj = outputFileObj)
 
@@ -338,21 +343,91 @@ SECTIONS_BY_POLICY = {
 }
 
 
+LICENSE_AGREEMENT = {
+        "gpl": """
+    This package is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This package is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this package; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+On Debian systems, the complete text of the GNU General
+Public License can be found in `/usr/share/common-licenses/GPL'.
+""",
+        "lgpl":"""
+    This package is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2 of the License, or (at your option) any later version.
+
+    This package is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this package; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+On Debian systems, the complete text of the GNU Lesser General
+Public License can be found in `/usr/share/common-licenses/LGPL'.
+""",
+        "bsd": """
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted under the terms of the BSD License.
+
+    THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+    OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+    OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    SUCH DAMAGE.
+
+On Debian systems, the complete text of the BSD License can be
+found in `/usr/share/common-licenses/BSD'.
+""",
+        "artistic": """
+    This program is free software; you can redistribute it and/or modify it
+    under the terms of the "Artistic License" which comes with Debian.
+
+    THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED
+    WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES
+    OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+On Debian systems, the complete text of the Artistic License
+can be found in `/usr/share/common-licenses/Artistic'.
+"""
+}
+
+
 class Py2deb(object):
     """
     heavily based on technic described here :
     http://wiki.showmedo.com/index.php?title=LinuxJensMakingDeb
     """
     ## STATICS
-    clear=False  # clear build folder after py2debianization
+    clear = False  # clear build folder after py2debianization
 
     SECTIONS = SECTIONS_BY_POLICY["debian"]
 
     #http://www.debian.org/doc/debian-policy/footnotes.html#f69
-    ARCHS="all i386 ia64 alpha amd64 armeb arm hppa m32r m68k mips mipsel powerpc ppc64 s390 s390x sh3 sh3eb sh4 sh4eb sparc darwin-i386 darwin-ia64 darwin-alpha darwin-amd64 darwin-armeb darwin-arm darwin-hppa darwin-m32r darwin-m68k darwin-mips darwin-mipsel darwin-powerpc darwin-ppc64 darwin-s390 darwin-s390x darwin-sh3 darwin-sh3eb darwin-sh4 darwin-sh4eb darwin-sparc freebsd-i386 freebsd-ia64 freebsd-alpha freebsd-amd64 freebsd-armeb freebsd-arm freebsd-hppa freebsd-m32r freebsd-m68k freebsd-mips freebsd-mipsel freebsd-powerpc freebsd-ppc64 freebsd-s390 freebsd-s390x freebsd-sh3 freebsd-sh3eb freebsd-sh4 freebsd-sh4eb freebsd-sparc kfreebsd-i386 kfreebsd-ia64 kfreebsd-alpha kfreebsd-amd64 kfreebsd-armeb kfreebsd-arm kfreebsd-hppa kfreebsd-m32r kfreebsd-m68k kfreebsd-mips kfreebsd-mipsel kfreebsd-powerpc kfreebsd-ppc64 kfreebsd-s390 kfreebsd-s390x kfreebsd-sh3 kfreebsd-sh3eb kfreebsd-sh4 kfreebsd-sh4eb kfreebsd-sparc knetbsd-i386 knetbsd-ia64 knetbsd-alpha knetbsd-amd64 knetbsd-armeb knetbsd-arm knetbsd-hppa knetbsd-m32r knetbsd-m68k knetbsd-mips knetbsd-mipsel knetbsd-powerpc knetbsd-ppc64 knetbsd-s390 knetbsd-s390x knetbsd-sh3 knetbsd-sh3eb knetbsd-sh4 knetbsd-sh4eb knetbsd-sparc netbsd-i386 netbsd-ia64 netbsd-alpha netbsd-amd64 netbsd-armeb netbsd-arm netbsd-hppa netbsd-m32r netbsd-m68k netbsd-mips netbsd-mipsel netbsd-powerpc netbsd-ppc64 netbsd-s390 netbsd-s390x netbsd-sh3 netbsd-sh3eb netbsd-sh4 netbsd-sh4eb netbsd-sparc openbsd-i386 openbsd-ia64 openbsd-alpha openbsd-amd64 openbsd-armeb openbsd-arm openbsd-hppa openbsd-m32r openbsd-m68k openbsd-mips openbsd-mipsel openbsd-powerpc openbsd-ppc64 openbsd-s390 openbsd-s390x openbsd-sh3 openbsd-sh3eb openbsd-sh4 openbsd-sh4eb openbsd-sparc hurd-i386 hurd-ia64 hurd-alpha hurd-amd64 hurd-armeb hurd-arm hurd-hppa hurd-m32r hurd-m68k hurd-mips hurd-mipsel hurd-powerpc hurd-ppc64 hurd-s390 hurd-s390x hurd-sh3 hurd-sh3eb hurd-sh4 hurd-sh4eb hurd-sparc".split(" ")
+    ARCHS = "all i386 ia64 alpha amd64 armeb arm hppa m32r m68k mips mipsel powerpc ppc64 s390 s390x sh3 sh3eb sh4 sh4eb sparc darwin-i386 darwin-ia64 darwin-alpha darwin-amd64 darwin-armeb darwin-arm darwin-hppa darwin-m32r darwin-m68k darwin-mips darwin-mipsel darwin-powerpc darwin-ppc64 darwin-s390 darwin-s390x darwin-sh3 darwin-sh3eb darwin-sh4 darwin-sh4eb darwin-sparc freebsd-i386 freebsd-ia64 freebsd-alpha freebsd-amd64 freebsd-armeb freebsd-arm freebsd-hppa freebsd-m32r freebsd-m68k freebsd-mips freebsd-mipsel freebsd-powerpc freebsd-ppc64 freebsd-s390 freebsd-s390x freebsd-sh3 freebsd-sh3eb freebsd-sh4 freebsd-sh4eb freebsd-sparc kfreebsd-i386 kfreebsd-ia64 kfreebsd-alpha kfreebsd-amd64 kfreebsd-armeb kfreebsd-arm kfreebsd-hppa kfreebsd-m32r kfreebsd-m68k kfreebsd-mips kfreebsd-mipsel kfreebsd-powerpc kfreebsd-ppc64 kfreebsd-s390 kfreebsd-s390x kfreebsd-sh3 kfreebsd-sh3eb kfreebsd-sh4 kfreebsd-sh4eb kfreebsd-sparc knetbsd-i386 knetbsd-ia64 knetbsd-alpha knetbsd-amd64 knetbsd-armeb knetbsd-arm knetbsd-hppa knetbsd-m32r knetbsd-m68k knetbsd-mips knetbsd-mipsel knetbsd-powerpc knetbsd-ppc64 knetbsd-s390 knetbsd-s390x knetbsd-sh3 knetbsd-sh3eb knetbsd-sh4 knetbsd-sh4eb knetbsd-sparc netbsd-i386 netbsd-ia64 netbsd-alpha netbsd-amd64 netbsd-armeb netbsd-arm netbsd-hppa netbsd-m32r netbsd-m68k netbsd-mips netbsd-mipsel netbsd-powerpc netbsd-ppc64 netbsd-s390 netbsd-s390x netbsd-sh3 netbsd-sh3eb netbsd-sh4 netbsd-sh4eb netbsd-sparc openbsd-i386 openbsd-ia64 openbsd-alpha openbsd-amd64 openbsd-armeb openbsd-arm openbsd-hppa openbsd-m32r openbsd-m68k openbsd-mips openbsd-mipsel openbsd-powerpc openbsd-ppc64 openbsd-s390 openbsd-s390x openbsd-sh3 openbsd-sh3eb openbsd-sh4 openbsd-sh4eb openbsd-sparc hurd-i386 hurd-ia64 hurd-alpha hurd-amd64 hurd-armeb hurd-arm hurd-hppa hurd-m32r hurd-m68k hurd-mips hurd-mipsel hurd-powerpc hurd-ppc64 hurd-s390 hurd-s390x hurd-sh3 hurd-sh3eb hurd-sh4 hurd-sh4eb hurd-sparc armel".split(" ")
 
     # license terms taken from dh_make
-    LICENSES=["gpl", "lgpl", "bsd", "artistic"]
+    LICENSES = list(LICENSE_AGREEMENT.iterkeys())
 
     def __setitem__(self, path, files):
 
@@ -437,6 +512,9 @@ class Py2deb(object):
         self.author = author
         self.mail = mail
         self.icon = ""
+        self.distribution = ""
+        self.respository = ""
+        self.urgency = "low"
 
         self.preinstall = preinstall
         self.postinstall = postinstall
@@ -526,6 +604,9 @@ FILES :
         section = self.section
         arch = self.arch
         url = self.url
+        distribution = self.distribution
+        repository = self.repository
+        urgency = self.urgency
         author = self.author
         mail = self.mail
         files = self.__files
@@ -548,7 +629,6 @@ FILES :
         buildDate=d.strftime("%a, %d %b %Y %H:%M:%S +0000")
         buildDateYear=str(d.year)
 
-
         #clean description (add a space before each next lines)
         description=description.replace("\r", "").strip()
         description = "\n ".join(description.split("\n"))
@@ -557,10 +637,11 @@ FILES :
         changelog=changelog.replace("\r", "").strip()
         changelog = "\n  ".join(changelog.split("\n"))
 
-
         TEMP = ".py2deb_build_folder"
         DEST = os.path.join(TEMP, name)
         DEBIAN = os.path.join(DEST, "debian")
+
+        packageContents = locals()
 
         # let's start the process
         try:
@@ -607,6 +688,7 @@ FILES :
 
             # make rules right
             rules= "\n\t".join(rules) + "\n"
+            packageContents["rules"] = rules
 
             # make dirs right
             dirs= [i[1:] for i in set(dirs)]
@@ -625,7 +707,7 @@ FILES :
   %(changelog)s
 
  -- %(author)s <%(mail)s>  %(buildDate)s
-""" % locals()
+""" % packageContents
 
             open(os.path.join(DEBIAN, "changelog"), "w").write(clog)
 
@@ -654,21 +736,27 @@ FILES :
             #==========================================================================
             # CREATE debian/control
             #==========================================================================
-            txt="""Source: %(name)s
-Section: %(section)s
-Priority: extra
-Maintainer: %(author)s <%(mail)s>
-Build-Depends: debhelper (>= 5)
-Standards-Version: 3.7.2
+            generalParagraphFields = [
+                "Source: %(name)s",
+                "Maintainer: %(author)s <%(mail)s>",
+                "Section: %(section)s",
+                "Priority: extra",
+                "Build-Depends: debhelper (>= 5)",
+                "Standards-Version: 3.7.2",
+            ]
 
-Package: %(name)s
-Architecture: %(arch)s
-Depends: %(depends)s
-Recommends: %(recommends)s
-Description: %(description)s""" % locals()
+            specificParagraphFields = [
+                "Package: %(name)s",
+                "Architecture: %(arch)s",
+                "Depends: %(depends)s",
+                "Recommends: %(recommends)s",
+                "Description: %(description)s",
+            ]
+
             if self.upgradeDescription:
                 upgradeDescription = "XB-Maemo-Upgrade-Description: %s" % self.upgradeDescription.strip()
-                txt = "%s\n%s" % (txt, "\n  ".join(upgradeDescription.split("\n")))
+                specificParagraphFields.append("\n  ".join(upgradeDescription.split("\n")))
+
             if self.icon:
                 f = open(self.icon, "rb")
                 try:
@@ -682,82 +770,18 @@ Description: %(description)s""" % locals()
                         uueIconLines.append("")
                     uueIconLines[-1] += c
                 uueIconLines[0:0] = ("XB-Maemo-Icon-26:", )
-                txt = "\n".join((txt, "\n  ".join(uueIconLines), ""))
-            open(os.path.join(DEBIAN, "control"), "w").write(txt)
+                specificParagraphFields.append("\n  ".join(uueIconLines))
+
+            generalParagraph = "\n".join(generalParagraphFields)
+            specificParagraph = "\n".join(specificParagraphFields)
+            controlContent = "\n\n".join((generalParagraph, specificParagraph)) % packageContents
+            open(os.path.join(DEBIAN, "control"), "w").write(controlContent)
 
             #==========================================================================
             # CREATE debian/copyright
             #==========================================================================
-            copy={}
-            copy["gpl"]="""
-    This package is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This package is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this package; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
-
-On Debian systems, the complete text of the GNU General
-Public License can be found in `/usr/share/common-licenses/GPL'.
-"""
-            copy["lgpl"]="""
-    This package is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) any later version.
-
-    This package is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this package; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
-
-On Debian systems, the complete text of the GNU Lesser General
-Public License can be found in `/usr/share/common-licenses/LGPL'.
-"""
-            copy["bsd"]="""
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted under the terms of the BSD License.
-
-    THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
-    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-    ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
-    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-    OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-    OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-    SUCH DAMAGE.
-
-On Debian systems, the complete text of the BSD License can be
-found in `/usr/share/common-licenses/BSD'.
-"""
-            copy["artistic"]="""
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the "Artistic License" which comes with Debian.
-
-    THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED
-    WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES
-    OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
-
-On Debian systems, the complete text of the Artistic License
-can be found in `/usr/share/common-licenses/Artistic'.
-"""
-
-            txtLicense = copy[license]
-            pv=__version__
+            packageContents["txtLicense"] = LICENSE_AGREEMENT[license]
+            packageContents["pv"] =__version__
             txt="""This package was py2debianized(%(pv)s) by %(author)s <%(mail)s> on
 %(buildDate)s.
 
@@ -777,7 +801,7 @@ is licensed under the GPL, see above.
 
 # Please also look if there are files or directories which have a
 # different copyright/license attached and list them here.
-""" % locals()
+""" % packageContents
             open(os.path.join(DEBIAN, "copyright"), "w").write(txt)
 
             #==========================================================================
@@ -875,7 +899,7 @@ binary-arch: build install
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install configure
-""" % locals()
+""" % packageContents
             open(os.path.join(DEBIAN, "rules"), "w").write(txt)
             os.chmod(os.path.join(DEBIAN, "rules"), 0755)
 
@@ -887,11 +911,11 @@ binary: binary-indep binary-arch
 
             if build:
                 #http://www.debian.org/doc/manuals/maint-guide/ch-build.fr.html
-                ret=os.system('cd "%(DEST)s"; dpkg-buildpackage -tc -rfakeroot -us -uc' % locals())
+                ret = os.system('cd "%(DEST)s"; dpkg-buildpackage -tc -rfakeroot -us -uc' % packageContents)
                 if ret != 0:
                     raise Py2debException("buildpackage failed (see output)")
 
-                l=glob("%(TEMP)s/%(name)s*.deb"%locals())
+                l=glob("%(TEMP)s/%(name)s*.deb" % packageContents)
                 if len(l) != 1:
                     raise Py2debException("didn't find builded deb")
 
@@ -918,7 +942,7 @@ binary: binary-indep binary-arch
                 generatedFiles.append(dscFilename)
 
             if changes:
-                changesFilenames = py2changes(locals())
+                changesFilenames = py2changes(packageContents)
                 generatedFiles.extend(changesFilenames)
 
             return generatedFiles
