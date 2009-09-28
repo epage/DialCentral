@@ -41,6 +41,9 @@ import hildonize
 import gtk_toolbox
 
 
+_moduleLogger = logging.getLogger("dc_glade")
+
+
 def getmtime_nothrow(path):
 	try:
 		return os.path.getmtime(path)
@@ -138,7 +141,7 @@ class Dialcentral(object):
 		self._window.connect("key-press-event", self._on_key_press)
 		self._window.connect("window-state-event", self._on_window_state_change)
 		if not hildonize.IS_HILDON_SUPPORTED:
-			logging.warning("No hildonization support")
+			_moduleLogger.warning("No hildonization support")
 
 		hildonize.set_application_title(self._window, "%s" % constants.__pretty_app_name__)
 
@@ -195,7 +198,7 @@ class Dialcentral(object):
 				device = osso.DeviceState(self._osso)
 				device.set_device_state_callback(self._on_device_state_change, 0)
 			else:
-				logging.warning("No device state support")
+				_moduleLogger.warning("No device state support")
 
 			try:
 				import alarm_handler
@@ -206,13 +209,13 @@ class Dialcentral(object):
 				with gtk_toolbox.gtk_lock():
 					self._errorDisplay.push_exception()
 				alarm_handler = None
-				logging.warning("No notification support")
+				_moduleLogger.warning("No notification support")
 			if hildonize.IS_HILDON_SUPPORTED:
 				try:
 					import led_handler
 					self._ledHandler = led_handler.LedHandler()
 				except Exception, e:
-					logging.exception('LED Handling failed: "%s"' % str(e))
+					_moduleLogger.exception('LED Handling failed: "%s"' % str(e))
 					self._ledHandler = None
 			else:
 				self._ledHandler = None
@@ -227,7 +230,7 @@ class Dialcentral(object):
 				self._connection.connect("connection-event", self._on_connection_change, constants.__app_magic__)
 				self._connection.request_connection(conic.CONNECT_FLAG_NONE)
 			else:
-				logging.warning("No connection support")
+				_moduleLogger.warning("No connection support")
 		except Exception, e:
 			with gtk_toolbox.gtk_lock():
 				self._errorDisplay.push_exception()
@@ -346,7 +349,7 @@ class Dialcentral(object):
 					serviceId = self._defaultBackendId
 					loggedIn = True
 				except Exception, e:
-					logging.exception('Session refresh failed with the following message "%s"' % str(e))
+					_moduleLogger.exception('Session refresh failed with the following message "%s"' % str(e))
 
 			if not loggedIn:
 				loggedIn, serviceId = self._login_by_user(numOfAttempts)
@@ -380,7 +383,7 @@ class Dialcentral(object):
 		"""
 		loggedIn = self._phoneBackends[self._defaultBackendId].is_authed()
 		if loggedIn:
-			logging.info("Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId])
+			_moduleLogger.info("Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId])
 		return loggedIn
 
 	def _login_by_settings(self):
@@ -391,7 +394,7 @@ class Dialcentral(object):
 		loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
 		if loggedIn:
 			self._credentials = username, password
-			logging.info("Logged into %r through settings" % self._phoneBackends[self._defaultBackendId])
+			_moduleLogger.info("Logged into %r through settings" % self._phoneBackends[self._defaultBackendId])
 		return loggedIn
 
 	def _login_by_user(self, numOfAttempts):
@@ -416,7 +419,7 @@ class Dialcentral(object):
 		if loggedIn:
 			serviceId = tmpServiceId
 			self._credentials = username, password
-			logging.info("Logged into %r through user request" % self._phoneBackends[serviceId])
+			_moduleLogger.info("Logged into %r through user request" % self._phoneBackends[serviceId])
 		else:
 			serviceId = self.NULL_BACKEND
 			self._notebook.set_current_page(self.ACCOUNT_TAB)
@@ -479,14 +482,14 @@ class Dialcentral(object):
 			if self._alarmHandler is not None:
 				self._alarmHandler.load_settings(config, "alarm")
 		except ConfigParser.NoOptionError, e:
-			logging.exception(
+			_moduleLogger.exception(
 				"Settings file %s is missing section %s" % (
 					constants._user_settings_,
 					e.section,
 				),
 			)
 		except ConfigParser.NoSectionError, e:
-			logging.exception(
+			_moduleLogger.exception(
 				"Settings file %s is missing section %s" % (
 					constants._user_settings_,
 					e.section,
@@ -504,14 +507,14 @@ class Dialcentral(object):
 			try:
 				view.load_settings(config, sectionName)
 			except ConfigParser.NoOptionError, e:
-				logging.exception(
+				_moduleLogger.exception(
 					"Settings file %s is missing section %s" % (
 						constants._user_settings_,
 						e.section,
 					),
 				)
 			except ConfigParser.NoSectionError, e:
-				logging.exception(
+				_moduleLogger.exception(
 					"Settings file %s is missing section %s" % (
 						constants._user_settings_,
 						e.section,
@@ -525,14 +528,14 @@ class Dialcentral(object):
 			elif previousOrientation == gtk.ORIENTATION_VERTICAL:
 				hildonize.window_to_portrait(self._window)
 		except ConfigParser.NoOptionError, e:
-			logging.exception(
+			_moduleLogger.exception(
 				"Settings file %s is missing section %s" % (
 					constants._user_settings_,
 					e.section,
 				),
 			)
 		except ConfigParser.NoSectionError, e:
-			logging.exception(
+			_moduleLogger.exception(
 				"Settings file %s is missing section %s" % (
 					constants._user_settings_,
 					e.section,

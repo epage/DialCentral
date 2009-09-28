@@ -32,6 +32,7 @@ import logging
 import socket
 
 
+_moduleLogger = logging.getLogger("browser_emu")
 socket.setdefaulttimeout(10)
 
 
@@ -100,7 +101,7 @@ class MozillaEmulator(object):
 
 		@return: The raw HTML page data
 		"""
-		logging.warning("Performing download of %s" % url)
+		_moduleLogger.warning("Performing download of %s" % url)
 
 		if extraheaders is None:
 			extraheaders = {}
@@ -113,9 +114,9 @@ class MozillaEmulator(object):
 				req, u = self.build_opener(url, postdata, extraheaders, forbid_redirect)
 				openerdirector = u.open(req)
 				if self.debug:
-					print req.get_method(), url
-					print openerdirector.code, openerdirector.msg
-					print openerdirector.headers
+					_moduleLogger.info("%r - %r" % (req.get_method(), url))
+					_moduleLogger.info("%r - %r" % (openerdirector.code, openerdirector.msg))
+					_moduleLogger.info("%r" % (openerdirector.headers))
 				self.cookies.extract_cookies(openerdirector, req)
 				if only_head:
 					return openerdirector
@@ -127,8 +128,7 @@ class MozillaEmulator(object):
 					raise
 
 			# Retry :-)
-			if self.debug:
-				print "MozillaEmulator: urllib2.URLError, retryting ", cnt
+			_moduleLogger.info("MozillaEmulator: urllib2.URLError, retryting %d" % cnt)
 
 	def _read(self, openerdirector, trycount):
 		chunks = []

@@ -5,6 +5,7 @@ import sys
 import logging
 
 
+_moduleLogger = logging.getLogger("dialcentral")
 sys.path.insert(0,"/usr/lib/dialcentral/")
 
 
@@ -20,7 +21,7 @@ except OSError, e:
 
 userLogPath = "%s/dialcentral.log" % constants._data_path_
 logging.basicConfig(level=logging.DEBUG, filename=userLogPath)
-logging.info("Dialcentral %s-%s" % (constants.__version__, constants.__build__))
+_moduleLogger.info("Dialcentral %s-%s" % (constants.__version__, constants.__build__))
 
 try:
 	dc_glade.run_dialpad()

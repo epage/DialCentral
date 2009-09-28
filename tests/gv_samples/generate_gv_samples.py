@@ -7,6 +7,7 @@ import traceback
 import warnings
 
 import sys
+sys.path.append("/usr/lib/dialcentral")
 sys.path.append("../../src")
 
 import browser_emu
@@ -59,7 +60,7 @@ except urllib2.URLError, e:
 	warnings.warn(traceback.format_exc())
 	raise RuntimeError("%s is not accesible" % gv_backend.GVDialer._loginURL)
 with open("loggingin.txt", "w") as f:
-	f.write(page)
+	f.write(loginSuccessOrFailurePage)
 
 forwardPage = browser.download(gv_backend.GVDialer._forwardURL)
 

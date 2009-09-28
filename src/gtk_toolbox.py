@@ -17,6 +17,9 @@ import gobject
 import gtk
 
 
+_moduleLogger = logging.getLogger("gtk_toolbox")
+
+
 def get_screen_orientation():
 	width, height = gtk.gdk.get_default_root_window().get_size()
 	if width < height:
@@ -215,7 +218,7 @@ def comap(function, target):
 			mappedItem = function(*item)
 			target.send(mappedItem)
 		except Exception, e:
-			logging.exception("Forwarding exception!")
+			_moduleLogger.exception("Forwarding exception!")
 			target.throw(e.__class__, str(e))
 
 
@@ -423,7 +426,7 @@ class ErrorDisplay(object):
 	def push_exception(self):
 		userMessage = str(sys.exc_info()[1])
 		self.push_message(userMessage)
-		logging.exception(userMessage)
+		_moduleLogger.exception(userMessage)
 
 	def pop_message(self):
 		del self.__messages[0]
@@ -463,7 +466,7 @@ class DummyErrorDisplay(object):
 
 	def push_exception(self, exception = None):
 		userMessage = str(sys.exc_value)
-		logging.exception(userMessage)
+		_moduleLogger.exception(userMessage)
 
 	def pop_message(self):
 		if 0 < len(self.__messages):
@@ -471,7 +474,7 @@ class DummyErrorDisplay(object):
 			del self.__messages[0]
 
 	def __show_message(self, message):
-		logging.debug(message)
+		_moduleLogger.debug(message)
 
 
 class MessageBox(gtk.MessageDialog):
@@ -545,7 +548,7 @@ class PopupCalendar(object):
 			self._calendar.select_month(self._displayDate.month, self._displayDate.year)
 			self._calendar.select_day(self._displayDate.day)
 		except Exception, e:
-			logging.exception(e)
+			_moduleLogger.exception(e)
 
 
 class QuickAddView(object):

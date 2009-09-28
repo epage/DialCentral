@@ -35,6 +35,9 @@ import hildonize
 import null_backend
 
 
+_moduleLogger = logging.getLogger("gv_views")
+
+
 def make_ugly(prettynumber):
 	"""
 	function to take a phone number and strip out all non-numeric
@@ -812,7 +815,7 @@ class AccountInfo(object):
 			if not self._backend.is_valid_syntax(number) and 0 < len(number):
 				self._errorDisplay.push_message("%s is not a valid callback number" % number)
 			elif number == self._backend.get_callback_number():
-				logging.warning(
+				_moduleLogger.warning(
 					"Callback number already is %s" % (
 						self._backend.get_callback_number(),
 					),
@@ -823,7 +826,7 @@ class AccountInfo(object):
 					make_pretty(number), make_pretty(self._backend.get_callback_number())
 				)
 				self._callbackSelectButton.set_label(make_pretty(number))
-				logging.info(
+				_moduleLogger.info(
 					"Callback number set to %s" % (
 						self._backend.get_callback_number(),
 					),
@@ -854,7 +857,7 @@ class AccountInfo(object):
 			number = make_ugly(userSelection)
 			self._set_callback_number(number)
 		except RuntimeError, e:
-			logging.exception("%s" % str(e))
+			_moduleLogger.exception("%s" % str(e))
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
@@ -900,7 +903,7 @@ class AccountInfo(object):
 
 			self._update_alarm_settings(recurrence)
 		except RuntimeError, e:
-			logging.exception("%s" % str(e))
+			_moduleLogger.exception("%s" % str(e))
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

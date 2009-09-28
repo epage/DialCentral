@@ -22,6 +22,9 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
+1.0.7
+* Debugging: Improved logging output
+
 1.0.6
 * Fremantle Prep: Simplified menus in prep for no menu or the Fremantle App Menu
 * Fremantle Prep: Implemented a work around for https://bugs.maemo.org/show_bug.cgi?id=4957
