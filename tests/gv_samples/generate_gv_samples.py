@@ -5,9 +5,11 @@ from __future__ import with_statement
 import os
 import urllib
 import urllib2
+import re
 import traceback
 import warnings
 import logging
+import pprint
 
 import sys
 sys.path.append("/usr/lib/dialcentral")
@@ -19,15 +21,15 @@ import gv_backend
 
 def main():
 	webpages = [
-		("login", gv_backend.GVDialer._loginURL),
-		("contacts", gv_backend.GVDialer._contactsURL),
-		("voicemail", gv_backend.GVDialer._voicemailURL),
-		("sms", gv_backend.GVDialer._smsURL),
-		("forward", gv_backend.GVDialer._forwardURL),
-		("recent", gv_backend.GVDialer._recentCallsURL),
-		("placed", gv_backend.GVDialer._placedCallsURL),
-		("recieved", gv_backend.GVDialer._receivedCallsURL),
-		("missed", gv_backend.GVDialer._missedCallsURL),
+		#("login", gv_backend.GVDialer._loginURL),
+		#("contacts", gv_backend.GVDialer._contactsURL),
+		#("voicemail", gv_backend.GVDialer._voicemailURL),
+		#("sms", gv_backend.GVDialer._smsURL),
+		#("forward", gv_backend.GVDialer._forwardURL),
+		#("recent", gv_backend.GVDialer._recentCallsURL),
+		#("placed", gv_backend.GVDialer._placedCallsURL),
+		#("recieved", gv_backend.GVDialer._receivedCallsURL),
+		#("missed", gv_backend.GVDialer._missedCallsURL),
 	]
 
 
@@ -47,18 +49,32 @@ def main():
 		with open("not_loggedin_%s.txt" % name, "w") as f:
 			f.write(page)
 
+	loginPage = browser.download("http://www.google.com/voice/m")
+	with open("login.txt", "w") as f:
+		print "Writing to file"
+		f.write(loginPage)
+	glxRe = re.compile(r"""<input.*?name="GALX".*?value="(.*?)".*?/>""", re.MULTILINE | re.DOTALL)
+	glxTokens = glxRe.search(loginPage)
+	glxToken = glxTokens.group(1)
+
 	# Login
 	username = sys.argv[1]
 	password = sys.argv[2]
 
-	loginPostData = urllib.urlencode({
+	loginData = {
 		'Email' : username,
 		'Passwd' : password,
 		'service': "grandcentral",
 		"ltmpl": "mobile",
 		"btmpl": "mobile",
 		"PersistentCookie": "yes",
-	})
+		"rmShown": "1",
+		"GALX": glxToken,
+		"continue": gv_backend.GVDialer._forwardURL,
+	}
+	pprint.pprint(loginData)
+	loginPostData = urllib.urlencode(loginData)
+	pprint.pprint(loginPostData)
 
 	try:
 		loginSuccessOrFailurePage = browser.download(gv_backend.GVDialer._loginURL, loginPostData)
@@ -66,9 +82,10 @@ def main():
 		warnings.warn(traceback.format_exc())
 		raise RuntimeError("%s is not accesible" % gv_backend.GVDialer._loginURL)
 	with open("loggingin.txt", "w") as f:
+		print "Writing to file"
 		f.write(loginSuccessOrFailurePage)
 
-	forwardPage = browser.download(gv_backend.GVDialer._forwardURL)
+	forwardPage = loginSuccessOrFailurePage
 
 	tokenGroup = gv_backend.GVDialer._tokenRe.search(forwardPage)
 	if tokenGroup is None:
