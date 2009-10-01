@@ -1216,6 +1216,8 @@ class MessagesView(object):
 		"""
 		pass
 
+	_MIN_MESSAGES_SHOWN = 4
+
 	def _idly_populate_messageview(self):
 		with gtk_toolbox.gtk_lock():
 			banner = hildonize.show_busy_banner_start(self._window, "Loading Messages")
@@ -1240,12 +1242,19 @@ class MessagesView(object):
 				prettyNumber = make_pretty(prettyNumber)
 
 				firstMessage = "<b>%s - %s</b> <i>(%s)</i>" % (header, prettyNumber, relativeDate)
-				newMessages = [firstMessage]
-				newMessages.extend(messages)
+				expandedMessages = [firstMessage]
+				expandedMessages.extend(messages)
+				if (self._MIN_MESSAGES_SHOWN + 1) < len(messages):
+					firstMessage = "<b>%s - %s</b> <i>(%s)</i>" % (header, prettyNumber, relativeDate)
+					secondMessage = "<i>%d Messages Hidden...</i>" % (len(messages) - self._MIN_MESSAGES_SHOWN, )
+					collapsedMessages = [firstMessage, secondMessage]
+					collapsedMessages.extend(messages[-self._MIN_MESSAGES_SHOWN-1:-1])
+				else:
+					collapsedMessages = expandedMessages
 
 				number = make_ugly(number)
 
-				row = (number, relativeDate, header, "\n".join(newMessages), newMessages)
+				row = (number, relativeDate, header, "\n".join(collapsedMessages), expandedMessages)
 				with gtk_toolbox.gtk_lock():
 					self._messagemodel.append(row)
 		except Exception, e:

@@ -504,8 +504,8 @@ class GVDialer(object):
 			yield voicemailData
 
 	_smsFromRegex = re.compile(r"""<span class="gc-message-sms-from">(.*?)</span>""", re.MULTILINE | re.DOTALL)
-	_smsTextRegex = re.compile(r"""<span class="gc-message-sms-time">(.*?)</span>""", re.MULTILINE | re.DOTALL)
-	_smsTimeRegex = re.compile(r"""<span class="gc-message-sms-text">(.*?)</span>""", re.MULTILINE | re.DOTALL)
+	_smsTimeRegex = re.compile(r"""<span class="gc-message-sms-time">(.*?)</span>""", re.MULTILINE | re.DOTALL)
+	_smsTextRegex = re.compile(r"""<span class="gc-message-sms-text">(.*?)</span>""", re.MULTILINE | re.DOTALL)
 
 	def _parse_sms(self, smsHtml):
 		splitSms = self._seperateVoicemailsRegex.split(smsHtml)
@@ -627,7 +627,7 @@ def decorate_message(messageData):
 		messages = (messageParts[0][1], )
 	else:
 		messages = [
-			"<b>%s</b>: %s" % (messagePart[0], messagePart[-1])
+			"<b>%s</b>: %s" % (messagePart[0], messagePart[1])
 			for messagePart in messageParts
 		]
 
@@ -663,9 +663,9 @@ def test_backend(username, password):
 
 	#print "Messages: ",
 	#for message in backend.get_messages():
-	#  pprint.pprint(message)
+	#	pprint.pprint(message)
 	#for message in sort_messages(backend.get_messages()):
-	#  pprint.pprint(decorate_message(message))
+	#	pprint.pprint(decorate_message(message))
 
 	return backend
 
