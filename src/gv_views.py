@@ -33,6 +33,7 @@ import gtk
 
 import gtk_toolbox
 import hildonize
+import gv_backend
 import null_backend
 
 
@@ -1066,6 +1067,11 @@ class RecentCallsView(object):
 				self._isPopulated = False
 				recentItems = []
 
+			recentItems = (
+				gv_backend.decorate_recent(data)
+				for data in gv_backend.sort_messages(recentItems)
+			)
+
 			for personName, phoneNumber, date, action in recentItems:
 				if not personName:
 					personName = "Unknown"
@@ -1212,6 +1218,11 @@ class MessagesView(object):
 				self._errorDisplay.push_exception_with_lock()
 				self._isPopulated = False
 				messageItems = []
+
+			messageItems = (
+				gv_backend.decorate_message(message)
+				for message in gv_backend.sort_messages(messageItems)
+			)
 
 			for header, number, relativeDate, messages in messageItems:
 				prettyNumber = number[2:] if number.startswith("+1") else number

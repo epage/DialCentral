@@ -46,7 +46,7 @@ except ImportError:
 	simplejson = None
 
 
-_moduleLogger = logging.getLogger("gv_backend")
+_moduleLogger = logging.getLogger("gvoice.dialer")
 _TRUE_REGEX = re.compile("true")
 _FALSE_REGEX = re.compile("false")
 
@@ -119,20 +119,18 @@ class GVDialer(object):
 		self._callbackNumber = ""
 		self._callbackNumbers = {}
 
-		self.__contacts = None
-
 	def is_authed(self, force = False):
 		"""
 		Attempts to detect a current session
 		@note Once logged in try not to reauth more than once a minute.
 		@returns If authenticated
 		"""
-
 		if (time.time() - self._lastAuthed) < 120 and not force:
 			return True
 
 		try:
-			self._grab_account_info()
+			page = self._browser.download(self._forwardURL)
+			self._grab_account_info(page)
 		except Exception, e:
 			_moduleLogger.exception(str(e))
 			return False
@@ -148,9 +146,6 @@ class GVDialer(object):
 		Attempt to login to GoogleVoice
 		@returns Whether login was successful or not
 		"""
-		if self.is_authed():
-			return True
-
 		loginPostData = urllib.urlencode({
 			'Email' : username,
 			'Passwd' : password,
@@ -158,6 +153,7 @@ class GVDialer(object):
 			"ltmpl": "mobile",
 			"btmpl": "mobile",
 			"PersistentCookie": "yes",
+			"continue": self._forwardURL,
 		})
 
 		try:
@@ -166,14 +162,20 @@ class GVDialer(object):
 			_moduleLogger.exception(str(e))
 			raise RuntimeError("%s is not accesible" % self._loginURL)
 
-		return self.is_authed()
+		try:
+			self._grab_account_info(loginSuccessOrFailurePage)
+		except Exception, e:
+			_moduleLogger.exception(str(e))
+			return False
+
+		self._browser.cookies.save()
+		self._lastAuthed = time.time()
+		return True
 
 	def logout(self):
 		self._lastAuthed = 0.0
 		self._browser.cookies.clear()
 		self._browser.cookies.save()
-
-		self.clear_caches()
 
 	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
 	_clicktocallURL = "https://www.google.com/voice/m/sendcall"
@@ -224,9 +226,6 @@ class GVDialer(object):
 
 		return True
 
-	def clear_caches(self):
-		self.__contacts = None
-
 	_validateRe = re.compile("^[0-9]{10,}$")
 
 	def is_valid_syntax(self, number):
@@ -240,35 +239,6 @@ class GVDialer(object):
 		@returns The GoogleVoice phone number
 		"""
 		return self._accountNum
-
-	def set_sane_callback(self):
-		"""
-		Try to set a sane default callback number on these preferences
-		1) 1747 numbers ( Gizmo )
-		2) anything with gizmo in the name
-		3) anything with computer in the name
-		4) the first value
-		"""
-		numbers = self.get_callback_numbers()
-
-		for number, description in numbers.iteritems():
-			if re.compile(r"""1747""").match(number) is not None:
-				self.set_callback_number(number)
-				return
-
-		for number, description in numbers.iteritems():
-			if re.compile(r"""gizmo""", re.I).search(description) is not None:
-				self.set_callback_number(number)
-				return
-
-		for number, description in numbers.iteritems():
-			if re.compile(r"""computer""", re.I).search(description) is not None:
-				self.set_callback_number(number)
-				return
-
-		for number, description in numbers.iteritems():
-			self.set_callback_number(number)
-			return
 
 	def get_callback_numbers(self):
 		"""
@@ -295,34 +265,31 @@ class GVDialer(object):
 		"""
 		return self._callbackNumber
 
+	_recentCallsURL = "https://www.google.com/voice/inbox/recent/"
+	_placedCallsURL = "https://www.google.com/voice/inbox/recent/placed/"
+	_receivedCallsURL = "https://www.google.com/voice/inbox/recent/received/"
+	_missedCallsURL = "https://www.google.com/voice/inbox/recent/missed/"
+
 	def get_recent(self):
 		"""
-		@returns Iterable of (personsName, phoneNumber, date, action)
+		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
 		"""
-		sortedRecent = [
-			(exactDate, name, number, relativeDate, action)
-			for (name, number, exactDate, relativeDate, action) in self._get_recent()
-		]
-		sortedRecent.sort(reverse = True)
-		for exactDate, name, number, relativeDate, action in sortedRecent:
-			yield name, number, relativeDate, action
+		for action, url in (
+			("Received", self._receivedCallsURL),
+			("Missed", self._missedCallsURL),
+			("Placed", self._placedCallsURL),
+		):
+			try:
+				flatXml = self._browser.download(url)
+			except urllib2.URLError, e:
+				_moduleLogger.exception(str(e))
+				raise RuntimeError("%s is not accesible" % url)
 
-	def get_addressbooks(self):
-		"""
-		@returns Iterable of (Address Book Factory, Book Id, Book Name)
-		"""
-		yield self, "", ""
-
-	def open_addressbook(self, bookId):
-		return self
-
-	@staticmethod
-	def contact_source_short_name(contactId):
-		return "GV"
-
-	@staticmethod
-	def factory_name():
-		return "Google Voice"
+			allRecentHtml = self._grab_html(flatXml)
+			allRecentData = self._parse_voicemail(allRecentHtml)
+			for recentCallData in allRecentData:
+				recentCallData["action"] = action
+				yield recentCallData
 
 	_contactsRe = re.compile(r"""<a href="/voice/m/contact/(\d+)">(.*?)</a>""", re.S)
 	_contactsNextRe = re.compile(r""".*<a href="/voice/m/contacts(\?p=\d+)">Next.*?</a>""", re.S)
@@ -332,30 +299,23 @@ class GVDialer(object):
 		"""
 		@returns Iterable of (contact id, contact name)
 		"""
-		if self.__contacts is None:
-			self.__contacts = []
-
-			contactsPagesUrls = [self._contactsURL]
-			for contactsPageUrl in contactsPagesUrls:
-				try:
-					contactsPage = self._browser.download(contactsPageUrl)
-				except urllib2.URLError, e:
-					_moduleLogger.exception(str(e))
-					raise RuntimeError("%s is not accesible" % contactsPageUrl)
-				for contact_match in self._contactsRe.finditer(contactsPage):
-					contactId = contact_match.group(1)
-					contactName = saxutils.unescape(contact_match.group(2))
-					contact = contactId, contactName
-					self.__contacts.append(contact)
-					yield contact
-
-				next_match = self._contactsNextRe.match(contactsPage)
-				if next_match is not None:
-					newContactsPageUrl = self._contactsURL + next_match.group(1)
-					contactsPagesUrls.append(newContactsPageUrl)
-		else:
-			for contact in self.__contacts:
+		contactsPagesUrls = [self._contactsURL]
+		for contactsPageUrl in contactsPagesUrls:
+			try:
+				contactsPage = self._browser.download(contactsPageUrl)
+			except urllib2.URLError, e:
+				_moduleLogger.exception(str(e))
+				raise RuntimeError("%s is not accesible" % contactsPageUrl)
+			for contact_match in self._contactsRe.finditer(contactsPage):
+				contactId = contact_match.group(1)
+				contactName = saxutils.unescape(contact_match.group(2))
+				contact = contactId, contactName
 				yield contact
+
+			next_match = self._contactsNextRe.match(contactsPage)
+			if next_match is not None:
+				newContactsPageUrl = self._contactsURL + next_match.group(1)
+				contactsPagesUrls.append(newContactsPageUrl)
 
 	_contactDetailPhoneRe = re.compile(r"""<div.*?>([0-9+\-\(\) \t]+?)<span.*?>\((\w+)\)</span>""", re.S)
 	_contactDetailURL = "https://www.google.com/voice/mobile/contact"
@@ -398,10 +358,27 @@ class GVDialer(object):
 		decoratedSms = self._decorate_sms(parsedSms)
 
 		allMessages = itertools.chain(decoratedVoicemails, decoratedSms)
-		sortedMessages = list(allMessages)
-		sortedMessages.sort(reverse=True)
-		for exactDate, header, number, relativeDate, message in sortedMessages:
-			yield header, number, relativeDate, message
+		return allMessages
+
+	def clear_caches(self):
+		pass
+
+	def get_addressbooks(self):
+		"""
+		@returns Iterable of (Address Book Factory, Book Id, Book Name)
+		"""
+		yield self, "", ""
+
+	def open_addressbook(self, bookId):
+		return self
+
+	@staticmethod
+	def contact_source_short_name(contactId):
+		return "GV"
+
+	@staticmethod
+	def factory_name():
+		return "Google Voice"
 
 	def _grab_json(self, flatXml):
 		xmlTree = ElementTree.fromstring(flatXml)
@@ -421,9 +398,7 @@ class GVDialer(object):
 	_callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
 	_forwardURL = "https://www.google.com/voice/mobile/phones"
 
-	def _grab_account_info(self):
-		page = self._browser.download(self._forwardURL)
-
+	def _grab_account_info(self, page):
 		tokenGroup = self._tokenRe.search(page)
 		if tokenGroup is None:
 			raise RuntimeError("Could not extract authentication token from GoogleVoice")
@@ -452,40 +427,6 @@ class GVDialer(object):
 			number = number[1:]
 		return number
 
-	_recentCallsURL = "https://www.google.com/voice/inbox/recent/"
-	_placedCallsURL = "https://www.google.com/voice/inbox/recent/placed/"
-	_receivedCallsURL = "https://www.google.com/voice/inbox/recent/received/"
-	_missedCallsURL = "https://www.google.com/voice/inbox/recent/missed/"
-
-	def _get_recent(self):
-		"""
-		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
-		"""
-		for action, url in (
-			("Received", self._receivedCallsURL),
-			("Missed", self._missedCallsURL),
-			("Placed", self._placedCallsURL),
-		):
-			try:
-				flatXml = self._browser.download(url)
-			except urllib2.URLError, e:
-				_moduleLogger.exception(str(e))
-				raise RuntimeError("%s is not accesible" % url)
-
-			allRecentHtml = self._grab_html(flatXml)
-			allRecentData = self._parse_voicemail(allRecentHtml)
-			for recentCallData in allRecentData:
-				exactTime = recentCallData["time"]
-				if recentCallData["name"]:
-					header = recentCallData["name"]
-				elif recentCallData["prettyNumber"]:
-					header = recentCallData["prettyNumber"]
-				elif recentCallData["location"]:
-					header = recentCallData["location"]
-				else:
-					header = "Unknown"
-				yield header, recentCallData["number"], exactTime, recentCallData["relTime"], action
-
 	_seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class=".*?gc-message.*?">""", re.MULTILINE | re.DOTALL)
 	_exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
 	_relativeVoicemailTimeRegex = re.compile(r"""<span class="gc-message-relative">(.*?)</span>""", re.MULTILINE)
@@ -493,6 +434,7 @@ class GVDialer(object):
 	_voicemailNumberRegex = re.compile(r"""<input type="hidden" class="gc-text gc-quickcall-ac" value="(.*?)"/>""", re.MULTILINE)
 	_prettyVoicemailNumberRegex = re.compile(r"""<span class="gc-message-type">(.*?)</span>""", re.MULTILINE)
 	_voicemailLocationRegex = re.compile(r"""<span class="gc-message-location">.*?<a.*?>(.*?)</a></span>""", re.MULTILINE)
+	_messagesContactID = re.compile(r"""<a class=".*?gc-message-name-link.*?">.*?</a>\s*?<span .*?>(.*?)</span>""", re.MULTILINE)
 	#_voicemailMessageRegex = re.compile(r"""<span id="\d+-\d+" class="gc-word-(.*?)">(.*?)</span>""", re.MULTILINE)
 	#_voicemailMessageRegex = re.compile(r"""<a .*? class="gc-message-mni">(.*?)</a>""", re.MULTILINE)
 	_voicemailMessageRegex = re.compile(r"""(<span id="\d+-\d+" class="gc-word-(.*?)">(.*?)</span>|<a .*? class="gc-message-mni">(.*?)</a>)""", re.MULTILINE)
@@ -522,6 +464,8 @@ class GVDialer(object):
 			number = numberGroup.group(1).strip() if numberGroup else ""
 			prettyNumberGroup = self._prettyVoicemailNumberRegex.search(messageHtml)
 			prettyNumber = prettyNumberGroup.group(1).strip() if prettyNumberGroup else ""
+			contactIdGroup = self._messagesContactID.search(messageHtml)
+			contactId = contactIdGroup.group(1).strip() if contactIdGroup else ""
 
 			messageGroups = self._voicemailMessageRegex.finditer(messageHtml)
 			messageParts = (
@@ -531,6 +475,7 @@ class GVDialer(object):
 
 			yield {
 				"id": messageId.strip(),
+				"contactId": contactId,
 				"name": name,
 				"time": exactTime,
 				"relTime": relativeTime,
@@ -540,29 +485,23 @@ class GVDialer(object):
 				"messageParts": messageParts,
 			}
 
-	def _decorate_voicemail(self, parsedVoicemail):
+	def _decorate_voicemail(self, parsedVoicemails):
 		messagePartFormat = {
 			"med1": "<i>%s</i>",
 			"med2": "%s",
 			"high": "<b>%s</b>",
 		}
-		for voicemailData in parsedVoicemail:
-			exactTime = voicemailData["time"]
-			if voicemailData["name"]:
-				header = voicemailData["name"]
-			elif voicemailData["prettyNumber"]:
-				header = voicemailData["prettyNumber"]
-			elif voicemailData["location"]:
-				header = voicemailData["location"]
-			else:
-				header = "Unknown"
+		for voicemailData in parsedVoicemails:
 			message = " ".join((
 				messagePartFormat[quality] % part
 				for (quality, part) in voicemailData["messageParts"]
 			)).strip()
 			if not message:
 				message = "No Transcription"
-			yield exactTime, header, voicemailData["number"], voicemailData["relTime"], (message, )
+			whoFrom = voicemailData["name"]
+			when = voicemailData["time"]
+			voicemailData["messageParts"] = ((whoFrom, message, when), )
+			yield voicemailData
 
 	_smsFromRegex = re.compile(r"""<span class="gc-message-sms-from">(.*?)</span>""", re.MULTILINE | re.DOTALL)
 	_smsTextRegex = re.compile(r"""<span class="gc-message-sms-time">(.*?)</span>""", re.MULTILINE | re.DOTALL)
@@ -583,6 +522,8 @@ class GVDialer(object):
 			number = numberGroup.group(1).strip() if numberGroup else ""
 			prettyNumberGroup = self._prettyVoicemailNumberRegex.search(messageHtml)
 			prettyNumber = prettyNumberGroup.group(1).strip() if prettyNumberGroup else ""
+			contactIdGroup = self._messagesContactID.search(messageHtml)
+			contactId = contactIdGroup.group(1).strip() if contactIdGroup else ""
 
 			fromGroups = self._smsFromRegex.finditer(messageHtml)
 			fromParts = (group.group(1).strip() for group in fromGroups)
@@ -595,52 +536,141 @@ class GVDialer(object):
 
 			yield {
 				"id": messageId.strip(),
+				"contactId": contactId,
 				"name": name,
 				"time": exactTime,
 				"relTime": relativeTime,
 				"prettyNumber": prettyNumber,
 				"number": number,
+				"location": "",
 				"messageParts": messageParts,
 			}
 
-	def _decorate_sms(self, parsedSms):
-		for messageData in parsedSms:
-			exactTime = messageData["time"]
-			if messageData["name"]:
-				header = messageData["name"]
-			elif messageData["prettyNumber"]:
-				header = messageData["prettyNumber"]
-			else:
-				header = "Unknown"
-			number = messageData["number"]
-			relativeTime = messageData["relTime"]
-			messages = [
-				"<b>%s</b>: %s" % (messagePart[0], messagePart[-1])
-				for messagePart in messageData["messageParts"]
-			]
-			if not messages:
-				messages = ("No Transcription", )
-			yield exactTime, header, number, relativeTime, messages
+	def _decorate_sms(self, parsedTexts):
+		return parsedTexts
+
+
+def set_sane_callback(backend):
+	"""
+	Try to set a sane default callback number on these preferences
+	1) 1747 numbers ( Gizmo )
+	2) anything with gizmo in the name
+	3) anything with computer in the name
+	4) the first value
+	"""
+	numbers = backend.get_callback_numbers()
+
+	priorityOrderedCriteria = [
+		("1747", None),
+		(None, "gizmo"),
+		(None, "computer"),
+		(None, "sip"),
+		(None, None),
+	]
+
+	for numberCriteria, descriptionCriteria in priorityOrderedCriteria:
+		for number, description in numbers.iteritems():
+			if numberCriteria is not None and re.compile(numberCriteria).match(number) is None:
+				continue
+			if descriptionCriteria is not None and re.compile(descriptionCriteria).match(description) is None:
+				continue
+			backend.set_callback_number(number)
+			return
+
+
+def sort_messages(allMessages):
+	sortableAllMessages = [
+		(message["time"], message)
+		for message in allMessages
+	]
+	sortableAllMessages.sort(reverse=True)
+	return (
+		message
+		for (exactTime, message) in sortableAllMessages
+	)
+
+
+def decorate_recent(recentCallData):
+	"""
+	@returns (personsName, phoneNumber, date, action)
+	"""
+	if recentCallData["name"]:
+		header = recentCallData["name"]
+	elif recentCallData["prettyNumber"]:
+		header = recentCallData["prettyNumber"]
+	elif recentCallData["location"]:
+		header = recentCallData["location"]
+	else:
+		header = "Unknown"
+
+	number = recentCallData["number"]
+	relTime = recentCallData["relTime"]
+	action = recentCallData["action"]
+	return header, number, relTime, action
+
+
+def decorate_message(messageData):
+	exactTime = messageData["time"]
+	if messageData["name"]:
+		header = messageData["name"]
+	elif messageData["prettyNumber"]:
+		header = messageData["prettyNumber"]
+	else:
+		header = "Unknown"
+	number = messageData["number"]
+	relativeTime = messageData["relTime"]
+
+	messageParts = list(messageData["messageParts"])
+	if len(messageParts) == 0:
+		messages = ("No Transcription", )
+	elif len(messageParts) == 1:
+		messages = (messageParts[0][1], )
+	else:
+		messages = [
+			"<b>%s</b>: %s" % (messagePart[0], messagePart[-1])
+			for messagePart in messageParts
+		]
+
+	decoratedResults = header, number, relativeTime, messages
+	return decoratedResults
 
 
 def test_backend(username, password):
 	backend = GVDialer()
 	print "Authenticated: ", backend.is_authed()
-	print "Login?: ", backend.login(username, password)
+	if not backend.is_authed():
+		print "Login?: ", backend.login(username, password)
 	print "Authenticated: ", backend.is_authed()
-	# print "Token: ", backend._token
-	print "Account: ", backend.get_account_number()
-	print "Callback: ", backend.get_callback_number()
-	# print "All Callback: ",
-	import pprint
-	# pprint.pprint(backend.get_callback_numbers())
-	# print "Recent: ",
-	# pprint.pprint(list(backend.get_recent()))
-	# print "Contacts: ",
-	# for contact in backend.get_contacts():
+
+	#print "Token: ", backend._token
+	#print "Account: ", backend.get_account_number()
+	#print "Callback: ", backend.get_callback_number()
+	#print "All Callback: ",
+	#import pprint
+	#pprint.pprint(backend.get_callback_numbers())
+
+	#print "Recent: "
+	#for data in backend.get_recent():
+	#	pprint.pprint(data)
+	#for data in sort_messages(backend.get_recent()):
+	#	pprint.pprint(decorate_recent(data))
+	#pprint.pprint(list(backend.get_recent()))
+
+	#print "Contacts: ",
+	#for contact in backend.get_contacts():
 	#	print contact
 	#	pprint.pprint(list(backend.get_contact_details(contact[0])))
-	for message in backend.get_messages():
-	  pprint.pprint(message)
+
+	#print "Messages: ",
+	#for message in backend.get_messages():
+	#  pprint.pprint(message)
+	#for message in sort_messages(backend.get_messages()):
+	#  pprint.pprint(decorate_message(message))
 
 	return backend
+
+
+if __name__ == "__main__":
+	import sys
+	logging.basicConfig(level=logging.DEBUG)
+	test_backend(sys.argv[1], sys.argv[2])
