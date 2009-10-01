@@ -19,7 +19,6 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @todo Alternate UI for dialogs (stackables)
-@todo Get descriptions with the callback number
 """
 
 from __future__ import with_statement

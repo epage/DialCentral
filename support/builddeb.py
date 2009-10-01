@@ -23,6 +23,8 @@ __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
 1.0.7
+* Sped up various login cases
+* Added descriptions to the callback numbers
 * Debugging: Improved logging output
 
 1.0.6
