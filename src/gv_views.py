@@ -26,6 +26,7 @@ from __future__ import with_statement
 
 import ConfigParser
 import logging
+import itertools
 
 import gobject
 import pango
@@ -850,13 +851,24 @@ class AccountInfo(object):
 		try:
 			actualSelection = make_pretty(self.get_selected_callback_number())
 
+			userOptions = dict(
+				(number, "%s (%s)" % (number, description))
+				for (number, description) in self._callbackList
+			)
+			defaultSelection = userOptions.get(actualSelection, actualSelection)
+
 			userSelection = hildonize.touch_selector_entry(
 				self._window,
 				"Callback Number",
-				[number for number, description in self._callbackList],
-				actualSelection,
+				list(userOptions.itervalues()),
+				defaultSelection,
 			)
-			number = make_ugly(userSelection)
+			reversedUserOptions = dict(
+				itertools.izip(userOptions.itervalues(), userOptions.iterkeys())
+			)
+			selectedNumber = reversedUserOptions.get(userSelection, userSelection)
+
+			number = make_ugly(selectedNumber)
 			self._set_callback_number(number)
 		except RuntimeError, e:
 			_moduleLogger.exception("%s" % str(e))
