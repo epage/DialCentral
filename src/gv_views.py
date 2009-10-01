@@ -19,6 +19,7 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @todo Alternate UI for dialogs (stackables)
+@todo Get descriptions with the callback number
 """
 
 from __future__ import with_statement
@@ -805,7 +806,7 @@ class AccountInfo(object):
 			return
 
 		for number, description in callbackNumbers.iteritems():
-			self._callbackList.append(make_pretty(number))
+			self._callbackList.append((make_pretty(number), description))
 
 		if not self.get_selected_callback_number():
 			self._set_callback_number(self._defaultCallback)
@@ -851,7 +852,7 @@ class AccountInfo(object):
 			userSelection = hildonize.touch_selector_entry(
 				self._window,
 				"Callback Number",
-				self._callbackList,
+				[number for number, description in self._callbackList],
 				actualSelection,
 			)
 			number = make_ugly(userSelection)
