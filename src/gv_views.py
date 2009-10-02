@@ -769,7 +769,7 @@ class AccountInfo(object):
 		return True
 
 	def clear(self):
-		self._callbackSelectButton.set_label("")
+		self._callbackSelectButton.set_label("No Callback Number")
 		self.set_account_number("")
 		self._isPopulated = False
 
@@ -806,17 +806,19 @@ class AccountInfo(object):
 			self._isPopulated = False
 			return
 
+		if len(callbackNumbers) == 0:
+			callbackNumbers = {"": "No callback numbers available"}
+
 		for number, description in callbackNumbers.iteritems():
 			self._callbackList.append((make_pretty(number), description))
 
-		if not self.get_selected_callback_number():
-			self._set_callback_number(self._defaultCallback)
+		self._set_callback_number(self._defaultCallback)
 
 	def _set_callback_number(self, number):
 		try:
 			if not self._backend.is_valid_syntax(number) and 0 < len(number):
 				self._errorDisplay.push_message("%s is not a valid callback number" % number)
-			elif number == self._backend.get_callback_number():
+			elif number == self._backend.get_callback_number() and 0 < len(number):
 				_moduleLogger.warning(
 					"Callback number already is %s" % (
 						self._backend.get_callback_number(),
@@ -827,7 +829,10 @@ class AccountInfo(object):
 				assert make_ugly(number) == make_ugly(self._backend.get_callback_number()), "Callback number should be %s but instead is %s" % (
 					make_pretty(number), make_pretty(self._backend.get_callback_number())
 				)
-				self._callbackSelectButton.set_label(make_pretty(number))
+				prettyNumber = make_pretty(number)
+				if len(prettyNumber) == 0:
+					prettyNumber = "No Callback Number"
+				self._callbackSelectButton.set_label(prettyNumber)
 				_moduleLogger.info(
 					"Callback number set to %s" % (
 						self._backend.get_callback_number(),
