@@ -25,6 +25,7 @@ __changelog__ = """
 1.0.7
 * Sped up various login cases
 * Added descriptions to the callback numbers
+* Bug Fix: Random people were reporting login issues
 * Debugging: Improved logging output
 
 1.0.6
