@@ -27,6 +27,7 @@ __changelog__ = """
 * Added descriptions to the callback numbers
 * Collapsed conversations in the messages tab
 * Bug Fix: Random people were reporting login issues
+* Bug Fix: Hardened against issues with grabbing possible callback numbers
 * Debugging: Improved logging output
 
 1.0.6
