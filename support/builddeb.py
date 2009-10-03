@@ -26,6 +26,7 @@ __changelog__ = """
 * Sped up various login cases
 * Added descriptions to the callback numbers
 * Collapsed conversations in the messages tab
+* UI Tweak: Added more login status notifications
 * Bug Fix: Random people were reporting login issues
 * Bug Fix: Hardened against issues with grabbing possible callback numbers
 * Debugging: Improved logging output

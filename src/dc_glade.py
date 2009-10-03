@@ -17,8 +17,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-@todo Add "login failed" and "attempting login" notifications
 """
 
 
@@ -344,12 +342,17 @@ class Dialcentral(object):
 			serviceId = self.NULL_BACKEND
 			loggedIn = False
 			if not force:
+				with gtk_toolbox.gtk_lock():
+					banner = hildonize.show_busy_banner_start(self._window, "Logging In...")
 				try:
 					self.refresh_session()
 					serviceId = self._defaultBackendId
 					loggedIn = True
 				except Exception, e:
 					_moduleLogger.exception('Session refresh failed with the following message "%s"' % str(e))
+				finally:
+					with gtk_toolbox.gtk_lock():
+						hildonize.show_busy_banner_end(banner)
 
 			if not loggedIn:
 				loggedIn, serviceId = self._login_by_user(numOfAttempts)
@@ -358,6 +361,8 @@ class Dialcentral(object):
 				self._change_loggedin_status(serviceId)
 				if loggedIn:
 					hildonize.show_information_banner(self._window, "Logged In")
+				else:
+					hildonize.show_information_banner(self._window, "Login Failed")
 		except Exception, e:
 			with gtk_toolbox.gtk_lock():
 				self._errorDisplay.push_exception()
@@ -413,8 +418,13 @@ class Dialcentral(object):
 				if not self._phoneBackends[tmpServiceId].get_callback_number():
 					# subtle reminder to the users to configure things
 					self._notebook.set_current_page(self.ACCOUNT_TAB)
-			username, password = credentials
-			loggedIn = self._phoneBackends[tmpServiceId].login(username, password)
+				banner = hildonize.show_busy_banner_start(self._window, "Logging In...")
+			try:
+				username, password = credentials
+				loggedIn = self._phoneBackends[tmpServiceId].login(username, password)
+			finally:
+				with gtk_toolbox.gtk_lock():
+					hildonize.show_busy_banner_end(banner)
 
 		if loggedIn:
 			serviceId = tmpServiceId

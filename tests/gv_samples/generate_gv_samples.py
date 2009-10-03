@@ -22,14 +22,14 @@ import gv_backend
 def main():
 	webpages = [
 		#("login", gv_backend.GVDialer._loginURL),
-		#("contacts", gv_backend.GVDialer._contactsURL),
-		#("voicemail", gv_backend.GVDialer._voicemailURL),
-		#("sms", gv_backend.GVDialer._smsURL),
-		#("forward", gv_backend.GVDialer._forwardURL),
-		#("recent", gv_backend.GVDialer._recentCallsURL),
-		#("placed", gv_backend.GVDialer._placedCallsURL),
-		#("recieved", gv_backend.GVDialer._receivedCallsURL),
-		#("missed", gv_backend.GVDialer._missedCallsURL),
+		("contacts", gv_backend.GVDialer._contactsURL),
+		("voicemail", gv_backend.GVDialer._voicemailURL),
+		("sms", gv_backend.GVDialer._smsURL),
+		("forward", gv_backend.GVDialer._forwardURL),
+		("recent", gv_backend.GVDialer._recentCallsURL),
+		("placed", gv_backend.GVDialer._placedCallsURL),
+		("recieved", gv_backend.GVDialer._receivedCallsURL),
+		("missed", gv_backend.GVDialer._missedCallsURL),
 	]
 
 
