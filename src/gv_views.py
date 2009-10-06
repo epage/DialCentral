@@ -501,7 +501,7 @@ class SmsEntryDialog(object):
 		entryLength = self._smsEntry.get_buffer().get_char_count()
 		charsLeft = self.MAX_CHAR - entryLength
 		self._letterCountLabel.set_text(str(charsLeft))
-		if charsLeft < 0:
+		if charsLeft < 0 or charsLeft == self.MAX_CHAR:
 			self._smsButton.set_sensitive(False)
 		else:
 			self._smsButton.set_sensitive(True)
@@ -1107,7 +1107,7 @@ class RecentCallsView(object):
 
 	def _on_recentview_row_activated(self, treeview, path, view_column):
 		try:
-			model, itr = self._recentviewselection.get_selected()
+			itr = self._recentmodel.get_iter(path)
 			if not itr:
 				return
 
@@ -1272,7 +1272,7 @@ class MessagesView(object):
 
 	def _on_messageview_row_activated(self, treeview, path, view_column):
 		try:
-			model, itr = self._messageviewselection.get_selected()
+			itr = self._messagemodel.get_iter(path)
 			if not itr:
 				return
 
@@ -1492,7 +1492,7 @@ class ContactsView(object):
 
 	def _on_contactsview_row_activated(self, treeview, path, view_column):
 		try:
-			model, itr = self._contactsviewselection.get_selected()
+			itr = self._contactsmodel.get_iter(path)
 			if not itr:
 				return
 

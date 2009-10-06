@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+"""
+Open Issues
+	@bug not all of a message is shown
+	@bug Buttons are too small
+"""
+
 
 import gobject
 import gtk
@@ -132,6 +138,7 @@ def _null_set_button_auto_selectable(button):
 
 try:
 	hildon.HILDON_SIZE_AUTO_HEIGHT
+	gtk.Button.set_theme_size
 	set_button_auto_selectable = _hildon_set_button_auto_selectable
 except AttributeError:
 	set_button_auto_selectable = _null_set_button_auto_selectable
@@ -147,6 +154,7 @@ def _null_set_button_finger_selectable(button):
 
 try:
 	hildon.HILDON_SIZE_FINGER_HEIGHT
+	gtk.Button.set_theme_size
 	set_button_finger_selectable = _hildon_set_button_finger_selectable
 except AttributeError:
 	set_button_finger_selectable = _null_set_button_finger_selectable
@@ -162,6 +170,7 @@ def _null_set_button_thumb_selectable(button):
 
 try:
 	hildon.HILDON_SIZE_THUMB_HEIGHT
+	gtk.Button.set_theme_size
 	set_button_thumb_selectable = _hildon_set_button_thumb_selectable
 except AttributeError:
 	set_button_thumb_selectable = _null_set_button_thumb_selectable
@@ -401,15 +410,16 @@ def _hildon_request_number(parent, title, range, default):
 	try:
 		dialog.show_all()
 		response = dialog.run()
+
+		if response == gtk.RESPONSE_OK:
+			return spinner.get_value()
+		elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
+			raise RuntimeError("User cancelled request")
+		else:
+			raise RuntimeError("Unrecognized response %r", response)
 	finally:
 		dialog.hide()
-
-	if response == gtk.RESPONSE_OK:
-		return spinner.get_value()
-	elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
-		raise RuntimeError("User cancelled request")
-	else:
-		raise RuntimeError("Unrecognized response %r", response)
+		dialog.destroy()
 
 
 def _null_request_number(parent, title, range, default):
@@ -429,15 +439,16 @@ def _null_request_number(parent, title, range, default):
 	try:
 		dialog.show_all()
 		response = dialog.run()
+
+		if response == gtk.RESPONSE_OK:
+			return spinner.get_value_as_int()
+		elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
+			raise RuntimeError("User cancelled request")
+		else:
+			raise RuntimeError("Unrecognized response %r", response)
 	finally:
 		dialog.hide()
-
-	if response == gtk.RESPONSE_OK:
-		return spinner.get_value_as_int()
-	elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
-		raise RuntimeError("User cancelled request")
-	else:
-		raise RuntimeError("Unrecognized response %r", response)
+		dialog.destroy()
 
 
 try:
@@ -463,22 +474,26 @@ def _hildon_touch_selector(parent, title, items, defaultIndex):
 	try:
 		dialog.show_all()
 		response = dialog.run()
+
+		if response == gtk.RESPONSE_OK:
+			return selector.get_active(0)
+		elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
+			raise RuntimeError("User cancelled request")
+		else:
+			raise RuntimeError("Unrecognized response %r", response)
 	finally:
 		dialog.hide()
-
-	if response == gtk.RESPONSE_OK:
-		return selector.get_active(0)
-	elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
-		raise RuntimeError("User cancelled request")
-	else:
-		raise RuntimeError("Unrecognized response %r", response)
+		dialog.destroy()
 
 
-def _on_null_touch_selector_activated(treeView, path, column, dialog):
+def _on_null_touch_selector_activated(treeView, path, column, dialog, pathData):
 	dialog.response(gtk.RESPONSE_OK)
+	pathData[0] = path
 
 
 def _null_touch_selector(parent, title, items, defaultIndex = -1):
+	parentSize = parent.get_size()
+
 	model = gtk.ListStore(gobject.TYPE_STRING)
 	for item in items:
 		model.append((item, ))
@@ -486,7 +501,7 @@ def _null_touch_selector(parent, title, items, defaultIndex = -1):
 	cell = gtk.CellRendererText()
 	set_cell_thumb_selectable(cell)
 	column = gtk.TreeViewColumn(title)
-	column .pack_start(cell, expand=True)
+	column.pack_start(cell, expand=True)
 	column.add_attribute(cell, "text", 0)
 
 	treeView = gtk.TreeView()
@@ -500,7 +515,6 @@ def _null_touch_selector(parent, title, items, defaultIndex = -1):
 	scrolledWin = gtk.ScrolledWindow()
 	scrolledWin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 	scrolledWin.add(treeView)
-	hildonize_scrollwindow(scrolledWin)
 
 	dialog = gtk.Dialog(
 		title,
@@ -510,25 +524,27 @@ def _null_touch_selector(parent, title, items, defaultIndex = -1):
 	)
 	dialog.set_default_response(gtk.RESPONSE_CANCEL)
 	dialog.get_child().add(scrolledWin)
-	parentSize = parent.get_size()
 	dialog.resize(parentSize[0], max(parentSize[1]-100, 100))
-	treeView.connect("row-activated", _on_null_touch_selector_activated, dialog)
+
+	scrolledWin = hildonize_scrollwindow(scrolledWin)
+	pathData = [None]
+	treeView.connect("row-activated", _on_null_touch_selector_activated, dialog, pathData)
 
 	try:
 		dialog.show_all()
 		response = dialog.run()
+
+		if response == gtk.RESPONSE_OK:
+			if pathData[0] is None:
+				raise RuntimeError("No selection made")
+			return pathData[0][0]
+		elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
+			raise RuntimeError("User cancelled request")
+		else:
+			raise RuntimeError("Unrecognized response %r", response)
 	finally:
 		dialog.hide()
-
-	if response == gtk.RESPONSE_OK:
-		model, itr = selection.get_selected()
-		if itr is None:
-			raise RuntimeError("No selection made")
-		return model.get_path(itr)[0]
-	elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
-		raise RuntimeError("User cancelled request")
-	else:
-		raise RuntimeError("Unrecognized response %r", response)
+		dialog.destroy()
 
 
 try:
@@ -580,12 +596,15 @@ def _on_null_touch_selector_entry_entry_activated(entry, dialog, customEntry, re
 
 def _on_null_touch_selector_entry_tree_activated(treeView, path, column, dialog, selection, result):
 	dialog.response(gtk.RESPONSE_OK)
-	model, itr = selection.get_selected()
+	model = treeView.get_model()
+	itr = model.get_iter(path)
 	if itr is not None:
 		result.append(model.get_value(itr, 0))
 
 
 def _null_touch_selector_entry(parent, title, items, defaultItem):
+	parentSize = parent.get_size()
+
 	model = gtk.ListStore(gobject.TYPE_STRING)
 	defaultIndex = -1
 	for i, item in enumerate(items):
@@ -608,7 +627,6 @@ def _null_touch_selector_entry(parent, title, items, defaultItem):
 	scrolledWin = gtk.ScrolledWindow()
 	scrolledWin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 	scrolledWin.add(treeView)
-	hildonize_scrollwindow(scrolledWin)
 
 	customEntry = gtk.Entry()
 
@@ -624,8 +642,9 @@ def _null_touch_selector_entry(parent, title, items, defaultItem):
 	)
 	dialog.set_default_response(gtk.RESPONSE_CANCEL)
 	dialog.get_child().add(layout)
-	parentSize = parent.get_size()
 	dialog.resize(parentSize[0], max(parentSize[1]-100, 100))
+
+	scrolledWin = hildonize_scrollwindow(scrolledWin)
 
 	if 0 < defaultIndex:
 		selection.select_path((defaultIndex, ))
@@ -638,19 +657,19 @@ def _null_touch_selector_entry(parent, title, items, defaultItem):
 	try:
 		dialog.show_all()
 		response = dialog.run()
+
+		if response == gtk.RESPONSE_OK:
+			if len(result) != 1:
+				raise RuntimeError("No selection made")
+			else:
+				return result[0]
+		elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
+			raise RuntimeError("User cancelled request")
+		else:
+			raise RuntimeError("Unrecognized response %r", response)
 	finally:
 		dialog.hide()
-
-	if response == gtk.RESPONSE_OK:
-		model, itr = selection.get_selected()
-		if len(result) != 1:
-			raise RuntimeError("No selection made")
-		else:
-			return result[0]
-	elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
-		raise RuntimeError("User cancelled request")
-	else:
-		raise RuntimeError("Unrecognized response %r", response)
+		dialog.destroy()
 
 
 try:

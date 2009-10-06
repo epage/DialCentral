@@ -133,6 +133,12 @@ class Dialcentral(object):
 			"back",
 			"sendSmsButton",
 			"cancelSmsButton",
+			"sms_button",
+			"dial_button",
+			"select_button",
+			"cancel_button",
+			"minutesEntryButton",
+			"clearcookies",
 		):
 			hildonize.set_button_thumb_selectable(button)
 

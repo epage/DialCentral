@@ -27,8 +27,15 @@ __changelog__ = """
 * Added descriptions to the callback numbers
 * Collapsed conversations in the messages tab
 * UI Tweak: Added more login status notifications
+* UI Tweak: When no characters are entered, you can't send a text
+* Debugging: Printing page when can't get a callback number
 * Bug Fix: Random people were reporting login issues
 * Bug Fix: Hardened against issues with grabbing possible callback numbers
+* Bug Fix: Fremantle GTK doesn't allow TreeView rows to be selected, so row-activated handlers have to read their path
+* Bug Fix: Fremantle PyMaemo doesn't provide a function Mer PyMaemo does, created a hack to be workable on both
+* Bug Fix: Once PyMaemo supports thumb button sizes, setting that for all of the random buttons
+* Bug Fix: When debugging hildonization, dialogs weren't closing
+* Bug Fix: Not properly hildonizing some code
 * Debugging: Improved logging output
 
 1.0.6
