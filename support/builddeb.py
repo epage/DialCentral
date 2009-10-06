@@ -28,7 +28,6 @@ __changelog__ = """
 * Collapsed conversations in the messages tab
 * UI Tweak: Added more login status notifications
 * UI Tweak: When no characters are entered, you can't send a text
-* Debugging: Printing page when can't get a callback number
 * Bug Fix: Random people were reporting login issues
 * Bug Fix: Hardened against issues with grabbing possible callback numbers
 * Bug Fix: Fremantle GTK doesn't allow TreeView rows to be selected, so row-activated handlers have to read their path
@@ -37,6 +36,7 @@ __changelog__ = """
 * Bug Fix: When debugging hildonization, dialogs weren't closing
 * Bug Fix: Not properly hildonizing some code
 * Debugging: Improved logging output
+* Debugging: Printing page when can't get a callback number
 
 1.0.6
 * Fremantle Prep: Simplified menus in prep for no menu or the Fremantle App Menu
