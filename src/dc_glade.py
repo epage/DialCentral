@@ -129,6 +129,13 @@ class Dialcentral(object):
 		):
 			hildonize.hildonize_scrollwindow_with_viewport(self._widgetTree.get_widget(scrollingWidget))
 
+		for button in (
+			"back",
+			"sendSmsButton",
+			"cancelSmsButton",
+		):
+			hildonize.set_button_thumb_selectable(button)
+
 		replacementButtons = [gtk.Button("Test")]
 		menu = hildonize.hildonize_menu(
 			self._window,

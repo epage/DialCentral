@@ -122,6 +122,51 @@ except AttributeError:
 		hildonize_menu = _null_hildonize_menu
 
 
+def _hildon_set_button_auto_selectable(button):
+	button.set_theme_size(hildon.HILDON_SIZE_AUTO_HEIGHT)
+
+
+def _null_set_button_auto_selectable(button):
+	pass
+
+
+try:
+	hildon.HILDON_SIZE_AUTO_HEIGHT
+	set_button_auto_selectable = _hildon_set_button_auto_selectable
+except AttributeError:
+	set_button_auto_selectable = _null_set_button_auto_selectable
+
+
+def _hildon_set_button_finger_selectable(button):
+	button.set_theme_size(hildon.HILDON_SIZE_FINGER_HEIGHT)
+
+
+def _null_set_button_finger_selectable(button):
+	pass
+
+
+try:
+	hildon.HILDON_SIZE_FINGER_HEIGHT
+	set_button_finger_selectable = _hildon_set_button_finger_selectable
+except AttributeError:
+	set_button_finger_selectable = _null_set_button_finger_selectable
+
+
+def _hildon_set_button_thumb_selectable(button):
+	button.set_theme_size(hildon.HILDON_SIZE_THUMB_HEIGHT)
+
+
+def _null_set_button_thumb_selectable(button):
+	pass
+
+
+try:
+	hildon.HILDON_SIZE_THUMB_HEIGHT
+	set_button_thumb_selectable = _hildon_set_button_thumb_selectable
+except AttributeError:
+	set_button_thumb_selectable = _null_set_button_thumb_selectable
+
+
 def _hildon_set_cell_thumb_selectable(renderer):
 	renderer.set_property("scale", 1.5)
 
@@ -496,7 +541,10 @@ except AttributeError:
 
 def _hildon_touch_selector_entry(parent, title, items, defaultItem):
 	# Got a segfault when using append_text_column with TouchSelectorEntry, so using this way
-	selector = hildon.hildon_touch_selector_entry_new_text()
+	try:
+		selector = hildon.TouchSelectorEntry(text=True)
+	except TypeError:
+		selector = hildon.hildon_touch_selector_entry_new_text()
 	defaultIndex = -1
 	for i, item in enumerate(items):
 		selector.append_text(item)
