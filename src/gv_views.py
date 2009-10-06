@@ -1253,7 +1253,7 @@ class MessagesView(object):
 					firstMessage = "<b>%s - %s</b> <i>(%s)</i>" % (header, prettyNumber, relativeDate)
 					secondMessage = "<i>%d Messages Hidden...</i>" % (len(messages) - self._MIN_MESSAGES_SHOWN, )
 					collapsedMessages = [firstMessage, secondMessage]
-					collapsedMessages.extend(messages[-self._MIN_MESSAGES_SHOWN-1:-1])
+					collapsedMessages.extend(messages[-(self._MIN_MESSAGES_SHOWN+0):])
 				else:
 					collapsedMessages = expandedMessages
 
