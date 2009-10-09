@@ -271,7 +271,6 @@ class SmsEntryDialog(object):
 	"""
 
 	ACTION_CANCEL = "cancel"
-	ACTION_SELECT = "select"
 	ACTION_DIAL = "dial"
 	ACTION_SEND_SMS = "sms"
 
@@ -286,8 +285,6 @@ class SmsEntryDialog(object):
 		self._smsButton.connect("clicked", self._on_send)
 		self._dialButton = self._widgetTree.get_widget("dialButton")
 		self._dialButton.connect("clicked", self._on_dial)
-		self._selectButton = self._widgetTree.get_widget("selectButton")
-		self._selectButton.connect("clicked", self._on_select)
 		self._cancelButton = self._widgetTree.get_widget("cancelSmsButton")
 		self._cancelButton.connect("clicked", self._on_cancel)
 
@@ -319,11 +316,9 @@ class SmsEntryDialog(object):
 			if 0 < len(self._contactDetails):
 				self._numberIndex = 0
 				self._phoneButton.set_label(self._contactDetails[0][1])
-				self._phoneButton.set_sensitive(True)
 			else:
 				self._numberIndex = -1
 				self._phoneButton.set_label("Error: No Number Available")
-				self._phoneButton.set_sensitive(False)
 
 			# Add the column to the messages tree view
 			self._messagemodel.clear()
@@ -365,6 +360,12 @@ class SmsEntryDialog(object):
 					self._messagesView.scroll_to_cell((len(messages)-1, ))
 				self._smsEntry.grab_focus()
 
+				if 1 < len(self._contactDetails):
+					self._request_number()
+					self._phoneButton.set_sensitive(True)
+				else:
+					self._phoneButton.set_sensitive(False)
+
 				userResponse = self._dialog.run()
 			finally:
 				self._dialog.hide()
@@ -405,7 +406,7 @@ class SmsEntryDialog(object):
 		else:
 			self._smsButton.set_sensitive(True)
 
-	def _on_phone(self, *args):
+	def _request_number(self):
 		try:
 			assert 0 <= self._numberIndex, "%r" % self._numberIndex
 
@@ -419,6 +420,9 @@ class SmsEntryDialog(object):
 		except Exception, e:
 			_moduleLogger.exception("%s" % str(e))
 
+	def _on_phone(self, *args):
+		self._request_number()
+
 	def _on_entry_changed(self, *args):
 		self._update_letter_count()
 
@@ -428,10 +432,6 @@ class SmsEntryDialog(object):
 	def _on_dial(self, *args):
 		self._dialog.response(gtk.RESPONSE_OK)
 		self._action = self.ACTION_DIAL
-
-	def _on_select(self, *args):
-		self._dialog.response(gtk.RESPONSE_OK)
-		self._action = self.ACTION_SELECT
 
 	def _on_cancel(self, *args):
 		self._dialog.response(gtk.RESPONSE_CANCEL)

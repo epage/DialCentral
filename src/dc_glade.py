@@ -136,7 +136,6 @@ class Dialcentral(object):
 			"addressbookSelectButton",
 			"sendSmsButton",
 			"dialButton",
-			"selectButton",
 			"cancelSmsButton",
 			"callbackSelectButton",
 			"minutesEntryButton",
