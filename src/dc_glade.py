@@ -115,21 +115,23 @@ class Dialcentral(object):
 		hildonize.hildonize_text_entry(self._widgetTree.get_widget("usernameentry"))
 		hildonize.hildonize_password_entry(self._widgetTree.get_widget("passwordentry"))
 
-		for scrollingWidget in (
+		for scrollingWidgetName in (
 			'recent_scrolledwindow',
 			'message_scrolledwindow',
 			'contacts_scrolledwindow',
-			"phoneSelectionMessages_scrolledwindow",
 			"smsMessages_scrolledwindow",
 		):
-			hildonize.hildonize_scrollwindow(self._widgetTree.get_widget(scrollingWidget))
-		for scrollingWidget in (
-			"phonetypes_scrolledwindow",
+			scrollingWidget = self._widgetTree.get_widget(scrollingWidgetName)
+			assert scrollingWidget is not None, scrollingWidgetName
+			hildonize.hildonize_scrollwindow(scrollingWidget)
+		for scrollingWidgetName in (
 			"smsMessage_scrolledEntry",
 		):
-			hildonize.hildonize_scrollwindow_with_viewport(self._widgetTree.get_widget(scrollingWidget))
+			scrollingWidget = self._widgetTree.get_widget(scrollingWidgetName)
+			assert scrollingWidget is not None, scrollingWidgetName
+			hildonize.hildonize_scrollwindow_with_viewport(scrollingWidget)
 
-		for button in (
+		for buttonName in (
 			"back",
 			"addressbookSelectButton",
 			"sendSmsButton",
@@ -141,7 +143,9 @@ class Dialcentral(object):
 			"clearcookies",
 			"phoneTypeSelection",
 		):
-			hildonize.set_button_thumb_selectable(self._widgetTree.get_widget(button))
+			button = self._widgetTree.get_widget(buttonName)
+			assert button is not None, buttonName
+			hildonize.set_button_thumb_selectable(button)
 
 		replacementButtons = [gtk.Button("Test")]
 		menu = hildonize.hildonize_menu(
