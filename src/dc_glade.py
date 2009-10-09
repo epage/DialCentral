@@ -131,16 +131,17 @@ class Dialcentral(object):
 
 		for button in (
 			"back",
+			"addressbookSelectButton",
 			"sendSmsButton",
+			"dialButton",
+			"selectButton",
 			"cancelSmsButton",
-			"sms_button",
-			"dial_button",
-			"select_button",
-			"cancel_button",
+			"callbackSelectButton",
 			"minutesEntryButton",
 			"clearcookies",
+			"phoneTypeSelection",
 		):
-			hildonize.set_button_thumb_selectable(button)
+			hildonize.set_button_thumb_selectable(self._widgetTree.get_widget(button))
 
 		replacementButtons = [gtk.Button("Test")]
 		menu = hildonize.hildonize_menu(

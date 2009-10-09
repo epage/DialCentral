@@ -508,7 +508,7 @@ def _null_touch_selector(parent, title, items, defaultIndex = -1):
 	treeView.set_model(model)
 	treeView.append_column(column)
 	selection = treeView.get_selection()
-	selection.set_mode(gtk.SELECTION_SINGLE)
+	selection.set_mode(gtk.SELECTION_NONE)
 	if 0 < defaultIndex:
 		selection.select_path((defaultIndex, ))
 
@@ -622,7 +622,7 @@ def _null_touch_selector_entry(parent, title, items, defaultItem):
 	treeView.set_model(model)
 	treeView.append_column(column)
 	selection = treeView.get_selection()
-	selection.set_mode(gtk.SELECTION_SINGLE)
+	selection.set_mode(gtk.SELECTION_NONE)
 
 	scrolledWin = gtk.ScrolledWindow()
 	scrolledWin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
