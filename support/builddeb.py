@@ -29,7 +29,8 @@ __changelog__ = """
 * UI Tweak: Added more login status notifications
 * UI Tweak: When no characters are entered, you can't send a text
 * UI Tweak: Switched to TreeView's using no selection to match Fremantle
-* UI Tweak: Trying to consolidate dialogs to see if it makes people happier
+* UI Tweak: Trying to consolidate dialogs by combining phone selection and SMS entry
+* UI Tweak: Removed "Select" button from SMS Dialog
 * Bug Fix: Expanded the types of the Enter key that are supported for going to full screen
 * Bug Fix: Random people were reporting login issues
 * Bug Fix: Hardened against issues with grabbing possible callback numbers
