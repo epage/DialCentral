@@ -679,10 +679,11 @@ class Dialcentral(object):
 		"""
 		@note Hildon specific
 		"""
+		RETURN_TYPES = (gtk.keysyms.Return, gtk.keysyms.ISO_Enter, gtk.keysyms.KP_Enter)
 		try:
 			if (
 				event.keyval == gtk.keysyms.F6 or
-				event.keyval == gtk.keysyms.Return and event.get_state() & gtk.gdk.CONTROL_MASK
+				event.keyval in RETURN_TYPES and event.get_state() & gtk.gdk.CONTROL_MASK
 			):
 				if self._isFullScreen:
 					self._window.unfullscreen()

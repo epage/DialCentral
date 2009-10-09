@@ -273,6 +273,7 @@ class PhoneTypeSelector(object):
 	ACTION_SEND_SMS = "sms"
 
 	def __init__(self, widgetTree, gcBackend):
+		self._clipboard = gtk.clipboard_get()
 		self._gcBackend = gcBackend
 		self._widgetTree = widgetTree
 
@@ -300,6 +301,8 @@ class PhoneTypeSelector(object):
 		self._typeview = self._widgetTree.get_widget("phonetypes")
 		self._typeview.connect("row-activated", self._on_phonetype_select)
 
+		self._keyPressEventId = self._dialog.connect("key-press-event", self._on_key_press)
+
 		self._action = self.ACTION_CANCEL
 
 	def run(self, contactDetails, messages = (), parent = None):
@@ -324,7 +327,7 @@ class PhoneTypeSelector(object):
 			self._typemodel.append(row)
 
 		self._typeviewselection = self._typeview.get_selection()
-		self._typeviewselection.set_mode(gtk.SELECTION_SINGLE)
+		self._typeviewselection.set_mode(gtk.SELECTION_NONE)
 		self._typeviewselection.select_iter(self._typemodel.get_iter_first())
 
 		# Add the column to the messages tree view
@@ -415,6 +418,18 @@ class PhoneTypeSelector(object):
 		self._dialog.response(gtk.RESPONSE_CANCEL)
 		self._action = self.ACTION_CANCEL
 
+	def _on_key_press(self, widget, event):
+		try:
+			if event.keyval == ord("c") and event.get_state() & gtk.gdk.CONTROL_MASK:
+				message = "\n".join(
+					messagePart[0]
+					for messagePart in self._messagemodel
+				)
+				# For some reason this kills clipboard stuff
+				#self._clipboard.set_text(message)
+		except Exception, e:
+			_moduleLogger.exception(str(e))
+
 
 class SmsEntryDialog(object):
 	"""
@@ -424,6 +439,7 @@ class SmsEntryDialog(object):
 	MAX_CHAR = 160
 
 	def __init__(self, widgetTree):
+		self._clipboard = gtk.clipboard_get()
 		self._widgetTree = widgetTree
 		self._dialog = self._widgetTree.get_widget("smsDialog")
 
@@ -441,6 +457,8 @@ class SmsEntryDialog(object):
 
 		self._smsEntry = self._widgetTree.get_widget("smsEntry")
 		self._smsEntry.get_buffer().connect("changed", self._on_entry_changed)
+
+		self._keyPressEventId = self._dialog.connect("key-press-event", self._on_key_press)
 
 	def run(self, number, messages = (), parent = None):
 		# Add the column to the messages tree view
@@ -514,6 +532,18 @@ class SmsEntryDialog(object):
 
 	def _on_cancel(self, *args):
 		self._dialog.response(gtk.RESPONSE_CANCEL)
+
+	def _on_key_press(self, widget, event):
+		try:
+			if event.keyval == ord("c") and event.get_state() & gtk.gdk.CONTROL_MASK:
+				message = "\n".join(
+					messagePart[0]
+					for messagePart in self._messagemodel
+				)
+				# For some reason this kills clipboard stuff
+				#self._clipboard.set_text(message)
+		except Exception, e:
+			_moduleLogger.exception(str(e))
 
 
 class Dialpad(object):
@@ -1025,7 +1055,7 @@ class RecentCallsView(object):
 		self._recentview.append_column(self._numberColumn)
 		self._recentview.append_column(self._nameColumn)
 		self._recentviewselection = self._recentview.get_selection()
-		self._recentviewselection.set_mode(gtk.SELECTION_SINGLE)
+		self._recentviewselection.set_mode(gtk.SELECTION_NONE)
 
 		self._onRecentviewRowActivatedId = self._recentview.connect("row-activated", self._on_recentview_row_activated)
 
@@ -1180,7 +1210,7 @@ class MessagesView(object):
 
 		self._messageview.append_column(self._messageColumn)
 		self._messageviewselection = self._messageview.get_selection()
-		self._messageviewselection.set_mode(gtk.SELECTION_SINGLE)
+		self._messageviewselection.set_mode(gtk.SELECTION_NONE)
 
 		self._onMessageviewRowActivatedId = self._messageview.connect("row-activated", self._on_messageview_row_activated)
 
@@ -1347,7 +1377,7 @@ class ContactsView(object):
 		self._contactsview.set_model(self._contactsmodel)
 		self._contactsview.append_column(self._contactColumn)
 		self._contactsviewselection = self._contactsview.get_selection()
-		self._contactsviewselection.set_mode(gtk.SELECTION_SINGLE)
+		self._contactsviewselection.set_mode(gtk.SELECTION_NONE)
 
 		del self._booksList[:]
 		for (factoryId, bookId), (factoryName, bookName) in self.get_addressbooks():

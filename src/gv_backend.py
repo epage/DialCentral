@@ -667,7 +667,7 @@ def test_backend(username, password):
 	#print "Account: ", backend.get_account_number()
 	#print "Callback: ", backend.get_callback_number()
 	#print "All Callback: ",
-	#import pprint
+	import pprint
 	#pprint.pprint(backend.get_callback_numbers())
 
 	#print "Recent: "
@@ -682,9 +682,10 @@ def test_backend(username, password):
 	#	print contact
 	#	pprint.pprint(list(backend.get_contact_details(contact[0])))
 
-	#print "Messages: ",
-	#for message in backend.get_messages():
-	#	pprint.pprint(message)
+	print "Messages: ",
+	for message in backend.get_messages():
+		message["messageParts"] = list(message["messageParts"])
+		pprint.pprint(message)
 	#for message in sort_messages(backend.get_messages()):
 	#	pprint.pprint(decorate_message(message))
 
