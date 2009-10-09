@@ -328,6 +328,7 @@ class SmsEntryDialog(object):
 			# Add the column to the messages tree view
 			self._messagemodel.clear()
 			self._messagesView.set_model(self._messagemodel)
+			self._messagesView.set_fixed_height_mode(False)
 
 			textrenderer = gtk.CellRendererText()
 			textrenderer.set_property("wrap-mode", pango.WRAP_WORD)
@@ -947,6 +948,7 @@ class RecentCallsView(object):
 	def enable(self):
 		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
 		self._recentview.set_model(self._recentmodel)
+		self._recentview.set_fixed_height_mode(False)
 
 		self._recentview.append_column(self._dateColumn)
 		self._recentview.append_column(self._actionColumn)
@@ -1274,6 +1276,7 @@ class ContactsView(object):
 		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
 
 		self._contactsview.set_model(self._contactsmodel)
+		self._contactsview.set_fixed_height_mode(True)
 		self._contactsview.append_column(self._contactColumn)
 		self._contactsviewselection = self._contactsview.get_selection()
 		self._contactsviewselection.set_mode(gtk.SELECTION_NONE)
