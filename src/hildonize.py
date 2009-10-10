@@ -589,17 +589,27 @@ def _hildon_touch_selector_entry(parent, title, items, defaultItem):
 		raise RuntimeError("Unrecognized response %r", response)
 
 
-def _on_null_touch_selector_entry_entry_activated(entry, dialog, customEntry, result):
+def _on_null_touch_selector_entry_entry_changed(entry, result, selection, defaultIndex):
+	custom = entry.get_text().strip()
+	if custom:
+		result[0] = custom
+		selection.unselect_all()
+	else:
+		result[0] = None
+		selection.select_path((defaultIndex, ))
+
+
+def _on_null_touch_selector_entry_entry_activated(customEntry, dialog, result):
 	dialog.response(gtk.RESPONSE_OK)
-	result.append(customEntry.get_text())
+	result[0] = customEntry.get_text()
 
 
-def _on_null_touch_selector_entry_tree_activated(treeView, path, column, dialog, selection, result):
+def _on_null_touch_selector_entry_tree_activated(treeView, path, column, dialog, result):
 	dialog.response(gtk.RESPONSE_OK)
 	model = treeView.get_model()
 	itr = model.get_iter(path)
 	if itr is not None:
-		result.append(model.get_value(itr, 0))
+		result[0] = model.get_value(itr, 0)
 
 
 def _null_touch_selector_entry(parent, title, items, defaultItem):
@@ -615,7 +625,7 @@ def _null_touch_selector_entry(parent, title, items, defaultItem):
 	cell = gtk.CellRendererText()
 	set_cell_thumb_selectable(cell)
 	column = gtk.TreeViewColumn(title)
-	column .pack_start(cell, expand=True)
+	column.pack_start(cell, expand=True)
 	column.add_attribute(cell, "text", 0)
 
 	treeView = gtk.TreeView()
@@ -638,7 +648,7 @@ def _null_touch_selector_entry(parent, title, items, defaultItem):
 		title,
 		parent,
 		gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
-		(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL),
+		(gtk.STOCK_OK, gtk.RESPONSE_OK, gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL),
 	)
 	dialog.set_default_response(gtk.RESPONSE_CANCEL)
 	dialog.get_child().add(layout)
@@ -646,23 +656,35 @@ def _null_touch_selector_entry(parent, title, items, defaultItem):
 
 	scrolledWin = hildonize_scrollwindow(scrolledWin)
 
+	result = [None]
 	if 0 < defaultIndex:
 		selection.select_path((defaultIndex, ))
+		result[0] = defaultItem
 	else:
 		customEntry.set_text(defaultItem)
-	result = []
-	customEntry.connect("activate", _on_null_touch_selector_entry_entry_activated, dialog, customEntry, result)
-	treeView.connect("row-activated", _on_null_touch_selector_entry_tree_activated, dialog, selection, result)
+
+	customEntry.connect("activate", _on_null_touch_selector_entry_entry_activated, dialog, result)
+	customEntry.connect("changed", _on_null_touch_selector_entry_entry_changed, result, selection, defaultIndex)
+	treeView.connect("row-activated", _on_null_touch_selector_entry_tree_activated, dialog, result)
 
 	try:
 		dialog.show_all()
 		response = dialog.run()
 
 		if response == gtk.RESPONSE_OK:
-			if len(result) != 1:
-				raise RuntimeError("No selection made")
-			else:
+			print result
+			if result[0] is not None:
 				return result[0]
+			else:
+				_, itr = selection.get_selected()
+				if itr is not None:
+					return model.get_value(itr)[0]
+				else:
+					enteredText = customEntry.get_text().strip()
+					if enteredText:
+						return enteredText
+					else:
+						raise RuntimeError("No selection made")
 		elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
 			raise RuntimeError("User cancelled request")
 		else:
