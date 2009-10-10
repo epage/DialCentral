@@ -302,7 +302,7 @@ class SmsEntryDialog(object):
 		self._numberIndex = -1
 		self._contactDetails = []
 
-	def run(self, contactDetails, messages = (), parent = None):
+	def run(self, contactDetails, messages = (), parent = None, defaultIndex = -1):
 		entryConnectId = self._smsEntry.get_buffer().connect("changed", self._on_entry_changed)
 		phoneConnectId = self._phoneButton.connect("clicked", self._on_phone)
 		keyConnectId = self._keyPressEventId = self._dialog.connect("key-press-event", self._on_key_press)
@@ -314,8 +314,8 @@ class SmsEntryDialog(object):
 				row = (phoneNumber, display)
 				self._contactDetails.append(row)
 			if 0 < len(self._contactDetails):
-				self._numberIndex = 0
-				self._phoneButton.set_label(self._contactDetails[0][1])
+				self._numberIndex = defaultIndex if defaultIndex != -1 else 0
+				self._phoneButton.set_label(self._contactDetails[self._numberIndex][1])
 			else:
 				self._numberIndex = -1
 				self._phoneButton.set_label("Error: No Number Available")
@@ -352,6 +352,8 @@ class SmsEntryDialog(object):
 
 			if parent is not None:
 				self._dialog.set_transient_for(parent)
+				parentSize = parent.get_size()
+				self._dialog.resize(parentSize[0], max(parentSize[1]-50, 100))
 
 			# Run
 			try:
@@ -361,7 +363,8 @@ class SmsEntryDialog(object):
 				self._smsEntry.grab_focus()
 
 				if 1 < len(self._contactDetails):
-					self._request_number()
+					if defaultIndex == -1:
+						self._request_number()
 					self._phoneButton.set_sensitive(True)
 				else:
 					self._phoneButton.set_sensitive(False)
@@ -891,6 +894,7 @@ class RecentCallsView(object):
 	DATE_IDX = 1
 	ACTION_IDX = 2
 	FROM_IDX = 3
+	FROM_ID_IDX = 4
 
 	def __init__(self, widgetTree, backend, errorDisplay):
 		self._errorDisplay = errorDisplay
@@ -902,6 +906,7 @@ class RecentCallsView(object):
 			gobject.TYPE_STRING, # date
 			gobject.TYPE_STRING, # action
 			gobject.TYPE_STRING, # from
+			gobject.TYPE_STRING, # from id
 		)
 		self._recentview = widgetTree.get_widget("recentview")
 		self._recentviewselection = None
@@ -955,7 +960,7 @@ class RecentCallsView(object):
 		self._recentview.append_column(self._numberColumn)
 		self._recentview.append_column(self._nameColumn)
 		self._recentviewselection = self._recentview.get_selection()
-		self._recentviewselection.set_mode(gtk.SELECTION_NONE)
+		self._recentviewselection.set_mode(gtk.SELECTION_SINGLE)
 
 		self._onRecentviewRowActivatedId = self._recentview.connect("row-activated", self._on_recentview_row_activated)
 
@@ -1018,13 +1023,13 @@ class RecentCallsView(object):
 				for data in gv_backend.sort_messages(recentItems)
 			)
 
-			for personName, phoneNumber, date, action in recentItems:
+			for contactId, personName, phoneNumber, date, action in recentItems:
 				if not personName:
 					personName = "Unknown"
 				date = abbrev_relative_date(date)
 				prettyNumber = phoneNumber[2:] if phoneNumber.startswith("+1") else phoneNumber
 				prettyNumber = make_pretty(prettyNumber)
-				item = (prettyNumber, date, action.capitalize(), personName)
+				item = (prettyNumber, date, action.capitalize(), personName, contactId)
 				with gtk_toolbox.gtk_lock():
 					self._recentmodel.append(item)
 		except Exception, e:
@@ -1043,13 +1048,33 @@ class RecentCallsView(object):
 
 			number = self._recentmodel.get_value(itr, self.NUMBER_IDX)
 			number = make_ugly(number)
-			contactPhoneNumbers = [("Phone", number)]
 			description = self._recentmodel.get_value(itr, self.FROM_IDX)
+			contactId = self._recentmodel.get_value(itr, self.FROM_ID_IDX)
+			if contactId:
+				contactPhoneNumbers = list(self._backend.get_contact_details(contactId))
+				defaultMatches = [
+					(number == make_ugly(contactNumber) or number[1:] == make_ugly(contactNumber))
+					for (numberDescription, contactNumber) in contactPhoneNumbers
+				]
+				try:
+					defaultIndex = defaultMatches.index(True)
+				except ValueError:
+					contactPhoneNumbers.append(("Other", number))
+					defaultIndex = len(contactPhoneNumbers)-1
+					_moduleLogger.warn(
+						"Could not find contact %r's number %s among %r" % (
+							contactId, number, contactPhoneNumbers
+						)
+					)
+			else:
+				contactPhoneNumbers = [("Phone", number)]
+				defaultIndex = -1
 
 			action, phoneNumber, message = self._phoneTypeSelector.run(
 				contactPhoneNumbers,
 				messages = (description, ),
 				parent = self._window,
+				defaultIndex = defaultIndex,
 			)
 			if action == SmsEntryDialog.ACTION_CANCEL:
 				return
@@ -1068,6 +1093,7 @@ class MessagesView(object):
 	HEADER_IDX = 2
 	MESSAGE_IDX = 3
 	MESSAGES_IDX = 4
+	FROM_ID_IDX = 5
 
 	def __init__(self, widgetTree, backend, errorDisplay):
 		self._errorDisplay = errorDisplay
@@ -1080,6 +1106,7 @@ class MessagesView(object):
 			gobject.TYPE_STRING, # header
 			gobject.TYPE_STRING, # message
 			object, # messages
+			gobject.TYPE_STRING, # from id
 		)
 		self._messageview = widgetTree.get_widget("messages_view")
 		self._messageviewselection = None
@@ -1111,7 +1138,7 @@ class MessagesView(object):
 
 		self._messageview.append_column(self._messageColumn)
 		self._messageviewselection = self._messageview.get_selection()
-		self._messageviewselection.set_mode(gtk.SELECTION_NONE)
+		self._messageviewselection.set_mode(gtk.SELECTION_SINGLE)
 
 		self._onMessageviewRowActivatedId = self._messageview.connect("row-activated", self._on_messageview_row_activated)
 
@@ -1173,7 +1200,7 @@ class MessagesView(object):
 				for message in gv_backend.sort_messages(messageItems)
 			)
 
-			for header, number, relativeDate, messages in messageItems:
+			for contactId, header, number, relativeDate, messages in messageItems:
 				prettyNumber = number[2:] if number.startswith("+1") else number
 				prettyNumber = make_pretty(prettyNumber)
 
@@ -1190,7 +1217,7 @@ class MessagesView(object):
 
 				number = make_ugly(number)
 
-				row = (number, relativeDate, header, "\n".join(collapsedMessages), expandedMessages)
+				row = number, relativeDate, header, "\n".join(collapsedMessages), expandedMessages, contactId
 				with gtk_toolbox.gtk_lock():
 					self._messagemodel.append(row)
 		except Exception, e:
@@ -1207,13 +1234,35 @@ class MessagesView(object):
 			if not itr:
 				return
 
-			contactPhoneNumbers = [("Phone", self._messagemodel.get_value(itr, self.NUMBER_IDX))]
+			number = make_ugly(self._messagemodel.get_value(itr, self.NUMBER_IDX))
 			description = self._messagemodel.get_value(itr, self.MESSAGES_IDX)
+
+			contactId = self._messagemodel.get_value(itr, self.FROM_ID_IDX)
+			if contactId:
+				contactPhoneNumbers = list(self._backend.get_contact_details(contactId))
+				defaultMatches = [
+					(number == make_ugly(contactNumber) or number[1:] == make_ugly(contactNumber))
+					for (numberDescription, contactNumber) in contactPhoneNumbers
+				]
+				try:
+					defaultIndex = defaultMatches.index(True)
+				except ValueError:
+					contactPhoneNumbers.append(("Other", number))
+					defaultIndex = len(contactPhoneNumbers)-1
+					_moduleLogger.warn(
+						"Could not find contact %r's number %s among %r" % (
+							contactId, number, contactPhoneNumbers
+						)
+					)
+			else:
+				contactPhoneNumbers = [("Phone", number)]
+				defaultIndex = -1
 
 			action, phoneNumber, message = self._phoneTypeSelector.run(
 				contactPhoneNumbers,
 				messages = description,
 				parent = self._window,
+				defaultIndex = defaultIndex,
 			)
 			if action == SmsEntryDialog.ACTION_CANCEL:
 				return
@@ -1279,7 +1328,7 @@ class ContactsView(object):
 		self._contactsview.set_fixed_height_mode(True)
 		self._contactsview.append_column(self._contactColumn)
 		self._contactsviewselection = self._contactsview.get_selection()
-		self._contactsviewselection.set_mode(gtk.SELECTION_NONE)
+		self._contactsviewselection.set_mode(gtk.SELECTION_SINGLE)
 
 		del self._booksList[:]
 		for (factoryId, bookId), (factoryName, bookName) in self.get_addressbooks():
