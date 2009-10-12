@@ -455,10 +455,7 @@ class Dialcentral(object):
 
 	def _select_action(self, action, number, message):
 		self.refresh_session()
-		if action == "select":
-			self._dialpads[self._selectedBackendId].set_number(number)
-			self._notebook.set_current_page(self.KEYPAD_TAB)
-		elif action == "dial":
+		if action == "dial":
 			self._on_dial_clicked(number)
 		elif action == "sms":
 			self._on_sms_clicked(number, message)
