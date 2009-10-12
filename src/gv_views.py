@@ -431,6 +431,7 @@ class SmsEntryDialog(object):
 
 	def _on_send(self, *args):
 		self._dialog.response(gtk.RESPONSE_OK)
+		self._action = self.ACTION_SEND_SMS
 
 	def _on_dial(self, *args):
 		self._dialog.response(gtk.RESPONSE_OK)
