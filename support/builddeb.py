@@ -16,7 +16,7 @@ import constants
 
 
 __appname__ = constants.__app_name__
-__description__ = "Touch screen enhanced interface to the GoogleVoice/GrandCentral phone service"
+__description__ = "Touch screen enhanced interface to the GoogleVoice phone service"
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
 __version__ = constants.__version__
@@ -183,7 +183,8 @@ __changelog__ = """
 __postinstall__ = """#!/bin/sh -e
 
 gtk-update-icon-cache -f /usr/share/icons/hicolor
-"""
+rm -f %s/dialcentral.log
+""" % constants._data_path_
 
 __preremove__ = """#!/bin/sh -e
 
