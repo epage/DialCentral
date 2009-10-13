@@ -702,7 +702,7 @@ class AccountInfo(object):
 		return True
 
 	def clear(self):
-		self._callbackSelectButton.set_label("No Callback Number")
+		self._set_callback_label("")
 		self.set_account_number("")
 		self._isPopulated = False
 
@@ -757,15 +757,13 @@ class AccountInfo(object):
 						self._backend.get_callback_number(),
 					),
 				)
+				self._set_callback_label(number)
 			else:
 				self._backend.set_callback_number(number)
 				assert make_ugly(number) == make_ugly(self._backend.get_callback_number()), "Callback number should be %s but instead is %s" % (
 					make_pretty(number), make_pretty(self._backend.get_callback_number())
 				)
-				prettyNumber = make_pretty(number)
-				if len(prettyNumber) == 0:
-					prettyNumber = "No Callback Number"
-				self._callbackSelectButton.set_label(prettyNumber)
+				self._set_callback_label(number)
 				_moduleLogger.info(
 					"Callback number set to %s" % (
 						self._backend.get_callback_number(),
@@ -773,6 +771,12 @@ class AccountInfo(object):
 				)
 		except Exception, e:
 			self._errorDisplay.push_exception()
+
+	def _set_callback_label(self, uglyNumber):
+		prettyNumber = make_pretty(uglyNumber)
+		if len(prettyNumber) == 0:
+			prettyNumber = "No Callback Number"
+		self._callbackSelectButton.set_label(prettyNumber)
 
 	def _update_alarm_settings(self, recurrence):
 		try:
