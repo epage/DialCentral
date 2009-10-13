@@ -152,6 +152,8 @@ class GVDialer(object):
 		Attempt to login to GoogleVoice
 		@returns Whether login was successful or not
 		"""
+		self.logout()
+
 		try:
 			tokenPage = self._browser.download(self._tokenURL)
 		except urllib2.URLError, e:
