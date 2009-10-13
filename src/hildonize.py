@@ -672,19 +672,17 @@ def _null_touch_selector_entry(parent, title, items, defaultItem):
 		response = dialog.run()
 
 		if response == gtk.RESPONSE_OK:
-			print result
-			if result[0] is not None:
-				return result[0]
+			_, itr = selection.get_selected()
+			if itr is not None:
+				return model.get_value(itr, 0)
 			else:
-				_, itr = selection.get_selected()
-				if itr is not None:
-					return model.get_value(itr)[0]
+				enteredText = customEntry.get_text().strip()
+				if enteredText:
+					return enteredText
+				elif result[0] is not None:
+					return result[0]
 				else:
-					enteredText = customEntry.get_text().strip()
-					if enteredText:
-						return enteredText
-					else:
-						raise RuntimeError("No selection made")
+					raise RuntimeError("No selection made")
 		elif response == gtk.RESPONSE_CANCEL or response == gtk.RESPONSE_DELETE_EVENT:
 			raise RuntimeError("User cancelled request")
 		else:
