@@ -32,6 +32,8 @@ __changelog__ = """
 * UI Tweak: Trying to consolidate dialogs by combining phone selection and SMS entry
 * UI Tweak: Removed "Select" button from SMS Dialog
 * UI Tweak: Increased the size of the SMS dialog
+* UI Tweak: Disable "Dial" when a text has started to be entered
+* UI Tweak: Move the sms history scroll bars around the whole sms conversation, giving more room to see with
 * Bug Fix: Expanded the types of the Enter key that are supported for going to full screen
 * Bug Fix: Random people were reporting login issues
 * Bug Fix: Hardened against issues with grabbing possible callback numbers
