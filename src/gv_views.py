@@ -1337,7 +1337,7 @@ class ContactsView(object):
 		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
 
 		self._contactsview.set_model(self._contactsmodel)
-		self._contactsview.set_fixed_height_mode(True)
+		self._contactsview.set_fixed_height_mode(False)
 		self._contactsview.append_column(self._contactColumn)
 		self._contactsviewselection = self._contactsview.get_selection()
 		self._contactsviewselection.set_mode(gtk.SELECTION_SINGLE)
