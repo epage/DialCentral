@@ -292,7 +292,10 @@ class SmsEntryDialog(object):
 
 		self._messagemodel = gtk.ListStore(gobject.TYPE_STRING)
 		self._messagesView = self._widgetTree.get_widget("smsMessages")
-		self._scrollWindow = self._messagesView.get_parent()
+
+		self._conversationView = self._messagesView.get_parent()
+		self._conversationViewPort = self._conversationView.get_parent()
+		self._scrollWindow = self._conversationViewPort.get_parent()
 
 		self._phoneButton = self._widgetTree.get_widget("phoneTypeSelection")
 		self._smsEntry = self._widgetTree.get_widget("smsEntry")
@@ -353,14 +356,16 @@ class SmsEntryDialog(object):
 			if parent is not None:
 				self._dialog.set_transient_for(parent)
 				parentSize = parent.get_size()
-				self._dialog.resize(parentSize[0], max(parentSize[1]-100, 100))
+				self._dialog.resize(parentSize[0], max(parentSize[1]-10, 100))
 
 			# Run
 			try:
-				self._dialog.show()
-				if messages:
-					self._messagesView.scroll_to_cell((len(messages)-1, ))
+				self._dialog.show_all()
 				self._smsEntry.grab_focus()
+				adjustment = self._scrollWindow.get_vadjustment()
+				dx = self._conversationView.get_allocation().height - self._conversationViewPort.get_allocation().height
+				dx = max(dx, 0)
+				adjustment.value = dx
 
 				if 1 < len(self._contactDetails):
 					if defaultIndex == -1:
@@ -371,7 +376,7 @@ class SmsEntryDialog(object):
 
 				userResponse = self._dialog.run()
 			finally:
-				self._dialog.hide()
+				self._dialog.hide_all()
 
 			# Process the users response
 			if userResponse == gtk.RESPONSE_OK and 0 <= self._numberIndex:
