@@ -353,7 +353,7 @@ class SmsEntryDialog(object):
 			if parent is not None:
 				self._dialog.set_transient_for(parent)
 				parentSize = parent.get_size()
-				self._dialog.resize(parentSize[0], max(parentSize[1]-50, 100))
+				self._dialog.resize(parentSize[0], max(parentSize[1]-100, 100))
 
 			# Run
 			try:
@@ -406,8 +406,10 @@ class SmsEntryDialog(object):
 		self._letterCountLabel.set_text(str(charsLeft))
 		if charsLeft < 0 or charsLeft == self.MAX_CHAR:
 			self._smsButton.set_sensitive(False)
+			self._dialButton.set_sensitive(True)
 		else:
 			self._smsButton.set_sensitive(True)
+			self._dialButton.set_sensitive(False)
 
 	def _request_number(self):
 		try:
