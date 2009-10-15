@@ -25,6 +25,7 @@ Resources
 	http://posttopic.com/topic/google-voice-add-on-development
 """
 
+from __future__ import with_statement
 
 import os
 import re
@@ -123,6 +124,8 @@ class GVDialer(object):
 		self._callbackNumber = ""
 		self._callbackNumbers = {}
 
+	_forwardURL = "https://www.google.com/voice/mobile/phones"
+
 	def is_authed(self, force = False):
 		"""
 		Attempts to detect a current session
@@ -147,13 +150,7 @@ class GVDialer(object):
 	_loginURL = "https://www.google.com/accounts/ServiceLoginAuth"
 	_galxRe = re.compile(r"""<input.*?name="GALX".*?value="(.*?)".*?/>""", re.MULTILINE | re.DOTALL)
 
-	def login(self, username, password):
-		"""
-		Attempt to login to GoogleVoice
-		@returns Whether login was successful or not
-		"""
-		self.logout()
-
+	def _get_token(self):
 		try:
 			tokenPage = self._browser.download(self._tokenURL)
 		except urllib2.URLError, e:
@@ -165,7 +162,9 @@ class GVDialer(object):
 		else:
 			galxToken = ""
 			_moduleLogger.debug("Could not grab GALX token")
+		return galxToken
 
+	def _login(self, username, password, token):
 		loginPostData = urllib.urlencode({
 			'Email' : username,
 			'Passwd' : password,
@@ -173,7 +172,7 @@ class GVDialer(object):
 			"ltmpl": "mobile",
 			"btmpl": "mobile",
 			"PersistentCookie": "yes",
-			"GALX": galxToken,
+			"GALX": token,
 			"continue": self._forwardURL,
 		})
 
@@ -182,6 +181,16 @@ class GVDialer(object):
 		except urllib2.URLError, e:
 			_moduleLogger.exception("Translating error: %s" % str(e))
 			raise NetworkError("%s is not accesible" % self._loginURL)
+		return loginSuccessOrFailurePage
+
+	def login(self, username, password):
+		"""
+		Attempt to login to GoogleVoice
+		@returns Whether login was successful or not
+		"""
+		self.logout()
+		galxToken = self._get_token()
+		loginSuccessOrFailurePage = self._login(username, password, galxToken)
 
 		try:
 			self._grab_account_info(loginSuccessOrFailurePage)
@@ -269,8 +278,6 @@ class GVDialer(object):
 		if not self.is_authed():
 			return {}
 		return self._callbackNumbers
-
-	_setforwardURL = "https://www.google.com//voice/m/setphone"
 
 	def set_callback_number(self, callbacknumber):
 		"""
@@ -417,7 +424,6 @@ class GVDialer(object):
 	_tokenRe = re.compile(r"""<input.*?name="_rnr_se".*?value="(.*?)"\s*/>""")
 	_accountNumRe = re.compile(r"""<b class="ms\d">(.{14})</b></div>""")
 	_callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
-	_forwardURL = "https://www.google.com/voice/mobile/phones"
 
 	def _grab_account_info(self, page):
 		tokenGroup = self._tokenRe.search(page)
@@ -667,7 +673,7 @@ def test_backend(username, password):
 		print "Login?: ", backend.login(username, password)
 	print "Authenticated: ", backend.is_authed()
 
-	#print "Token: ", backend._token
+	print "Token: ", backend._token
 	#print "Account: ", backend.get_account_number()
 	#print "Callback: ", backend.get_callback_number()
 	#print "All Callback: ",
@@ -696,7 +702,78 @@ def test_backend(username, password):
 	return backend
 
 
+_TEST_WEBPAGES = [
+	("forward", GVDialer._forwardURL),
+	("token", GVDialer._tokenURL),
+	("login", GVDialer._loginURL),
+	("contacts", GVDialer._contactsURL),
+
+	("voicemail", GVDialer._voicemailURL),
+	("sms", GVDialer._smsURL),
+
+	("recent", GVDialer._recentCallsURL),
+	("placed", GVDialer._placedCallsURL),
+	("recieved", GVDialer._receivedCallsURL),
+	("missed", GVDialer._missedCallsURL),
+]
+
+
+def grab_debug_info(username, password):
+	cookieFile = os.path.join(".", "raw_cookies.txt")
+	try:
+		os.remove(cookieFile)
+	except OSError:
+		pass
+
+	backend = GVDialer(cookieFile)
+	browser = backend._browser
+
+	# Get Pages
+	print "Grabbing pre-login pages"
+	for name, url in _TEST_WEBPAGES:
+		try:
+			page = browser.download(url)
+		except StandardError, e:
+			print e.message
+			continue
+		print "\tWriting to file"
+		with open("not_loggedin_%s.txt" % name, "w") as f:
+			f.write(page)
+
+	# Login
+	print "Attempting login"
+	galxToken = backend._get_token()
+	loginSuccessOrFailurePage = backend._login(username, password, galxToken)
+	with open("loggingin.txt", "w") as f:
+		print "\tWriting to file"
+		f.write(loginSuccessOrFailurePage)
+	backend._grab_account_info(loginSuccessOrFailurePage)
+	assert backend.is_authed()
+
+	# Get Pages
+	print "Grabbing post-login pages"
+	for name, url in _TEST_WEBPAGES:
+		try:
+			page = browser.download(url)
+		except StandardError, e:
+			print e.message
+			continue
+		print "\tWriting to file"
+		with open("loggedin_%s.txt" % name, "w") as f:
+			f.write(page)
+
+	# Cookies
+	browser.cookies.save()
+	print "\tWriting cookies to file"
+	with open("cookies.txt", "w") as f:
+		f.writelines(
+			"%s: %s\n" % (c.name, c.value)
+			for c in browser.cookies
+		)
+
+
 if __name__ == "__main__":
 	import sys
 	logging.basicConfig(level=logging.DEBUG)
-	test_backend(sys.argv[1], sys.argv[2])
+	#test_backend(sys.argv[1], sys.argv[2])
+	grab_debug_info(sys.argv[1], sys.argv[2])

@@ -44,6 +44,7 @@ __changelog__ = """
 * Bug Fix: Not properly hildonizing some code
 * Debugging: Improved logging output
 * Debugging: Printing page when can't get a callback number
+* Debugging: Included stuff to create all the debug files
 
 1.0.6
 * Fremantle Prep: Simplified menus in prep for no menu or the Fremantle App Menu
