@@ -436,6 +436,7 @@ class Dialcentral(object):
 		for attemptCount in xrange(numOfAttempts):
 			if loggedIn:
 				break
+
 			with gtk_toolbox.gtk_lock():
 				credentials = self._credentialsDialog.request_credentials(
 					defaultCredentials = self._credentials
@@ -444,6 +445,7 @@ class Dialcentral(object):
 					# subtle reminder to the users to configure things
 					self._notebook.set_current_page(self.ACCOUNT_TAB)
 				banner = hildonize.show_busy_banner_start(self._window, "Logging In...")
+
 			try:
 				username, password = credentials
 				try:
@@ -451,7 +453,7 @@ class Dialcentral(object):
 				except Exception:
 					# Retry in case the redirect failed
 					# luckily is_authed does everything we need for a retry
-					loggedIn = self._phoneBackends[self._defaultBackendId].is_authed(True)
+					loggedIn = self._phoneBackends[tmpServiceId].is_authed(True)
 					if not loggedIn:
 						raise
 					_moduleLogger.info("Redirection failed on initial login attempt, auto-corrected for this")
