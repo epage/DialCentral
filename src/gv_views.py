@@ -407,13 +407,17 @@ class SmsEntryDialog(object):
 
 	def _update_letter_count(self, *args):
 		entryLength = self._smsEntry.get_buffer().get_char_count()
+
 		charsLeft = self.MAX_CHAR - entryLength
 		self._letterCountLabel.set_text(str(charsLeft))
 		if charsLeft < 0 or charsLeft == self.MAX_CHAR:
 			self._smsButton.set_sensitive(False)
-			self._dialButton.set_sensitive(True)
 		else:
 			self._smsButton.set_sensitive(True)
+
+		if entryLength == 0:
+			self._dialButton.set_sensitive(True)
+		else:
 			self._dialButton.set_sensitive(False)
 
 	def _request_number(self):
