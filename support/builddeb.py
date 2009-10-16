@@ -42,6 +42,7 @@ __changelog__ = """
 * Bug Fix: Once PyMaemo supports thumb button sizes, setting that for all of the random buttons
 * Bug Fix: When debugging hildonization, dialogs weren't closing
 * Bug Fix: Not properly hildonizing some code
+* Bug Fix: Attempting a hack to fix redirect issues for people
 * Debugging: Improved logging output
 * Debugging: Printing page when can't get a callback number
 * Debugging: Included stuff to create all the debug files

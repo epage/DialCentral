@@ -413,7 +413,15 @@ class Dialcentral(object):
 		@note Thread agnostic
 		"""
 		username, password = self._credentials
-		loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
+		try:
+			loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
+		except Exception:
+			# Retry in case the redirect failed
+			# luckily is_authed does everything we need for a retry
+			loggedIn = self._phoneBackends[self._defaultBackendId].is_authed(True)
+			if not loggedIn:
+				raise
+			_moduleLogger.info("Redirection failed on initial login attempt, auto-corrected for this")
 		if loggedIn:
 			self._credentials = username, password
 			_moduleLogger.info("Logged into %r through settings" % self._phoneBackends[self._defaultBackendId])
@@ -438,7 +446,15 @@ class Dialcentral(object):
 				banner = hildonize.show_busy_banner_start(self._window, "Logging In...")
 			try:
 				username, password = credentials
-				loggedIn = self._phoneBackends[tmpServiceId].login(username, password)
+				try:
+					loggedIn = self._phoneBackends[tmpServiceId].login(username, password)
+				except Exception:
+					# Retry in case the redirect failed
+					# luckily is_authed does everything we need for a retry
+					loggedIn = self._phoneBackends[self._defaultBackendId].is_authed(True)
+					if not loggedIn:
+						raise
+					_moduleLogger.info("Redirection failed on initial login attempt, auto-corrected for this")
 			finally:
 				with gtk_toolbox.gtk_lock():
 					hildonize.show_busy_banner_end(banner)

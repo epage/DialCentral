@@ -747,8 +747,14 @@ def grab_debug_info(username, password):
 	with open("loggingin.txt", "w") as f:
 		print "\tWriting to file"
 		f.write(loginSuccessOrFailurePage)
-	backend._grab_account_info(loginSuccessOrFailurePage)
-	assert backend.is_authed()
+	try:
+		backend._grab_account_info(loginSuccessOrFailurePage)
+	except Exception:
+		# Retry in case the redirect failed
+		# luckily is_authed does everything we need for a retry
+		loggedIn = backend.is_authed(True)
+		if not loggedIn:
+			raise
 
 	# Get Pages
 	print "Grabbing post-login pages"
