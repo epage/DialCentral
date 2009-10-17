@@ -34,6 +34,8 @@ __changelog__ = """
 * UI Tweak: Increased the size of the SMS dialog
 * UI Tweak: Disable "Dial" when a text has started to be entered
 * UI Tweak: Move the sms history scroll bars around the whole sms conversation, giving more room to see with
+* UI Tweak: Trying to be clearer by switching the login dialog from "Close" to "Cancel"
+* UI Tweak: Remove auto-cancel of login after X attempts
 * Bug Fix: Expanded the types of the Enter key that are supported for going to full screen
 * Bug Fix: Random people were reporting login issues
 * Bug Fix: Hardened against issues with grabbing possible callback numbers

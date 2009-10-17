@@ -110,10 +110,10 @@ class MozillaEmulator(object):
 		self.cookies.add_cookie_header(req)
 		if forbidRedirect:
 			redirector = HTTPNoRedirector()
-			_moduleLogger.info("Redirection disabled")
+			#_moduleLogger.info("Redirection disabled")
 		else:
 			redirector = urllib2.HTTPRedirectHandler()
-			_moduleLogger.info("Redirection enabled")
+			#_moduleLogger.info("Redirection enabled")
 
 		http_handler = urllib2.HTTPHandler(debuglevel=self.debug)
 		https_handler = urllib2.HTTPSHandler(debuglevel=self.debug)

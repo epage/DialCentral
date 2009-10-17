@@ -18,6 +18,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+@todo Collapse voicemails
 @todo Alternate UI for dialogs (stackables)
 """
 
@@ -114,6 +115,54 @@ def abbrev_relative_date(date):
 	"""
 	parts = date.split(" ")
 	return "%s %s" % (parts[0], parts[1][0])
+
+
+def _collapse_message(messageLines, maxCharsPerLine, maxLines):
+	lines = 0
+
+	numLines = len(messageLines)
+	for line in messageLines[0:min(maxLines, numLines)]:
+		linesPerLine = max(1, int(len(line) / maxCharsPerLine))
+		allowedLines = maxLines - lines
+		acceptedLines = min(allowedLines, linesPerLine)
+		acceptedChars = acceptedLines * maxCharsPerLine
+
+		if acceptedChars < (len(line) + 3):
+			suffix = "..."
+		else:
+			acceptedChars = len(line) # eh, might as well complete the line
+			suffix = ""
+		abbrevMessage = "%s%s" % (line[0:acceptedChars], suffix)
+		yield abbrevMessage
+
+		lines += acceptedLines
+		if maxLines <= lines:
+			break
+
+
+def collapse_message(message, maxCharsPerLine, maxLines):
+	r"""
+	>>> collapse_message("Hello", 60, 2)
+	'Hello'
+	>>> collapse_message("Hello world how are you doing today? 01234567890123456789012345678901234567890123456789012345678901234567890123456789", 60, 2)
+	'Hello world how are you doing today? 01234567890123456789012...'
+	>>> collapse_message('''Hello world how are you doing today?
+	... 01234567890123456789
+	... 01234567890123456789
+	... 01234567890123456789
+	... 01234567890123456789''', 60, 2)
+	'Hello world how are you doing today?\n01234567890123456789'
+	>>> collapse_message('''
+	... Hello world how are you doing today? 01234567890123456789012345678901234567890123456789012345678901234567890123456789
+	... Hello world how are you doing today? 01234567890123456789012345678901234567890123456789012345678901234567890123456789
+	... Hello world how are you doing today? 01234567890123456789012345678901234567890123456789012345678901234567890123456789
+	... Hello world how are you doing today? 01234567890123456789012345678901234567890123456789012345678901234567890123456789
+	... Hello world how are you doing today? 01234567890123456789012345678901234567890123456789012345678901234567890123456789
+	... Hello world how are you doing today? 01234567890123456789012345678901234567890123456789012345678901234567890123456789''', 60, 2)
+	'\nHello world how are you doing today? 01234567890123456789012...'
+	"""
+	messageLines = message.split("\n")
+	return "\n".join(_collapse_message(messageLines, maxCharsPerLine, maxLines))
 
 
 class MergedAddressBook(object):
@@ -1230,6 +1279,7 @@ class MessagesView(object):
 					collapsedMessages.extend(messages[-(self._MIN_MESSAGES_SHOWN+0):])
 				else:
 					collapsedMessages = expandedMessages
+				#collapsedMessages = _collapse_message(collapsedMessages, 60, self._MIN_MESSAGES_SHOWN)
 
 				number = make_ugly(number)
 

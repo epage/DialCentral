@@ -343,17 +343,16 @@ class Dialcentral(object):
 			with gtk_toolbox.gtk_lock():
 				self._errorDisplay.push_exception()
 		finally:
-			self._spawn_attempt_login(2)
+			self._spawn_attempt_login()
 
 	def _spawn_attempt_login(self, *args):
 		self._loginSink.send(args)
 
-	def _attempt_login(self, numOfAttempts = 10, force = False):
+	def _attempt_login(self, force = False):
 		"""
 		@note This must be run outside of the UI lock
 		"""
 		try:
-			assert 0 <= numOfAttempts, "That was pointless having 0 or less login attempts"
 			assert self._initDone, "Attempting login before app is fully loaded"
 
 			serviceId = self.NULL_BACKEND
@@ -372,7 +371,7 @@ class Dialcentral(object):
 						hildonize.show_busy_banner_end(banner)
 
 			if not loggedIn:
-				loggedIn, serviceId = self._login_by_user(numOfAttempts)
+				loggedIn, serviceId = self._login_by_user()
 
 			with gtk_toolbox.gtk_lock():
 				self._change_loggedin_status(serviceId)
@@ -413,30 +412,19 @@ class Dialcentral(object):
 		@note Thread agnostic
 		"""
 		username, password = self._credentials
-		try:
-			loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
-		except Exception:
-			# Retry in case the redirect failed
-			# luckily is_authed does everything we need for a retry
-			loggedIn = self._phoneBackends[self._defaultBackendId].is_authed(True)
-			if not loggedIn:
-				raise
-			_moduleLogger.info("Redirection failed on initial login attempt, auto-corrected for this")
+		loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
 		if loggedIn:
 			self._credentials = username, password
 			_moduleLogger.info("Logged into %r through settings" % self._phoneBackends[self._defaultBackendId])
 		return loggedIn
 
-	def _login_by_user(self, numOfAttempts):
+	def _login_by_user(self):
 		"""
 		@note This must be run outside of the UI lock
 		"""
 		loggedIn, (username, password) = False, self._credentials
 		tmpServiceId = self.GV_BACKEND
-		for attemptCount in xrange(numOfAttempts):
-			if loggedIn:
-				break
-
+		while not loggedIn:
 			with gtk_toolbox.gtk_lock():
 				credentials = self._credentialsDialog.request_credentials(
 					defaultCredentials = self._credentials
@@ -444,19 +432,11 @@ class Dialcentral(object):
 				if not self._phoneBackends[tmpServiceId].get_callback_number():
 					# subtle reminder to the users to configure things
 					self._notebook.set_current_page(self.ACCOUNT_TAB)
-				banner = hildonize.show_busy_banner_start(self._window, "Logging In...")
 
+				banner = hildonize.show_busy_banner_start(self._window, "Logging In...")
 			try:
 				username, password = credentials
-				try:
-					loggedIn = self._phoneBackends[tmpServiceId].login(username, password)
-				except Exception:
-					# Retry in case the redirect failed
-					# luckily is_authed does everything we need for a retry
-					loggedIn = self._phoneBackends[tmpServiceId].is_authed(True)
-					if not loggedIn:
-						raise
-					_moduleLogger.info("Redirection failed on initial login attempt, auto-corrected for this")
+				loggedIn = self._phoneBackends[tmpServiceId].login(username, password)
 			finally:
 				with gtk_toolbox.gtk_lock():
 					hildonize.show_busy_banner_end(banner)
@@ -466,6 +446,7 @@ class Dialcentral(object):
 			self._credentials = username, password
 			_moduleLogger.info("Logged into %r through user request" % self._phoneBackends[serviceId])
 		else:
+			# Hint to the user that they are not logged in
 			serviceId = self.NULL_BACKEND
 			self._notebook.set_current_page(self.ACCOUNT_TAB)
 
@@ -674,7 +655,7 @@ class Dialcentral(object):
 
 			if status == conic.STATUS_CONNECTED:
 				if self._initDone:
-					self._spawn_attempt_login(2)
+					self._spawn_attempt_login()
 			elif status == conic.STATUS_DISCONNECTED:
 				if self._initDone:
 					self._defaultBackendId = self._selectedBackendId
@@ -720,7 +701,7 @@ class Dialcentral(object):
 			self._contactsViews[self._selectedBackendId].clear()
 			self._change_loggedin_status(self.NULL_BACKEND)
 
-			self._spawn_attempt_login(2, True)
+			self._spawn_attempt_login(True)
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

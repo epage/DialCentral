@@ -195,8 +195,13 @@ class GVDialer(object):
 		try:
 			self._grab_account_info(loginSuccessOrFailurePage)
 		except Exception, e:
-			_moduleLogger.exception(str(e))
-			return False
+			# Retry in case the redirect failed
+			# luckily is_authed does everything we need for a retry
+			loggedIn = self.is_authed(True)
+			if not loggedIn:
+				_moduleLogger.exception(str(e))
+				return False
+			_moduleLogger.info("Redirection failed on initial login attempt, auto-corrected for this")
 
 		self._browser.cookies.save()
 		self._lastAuthed = time.time()

@@ -45,7 +45,6 @@ def test_not_logged_in():
 		with test_utils.expected(RuntimeError):
 			backend.send_sms("5551234567", "Hello World")
 		assert backend.get_account_number() == "", "%s" % backend.get_account_number()
-		backend.set_sane_callback()
 		assert backend.get_callback_number() == ""
 		with test_utils.expected(Exception):
 			recent = list(backend.get_recent())
