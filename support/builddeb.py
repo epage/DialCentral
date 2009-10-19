@@ -22,6 +22,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
+1.0.8
+
 1.0.7
 * Sped up various login cases
 * Added descriptions to the callback numbers
