@@ -73,6 +73,7 @@ class Dialcentral(object):
 	ACCOUNT_TAB = 4
 
 	NULL_BACKEND = 0
+	# 1 Was GrandCentral support so the gap was maintained for compatibility
 	GV_BACKEND = 2
 	BACKENDS = (NULL_BACKEND, GV_BACKEND)
 
@@ -569,8 +570,15 @@ class Dialcentral(object):
 		"""
 		@note Thread Agnostic
 		"""
+		# Because we now only support GVoice, if there are user credentials,
+		# always assume its using the GVoice backend
+		if self._credentials[0] and self._credentials[1]:
+			backend = self.GV_BACKEND
+		else:
+			backend = self.NULL_BACKEND
+
 		config.add_section(constants.__pretty_app_name__)
-		config.set(constants.__pretty_app_name__, "active", str(self._selectedBackendId))
+		config.set(constants.__pretty_app_name__, "active", str(backend))
 		config.set(constants.__pretty_app_name__, "orientation", str(int(gtk_toolbox.get_screen_orientation())))
 		for i, value in enumerate(self._credentials):
 			blob = base64.b64encode(value)
