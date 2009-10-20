@@ -756,15 +756,15 @@ FILES :
             ]
 
             if self.prettyName:
-                prettyName = "XB-Maemo-Display-Name: %s" % self.prettyName.strip()
+                prettyName = "XBS-Maemo-Display-Name: %s" % self.prettyName.strip()
                 specificParagraphFields.append("\n  ".join(prettyName.split("\n")))
 
             if self.bugTracker:
-                bugTracker = "XB-Bugtracker: %s" % self.bugTracker.strip()
+                bugTracker = "XBS-Bugtracker: %s" % self.bugTracker.strip()
                 specificParagraphFields.append("\n  ".join(bugTracker.split("\n")))
 
             if self.upgradeDescription:
-                upgradeDescription = "XB-Maemo-Upgrade-Description: %s" % self.upgradeDescription.strip()
+                upgradeDescription = "XBS-Maemo-Upgrade-Description: %s" % self.upgradeDescription.strip()
                 specificParagraphFields.append("\n  ".join(upgradeDescription.split("\n")))
 
             if self.icon:
@@ -779,7 +779,7 @@ FILES :
                     if i % 60 == 0:
                         uueIconLines.append("")
                     uueIconLines[-1] += c
-                uueIconLines[0:0] = ("XB-Maemo-Icon-26:", )
+                uueIconLines[0:0] = ("XBS-Maemo-Icon-26:", )
                 specificParagraphFields.append("\n  ".join(uueIconLines))
 
             generalParagraph = "\n".join(generalParagraphFields)
