@@ -16,7 +16,15 @@ import constants
 
 
 __appname__ = constants.__app_name__
-__description__ = "Touch screen enhanced interface to the GoogleVoice phone service"
+__description__ = """Touch screen enhanced interface to the GoogleVoice phone service"
+Features:
+* Dialpad for quick call
+* Checking voicemails, texts, call history
+* Sending texts
+* Notification support for texts, voicemail, and/or missed calls
+.
+Homepage: http://gc-dialer.garage.maemo.org/
+"""
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
 __version__ = constants.__version__
@@ -229,7 +237,9 @@ def build_package(distribution):
 
 	py2deb.Py2deb.SECTIONS = py2deb.SECTIONS_BY_POLICY[distribution]
 	p = py2deb.Py2deb(__appname__)
+	p.prettyName = constants.__pretty_app_name__
 	p.description = __description__
+	p.bugTracker = "https://bugs.maemo.org/enter_bug.cgi?product=Dialcentral"
 	p.upgradeDescription = __changelog__.split("\n\n", 1)[0]
 	p.author = __author__
 	p.mail = __email__

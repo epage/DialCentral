@@ -501,8 +501,10 @@ class Py2deb(object):
             mail = author+"@"+socket.gethostname()
 
         self.name = name
+        self.prettyName = ""
         self.description = description
         self.upgradeDescription = ""
+        self.bugTracker = ""
         self.license = license
         self.depends = depends
         self.recommends = ""
@@ -752,6 +754,14 @@ FILES :
                 "Recommends: %(recommends)s",
                 "Description: %(description)s",
             ]
+
+            if self.prettyName:
+                prettyName = "XB-Maemo-Display-Name: %s" % self.prettyName.strip()
+                specificParagraphFields.append("\n  ".join(prettyName.split("\n")))
+
+            if self.bugTracker:
+                bugTracker = "XB-Bugtracker: %s" % self.bugTracker.strip()
+                specificParagraphFields.append("\n  ".join(bugTracker.split("\n")))
 
             if self.upgradeDescription:
                 upgradeDescription = "XB-Maemo-Upgrade-Description: %s" % self.upgradeDescription.strip()
