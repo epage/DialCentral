@@ -23,6 +23,7 @@ __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
 1.0.8
+* Sped up login time by delay loading contact list
 
 1.0.7
 * Sped up various login cases

@@ -1447,11 +1447,7 @@ class ContactsView(object):
 	def open_addressbook(self, bookFactoryId, bookId):
 		bookFactoryIndex = int(bookFactoryId)
 		addressBook = self._addressBookFactories[bookFactoryIndex].open_addressbook(bookId)
-
-		forceUpdate = True if addressBook is not self._addressBook else False
-
 		self._addressBook = addressBook
-		self.update(force=forceUpdate)
 
 	def update(self, force = False):
 		if not force and self._isPopulated:
@@ -1531,7 +1527,12 @@ class ContactsView(object):
 
 			selectedFactoryId = self._booksList[newSelectedComboIndex][0]
 			selectedBookId = self._booksList[newSelectedComboIndex][1]
+
+			oldAddressbook = self._addressBook
 			self.open_addressbook(selectedFactoryId, selectedBookId)
+			forceUpdate = True if oldAddressbook is not self._addressBook else False
+			self.update(force=forceUpdate)
+
 			self._selectedComboIndex = newSelectedComboIndex
 			self._bookSelectionButton.set_label(self._booksList[self._selectedComboIndex][2])
 		except Exception, e:
