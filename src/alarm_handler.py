@@ -16,11 +16,11 @@ _NO_ALARM = "None"
 try:
 	import alarm
 	ALARM_TYPE = _FREMANTLE_ALARM
-except ImportError:
+except (ImportError, OSError):
 	try:
 		import osso.alarmd as alarmd
 		ALARM_TYPE = _DIABLO_ALARM
-	except ImportError:
+	except (ImportError, OSError):
 		ALARM_TYPE = _NO_ALARM
 
 
@@ -252,7 +252,7 @@ class _DiabloAlarmHandler(object):
 class _NoneAlarmHandler(object):
 
 	def __init__(self):
-		pass
+		self._alarmCookie = 0
 
 	def load_settings(self, config, sectionName):
 		pass
