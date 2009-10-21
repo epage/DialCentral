@@ -48,11 +48,11 @@ except ImportError:
 
 
 _moduleLogger = logging.getLogger("gvoice.dialer")
-_TRUE_REGEX = re.compile("true")
-_FALSE_REGEX = re.compile("false")
 
 
 def safe_eval(s):
+	_TRUE_REGEX = re.compile("true")
+	_FALSE_REGEX = re.compile("false")
 	s = _TRUE_REGEX.sub("True", s)
 	s = _FALSE_REGEX.sub("False", s)
 	return eval(s, {}, {})
@@ -124,7 +124,47 @@ class GVDialer(object):
 		self._callbackNumber = ""
 		self._callbackNumbers = {}
 
-	_forwardURL = "https://www.google.com/voice/mobile/phones"
+		# Suprisingly, moving all of these from class to self sped up startup time
+
+		self._validateRe = re.compile("^[0-9]{10,}$")
+
+		self._forwardURL = "https://www.google.com/voice/mobile/phones"
+		self._tokenURL = "http://www.google.com/voice/m"
+		self._loginURL = "https://www.google.com/accounts/ServiceLoginAuth"
+		self._galxRe = re.compile(r"""<input.*?name="GALX".*?value="(.*?)".*?/>""", re.MULTILINE | re.DOTALL)
+		self._tokenRe = re.compile(r"""<input.*?name="_rnr_se".*?value="(.*?)"\s*/>""")
+		self._accountNumRe = re.compile(r"""<b class="ms\d">(.{14})</b></div>""")
+		self._callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
+
+		self._gvDialingStrRe = re.compile("This may take a few seconds", re.M)
+		self._clicktocallURL = "https://www.google.com/voice/m/sendcall"
+		self._sendSmsURL = "https://www.google.com/voice/m/sendsms"
+
+		self._recentCallsURL = "https://www.google.com/voice/inbox/recent/"
+		self._placedCallsURL = "https://www.google.com/voice/inbox/recent/placed/"
+		self._receivedCallsURL = "https://www.google.com/voice/inbox/recent/received/"
+		self._missedCallsURL = "https://www.google.com/voice/inbox/recent/missed/"
+
+		self._contactsRe = re.compile(r"""<a href="/voice/m/contact/(\d+)">(.*?)</a>""", re.S)
+		self._contactsNextRe = re.compile(r""".*<a href="/voice/m/contacts(\?p=\d+)">Next.*?</a>""", re.S)
+		self._contactsURL = "https://www.google.com/voice/mobile/contacts"
+		self._contactDetailPhoneRe = re.compile(r"""<div.*?>([0-9+\-\(\) \t]+?)<span.*?>\((\w+)\)</span>""", re.S)
+		self._contactDetailURL = "https://www.google.com/voice/mobile/contact"
+
+		self._voicemailURL = "https://www.google.com/voice/inbox/recent/voicemail/"
+		self._smsURL = "https://www.google.com/voice/inbox/recent/sms/"
+		self._seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class=".*?gc-message.*?">""", re.MULTILINE | re.DOTALL)
+		self._exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
+		self._relativeVoicemailTimeRegex = re.compile(r"""<span class="gc-message-relative">(.*?)</span>""", re.MULTILINE)
+		self._voicemailNameRegex = re.compile(r"""<a class=.*?gc-message-name-link.*?>(.*?)</a>""", re.MULTILINE | re.DOTALL)
+		self._voicemailNumberRegex = re.compile(r"""<input type="hidden" class="gc-text gc-quickcall-ac" value="(.*?)"/>""", re.MULTILINE)
+		self._prettyVoicemailNumberRegex = re.compile(r"""<span class="gc-message-type">(.*?)</span>""", re.MULTILINE)
+		self._voicemailLocationRegex = re.compile(r"""<span class="gc-message-location">.*?<a.*?>(.*?)</a></span>""", re.MULTILINE)
+		self._messagesContactID = re.compile(r"""<a class=".*?gc-message-name-link.*?">.*?</a>\s*?<span .*?>(.*?)</span>""", re.MULTILINE)
+		self._voicemailMessageRegex = re.compile(r"""(<span id="\d+-\d+" class="gc-word-(.*?)">(.*?)</span>|<a .*? class="gc-message-mni">(.*?)</a>)""", re.MULTILINE)
+		self._smsFromRegex = re.compile(r"""<span class="gc-message-sms-from">(.*?)</span>""", re.MULTILINE | re.DOTALL)
+		self._smsTimeRegex = re.compile(r"""<span class="gc-message-sms-time">(.*?)</span>""", re.MULTILINE | re.DOTALL)
+		self._smsTextRegex = re.compile(r"""<span class="gc-message-sms-text">(.*?)</span>""", re.MULTILINE | re.DOTALL)
 
 	def is_authed(self, force = False):
 		"""
@@ -145,10 +185,6 @@ class GVDialer(object):
 		self._browser.cookies.save()
 		self._lastAuthed = time.time()
 		return True
-
-	_tokenURL = "http://www.google.com/voice/m"
-	_loginURL = "https://www.google.com/accounts/ServiceLoginAuth"
-	_galxRe = re.compile(r"""<input.*?name="GALX".*?value="(.*?)".*?/>""", re.MULTILINE | re.DOTALL)
 
 	def _get_token(self):
 		try:
@@ -212,9 +248,6 @@ class GVDialer(object):
 		self._browser.cookies.clear()
 		self._browser.cookies.save()
 
-	_gvDialingStrRe = re.compile("This may take a few seconds", re.M)
-	_clicktocallURL = "https://www.google.com/voice/m/sendcall"
-
 	def dial(self, number):
 		"""
 		This is the main function responsible for initating the callback
@@ -239,8 +272,6 @@ class GVDialer(object):
 
 		return True
 
-	_sendSmsURL = "https://www.google.com/voice/m/sendsms"
-
 	def send_sms(self, number, message):
 		number = self._send_validation(number)
 		try:
@@ -260,8 +291,6 @@ class GVDialer(object):
 			raise NetworkError("%s is not accesible" % self._sendSmsURL)
 
 		return True
-
-	_validateRe = re.compile("^[0-9]{10,}$")
 
 	def is_valid_syntax(self, number):
 		"""
@@ -298,11 +327,6 @@ class GVDialer(object):
 		"""
 		return self._callbackNumber
 
-	_recentCallsURL = "https://www.google.com/voice/inbox/recent/"
-	_placedCallsURL = "https://www.google.com/voice/inbox/recent/placed/"
-	_receivedCallsURL = "https://www.google.com/voice/inbox/recent/received/"
-	_missedCallsURL = "https://www.google.com/voice/inbox/recent/missed/"
-
 	def get_recent(self):
 		"""
 		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
@@ -323,10 +347,6 @@ class GVDialer(object):
 			for recentCallData in allRecentData:
 				recentCallData["action"] = action
 				yield recentCallData
-
-	_contactsRe = re.compile(r"""<a href="/voice/m/contact/(\d+)">(.*?)</a>""", re.S)
-	_contactsNextRe = re.compile(r""".*<a href="/voice/m/contacts(\?p=\d+)">Next.*?</a>""", re.S)
-	_contactsURL = "https://www.google.com/voice/mobile/contacts"
 
 	def get_contacts(self):
 		"""
@@ -350,9 +370,6 @@ class GVDialer(object):
 				newContactsPageUrl = self._contactsURL + next_match.group(1)
 				contactsPagesUrls.append(newContactsPageUrl)
 
-	_contactDetailPhoneRe = re.compile(r"""<div.*?>([0-9+\-\(\) \t]+?)<span.*?>\((\w+)\)</span>""", re.S)
-	_contactDetailURL = "https://www.google.com/voice/mobile/contact"
-
 	def get_contact_details(self, contactId):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)
@@ -367,19 +384,6 @@ class GVDialer(object):
 			phoneNumber = detail_match.group(1)
 			phoneType = saxutils.unescape(detail_match.group(2))
 			yield (phoneType, phoneNumber)
-
-	_voicemailURL = "https://www.google.com/voice/inbox/recent/voicemail/"
-	_smsURL = "https://www.google.com/voice/inbox/recent/sms/"
-
-	@staticmethod
-	def _merge_messages(parsedMessages, json):
-		for message in parsedMessages:
-			id = message["id"]
-			jsonItem = json["messages"][id]
-			message["isRead"] = jsonItem["isRead"]
-			message["isSpam"] = jsonItem["isSpam"]
-			message["isTrash"] = jsonItem["isTrash"]
-			yield message
 
 	def get_messages(self):
 		try:
@@ -440,10 +444,6 @@ class GVDialer(object):
 		flatHtml = htmlElement.text
 		return flatHtml
 
-	_tokenRe = re.compile(r"""<input.*?name="_rnr_se".*?value="(.*?)"\s*/>""")
-	_accountNumRe = re.compile(r"""<b class="ms\d">(.{14})</b></div>""")
-	_callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
-
 	def _grab_account_info(self, page):
 		tokenGroup = self._tokenRe.search(page)
 		if tokenGroup is None:
@@ -474,18 +474,6 @@ class GVDialer(object):
 			# Strip leading 1 from 11 digit dialing
 			number = number[1:]
 		return number
-
-	_seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class=".*?gc-message.*?">""", re.MULTILINE | re.DOTALL)
-	_exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
-	_relativeVoicemailTimeRegex = re.compile(r"""<span class="gc-message-relative">(.*?)</span>""", re.MULTILINE)
-	_voicemailNameRegex = re.compile(r"""<a class=.*?gc-message-name-link.*?>(.*?)</a>""", re.MULTILINE | re.DOTALL)
-	_voicemailNumberRegex = re.compile(r"""<input type="hidden" class="gc-text gc-quickcall-ac" value="(.*?)"/>""", re.MULTILINE)
-	_prettyVoicemailNumberRegex = re.compile(r"""<span class="gc-message-type">(.*?)</span>""", re.MULTILINE)
-	_voicemailLocationRegex = re.compile(r"""<span class="gc-message-location">.*?<a.*?>(.*?)</a></span>""", re.MULTILINE)
-	_messagesContactID = re.compile(r"""<a class=".*?gc-message-name-link.*?">.*?</a>\s*?<span .*?>(.*?)</span>""", re.MULTILINE)
-	#_voicemailMessageRegex = re.compile(r"""<span id="\d+-\d+" class="gc-word-(.*?)">(.*?)</span>""", re.MULTILINE)
-	#_voicemailMessageRegex = re.compile(r"""<a .*? class="gc-message-mni">(.*?)</a>""", re.MULTILINE)
-	_voicemailMessageRegex = re.compile(r"""(<span id="\d+-\d+" class="gc-word-(.*?)">(.*?)</span>|<a .*? class="gc-message-mni">(.*?)</a>)""", re.MULTILINE)
 
 	@staticmethod
 	def _interpret_voicemail_regex(group):
@@ -552,10 +540,6 @@ class GVDialer(object):
 			voicemailData["messageParts"] = ((whoFrom, message, when), )
 			yield voicemailData
 
-	_smsFromRegex = re.compile(r"""<span class="gc-message-sms-from">(.*?)</span>""", re.MULTILINE | re.DOTALL)
-	_smsTimeRegex = re.compile(r"""<span class="gc-message-sms-time">(.*?)</span>""", re.MULTILINE | re.DOTALL)
-	_smsTextRegex = re.compile(r"""<span class="gc-message-sms-text">(.*?)</span>""", re.MULTILINE | re.DOTALL)
-
 	def _parse_sms(self, smsHtml):
 		splitSms = self._seperateVoicemailsRegex.split(smsHtml)
 		for messageId, messageHtml in itergroup(splitSms[1:], 2):
@@ -598,6 +582,16 @@ class GVDialer(object):
 
 	def _decorate_sms(self, parsedTexts):
 		return parsedTexts
+
+	@staticmethod
+	def _merge_messages(parsedMessages, json):
+		for message in parsedMessages:
+			id = message["id"]
+			jsonItem = json["messages"][id]
+			message["isRead"] = jsonItem["isRead"]
+			message["isSpam"] = jsonItem["isSpam"]
+			message["isTrash"] = jsonItem["isTrash"]
+			yield message
 
 
 def set_sane_callback(backend):
@@ -723,22 +717,6 @@ def test_backend(username, password):
 	return backend
 
 
-_TEST_WEBPAGES = [
-	("forward", GVDialer._forwardURL),
-	("token", GVDialer._tokenURL),
-	("login", GVDialer._loginURL),
-	("contacts", GVDialer._contactsURL),
-
-	("voicemail", GVDialer._voicemailURL),
-	("sms", GVDialer._smsURL),
-
-	("recent", GVDialer._recentCallsURL),
-	("placed", GVDialer._placedCallsURL),
-	("recieved", GVDialer._receivedCallsURL),
-	("missed", GVDialer._missedCallsURL),
-]
-
-
 def grab_debug_info(username, password):
 	cookieFile = os.path.join(".", "raw_cookies.txt")
 	try:
@@ -748,6 +726,21 @@ def grab_debug_info(username, password):
 
 	backend = GVDialer(cookieFile)
 	browser = backend._browser
+
+	_TEST_WEBPAGES = [
+		("forward", backend._forwardURL),
+		("token", backend._tokenURL),
+		("login", backend._loginURL),
+		("contacts", backend._contactsURL),
+
+		("voicemail", backend._voicemailURL),
+		("sms", backend._smsURL),
+
+		("recent", backend._recentCallsURL),
+		("placed", backend._placedCallsURL),
+		("recieved", backend._receivedCallsURL),
+		("missed", backend._missedCallsURL),
+	]
 
 	# Get Pages
 	print "Grabbing pre-login pages"

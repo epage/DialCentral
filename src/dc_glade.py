@@ -40,6 +40,7 @@ import gtk_toolbox
 
 
 _moduleLogger = logging.getLogger("dc_glade")
+PROFILE_STARTUP = False
 
 
 def getmtime_nothrow(path):
@@ -163,7 +164,7 @@ class Dialcentral(object):
 
 		self._window.connect("destroy", self._on_close)
 		self._window.set_default_size(800, 300)
-		self._window.show_all()
+		self._window.show()
 
 		self._loginSink = gtk_toolbox.threaded_stage(
 			gtk_toolbox.comap(
@@ -172,9 +173,12 @@ class Dialcentral(object):
 			)
 		)
 
-		backgroundSetup = threading.Thread(target=self._idle_setup)
-		backgroundSetup.setDaemon(True)
-		backgroundSetup.start()
+		if not PROFILE_STARTUP:
+			backgroundSetup = threading.Thread(target=self._idle_setup)
+			backgroundSetup.setDaemon(True)
+			backgroundSetup.start()
+		else:
+			self._idle_setup()
 
 	def _idle_setup(self):
 		"""
@@ -362,7 +366,7 @@ class Dialcentral(object):
 
 			serviceId = self.NULL_BACKEND
 			loggedIn = False
-			if not force:
+			if not force and self._defaultBackendId != self.NULL_BACKEND:
 				with gtk_toolbox.gtk_lock():
 					banner = hildonize.show_busy_banner_start(self._window, "Logging In...")
 				try:
@@ -496,7 +500,10 @@ class Dialcentral(object):
 		@note UI Thread
 		"""
 		try:
-			self._defaultBackendId = config.getint(constants.__pretty_app_name__, "active")
+			if not PROFILE_STARTUP:
+				self._defaultBackendId = config.getint(constants.__pretty_app_name__, "active")
+			else:
+				self._defaultBackendId = self.NULL_BACKEND
 			blobs = (
 				config.get(constants.__pretty_app_name__, "bin_blob_%i" % i)
 				for i in xrange(len(self._credentials))
@@ -873,7 +880,8 @@ def run_dialpad():
 	if hildonize.IS_HILDON_SUPPORTED:
 		gtk.set_application_name(constants.__pretty_app_name__)
 	handle = Dialcentral()
-	gtk.main()
+	if not PROFILE_STARTUP:
+		gtk.main()
 
 
 class DummyOptions(object):
