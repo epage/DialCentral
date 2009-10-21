@@ -371,6 +371,16 @@ class GVDialer(object):
 	_voicemailURL = "https://www.google.com/voice/inbox/recent/voicemail/"
 	_smsURL = "https://www.google.com/voice/inbox/recent/sms/"
 
+	@staticmethod
+	def _merge_messages(parsedMessages, json):
+		for message in parsedMessages:
+			id = message["id"]
+			jsonItem = json["messages"][id]
+			message["isRead"] = jsonItem["isRead"]
+			message["isSpam"] = jsonItem["isSpam"]
+			message["isTrash"] = jsonItem["isTrash"]
+			yield message
+
 	def get_messages(self):
 		try:
 			voicemailPage = self._browser.download(self._voicemailURL)
@@ -378,8 +388,10 @@ class GVDialer(object):
 			_moduleLogger.exception("Translating error: %s" % str(e))
 			raise NetworkError("%s is not accesible" % self._voicemailURL)
 		voicemailHtml = self._grab_html(voicemailPage)
+		voicemailJson = self._grab_json(voicemailPage)
 		parsedVoicemail = self._parse_voicemail(voicemailHtml)
-		decoratedVoicemails = self._decorate_voicemail(parsedVoicemail)
+		voicemails = self._merge_messages(parsedVoicemail, voicemailJson)
+		decoratedVoicemails = self._decorate_voicemail(voicemails)
 
 		try:
 			smsPage = self._browser.download(self._smsURL)
@@ -387,8 +399,10 @@ class GVDialer(object):
 			_moduleLogger.exception("Translating error: %s" % str(e))
 			raise NetworkError("%s is not accesible" % self._smsURL)
 		smsHtml = self._grab_html(smsPage)
+		smsJson = self._grab_json(smsPage)
 		parsedSms = self._parse_sms(smsHtml)
-		decoratedSms = self._decorate_sms(parsedSms)
+		smss = self._merge_messages(parsedSms, smsJson)
+		decoratedSms = self._decorate_sms(smss)
 
 		allMessages = itertools.chain(decoratedVoicemails, decoratedSms)
 		return allMessages
@@ -517,6 +531,7 @@ class GVDialer(object):
 				"number": number,
 				"location": location,
 				"messageParts": messageParts,
+				"type": "Voicemail",
 			}
 
 	def _decorate_voicemail(self, parsedVoicemails):
@@ -578,6 +593,7 @@ class GVDialer(object):
 				"number": number,
 				"location": "",
 				"messageParts": messageParts,
+				"type": "Texts",
 			}
 
 	def _decorate_sms(self, parsedTexts):

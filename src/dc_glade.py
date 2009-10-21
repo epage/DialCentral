@@ -218,13 +218,17 @@ class Dialcentral(object):
 
 			try:
 				import alarm_handler
-				self._alarmHandler = alarm_handler.AlarmHandler()
+				if alarm_handler.AlarmHandler is not alarm_handler._NoneAlarmHandler:
+					self._alarmHandler = alarm_handler.AlarmHandler()
+				else:
+					self._alarmHandler = None
 			except (ImportError, OSError):
 				alarm_handler = None
 			except Exception:
 				with gtk_toolbox.gtk_lock():
 					self._errorDisplay.push_exception()
 				alarm_handler = None
+			if alarm_handler is None:
 				_moduleLogger.warning("No notification support")
 			if hildonize.IS_HILDON_SUPPORTED:
 				try:

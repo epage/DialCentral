@@ -1160,6 +1160,17 @@ class MessagesView(object):
 	MESSAGES_IDX = 4
 	FROM_ID_IDX = 5
 
+	NO_MESSAGES = "None"
+	VOICEMAIL_MESSAGES = "Voicemail"
+	TEXT_MESSAGES = "Texts"
+	ALL_MESSAGES = "All Messages"
+	MESSAGE_TYPES = [NO_MESSAGES, VOICEMAIL_MESSAGES, TEXT_MESSAGES, ALL_MESSAGES]
+
+	UNREAD_STATUS = "Unread"
+	UNARCHIVED_STATUS = "Unarchived"
+	ALL_STATUS = "Any"
+	MESSAGE_STATUSES = [UNREAD_STATUS, UNARCHIVED_STATUS, ALL_STATUS]
+
 	def __init__(self, widgetTree, backend, errorDisplay):
 		self._errorDisplay = errorDisplay
 		self._backend = backend
@@ -1188,6 +1199,13 @@ class MessagesView(object):
 		self._window = gtk_toolbox.find_parent_window(self._messageview)
 		self._phoneTypeSelector = SmsEntryDialog(widgetTree)
 
+		self._messageTypeButton = widgetTree.get_widget("messageTypeButton")
+		self._onMessageTypeClickedId = 0
+		self._messageType = self.ALL_MESSAGES
+		self._messageStatusButton = widgetTree.get_widget("messageStatusButton")
+		self._onMessageStatusClickedId = 0
+		self._messageStatus = self.ALL_STATUS
+
 		self._updateSink = gtk_toolbox.threaded_stage(
 			gtk_toolbox.comap(
 				self._idly_populate_messageview,
@@ -1205,10 +1223,23 @@ class MessagesView(object):
 		self._messageviewselection = self._messageview.get_selection()
 		self._messageviewselection.set_mode(gtk.SELECTION_SINGLE)
 
-		self._onMessageviewRowActivatedId = self._messageview.connect("row-activated", self._on_messageview_row_activated)
+		self._messageTypeButton.set_label(self._messageType)
+		self._messageStatusButton.set_label(self._messageStatus)
+
+		self._onMessageviewRowActivatedId = self._messageview.connect(
+			"row-activated", self._on_messageview_row_activated
+		)
+		self._onMessageTypeClickedId = self._messageTypeButton.connect(
+			"clicked", self._on_message_type_clicked
+		)
+		self._onMessageStatusClickedId = self._messageStatusButton.connect(
+			"clicked", self._on_message_status_clicked
+		)
 
 	def disable(self):
 		self._messageview.disconnect(self._onMessageviewRowActivatedId)
+		self._messageTypeButton.disconnect(self._onMessageTypeClickedId)
+		self._messageStatusButton.disconnect(self._onMessageStatusClickedId)
 
 		self.clear()
 
@@ -1235,16 +1266,43 @@ class MessagesView(object):
 	def name():
 		return "Messages"
 
-	def load_settings(self, config, section):
-		pass
+	def load_settings(self, config, sectionName):
+		try:
+			self._messageStatus = config.get(sectionName, "status")
+			self._messageType = config.get(sectionName, "type")
+		except ConfigParser.NoOptionError:
+			pass
 
-	def save_settings(self, config, section):
+	def save_settings(self, config, sectionName):
 		"""
 		@note Thread Agnostic
 		"""
-		pass
+		config.set(sectionName, "status", self._messageStatus)
+		config.set(sectionName, "type", self._messageType)
 
 	_MIN_MESSAGES_SHOWN = 4
+
+	@classmethod
+	def _filter_messages(cls, message, type, status):
+		if type == cls.ALL_MESSAGES:
+			isType = True
+		else:
+			messageType = message["type"]
+			isType = messageType == type
+
+		if status == cls.ALL_STATUS:
+			isStatus = True
+		else:
+			isUnarchived = not message["isTrash"]
+			isUnread = not message["isRead"]
+			if status == cls.UNREAD_STATUS:
+				isStatus = isUnarchived and isUnread
+			elif status == cls.UNARCHIVED_STATUS:
+				isStatus = isUnarchived
+			else:
+				assert "Status %s is bad for %r" % (status, message)
+
+		return isType and isStatus
 
 	def _idly_populate_messageview(self):
 		with gtk_toolbox.gtk_lock():
@@ -1253,16 +1311,20 @@ class MessagesView(object):
 			self._messagemodel.clear()
 			self._isPopulated = True
 
-			try:
-				messageItems = self._backend.get_messages()
-			except Exception, e:
-				self._errorDisplay.push_exception_with_lock()
-				self._isPopulated = False
+			if self._messageType == self.NO_MESSAGES:
 				messageItems = []
+			else:
+				try:
+					messageItems = self._backend.get_messages()
+				except Exception, e:
+					self._errorDisplay.push_exception_with_lock()
+					self._isPopulated = False
+					messageItems = []
 
 			messageItems = (
 				gv_backend.decorate_message(message)
 				for message in gv_backend.sort_messages(messageItems)
+				if self._filter_messages(message, self._messageType, self._messageStatus)
 			)
 
 			for contactId, header, number, relativeDate, messages in messageItems:
@@ -1336,6 +1398,48 @@ class MessagesView(object):
 
 			self.number_selected(action, phoneNumber, message)
 			self._messageviewselection.unselect_all()
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_message_type_clicked(self, *args, **kwds):
+		try:
+			selectedIndex = self.MESSAGE_TYPES.index(self._messageType)
+
+			try:
+				newSelectedIndex = hildonize.touch_selector(
+					self._window,
+					"Message Type",
+					self.MESSAGE_TYPES,
+					selectedIndex,
+				)
+			except RuntimeError:
+				return
+
+			if selectedIndex != newSelectedIndex:
+				self._messageType = self.MESSAGE_TYPES[newSelectedIndex]
+				self._messageTypeButton.set_label(self._messageType)
+				self.update(True)
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_message_status_clicked(self, *args, **kwds):
+		try:
+			selectedIndex = self.MESSAGE_STATUSES.index(self._messageStatus)
+
+			try:
+				newSelectedIndex = hildonize.touch_selector(
+					self._window,
+					"Message Status",
+					self.MESSAGE_STATUSES,
+					selectedIndex,
+				)
+			except RuntimeError:
+				return
+
+			if selectedIndex != newSelectedIndex:
+				self._messageStatus = self.MESSAGE_STATUSES[newSelectedIndex]
+				self._messageStatusButton.set_label(self._messageStatus)
+				self.update(True)
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

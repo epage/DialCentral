@@ -145,13 +145,16 @@ class RecentCallsView(object):
 class MessagesView(object):
 
 	def __init__(self, widgetTree):
-		pass
+		self._messageTypeButton = widgetTree.get_widget("messageTypeButton")
+		self._messageStatusButton = widgetTree.get_widget("messageStatusButton")
 
 	def enable(self):
-		pass
+		self._messageTypeButton.set_sensitive(False)
+		self._messageStatusButton.set_sensitive(False)
 
 	def disable(self):
-		pass
+		self._messageTypeButton.set_sensitive(True)
+		self._messageStatusButton.set_sensitive(True)
 
 	def update(self, force = False):
 		return False
