@@ -33,6 +33,7 @@ __changelog__ = """
 1.0.8
 * Sped up login time by delay loading contact list
 * Ability to narrow down messages either by type or status
+* Fremantle: Notification Support including testing of custom notifications
 * UI Tweak: Cut down the number of times the login dialog is needlessly displayed
 
 1.0.7
@@ -257,7 +258,7 @@ def build_package(distribution):
 		"debian": ", python-glade2",
 		"chinook": maemoSpecificDepends,
 		"diablo": maemoSpecificDepends,
-		"fremantle": maemoSpecificDepends + ", python-glade2",
+		"fremantle": maemoSpecificDepends + ", python-glade2, python-alarm",
 		"mer": maemoSpecificDepends + ", python-glade2",
 	}[distribution]
 	p.recommends = ", ".join([

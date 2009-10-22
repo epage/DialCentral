@@ -134,16 +134,14 @@ class _FremantleAlarmHandler(object):
 
 		event = alarm.Event()
 		event.appid = self._TITLE
-		event.message = "GoogleVoice updates"
 		event.alarm_time = alarmTime
-		event.recurrences_left = -1
+		event.recurrences_left = self._REPEAT_FOREVER
 
-		action = event.add_action(1)[0]
+		action = event.add_actions(1)[0]
 		action.flags |= alarm.ACTION_TYPE_EXEC | alarm.ACTION_WHEN_TRIGGERED
 		action.command = self._launcher
 
-		recurrence = event.add_recurrence(1)[0]
-		recurrence.recurrences_left = self._REPEAT_FOREVER
+		recurrence = event.add_recurrences(1)[0]
 		recurrence.mask_min |= _create_recurrence_mask(recurrenceMins, 60)
 		recurrence.mask_hour |= alarm.RECUR_HOUR_DONTCARE
 		recurrence.mask_mday |= alarm.RECUR_MDAY_DONTCARE
