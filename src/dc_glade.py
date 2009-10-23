@@ -164,7 +164,7 @@ class Dialcentral(object):
 
 		self._window.connect("destroy", self._on_close)
 		self._window.set_default_size(800, 300)
-		self._window.show()
+		self._window.show_all()
 
 		self._loginSink = gtk_toolbox.threaded_stage(
 			gtk_toolbox.comap(
