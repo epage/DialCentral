@@ -1293,7 +1293,7 @@ class MessagesView(object):
 		if status == cls.ALL_STATUS:
 			isStatus = True
 		else:
-			isUnarchived = not message["isTrash"]
+			isUnarchived = not message["isArchived"]
 			isUnread = not message["isRead"]
 			if status == cls.UNREAD_STATUS:
 				isStatus = isUnarchived and isUnread

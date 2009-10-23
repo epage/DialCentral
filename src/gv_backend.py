@@ -591,6 +591,7 @@ class GVDialer(object):
 			message["isRead"] = jsonItem["isRead"]
 			message["isSpam"] = jsonItem["isSpam"]
 			message["isTrash"] = jsonItem["isTrash"]
+			message["isArchived"] = "inbox" not in jsonItem["labels"]
 			yield message
 
 
