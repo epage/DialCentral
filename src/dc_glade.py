@@ -415,6 +415,10 @@ class Dialcentral(object):
 		"""
 		@note Thread agnostic
 		"""
+		if self._credentials == ("", ""):
+			# Disallow logging in by cookie alone, without credentials
+			return False
+
 		loggedIn = self._phoneBackends[self._defaultBackendId].is_authed()
 		if loggedIn:
 			_moduleLogger.info("Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId])
@@ -424,6 +428,10 @@ class Dialcentral(object):
 		"""
 		@note Thread agnostic
 		"""
+		if self._credentials == ("", ""):
+			# Don't bother with the settings if they are blank
+			return False
+
 		username, password = self._credentials
 		loggedIn = self._phoneBackends[self._defaultBackendId].login(username, password)
 		if loggedIn:
