@@ -69,7 +69,7 @@ def is_type_changed(backend, type, get_material):
 	return not seemEqual
 
 
-def is_changed():
+def create_backend(config):
 	gvCookiePath = os.path.join(constants._data_path_, "gv_cookies.txt")
 	backend = gv_backend.GVDialer(gvCookiePath)
 
@@ -78,8 +78,6 @@ def is_changed():
 	if not loggedIn:
 		loggedIn = backend.is_authed()
 
-	config = ConfigParser.SafeConfigParser()
-	config.read(constants._user_settings_)
 	if not loggedIn:
 		import base64
 		try:
@@ -98,6 +96,11 @@ def is_changed():
 		except ConfigParser.NoSectionError, e:
 			pass
 
+	assert loggedIn
+	return backend
+
+
+def is_changed(config, backend):
 	try:
 		notifyOnMissed = config.getboolean("2 - Account Info", "notifyOnMissed")
 		notifyOnVoicemail = config.getboolean("2 - Account Info", "notifyOnVoicemail")
@@ -111,7 +114,6 @@ def is_changed():
 		notifyOnVoicemail = False
 		notifyOnSms = False
 
-	assert loggedIn
 	notifySources = []
 	if notifyOnMissed:
 		notifySources.append(("missed", get_missed))
@@ -128,7 +130,10 @@ def is_changed():
 
 
 def notify_on_change():
-	notifyUser = is_changed()
+	config = ConfigParser.SafeConfigParser()
+	config.read(constants._user_settings_)
+	backend = create_backend(config)
+	notifyUser = is_changed(config, backend)
 
 	if notifyUser:
 		import led_handler

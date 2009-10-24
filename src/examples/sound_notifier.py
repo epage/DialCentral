@@ -1,16 +1,21 @@
 #!/usr/bin/env python
 
 import sys
+import ConfigParser
 
 
 sys.path.insert(0,"/usr/lib/dialcentral/")
 
 
+import constants
 import alarm_notify
 
 
 def notify_on_change():
-	notifyUser = alarm_notify.is_changed()
+	config = ConfigParser.SafeConfigParser()
+	config.read(constants._user_settings_)
+	backend = alarm_notify.create_backend(config)
+	notifyUser = alarm_notify.is_changed(config, backend)
 
 	if notifyUser:
 		import subprocess
