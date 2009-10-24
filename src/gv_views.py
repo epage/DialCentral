@@ -1158,11 +1158,11 @@ class MessagesView(object):
 	NO_MESSAGES = "None"
 	VOICEMAIL_MESSAGES = "Voicemail"
 	TEXT_MESSAGES = "Texts"
-	ALL_MESSAGES = "All Messages"
-	MESSAGE_TYPES = [NO_MESSAGES, VOICEMAIL_MESSAGES, TEXT_MESSAGES, ALL_MESSAGES]
+	ALL_TYPES = "All Messages"
+	MESSAGE_TYPES = [NO_MESSAGES, VOICEMAIL_MESSAGES, TEXT_MESSAGES, ALL_TYPES]
 
 	UNREAD_STATUS = "Unread"
-	UNARCHIVED_STATUS = "Unarchived"
+	UNARCHIVED_STATUS = "Inbox"
 	ALL_STATUS = "Any"
 	MESSAGE_STATUSES = [UNREAD_STATUS, UNARCHIVED_STATUS, ALL_STATUS]
 
@@ -1196,7 +1196,7 @@ class MessagesView(object):
 
 		self._messageTypeButton = widgetTree.get_widget("messageTypeButton")
 		self._onMessageTypeClickedId = 0
-		self._messageType = self.ALL_MESSAGES
+		self._messageType = self.ALL_TYPES
 		self._messageStatusButton = widgetTree.get_widget("messageStatusButton")
 		self._onMessageStatusClickedId = 0
 		self._messageStatus = self.ALL_STATUS
@@ -1263,8 +1263,12 @@ class MessagesView(object):
 
 	def load_settings(self, config, sectionName):
 		try:
-			self._messageStatus = config.get(sectionName, "status")
 			self._messageType = config.get(sectionName, "type")
+			if self._messageType not in self.MESSAGE_TYPES:
+				self._messageType = self.ALL_TYPES
+			self._messageStatus = config.get(sectionName, "status")
+			if self._messageStatus not in self.MESSAGE_STATUSES:
+				self._messageStatus = self.ALL_STATUS
 		except ConfigParser.NoOptionError:
 			pass
 
@@ -1279,7 +1283,7 @@ class MessagesView(object):
 
 	@classmethod
 	def _filter_messages(cls, message, type, status):
-		if type == cls.ALL_MESSAGES:
+		if type == cls.ALL_TYPES:
 			isType = True
 		else:
 			messageType = message["type"]
