@@ -35,6 +35,7 @@ __changelog__ = """
 * Ability to narrow down messages either by type or status
 * Fremantle: Notification Support including testing of custom notifications
 * UI Tweak: Cut down the number of times the login dialog is needlessly displayed
+* Bug Fix: Switching to accounts tab when callback is blank
 
 1.0.7
 * Sped up various login cases

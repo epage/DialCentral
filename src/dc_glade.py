@@ -388,6 +388,10 @@ class Dialcentral(object):
 					hildonize.show_information_banner(self._window, "Logged In")
 				else:
 					hildonize.show_information_banner(self._window, "Login Failed")
+				if not self._phoneBackends[self._defaultBackendId].get_callback_number():
+					# subtle reminder to the users to configure things
+					self._notebook.set_current_page(self.ACCOUNT_TAB)
+
 		except Exception, e:
 			with gtk_toolbox.gtk_lock():
 				self._errorDisplay.push_exception()
@@ -438,10 +442,6 @@ class Dialcentral(object):
 				credentials = self._credentialsDialog.request_credentials(
 					defaultCredentials = self._credentials
 				)
-				if not self._phoneBackends[tmpServiceId].get_callback_number():
-					# subtle reminder to the users to configure things
-					self._notebook.set_current_page(self.ACCOUNT_TAB)
-
 				banner = hildonize.show_busy_banner_start(self._window, "Logging In...")
 			try:
 				username, password = credentials
