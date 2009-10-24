@@ -342,8 +342,6 @@ class Dialcentral(object):
 			self._notebookTapHandler.on_holding = self._set_tab_refresh
 			self._notebookTapHandler.on_cancel = self._reset_tab_refresh
 
-			self._initDone = True
-
 			config = ConfigParser.SafeConfigParser()
 			config.read(constants._user_settings_)
 			with gtk_toolbox.gtk_lock():
@@ -352,6 +350,7 @@ class Dialcentral(object):
 			with gtk_toolbox.gtk_lock():
 				self._errorDisplay.push_exception()
 		finally:
+			self._initDone = True
 			self._spawn_attempt_login()
 
 	def _spawn_attempt_login(self, *args):
@@ -415,13 +414,20 @@ class Dialcentral(object):
 		"""
 		@note Thread agnostic
 		"""
+		loggedIn = False
 		if self._credentials == ("", ""):
 			# Disallow logging in by cookie alone, without credentials
-			return False
+			loggedIn = False
 
-		loggedIn = self._phoneBackends[self._defaultBackendId].is_authed()
+		if not loggedIn:
+			loggedIn = self._phoneBackends[self._defaultBackendId].is_authed()
+
 		if loggedIn:
 			_moduleLogger.info("Logged into %r through cookies" % self._phoneBackends[self._defaultBackendId])
+		else:
+			# If the cookies are bad, scratch them completely
+			self._phoneBackends[self._defaultBackendId].logout()
+
 		return loggedIn
 
 	def _login_by_settings(self):
