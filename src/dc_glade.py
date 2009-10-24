@@ -495,9 +495,6 @@ class Dialcentral(object):
 		self._messagesViews[newStatus].enable()
 		self._contactsViews[newStatus].enable()
 
-		if self._phoneBackends[self._selectedBackendId].get_callback_number() is None:
-			self._phoneBackends[self._selectedBackendId].set_sane_callback()
-
 		self._selectedBackendId = newStatus
 
 		self._accountViews[self._selectedBackendId].update()
