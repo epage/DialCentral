@@ -684,7 +684,7 @@ class AccountInfo(object):
 		self._applyAlarmTimeoutId = None
 
 		self._window = gtk_toolbox.find_parent_window(self._minutesEntryButton)
-		self._defaultCallback = ""
+		self._callbackNumber = ""
 
 	def enable(self):
 		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
@@ -694,6 +694,7 @@ class AccountInfo(object):
 
 		del self._callbackList[:]
 		self._onCallbackSelectChangedId = self._callbackSelectButton.connect("clicked", self._on_callbackentry_clicked)
+		self._set_callback_label("")
 
 		if self._alarmHandler is not None:
 			self._notifyCheckbox.set_active(self._alarmHandler.isEnabled)
@@ -719,6 +720,7 @@ class AccountInfo(object):
 	def disable(self):
 		self._callbackSelectButton.disconnect(self._onCallbackSelectChangedId)
 		self._onCallbackSelectChangedId = 0
+		self._set_callback_label("")
 
 		if self._alarmHandler is not None:
 			self._notifyCheckbox.disconnect(self._onNotifyToggled)
@@ -740,13 +742,6 @@ class AccountInfo(object):
 
 		self.clear()
 		del self._callbackList[:]
-
-	def get_selected_callback_number(self):
-		currentLabel = self._callbackSelectButton.get_label()
-		if currentLabel is not None:
-			return make_ugly(currentLabel)
-		else:
-			return ""
 
 	def set_account_number(self, number):
 		"""
@@ -774,7 +769,7 @@ class AccountInfo(object):
 		return "Account Info"
 
 	def load_settings(self, config, section):
-		self._defaultCallback = config.get(section, "callback")
+		self._callbackNumber = make_ugly(config.get(section, "callback"))
 		self._notifyOnMissed = config.getboolean(section, "notifyOnMissed")
 		self._notifyOnVoicemail = config.getboolean(section, "notifyOnVoicemail")
 		self._notifyOnSms = config.getboolean(section, "notifyOnSms")
@@ -783,8 +778,7 @@ class AccountInfo(object):
 		"""
 		@note Thread Agnostic
 		"""
-		callback = self.get_selected_callback_number()
-		config.set(section, "callback", callback)
+		config.set(section, "callback", self._callbackNumber)
 		config.set(section, "notifyOnMissed", repr(self._notifyOnMissed))
 		config.set(section, "notifyOnVoicemail", repr(self._notifyOnVoicemail))
 		config.set(section, "notifyOnSms", repr(self._notifyOnSms))
@@ -805,7 +799,7 @@ class AccountInfo(object):
 		for number, description in callbackNumbers.iteritems():
 			self._callbackList.append((make_pretty(number), description))
 
-		self._set_callback_number(self._defaultCallback)
+		self._set_callback_number(self._callbackNumber)
 
 	def _set_callback_number(self, number):
 		try:
@@ -823,6 +817,7 @@ class AccountInfo(object):
 				assert make_ugly(number) == make_ugly(self._backend.get_callback_number()), "Callback number should be %s but instead is %s" % (
 					make_pretty(number), make_pretty(self._backend.get_callback_number())
 				)
+				self._callbackNumber = make_ugly(number)
 				self._set_callback_label(number)
 				_moduleLogger.info(
 					"Callback number set to %s" % (
@@ -850,7 +845,7 @@ class AccountInfo(object):
 
 	def _on_callbackentry_clicked(self, *args):
 		try:
-			actualSelection = make_pretty(self.get_selected_callback_number())
+			actualSelection = make_pretty(self._callbackNumber)
 
 			userOptions = dict(
 				(number, "%s (%s)" % (number, description))
