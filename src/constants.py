@@ -7,3 +7,4 @@ __build__ = 3
 __app_magic__ = 0xdeadbeef
 _data_path_ = os.path.join(os.path.expanduser("~"), ".dialcentral")
 _user_settings_ = "%s/settings.ini" % _data_path_
+_user_logpath_ = "%s/dialcentral.log" % _data_path_

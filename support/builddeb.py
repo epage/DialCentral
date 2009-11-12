@@ -32,6 +32,7 @@ __changelog__ = """
 * Fremantle: Notification Support including testing of custom notifications
 * UI Tweak: Cut down the number of times the login dialog is needlessly displayed
 * Bug Fix: Switching to accounts tab when callback is blank
+* Debugging: Log contents now accessible through Ctrl+l
 
 1.0.7
 * Sped up various login cases

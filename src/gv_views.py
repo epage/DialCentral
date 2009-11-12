@@ -359,8 +359,7 @@ class SmsEntryDialog(object):
 					messagePart[0]
 					for messagePart in self._messagemodel
 				)
-				# For some reason this kills clipboard stuff
-				#self._clipboard.set_text(message)
+				self._clipboard.set_text(str(message))
 		except Exception, e:
 			_moduleLogger.exception(str(e))
 

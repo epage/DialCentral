@@ -720,6 +720,11 @@ class Dialcentral(object):
 					self._window.unfullscreen()
 				else:
 					self._window.fullscreen()
+			elif event.keyval == ord("l") and event.get_state() & gtk.gdk.CONTROL_MASK:
+				with open(constants._user_logpath_, "r") as f:
+					logLines = f.xreadlines()
+					log = "".join(logLines)
+					self._clipboard.set_text(str(log))
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
