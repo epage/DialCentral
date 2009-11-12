@@ -8,7 +8,7 @@ import test_utils
 import sys
 sys.path.append("../src")
 
-import file_backend
+from backends import file_backend
 
 
 def test_factory():

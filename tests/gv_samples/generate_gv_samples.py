@@ -8,7 +8,7 @@ import sys
 sys.path.append("/usr/lib/dialcentral")
 sys.path.append("../../src")
 
-import gv_backend
+from backends import gv_backend
 
 
 def main():

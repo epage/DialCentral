@@ -9,7 +9,7 @@ import test_utils
 import sys
 sys.path.append("../src")
 
-import gv_backend
+from backends import gv_backend
 
 
 def generate_mock(cookiesSucceed, username, password):
