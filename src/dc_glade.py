@@ -264,6 +264,7 @@ class Dialcentral(object):
 			import gv_backend
 			import file_backend
 			import gv_views
+			import merge_backend
 
 			try:
 				os.makedirs(constants._data_path_)
@@ -314,7 +315,7 @@ class Dialcentral(object):
 				self._phoneBackends[self.GV_BACKEND],
 				fileBackend,
 			]
-			mergedBook = gv_views.MergedAddressBook(addressBooks, gv_views.MergedAddressBook.advanced_lastname_sorter)
+			mergedBook = merge_backend.MergedAddressBook(addressBooks, merge_backend.MergedAddressBook.advanced_lastname_sorter)
 			self._contactsViews[self.GV_BACKEND].append(mergedBook)
 			self._contactsViews[self.GV_BACKEND].extend(addressBooks)
 			self._contactsViews[self.GV_BACKEND].open_addressbook(*self._contactsViews[self.GV_BACKEND].get_addressbooks().next()[0][0:2])
