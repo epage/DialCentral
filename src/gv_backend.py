@@ -39,12 +39,12 @@ from xml.sax import saxutils
 
 from xml.etree import ElementTree
 
-import browser_emu
-
 try:
 	import simplejson
 except ImportError:
 	simplejson = None
+
+import browser_emu
 
 
 _moduleLogger = logging.getLogger("gvoice.dialer")
