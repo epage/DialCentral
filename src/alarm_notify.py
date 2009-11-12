@@ -6,7 +6,7 @@ import ConfigParser
 import pprint
 
 import constants
-import gv_backend
+from backends import gv_backend
 
 
 def get_missed(backend):

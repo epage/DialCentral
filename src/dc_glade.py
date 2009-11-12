@@ -186,7 +186,7 @@ class Dialcentral(object):
 		"""
 		# Barebones UI handlers
 		try:
-			import null_backend
+			from backends import null_backend
 			import null_views
 
 			self._phoneBackends = {self.NULL_BACKEND: null_backend.NullDialer()}
@@ -261,10 +261,10 @@ class Dialcentral(object):
 
 		# Setup costly backends
 		try:
-			import gv_backend
-			import file_backend
+			from backends import gv_backend
+			from backends import file_backend
 			import gv_views
-			import merge_backend
+			from backends import merge_backend
 
 			try:
 				os.makedirs(constants._data_path_)

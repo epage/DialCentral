@@ -34,8 +34,8 @@ import gtk
 
 import gtk_toolbox
 import hildonize
-import gv_backend
-import null_backend
+from backends import gv_backend
+from backends import null_backend
 
 
 _moduleLogger = logging.getLogger("gv_views")
