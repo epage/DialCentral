@@ -200,8 +200,8 @@ __changelog__ = """
 __postinstall__ = """#!/bin/sh -e
 
 gtk-update-icon-cache -f /usr/share/icons/hicolor
-rm -f %s/dialcentral.log
-""" % constants._data_path_
+rm -f ~/.dialcentral/dialcentral.log
+"""
 
 __preremove__ = """#!/bin/sh -e
 

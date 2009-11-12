@@ -1154,6 +1154,7 @@ class MessagesView(object):
 	MESSAGE_IDX = 3
 	MESSAGES_IDX = 4
 	FROM_ID_IDX = 5
+	MESSAGE_DATA_IDX = 6
 
 	NO_MESSAGES = "None"
 	VOICEMAIL_MESSAGES = "Voicemail"
@@ -1178,7 +1179,10 @@ class MessagesView(object):
 			gobject.TYPE_STRING, # message
 			object, # messages
 			gobject.TYPE_STRING, # from id
+			object, # message data
 		)
+		self._messagemodelfiltered = self._messagemodel.filter_new()
+		self._messagemodelfiltered.set_visible_func(self._is_message_visible)
 		self._messageview = widgetTree.get_widget("messages_view")
 		self._messageviewselection = None
 		self._onMessageviewRowActivatedId = 0
@@ -1210,7 +1214,7 @@ class MessagesView(object):
 
 	def enable(self):
 		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
-		self._messageview.set_model(self._messagemodel)
+		self._messageview.set_model(self._messagemodelfiltered)
 		self._messageview.set_headers_visible(False)
 		self._messageview.set_fixed_height_mode(False)
 
@@ -1279,7 +1283,14 @@ class MessagesView(object):
 		config.set(sectionName, "status", self._messageStatus)
 		config.set(sectionName, "type", self._messageType)
 
-	_MIN_MESSAGES_SHOWN = 4
+	def _is_message_visible(self, model, iter):
+		try:
+			message = model.get_value(iter, self.MESSAGE_DATA_IDX)
+			if message is None:
+				return False # this seems weird but oh well
+			return self._filter_messages(message, self._messageType, self._messageStatus)
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	@classmethod
 	def _filter_messages(cls, message, type, status):
@@ -1303,6 +1314,8 @@ class MessagesView(object):
 
 		return isType and isStatus
 
+	_MIN_MESSAGES_SHOWN = 4
+
 	def _idly_populate_messageview(self):
 		with gtk_toolbox.gtk_lock():
 			banner = hildonize.show_busy_banner_start(self._window, "Loading Messages")
@@ -1321,12 +1334,11 @@ class MessagesView(object):
 					messageItems = []
 
 			messageItems = (
-				gv_backend.decorate_message(message)
+				(gv_backend.decorate_message(message), message)
 				for message in gv_backend.sort_messages(messageItems)
-				if self._filter_messages(message, self._messageType, self._messageStatus)
 			)
 
-			for contactId, header, number, relativeDate, messages in messageItems:
+			for (contactId, header, number, relativeDate, messages), messageData in messageItems:
 				prettyNumber = number[2:] if number.startswith("+1") else number
 				prettyNumber = make_pretty(prettyNumber)
 
@@ -1344,7 +1356,7 @@ class MessagesView(object):
 
 				number = make_ugly(number)
 
-				row = number, relativeDate, header, "\n".join(collapsedMessages), expandedMessages, contactId
+				row = number, relativeDate, header, "\n".join(collapsedMessages), expandedMessages, contactId, messageData
 				with gtk_toolbox.gtk_lock():
 					self._messagemodel.append(row)
 		except Exception, e:
@@ -1352,6 +1364,7 @@ class MessagesView(object):
 		finally:
 			with gtk_toolbox.gtk_lock():
 				hildonize.show_busy_banner_end(banner)
+				self._messagemodelfiltered.refilter()
 
 		return False
 
@@ -1417,7 +1430,7 @@ class MessagesView(object):
 			if selectedIndex != newSelectedIndex:
 				self._messageType = self.MESSAGE_TYPES[newSelectedIndex]
 				self._messageTypeButton.set_label(self._messageType)
-				self.update(True)
+				self._messagemodelfiltered.refilter()
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
@@ -1438,12 +1451,16 @@ class MessagesView(object):
 			if selectedIndex != newSelectedIndex:
 				self._messageStatus = self.MESSAGE_STATUSES[newSelectedIndex]
 				self._messageStatusButton.set_label(self._messageStatus)
-				self.update(True)
+				self._messagemodelfiltered.refilter()
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
 
 class ContactsView(object):
+
+	CONTACT_TYPE_IDX = 0
+	CONTACT_NAME_IDX = 1
+	CONTACT_ID_IDX = 2
 
 	def __init__(self, widgetTree, backend, errorDisplay):
 		self._errorDisplay = errorDisplay
@@ -1457,7 +1474,11 @@ class ContactsView(object):
 		self._bookSelectionButton = widgetTree.get_widget("addressbookSelectButton")
 
 		self._isPopulated = False
-		self._contactsmodel = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
+		self._contactsmodel = gtk.ListStore(
+			gobject.TYPE_STRING, # Contact Type
+			gobject.TYPE_STRING, # Contact Name
+			gobject.TYPE_STRING, # Contact ID
+		)
 		self._contactsviewselection = None
 		self._contactsview = widgetTree.get_widget("contactsview")
 
@@ -1466,14 +1487,11 @@ class ContactsView(object):
 		if displayContactSource:
 			textrenderer = gtk.CellRendererText()
 			self._contactColumn.pack_start(textrenderer, expand=False)
-			self._contactColumn.add_attribute(textrenderer, 'text', 0)
+			self._contactColumn.add_attribute(textrenderer, 'text', self.CONTACT_TYPE_IDX)
 		textrenderer = gtk.CellRendererText()
 		hildonize.set_cell_thumb_selectable(textrenderer)
 		self._contactColumn.pack_start(textrenderer, expand=True)
-		self._contactColumn.add_attribute(textrenderer, 'text', 1)
-		textrenderer = gtk.CellRendererText()
-		self._contactColumn.pack_start(textrenderer, expand=True)
-		self._contactColumn.add_attribute(textrenderer, 'text', 4)
+		self._contactColumn.add_attribute(textrenderer, 'text', self.CONTACT_NAME_IDX)
 		self._contactColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		self._contactColumn.set_sort_column_id(1)
 		self._contactColumn.set_visible(True)
@@ -1602,8 +1620,9 @@ class ContactsView(object):
 					self._isPopulated = False
 					self._errorDisplay.push_exception_with_lock()
 				for contactId, contactName in contacts:
-					contactType = (addressBook.contact_source_short_name(contactId), )
-					self._contactsmodel.append(contactType + (contactName, "", contactId) + ("", ))
+					contactType = addressBook.contact_source_short_name(contactId)
+					row = contactType, contactName, contactId
+					self._contactsmodel.append(row)
 
 				with gtk_toolbox.gtk_lock():
 					self._contactsview.set_model(self._contactsmodel)
@@ -1647,8 +1666,8 @@ class ContactsView(object):
 			if not itr:
 				return
 
-			contactId = self._contactsmodel.get_value(itr, 3)
-			contactName = self._contactsmodel.get_value(itr, 1)
+			contactId = self._contactsmodel.get_value(itr, self.CONTACT_ID_IDX)
+			contactName = self._contactsmodel.get_value(itr, self.CONTACT_NAME_IDX)
 			try:
 				contactDetails = self._addressBook.get_contact_details(contactId)
 			except Exception, e:
