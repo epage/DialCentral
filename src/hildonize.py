@@ -379,8 +379,9 @@ def _fremantle_hildonize_scrollwindow(scrolledWindow):
 	pannableWindow.add(child)
 
 	parent = scrolledWindow.get_parent()
-	parent.remove(scrolledWindow)
-	parent.add(pannableWindow)
+	if parent is not None:
+		parent.remove(scrolledWindow)
+		parent.add(pannableWindow)
 
 	return pannableWindow
 
