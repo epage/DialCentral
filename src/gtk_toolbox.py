@@ -284,6 +284,22 @@ def threaded_stage(target, thread_factory = threading.Thread):
 	return queue_sink(messages)
 
 
+def log_exception(logger):
+
+	def log_exception_decorator(func):
+
+		@functools.wraps(func)
+		def wrapper(*args, **kwds):
+			try:
+				return func(*args, **kwds)
+			except Exception:
+				logger.exception(func.__name__)
+
+		return wrapper
+
+	return log_exception_decorator
+
+
 class LoginWindow(object):
 
 	def __init__(self, widgetTree):
