@@ -190,6 +190,20 @@ else:
 	set_cell_thumb_selectable = _null_set_cell_thumb_selectable
 
 
+def _hildon_set_pix_cell_thumb_selectable(renderer):
+	renderer.set_property("stock-size", 48)
+
+
+def _null_set_pix_cell_thumb_selectable(renderer):
+	pass
+
+
+if IS_HILDON_SUPPORTED:
+	set_pix_cell_thumb_selectable = _hildon_set_pix_cell_thumb_selectable
+else:
+	set_pix_cell_thumb_selectable = _null_set_pix_cell_thumb_selectable
+
+
 def _fremantle_show_information_banner(parent, message):
 	hildon.hildon_banner_show_information(parent, "", message)
 
