@@ -871,7 +871,7 @@ class Dialcentral(object):
 			dlg.set_copyright("Copyright 2008 - LGPL")
 			dlg.set_comments("Dialcentral is a touch screen enhanced interface to your GoogleVoice account.  This application is not affiliated with Google in any way")
 			dlg.set_website("http://gc-dialer.garage.maemo.org/")
-			dlg.set_authors(["<z2n@merctech.com>", "Eric Warnke <ericew@gmail.com>", "Ed Page <edpage@byu.net>"])
+			dlg.set_authors(["<z2n@merctech.com>", "Eric Warnke <ericew@gmail.com>", "Ed Page <eopage@byu.net>"])
 			dlg.run()
 			dlg.destroy()
 		except Exception, e:
