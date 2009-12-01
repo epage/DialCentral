@@ -31,6 +31,7 @@ import os
 import re
 import urllib
 import urllib2
+import cookielib
 import time
 import datetime
 import itertools
@@ -115,8 +116,17 @@ class GVDialer(object):
 		if cookieFile is None:
 			cookieFile = os.path.join(os.path.expanduser("~"), ".gv_cookies.txt")
 		self._browser.cookies.filename = cookieFile
-		if os.path.isfile(cookieFile):
+		try:
 			self._browser.cookies.load()
+			self._loadedFromCookies = True
+		except cookielib.LoadError:
+			_moduleLogger.exception("Bad cookie file")
+			self._loadedFromCookies = False
+		except IOError:
+			_moduleLogger.exception("No cookie file")
+			self._loadedFromCookies = False
+		except Exception, e:
+			self._loadedFromCookies = False
 
 		self._token = ""
 		self._accountNum = ""
@@ -165,6 +175,12 @@ class GVDialer(object):
 		self._smsFromRegex = re.compile(r"""<span class="gc-message-sms-from">(.*?)</span>""", re.MULTILINE | re.DOTALL)
 		self._smsTimeRegex = re.compile(r"""<span class="gc-message-sms-time">(.*?)</span>""", re.MULTILINE | re.DOTALL)
 		self._smsTextRegex = re.compile(r"""<span class="gc-message-sms-text">(.*?)</span>""", re.MULTILINE | re.DOTALL)
+
+	def is_quick_login_possible(self):
+		"""
+		@returns True then is_authed might be enough to login, else full login is required
+		"""
+		return self._loadedFromCookies or 0.0 < self._lastAuthed
 
 	def is_authed(self, force = False):
 		"""
@@ -708,10 +724,10 @@ def test_backend(username, password):
 	#	print contact
 	#	pprint.pprint(list(backend.get_contact_details(contact[0])))
 
-	print "Messages: ",
-	for message in backend.get_messages():
-		message["messageParts"] = list(message["messageParts"])
-		pprint.pprint(message)
+	#print "Messages: ",
+	#for message in backend.get_messages():
+	#	message["messageParts"] = list(message["messageParts"])
+	#	pprint.pprint(message)
 	#for message in sort_messages(backend.get_messages()):
 	#	pprint.pprint(decorate_message(message))
 
@@ -796,5 +812,7 @@ def grab_debug_info(username, password):
 if __name__ == "__main__":
 	import sys
 	logging.basicConfig(level=logging.DEBUG)
-	#test_backend(sys.argv[1], sys.argv[2])
-	grab_debug_info(sys.argv[1], sys.argv[2])
+	if True:
+		grab_debug_info(sys.argv[1], sys.argv[2])
+	else:
+		test_backend(sys.argv[1], sys.argv[2])

@@ -25,6 +25,9 @@ class NullDialer(object):
 	def __init__(self):
 		pass
 
+	def is_quick_login_possible(self):
+		return False
+
 	def is_authed(self, force = False):
 		return False
 

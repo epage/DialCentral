@@ -28,10 +28,13 @@ __build__ = constants.__build__
 __changelog__ = """
 1.0.8
 * Sped up login time by delay loading contact list
+* Sped up login when you do not have a cookie file (first launch)
 * Ability to narrow down messages either by type or status
 * Fremantle: Notification Support including testing of custom notifications
 * UI Tweak: Cut down the number of times the login dialog is needlessly displayed
 * Bug Fix: Switching to accounts tab when callback is blank
+* Bug Fix: Corrupt cookie files prevent login
+* Bug Fix: Logging in without credentials through cookies
 * Debugging: Log contents now accessible through Ctrl+l
 
 1.0.7
