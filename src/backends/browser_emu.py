@@ -66,7 +66,7 @@ class MozillaEmulator(object):
 
 		@return: The raw HTML page data
 		"""
-		_moduleLogger.warning("Performing download of %s" % url)
+		_moduleLogger.info("Performing download of %s" % url)
 
 		if extraheaders is None:
 			extraheaders = {}

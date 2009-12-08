@@ -663,6 +663,7 @@ class AccountInfo(object):
 				)
 				self._set_callback_label(number)
 			else:
+				if number.startswith("1747"): number = "+" + number
 				self._backend.set_callback_number(number)
 				assert make_ugly(number) == make_ugly(self._backend.get_callback_number()), "Callback number should be %s but instead is %s" % (
 					make_pretty(number), make_pretty(self._backend.get_callback_number())

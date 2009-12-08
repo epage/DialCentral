@@ -82,6 +82,7 @@ class Dialcentral(object):
 		self._initDone = False
 		self._connection = None
 		self._osso = None
+		self._deviceState = None
 		self._clipboard = gtk.clipboard_get()
 
 		self._credentials = ("", "")
@@ -213,10 +214,11 @@ class Dialcentral(object):
 			except (ImportError, OSError):
 				osso = None
 			self._osso = None
+			self._deviceState = None
 			if osso is not None:
 				self._osso = osso.Context(constants.__app_name__, constants.__version__, False)
-				device = osso.DeviceState(self._osso)
-				device.set_device_state_callback(self._on_device_state_change, 0)
+				self._deviceState = osso.DeviceState(self._osso)
+				self._deviceState.set_device_state_callback(self._on_device_state_change, 0)
 			else:
 				_moduleLogger.warning("No device state support")
 
@@ -642,13 +644,20 @@ class Dialcentral(object):
 			if self._ledHandler is not None:
 				self._ledHandler.off()
 
+	@gtk_toolbox.log_exception(_moduleLogger)
 	def _on_close(self, *args, **kwds):
 		try:
-			if self._osso is not None:
-				self._osso.close()
-
 			if self._initDone:
 				self._save_settings()
+
+			try:
+				self._deviceState.close()
+			except AttributeError:
+				pass # Either None or close was removed (in Fremantle)
+			try:
+				self._osso.close()
+			except AttributeError:
+				pass # Either None or close was removed (in Fremantle)
 		finally:
 			gtk.main_quit()
 
@@ -724,6 +733,8 @@ class Dialcentral(object):
 					logLines = f.xreadlines()
 					log = "".join(logLines)
 					self._clipboard.set_text(str(log))
+			elif event.keyval == ord("r") and event.get_state() & gtk.gdk.CONTROL_MASK:
+				self._refresh_active_tab()
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
@@ -809,6 +820,7 @@ class Dialcentral(object):
 			try:
 				self._phoneBackends[self._selectedBackendId].send_sms(number, message)
 				hildonize.show_information_banner(self._window, "Sending to %s" % number)
+				_moduleLogger.info("Sending SMS to %s" % number)
 				dialed = True
 			except Exception, e:
 				self._errorDisplay.push_exception()
@@ -839,6 +851,7 @@ class Dialcentral(object):
 				assert self._phoneBackends[self._selectedBackendId].get_callback_number() != "", "No callback number specified"
 				self._phoneBackends[self._selectedBackendId].dial(number)
 				hildonize.show_information_banner(self._window, "Calling %s" % number)
+				_moduleLogger.info("Calling %s" % number)
 				dialed = True
 			except Exception, e:
 				self._errorDisplay.push_exception()
