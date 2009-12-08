@@ -67,6 +67,11 @@ package: $(OBJ)
 	cp -R $(BUILD_PATH)/generic/* $(BUILD_PATH)/mer
 	cd $(BUILD_PATH)/mer ; python builddeb.py mer
 
+upload: package
+	dput fremantle-extras-builder $(BUILD_PATH)/fremantle/$(PROJECT_NAME)*.changes
+	dput diablo-extras-builder $(BUILD_PATH)/diablo/$(PROJECT_NAME)*.changes
+	dput chinook-extras-builder $(BUILD_PATH)/chinook/$(PROJECT_NAME)*.changes
+
 lint: $(OBJ)
 	$(foreach file, $(SOURCE), $(LINT) $(file) ; )
 
