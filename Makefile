@@ -74,6 +74,7 @@ upload: package
 	dput fremantle-extras-builder $(BUILD_PATH)/fremantle/$(PROJECT_NAME)*.changes
 	dput diablo-extras-builder $(BUILD_PATH)/diablo/$(PROJECT_NAME)*.changes
 	dput chinook-extras-builder $(BUILD_PATH)/chinook/$(PROJECT_NAME)*.changes
+	cp $(BUILD_PATH)/debian/*.deb ../www/$(PROJECT_NAME).deb
 
 lint: $(OBJ)
 	$(foreach file, $(SOURCE), $(LINT) $(file) ; )
