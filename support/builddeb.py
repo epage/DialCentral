@@ -307,7 +307,7 @@ def build_package(distribution):
 	print p.generate(
 		version="%s-%s" % (__version__, __build__),
 		changelog=__changelog__,
-		build=False,
+		build=True,
 		tar=True,
 		changes=True,
 		dsc=True,

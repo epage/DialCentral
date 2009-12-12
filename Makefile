@@ -66,6 +66,9 @@ package: $(OBJ)
 	mkdir -p $(BUILD_PATH)/mer
 	cp -R $(BUILD_PATH)/generic/* $(BUILD_PATH)/mer
 	cd $(BUILD_PATH)/mer ; python builddeb.py mer
+	mkdir -p $(BUILD_PATH)/debian
+	cp -R $(BUILD_PATH)/generic/* $(BUILD_PATH)/debian
+	cd $(BUILD_PATH)/debian ; python builddeb.py debian
 
 upload: package
 	dput fremantle-extras-builder $(BUILD_PATH)/fremantle/$(PROJECT_NAME)*.changes
