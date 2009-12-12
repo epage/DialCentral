@@ -149,12 +149,18 @@ class Dialcentral(object):
 			assert button is not None, buttonName
 			hildonize.set_button_thumb_selectable(button)
 
-		replacementButtons = [gtk.Button("Test")]
 		menu = hildonize.hildonize_menu(
 			self._window,
 			self._widgetTree.get_widget("dialpad_menubar"),
-			replacementButtons
 		)
+		if hildonize.IS_FREMANTLE_SUPPORTED:
+			button= gtk.Button("New Login")
+			button.connect("clicked", self._on_clearcookies_clicked)
+			menu.append(button)
+
+			button= gtk.Button("Refresh")
+			button.connect("clicked", self._on_menu_refresh)
+			menu.append(button)
 
 		self._window.connect("key-press-event", self._on_key_press)
 		self._window.connect("window-state-event", self._on_window_state_change)

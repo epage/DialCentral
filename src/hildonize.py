@@ -92,16 +92,14 @@ except AttributeError:
 		hildonize_window = _null_hildonize_window
 
 
-def _fremantle_hildonize_menu(window, gtkMenu, buttons):
+def _fremantle_hildonize_menu(window, gtkMenu):
 	appMenu = hildon.AppMenu()
-	for button in buttons:
-		appMenu.append(button)
 	window.set_app_menu(appMenu)
 	gtkMenu.get_parent().remove(gtkMenu)
 	return appMenu
 
 
-def _hildon_hildonize_menu(window, gtkMenu, ignoredButtons):
+def _hildon_hildonize_menu(window, gtkMenu):
 	hildonMenu = gtk.Menu()
 	for child in gtkMenu.get_children():
 		child.reparent(hildonMenu)
@@ -110,7 +108,7 @@ def _hildon_hildonize_menu(window, gtkMenu, ignoredButtons):
 	return hildonMenu
 
 
-def _null_hildonize_menu(window, gtkMenu, ignoredButtons):
+def _null_hildonize_menu(window, gtkMenu):
 	return gtkMenu
 
 
@@ -723,12 +721,21 @@ if __name__ == "__main__":
 	win = gtk.Window()
 	win.add(label)
 	win = hildonize_window(app, win)
-	if False:
+	if False and IS_FREMANTLE_SUPPORTED:
+		appMenu = hildon.AppMenu()
+		for i in xrange(5):
+			b = gtk.Button(str(i))
+			appMenu.append(b)
+		win.set_app_menu(appMenu)
+		win.show_all()
+		appMenu.show_all()
+		gtk.main()
+	elif False:
 		print touch_selector(win, "Test", ["A", "B", "C", "D"], 2)
-	if True:
+	elif False:
 		print touch_selector_entry(win, "Test", ["A", "B", "C", "D"], "C")
 		print touch_selector_entry(win, "Test", ["A", "B", "C", "D"], "Blah")
-	if False:
+	elif False:
 		import pprint
 		name, value = "", ""
 		goodLocals = [
@@ -736,11 +743,11 @@ if __name__ == "__main__":
 			if not name.startswith("_")
 		]
 		pprint.pprint(goodLocals)
-	if False:
+	elif False:
 		import time
 		show_information_banner(win, "Hello World")
 		time.sleep(5)
-	if False:
+	elif False:
 		import time
 		banner = show_busy_banner_start(win, "Hello World")
 		time.sleep(5)
