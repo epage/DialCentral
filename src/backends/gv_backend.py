@@ -31,7 +31,6 @@ import os
 import re
 import urllib
 import urllib2
-import cookielib
 import time
 import datetime
 import itertools
@@ -41,7 +40,8 @@ from xml.sax import saxutils
 from xml.etree import ElementTree
 
 try:
-	import simplejson
+	import simplejson as _simplejson
+	simplejson = _simplejson
 except ImportError:
 	simplejson = None
 
@@ -49,55 +49,6 @@ import browser_emu
 
 
 _moduleLogger = logging.getLogger("gvoice.dialer")
-
-
-def safe_eval(s):
-	_TRUE_REGEX = re.compile("true")
-	_FALSE_REGEX = re.compile("false")
-	s = _TRUE_REGEX.sub("True", s)
-	s = _FALSE_REGEX.sub("False", s)
-	return eval(s, {}, {})
-
-
-if simplejson is None:
-	def parse_json(flattened):
-		return safe_eval(flattened)
-else:
-	def parse_json(flattened):
-		return simplejson.loads(flattened)
-
-
-def itergroup(iterator, count, padValue = None):
-	"""
-	Iterate in groups of 'count' values. If there
-	aren't enough values, the last result is padded with
-	None.
-
-	>>> for val in itergroup([1, 2, 3, 4, 5, 6], 3):
-	... 	print tuple(val)
-	(1, 2, 3)
-	(4, 5, 6)
-	>>> for val in itergroup([1, 2, 3, 4, 5, 6], 3):
-	... 	print list(val)
-	[1, 2, 3]
-	[4, 5, 6]
-	>>> for val in itergroup([1, 2, 3, 4, 5, 6, 7], 3):
-	... 	print tuple(val)
-	(1, 2, 3)
-	(4, 5, 6)
-	(7, None, None)
-	>>> for val in itergroup("123456", 3):
-	... 	print tuple(val)
-	('1', '2', '3')
-	('4', '5', '6')
-	>>> for val in itergroup("123456", 3):
-	... 	print repr("".join(val))
-	'123'
-	'456'
-	"""
-	paddedIterator = itertools.chain(iterator, itertools.repeat(padValue, count-1))
-	nIterators = (paddedIterator, ) * count
-	return itertools.izip(*nIterators)
 
 
 class NetworkError(RuntimeError):
@@ -110,23 +61,15 @@ class GVDialer(object):
 	the functions include login, setting up a callback number, and initalting a callback
 	"""
 
+	PHONE_TYPE_HOME = 1
+	PHONE_TYPE_MOBILE = 2
+	PHONE_TYPE_WORK = 3
+	PHONE_TYPE_GIZMO = 7
+
 	def __init__(self, cookieFile = None):
 		# Important items in this function are the setup of the browser emulation and cookie file
 		self._browser = browser_emu.MozillaEmulator(1)
-		if cookieFile is None:
-			cookieFile = os.path.join(os.path.expanduser("~"), ".gv_cookies.txt")
-		self._browser.cookies.filename = cookieFile
-		try:
-			self._browser.cookies.load()
-			self._loadedFromCookies = True
-		except cookielib.LoadError:
-			_moduleLogger.exception("Bad cookie file")
-			self._loadedFromCookies = False
-		except IOError:
-			_moduleLogger.exception("No cookie file")
-			self._loadedFromCookies = False
-		except Exception, e:
-			self._loadedFromCookies = False
+		self._loadedFromCookies = self._browser.load_cookies(cookieFile)
 
 		self._token = ""
 		self._accountNum = ""
@@ -138,31 +81,54 @@ class GVDialer(object):
 
 		self._validateRe = re.compile("^[0-9]{10,}$")
 
-		self._forwardURL = "https://www.google.com/voice/mobile/phones"
-		self._tokenURL = "http://www.google.com/voice/m"
 		self._loginURL = "https://www.google.com/accounts/ServiceLoginAuth"
+
+		SECURE_URL_BASE = "https://www.google.com/voice/"
+		SECURE_MOBILE_URL_BASE = SECURE_URL_BASE + "mobile/"
+		self._forwardURL = SECURE_MOBILE_URL_BASE + "phones"
+		self._tokenURL = SECURE_URL_BASE + "m"
+		self._callUrl = SECURE_URL_BASE + "call/connect"
+		self._callCancelURL = SECURE_URL_BASE + "call/cancel"
+		self._sendSmsURL = SECURE_URL_BASE + "sms/send"
+
+		self._isDndURL = "https://www.google.com/voice/m/donotdisturb"
+		self._isDndRe = re.compile(r"""<input.*?id="doNotDisturb".*?checked="(.*?)"\s*/>""")
+		self._setDndURL = "https://www.google.com/voice/m/savednd"
+
+		self._downloadVoicemailURL = SECURE_URL_BASE + "media/send_voicemail/"
+
+		self._XML_SEARCH_URL = SECURE_URL_BASE + "inbox/search/"
+		self._XML_ACCOUNT_URL = SECURE_URL_BASE + "inbox/contacts/"
+		self._XML_RECENT_URL = SECURE_URL_BASE + "inbox/recent/"
+
+		self.XML_FEEDS = (
+			'inbox', 'starred', 'all', 'spam', 'trash', 'voicemail', 'sms',
+			'recorded', 'placed', 'received', 'missed'
+		)
+		self._XML_INBOX_URL = SECURE_URL_BASE + "inbox/recent/inbox"
+		self._XML_STARRED_URL = SECURE_URL_BASE + "inbox/recent/starred"
+		self._XML_ALL_URL = SECURE_URL_BASE + "inbox/recent/all"
+		self._XML_SPAM_URL = SECURE_URL_BASE + "inbox/recent/spam"
+		self._XML_TRASH_URL = SECURE_URL_BASE + "inbox/recent/trash"
+		self._XML_VOICEMAIL_URL = SECURE_URL_BASE + "inbox/recent/voicemail/"
+		self._XML_SMS_URL = SECURE_URL_BASE + "inbox/recent/sms/"
+		self._XML_RECORDED_URL = SECURE_URL_BASE + "inbox/recent/recorded/"
+		self._XML_PLACED_URL = SECURE_URL_BASE + "inbox/recent/placed/"
+		self._XML_RECEIVED_URL = SECURE_URL_BASE + "inbox/recent/received/"
+		self._XML_MISSED_URL = SECURE_URL_BASE + "inbox/recent/missed/"
+
+		self._contactsURL = SECURE_MOBILE_URL_BASE + "contacts"
+		self._contactDetailURL = SECURE_MOBILE_URL_BASE + "contact"
+
 		self._galxRe = re.compile(r"""<input.*?name="GALX".*?value="(.*?)".*?/>""", re.MULTILINE | re.DOTALL)
 		self._tokenRe = re.compile(r"""<input.*?name="_rnr_se".*?value="(.*?)"\s*/>""")
 		self._accountNumRe = re.compile(r"""<b class="ms\d">(.{14})</b></div>""")
 		self._callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
 
-		self._gvDialingStrRe = re.compile("This may take a few seconds", re.M)
-		self._clicktocallURL = "https://www.google.com/voice/m/sendcall"
-		self._sendSmsURL = "https://www.google.com/voice/m/sendsms"
-
-		self._recentCallsURL = "https://www.google.com/voice/inbox/recent/"
-		self._placedCallsURL = "https://www.google.com/voice/inbox/recent/placed/"
-		self._receivedCallsURL = "https://www.google.com/voice/inbox/recent/received/"
-		self._missedCallsURL = "https://www.google.com/voice/inbox/recent/missed/"
-
 		self._contactsRe = re.compile(r"""<a href="/voice/m/contact/(\d+)">(.*?)</a>""", re.S)
 		self._contactsNextRe = re.compile(r""".*<a href="/voice/m/contacts(\?p=\d+)">Next.*?</a>""", re.S)
-		self._contactsURL = "https://www.google.com/voice/mobile/contacts"
 		self._contactDetailPhoneRe = re.compile(r"""<div.*?>([0-9+\-\(\) \t]+?)<span.*?>\((\w+)\)</span>""", re.S)
-		self._contactDetailURL = "https://www.google.com/voice/mobile/contact"
 
-		self._voicemailURL = "https://www.google.com/voice/inbox/recent/voicemail/"
-		self._smsURL = "https://www.google.com/voice/inbox/recent/sms/"
 		self._seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class=".*?gc-message.*?">""", re.MULTILINE | re.DOTALL)
 		self._exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
 		self._relativeVoicemailTimeRegex = re.compile(r"""<span class="gc-message-relative">(.*?)</span>""", re.MULTILINE)
@@ -170,7 +136,7 @@ class GVDialer(object):
 		self._voicemailNumberRegex = re.compile(r"""<input type="hidden" class="gc-text gc-quickcall-ac" value="(.*?)"/>""", re.MULTILINE)
 		self._prettyVoicemailNumberRegex = re.compile(r"""<span class="gc-message-type">(.*?)</span>""", re.MULTILINE)
 		self._voicemailLocationRegex = re.compile(r"""<span class="gc-message-location">.*?<a.*?>(.*?)</a></span>""", re.MULTILINE)
-		self._messagesContactID = re.compile(r"""<a class=".*?gc-message-name-link.*?">.*?</a>\s*?<span .*?>(.*?)</span>""", re.MULTILINE)
+		self._messagesContactIDRegex = re.compile(r"""<a class=".*?gc-message-name-link.*?">.*?</a>\s*?<span .*?>(.*?)</span>""", re.MULTILINE)
 		self._voicemailMessageRegex = re.compile(r"""(<span id="\d+-\d+" class="gc-word-(.*?)">(.*?)</span>|<a .*? class="gc-message-mni">(.*?)</a>)""", re.MULTILINE)
 		self._smsFromRegex = re.compile(r"""<span class="gc-message-sms-from">(.*?)</span>""", re.MULTILINE | re.DOTALL)
 		self._smsTimeRegex = re.compile(r"""<span class="gc-message-sms-time">(.*?)</span>""", re.MULTILINE | re.DOTALL)
@@ -188,26 +154,25 @@ class GVDialer(object):
 		@note Once logged in try not to reauth more than once a minute.
 		@returns If authenticated
 		"""
-		if (time.time() - self._lastAuthed) < 120 and not force:
+		isRecentledAuthed = (time.time() - self._lastAuthed) < 120
+		isPreviouslyAuthed = self._token is not None
+		if isRecentledAuthed and isPreviouslyAuthed and not force:
 			return True
 
 		try:
-			page = self._browser.download(self._forwardURL)
+			page = self._get_page(self._forwardURL)
 			self._grab_account_info(page)
 		except Exception, e:
 			_moduleLogger.exception(str(e))
 			return False
 
-		self._browser.cookies.save()
+		self._browser.save_cookies()
 		self._lastAuthed = time.time()
 		return True
 
 	def _get_token(self):
-		try:
-			tokenPage = self._browser.download(self._tokenURL)
-		except urllib2.URLError, e:
-			_moduleLogger.exception("Translating error: %s" % str(e))
-			raise NetworkError("%s is not accesible" % self._loginURL)
+		tokenPage = self._get_page(self._tokenURL)
+
 		galxTokens = self._galxRe.search(tokenPage)
 		if galxTokens is not None:
 			galxToken = galxTokens.group(1)
@@ -217,7 +182,7 @@ class GVDialer(object):
 		return galxToken
 
 	def _login(self, username, password, token):
-		loginPostData = urllib.urlencode({
+		loginData = {
 			'Email' : username,
 			'Passwd' : password,
 			'service': "grandcentral",
@@ -226,13 +191,9 @@ class GVDialer(object):
 			"PersistentCookie": "yes",
 			"GALX": token,
 			"continue": self._forwardURL,
-		})
+		}
 
-		try:
-			loginSuccessOrFailurePage = self._browser.download(self._loginURL, loginPostData)
-		except urllib2.URLError, e:
-			_moduleLogger.exception("Translating error: %s" % str(e))
-			raise NetworkError("%s is not accesible" % self._loginURL)
+		loginSuccessOrFailurePage = self._get_page(self._loginURL, loginData)
 		return loginSuccessOrFailurePage
 
 	def login(self, username, password):
@@ -255,58 +216,115 @@ class GVDialer(object):
 				return False
 			_moduleLogger.info("Redirection failed on initial login attempt, auto-corrected for this")
 
-		self._browser.cookies.save()
+		self._browser.save_cookies()
 		self._lastAuthed = time.time()
 		return True
 
 	def logout(self):
+		self._browser.clear_cookies()
+		self._browser.save_cookies()
+		self._token = None
 		self._lastAuthed = 0.0
-		self._browser.cookies.clear()
-		self._browser.cookies.save()
 
-	def dial(self, number):
+	def is_dnd(self):
+		isDndPage = self._get_page(self._isDndURL)
+
+		dndGroup = self._isDndRe.search(isDndPage)
+		if dndGroup is None:
+			return False
+		dndStatus = dndGroup.group(1)
+		isDnd = True if dndStatus.strip().lower() == "true" else False
+		return isDnd
+
+	def set_dnd(self, doNotDisturb):
+		dndPostData = {
+			"doNotDisturb": 1 if doNotDisturb else 0,
+			"_rnr_se": self._token,
+		}
+
+		dndPage = self._get_page(self._setDndURL, dndPostData)
+
+	def call(self, outgoingNumber):
 		"""
 		This is the main function responsible for initating the callback
 		"""
-		number = self._send_validation(number)
-		try:
-			clickToCallData = urllib.urlencode({
-				"number": number,
-				"phone": self._callbackNumber,
-				"_rnr_se": self._token,
-			})
-			otherData = {
-				'Referer' : 'https://google.com/voice/m/callsms',
-			}
-			callSuccessPage = self._browser.download(self._clicktocallURL, clickToCallData, None, otherData)
-		except urllib2.URLError, e:
-			_moduleLogger.exception("Translating error: %s" % str(e))
-			raise NetworkError("%s is not accesible" % self._clicktocallURL)
+		outgoingNumber = self._send_validation(outgoingNumber)
+		subscriberNumber = None
+		phoneType = guess_phone_type(self._callbackNumber) # @todo Fix this hack
 
-		if self._gvDialingStrRe.search(callSuccessPage) is None:
-			raise RuntimeError("Google Voice returned an error")
-
+		page = self._get_page_with_token(
+			self._callUrl,
+			{
+				'outgoingNumber': outgoingNumber,
+				'forwardingNumber': self._callbackNumber,
+				'subscriberNumber': subscriberNumber or 'undefined',
+				'phoneType': phoneType,
+				'remember': '1'
+			},
+		)
+		self._parse_with_validation(page)
 		return True
 
-	def send_sms(self, number, message):
-		number = self._send_validation(number)
-		try:
-			smsData = urllib.urlencode({
-				"number": number,
-				"smstext": message,
-				"_rnr_se": self._token,
-				"id": "undefined",
-				"c": "undefined",
-			})
-			otherData = {
-				'Referer' : 'https://google.com/voice/m/sms',
-			}
-			smsSuccessPage = self._browser.download(self._sendSmsURL, smsData, None, otherData)
-		except urllib2.URLError, e:
-			_moduleLogger.exception("Translating error: %s" % str(e))
-			raise NetworkError("%s is not accesible" % self._sendSmsURL)
+	def cancel(self, outgoingNumber=None):
+		"""
+		Cancels a call matching outgoing and forwarding numbers (if given). 
+		Will raise an error if no matching call is being placed
+		"""
+		page = self._get_page_with_token(
+			self._callCancelURL,
+			{
+			'outgoingNumber': outgoingNumber or 'undefined',
+			'forwardingNumber': self._callbackNumber or 'undefined',
+			'cancelType': 'C2C',
+			},
+		)
+		self._parse_with_validation(page)
 
-		return True
+	def send_sms(self, phoneNumber, message):
+		phoneNumber = self._send_validation(phoneNumber)
+		page = self._get_page_with_token(
+			self._sendSmsURL,
+			{
+				'phoneNumber': phoneNumber,
+				'text': message
+			},
+		)
+		self._parse_with_validation(page)
+
+	def search(self, query):
+		"""
+		Search your Google Voice Account history for calls, voicemails, and sms
+		Returns ``Folder`` instance containting matching messages
+		"""
+		page = self._get_page(
+			self._XML_SEARCH_URL,
+			{"q": query},
+		)
+		json, html = extract_payload(page)
+		return json
+
+	def get_feed(self, feed):
+		actualFeed = "_XML_%s_URL" % feed.upper()
+		feedUrl = getattr(self, actualFeed)
+
+		page = self._get_page(feedUrl)
+		json, html = extract_payload(page)
+
+		return json
+
+	def download(self, messageId, adir):
+		"""
+		Download a voicemail or recorded call MP3 matching the given ``msg``
+		which can either be a ``Message`` instance, or a SHA1 identifier. 
+		Saves files to ``adir`` (defaults to current directory). 
+		Message hashes can be found in ``self.voicemail().messages`` for example. 
+		Returns location of saved file.
+		"""
+		page = self._get_page(self._downloadVoicemailURL, {"id": messageId})
+		fn = os.path.join(adir, '%s.mp3' % messageId)
+		with open(fn, 'wb') as fo:
+			fo.write(page)
+		return fn
 
 	def is_valid_syntax(self, number):
 		"""
@@ -348,15 +366,11 @@ class GVDialer(object):
 		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
 		"""
 		for action, url in (
-			("Received", self._receivedCallsURL),
-			("Missed", self._missedCallsURL),
-			("Placed", self._placedCallsURL),
+			("Received", self._XML_RECEIVED_URL),
+			("Missed", self._XML_MISSED_URL),
+			("Placed", self._XML_PLACED_URL),
 		):
-			try:
-				flatXml = self._browser.download(url)
-			except urllib2.URLError, e:
-				_moduleLogger.exception("Translating error: %s" % str(e))
-				raise NetworkError("%s is not accesible" % url)
+			flatXml = self._get_page(url)
 
 			allRecentHtml = self._grab_html(flatXml)
 			allRecentData = self._parse_voicemail(allRecentHtml)
@@ -370,11 +384,7 @@ class GVDialer(object):
 		"""
 		contactsPagesUrls = [self._contactsURL]
 		for contactsPageUrl in contactsPagesUrls:
-			try:
-				contactsPage = self._browser.download(contactsPageUrl)
-			except urllib2.URLError, e:
-				_moduleLogger.exception("Translating error: %s" % str(e))
-				raise NetworkError("%s is not accesible" % contactsPageUrl)
+			contactsPage = self._get_page(contactsPageUrl)
 			for contact_match in self._contactsRe.finditer(contactsPage):
 				contactId = contact_match.group(1)
 				contactName = saxutils.unescape(contact_match.group(2))
@@ -390,11 +400,7 @@ class GVDialer(object):
 		"""
 		@returns Iterable of (Phone Type, Phone Number)
 		"""
-		try:
-			detailPage = self._browser.download(self._contactDetailURL + '/' + contactId)
-		except urllib2.URLError, e:
-			_moduleLogger.exception("Translating error: %s" % str(e))
-			raise NetworkError("%s is not accesible" % self._contactDetailURL)
+		detailPage = self._get_page(self._contactDetailURL + '/' + contactId)
 
 		for detail_match in self._contactDetailPhoneRe.finditer(detailPage):
 			phoneNumber = detail_match.group(1)
@@ -402,22 +408,14 @@ class GVDialer(object):
 			yield (phoneType, phoneNumber)
 
 	def get_messages(self):
-		try:
-			voicemailPage = self._browser.download(self._voicemailURL)
-		except urllib2.URLError, e:
-			_moduleLogger.exception("Translating error: %s" % str(e))
-			raise NetworkError("%s is not accesible" % self._voicemailURL)
+		voicemailPage = self._get_page(self._XML_VOICEMAIL_URL)
 		voicemailHtml = self._grab_html(voicemailPage)
 		voicemailJson = self._grab_json(voicemailPage)
 		parsedVoicemail = self._parse_voicemail(voicemailHtml)
 		voicemails = self._merge_messages(parsedVoicemail, voicemailJson)
 		decoratedVoicemails = self._decorate_voicemail(voicemails)
 
-		try:
-			smsPage = self._browser.download(self._smsURL)
-		except urllib2.URLError, e:
-			_moduleLogger.exception("Translating error: %s" % str(e))
-			raise NetworkError("%s is not accesible" % self._smsURL)
+		smsPage = self._get_page(self._XML_SMS_URL)
 		smsHtml = self._grab_html(smsPage)
 		smsJson = self._grab_json(smsPage)
 		parsedSms = self._parse_sms(smsHtml)
@@ -516,7 +514,7 @@ class GVDialer(object):
 			number = numberGroup.group(1).strip() if numberGroup else ""
 			prettyNumberGroup = self._prettyVoicemailNumberRegex.search(messageHtml)
 			prettyNumber = prettyNumberGroup.group(1).strip() if prettyNumberGroup else ""
-			contactIdGroup = self._messagesContactID.search(messageHtml)
+			contactIdGroup = self._messagesContactIDRegex.search(messageHtml)
 			contactId = contactIdGroup.group(1).strip() if contactIdGroup else ""
 
 			messageGroups = self._voicemailMessageRegex.finditer(messageHtml)
@@ -571,7 +569,7 @@ class GVDialer(object):
 			number = numberGroup.group(1).strip() if numberGroup else ""
 			prettyNumberGroup = self._prettyVoicemailNumberRegex.search(messageHtml)
 			prettyNumber = prettyNumberGroup.group(1).strip() if prettyNumberGroup else ""
-			contactIdGroup = self._messagesContactID.search(messageHtml)
+			contactIdGroup = self._messagesContactIDRegex.search(messageHtml)
 			contactId = contactIdGroup.group(1).strip() if contactIdGroup else ""
 
 			fromGroups = self._smsFromRegex.finditer(messageHtml)
@@ -609,6 +607,120 @@ class GVDialer(object):
 			message["isTrash"] = jsonItem["isTrash"]
 			message["isArchived"] = "inbox" not in jsonItem["labels"]
 			yield message
+
+	def _get_page(self, url, data = None, refererUrl = None):
+		headers = {}
+		if refererUrl is not None:
+			headers["Referer"] = refererUrl
+
+		encodedData = urllib.urlencode(data) if data is not None else None
+
+		try:
+			page = self._browser.download(url, encodedData, None, headers)
+		except urllib2.URLError, e:
+			_moduleLogger.error("Translating error: %s" % str(e))
+			raise NetworkError("%s is not accesible" % url)
+
+		return page
+
+	def _get_page_with_token(self, url, data = None, refererUrl = None):
+		if data is None:
+			data = {}
+		data['_rnr_se'] = self._token
+
+		page = self._get_page(url, data, refererUrl)
+
+		return page
+
+	def _parse_with_validation(self, page):
+		json, html = extract_payload(page)
+		validate_response(json)
+		return json, html
+
+
+def itergroup(iterator, count, padValue = None):
+	"""
+	Iterate in groups of 'count' values. If there
+	aren't enough values, the last result is padded with
+	None.
+
+	>>> for val in itergroup([1, 2, 3, 4, 5, 6], 3):
+	... 	print tuple(val)
+	(1, 2, 3)
+	(4, 5, 6)
+	>>> for val in itergroup([1, 2, 3, 4, 5, 6], 3):
+	... 	print list(val)
+	[1, 2, 3]
+	[4, 5, 6]
+	>>> for val in itergroup([1, 2, 3, 4, 5, 6, 7], 3):
+	... 	print tuple(val)
+	(1, 2, 3)
+	(4, 5, 6)
+	(7, None, None)
+	>>> for val in itergroup("123456", 3):
+	... 	print tuple(val)
+	('1', '2', '3')
+	('4', '5', '6')
+	>>> for val in itergroup("123456", 3):
+	... 	print repr("".join(val))
+	'123'
+	'456'
+	"""
+	paddedIterator = itertools.chain(iterator, itertools.repeat(padValue, count-1))
+	nIterators = (paddedIterator, ) * count
+	return itertools.izip(*nIterators)
+
+
+def safe_eval(s):
+	_TRUE_REGEX = re.compile("true")
+	_FALSE_REGEX = re.compile("false")
+	s = _TRUE_REGEX.sub("True", s)
+	s = _FALSE_REGEX.sub("False", s)
+	return eval(s, {}, {})
+
+
+def _fake_parse_json(flattened):
+	return safe_eval(flattened)
+
+
+def _actual_parse_json(flattened):
+	return simplejson.loads(flattened)
+
+
+if simplejson is None:
+	parse_json = _fake_parse_json
+else:
+	parse_json = _actual_parse_json
+
+
+def extract_payload(flatXml):
+	xmlTree = ElementTree.fromstring(flatXml)
+
+	jsonElement = xmlTree.getchildren()[0]
+	flatJson = jsonElement.text
+	jsonTree = parse_json(flatJson)
+
+	htmlElement = xmlTree.getchildren()[1]
+	flatHtml = htmlElement.text
+
+	return jsonTree, flatHtml
+
+
+def validate_response(response):
+	"""
+	Validates that the JSON response is A-OK
+	"""
+	try:
+		assert 'ok' in response and response['ok']
+	except AssertionError:
+		raise RuntimeError('There was a problem with GV: %s' % response)
+
+
+def guess_phone_type(number):
+	if number.startswith("747") or number.startswith("1747"):
+		return GVDialer.PHONE_TYPE_GIZMO
+	else:
+		return GVDialer.PHONE_TYPE_MOBILE
 
 
 def set_sane_callback(backend):
@@ -704,8 +816,13 @@ def test_backend(username, password):
 	if not backend.is_authed():
 		print "Login?: ", backend.login(username, password)
 	print "Authenticated: ", backend.is_authed()
+	print "Is Dnd: ", backend.is_dnd()
+	#print "Setting Dnd", backend.set_dnd(True)
+	#print "Is Dnd: ", backend.is_dnd()
+	#print "Setting Dnd", backend.set_dnd(False)
+	#print "Is Dnd: ", backend.is_dnd()
 
-	print "Token: ", backend._token
+	#print "Token: ", backend._token
 	#print "Account: ", backend.get_account_number()
 	#print "Callback: ", backend.get_callback_number()
 	#print "All Callback: ",
@@ -748,15 +865,17 @@ def grab_debug_info(username, password):
 		("forward", backend._forwardURL),
 		("token", backend._tokenURL),
 		("login", backend._loginURL),
+		("isdnd", backend._isDndURL),
 		("contacts", backend._contactsURL),
 
-		("voicemail", backend._voicemailURL),
-		("sms", backend._smsURL),
+		("account", backend._XML_ACCOUNT_URL),
+		("voicemail", backend._XML_VOICEMAIL_URL),
+		("sms", backend._XML_SMS_URL),
 
-		("recent", backend._recentCallsURL),
-		("placed", backend._placedCallsURL),
-		("recieved", backend._receivedCallsURL),
-		("missed", backend._missedCallsURL),
+		("recent", backend._XML_RECENT_URL),
+		("placed", backend._XML_PLACED_URL),
+		("recieved", backend._XML_RECEIVED_URL),
+		("missed", backend._XML_MISSED_URL),
 	]
 
 	# Get Pages

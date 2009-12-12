@@ -43,9 +43,37 @@ class MozillaEmulator(object):
 
 		@param trycount: The download() method will retry the operation if it fails. You can specify -1 for infinite retrying.
 			 A value of 0 means no retrying. A value of 1 means one retry. etc."""
-		self.cookies = cookielib.LWPCookieJar()
 		self.debug = False
 		self.trycount = trycount
+		self._cookies = cookielib.LWPCookieJar()
+		self._loadedFromCookies = False
+
+	def load_cookies(self, path):
+		assert not self._loadedFromCookies, "Load cookies only once"
+		if path is None:
+			return
+
+		self._cookies.filename = path
+		try:
+			self._cookies.load()
+		except cookielib.LoadError:
+			_moduleLogger.exception("Bad cookie file")
+		except IOError:
+			_moduleLogger.exception("No cookie file")
+		except Exception, e:
+			_moduleLogger.exception("Unknown error with cookies")
+		else:
+			self._loadedFromCookies = True
+
+		return self._loadedFromCookies
+
+	def save_cookies(self):
+		if self._loadedFromCookies:
+			self._cookies.save()
+
+	def clear_cookies(self):
+		if self._loadedFromCookies:
+			self._cookies.clear()
 
 	def download(self, url,
 			postdata = None, extraheaders = None, forbidRedirect = False,
@@ -82,7 +110,7 @@ class MozillaEmulator(object):
 					_moduleLogger.info("%r - %r" % (req.get_method(), url))
 					_moduleLogger.info("%r - %r" % (openerdirector.code, openerdirector.msg))
 					_moduleLogger.info("%r" % (openerdirector.headers))
-				self.cookies.extract_cookies(openerdirector, req)
+				self._cookies.extract_cookies(openerdirector, req)
 				if only_head:
 					return openerdirector
 
@@ -107,7 +135,7 @@ class MozillaEmulator(object):
 		for key, value in extraheaders.iteritems():
 			txheaders[key] = value
 		req = urllib2.Request(url, postdata, txheaders)
-		self.cookies.add_cookie_header(req)
+		self._cookies.add_cookie_header(req)
 		if forbidRedirect:
 			redirector = HTTPNoRedirector()
 			#_moduleLogger.info("Redirection disabled")
@@ -121,7 +149,7 @@ class MozillaEmulator(object):
 		u = urllib2.build_opener(
 			http_handler,
 			https_handler,
-			urllib2.HTTPCookieProcessor(self.cookies),
+			urllib2.HTTPCookieProcessor(self._cookies),
 			redirector
 		)
 		u.addheaders = [(

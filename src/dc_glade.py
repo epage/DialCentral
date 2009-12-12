@@ -849,7 +849,7 @@ class Dialcentral(object):
 			dialed = False
 			try:
 				assert self._phoneBackends[self._selectedBackendId].get_callback_number() != "", "No callback number specified"
-				self._phoneBackends[self._selectedBackendId].dial(number)
+				self._phoneBackends[self._selectedBackendId].call(number)
 				hildonize.show_information_banner(self._window, "Calling %s" % number)
 				_moduleLogger.info("Calling %s" % number)
 				dialed = True

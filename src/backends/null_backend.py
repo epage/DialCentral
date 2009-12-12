@@ -37,11 +37,23 @@ class NullDialer(object):
 	def logout(self):
 		self.clear_caches()
 
-	def dial(self, number):
+	def call(self, number):
 		return True
+
+	def cancel(self, outgoingNumber=None):
+		pass
 
 	def send_sms(self, number, message):
 		raise NotImplementedError("SMS Is Not Supported")
+
+	def search(self, query):
+		return []
+
+	def get_feed(self, feed):
+		return {}
+
+	def download(self, messageId, adir):
+		return ""
 
 	def clear_caches(self):
 		pass
@@ -57,9 +69,6 @@ class NullDialer(object):
 		@returns The grand central phone number
 		"""
 		return ""
-
-	def set_sane_callback(self):
-		pass
 
 	def get_callback_numbers(self):
 		return {}
