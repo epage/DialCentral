@@ -252,15 +252,18 @@ class GVDialer(object):
 		subscriberNumber = None
 		phoneType = guess_phone_type(self._callbackNumber) # @todo Fix this hack
 
-		page = self._get_page_with_token(
-			self._callUrl,
-			{
+		callData = {
 				'outgoingNumber': outgoingNumber,
 				'forwardingNumber': self._callbackNumber,
 				'subscriberNumber': subscriberNumber or 'undefined',
-				'phoneType': phoneType,
-				'remember': '1'
-			},
+				'phoneType': str(phoneType),
+				'remember': '1',
+		}
+		_moduleLogger.info("%r" % callData)
+
+		page = self._get_page_with_token(
+			self._callUrl,
+			callData,
 		)
 		self._parse_with_validation(page)
 		return True
@@ -633,9 +636,9 @@ class GVDialer(object):
 		return page
 
 	def _parse_with_validation(self, page):
-		json, html = extract_payload(page)
+		json = parse_json(page)
 		validate_response(json)
-		return json, html
+		return json
 
 
 def itergroup(iterator, count, padValue = None):
