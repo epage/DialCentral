@@ -308,16 +308,28 @@ def build_package(distribution):
 	p["/usr/share/icons/hicolor/64x64/hildon"] = ["64x64-dialcentral.png|dialcentral.png"]
 	p["/usr/share/icons/hicolor/scalable/hildon"] = ["scale-dialcentral.png|dialcentral.png"]
 
-	print p
-	print p.generate(
-		version="%s-%s" % (__version__, __build__),
-		changelog=__changelog__,
-		build=True,
-		tar=True,
-		changes=True,
-		dsc=True,
-	)
-	print "Building for %s finished" % distribution
+	if distribution == "debian":
+		print p
+		print p.generate(
+			version="%s-%s" % (__version__, __build__),
+			changelog=__changelog__,
+			build=True,
+			tar=False,
+			changes=False,
+			dsc=False,
+		)
+		print "Building for %s finished" % distribution
+	else:
+		print p
+		print p.generate(
+			version="%s-%s" % (__version__, __build__),
+			changelog=__changelog__,
+			build=False,
+			tar=True,
+			changes=True,
+			dsc=True,
+		)
+		print "Building for %s finished" % distribution
 
 
 if __name__ == "__main__":

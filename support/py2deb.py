@@ -192,7 +192,7 @@ def py2changes(params):
     shutil.move(l[0],tar)
     ret.append(tar)
 
-    l=glob("%(TEMP)s/%(name)s*_*_*.changes" % params)
+    l = glob("%(TEMP)s/%(name)s*.changes" % params)
     if len(l)!=1:
         raise Py2debException("don't find source package changes")
     tar = os.path.basename(l[0])

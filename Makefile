@@ -70,7 +70,7 @@ package: $(OBJ)
 	cp -R $(BUILD_PATH)/generic/* $(BUILD_PATH)/debian
 	cd $(BUILD_PATH)/debian ; python builddeb.py debian
 
-upload: package
+upload:
 	dput fremantle-extras-builder $(BUILD_PATH)/fremantle/$(PROJECT_NAME)*.changes
 	dput diablo-extras-builder $(BUILD_PATH)/diablo/$(PROJECT_NAME)*.changes
 	dput chinook-extras-builder $(BUILD_PATH)/chinook/$(PROJECT_NAME)*.changes
