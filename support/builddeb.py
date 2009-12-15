@@ -30,6 +30,11 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
+1.0.9
+* Added .deb packages for generic linux
+* UI Tweak: Added an app menu
+* Bug Fix: "Unable to Complete Calls Out" due to google.com/voice/m issues
+
 1.0.8
 * Sped up login time by delay loading contact list
 * Sped up login when you do not have a cookie file (first launch)
