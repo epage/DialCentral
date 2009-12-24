@@ -276,9 +276,9 @@ class GVDialer(object):
 		page = self._get_page_with_token(
 			self._callCancelURL,
 			{
-			'outgoingNumber': outgoingNumber or 'undefined',
-			'forwardingNumber': self._callbackNumber or 'undefined',
-			'cancelType': 'C2C',
+				'outgoingNumber': outgoingNumber or 'undefined',
+				'forwardingNumber': self._callbackNumber or 'undefined',
+				'cancelType': 'C2C',
 			},
 		)
 		self._parse_with_validation(page)
