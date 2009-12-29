@@ -30,6 +30,9 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
+1.0.10
+* Renamed Recent to History
+
 1.0.9
 * Added .deb packages for generic linux
 * UI Tweak: Added an app menu

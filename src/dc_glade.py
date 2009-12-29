@@ -92,7 +92,7 @@ class Dialcentral(object):
 		self._dialpads = None
 		self._accountViews = None
 		self._messagesViews = None
-		self._recentViews = None
+		self._historyViews = None
 		self._contactsViews = None
 		self._alarmHandler = None
 		self._ledHandler = None
@@ -119,7 +119,7 @@ class Dialcentral(object):
 		hildonize.hildonize_password_entry(self._widgetTree.get_widget("passwordentry"))
 
 		for scrollingWidgetName in (
-			'recent_scrolledwindow',
+			'history_scrolledwindow',
 			'message_scrolledwindow',
 			'contacts_scrolledwindow',
 			"smsMessages_scrolledwindow",
@@ -202,13 +202,13 @@ class Dialcentral(object):
 			with gtk_toolbox.gtk_lock():
 				self._dialpads = {self.NULL_BACKEND: null_views.Dialpad(self._widgetTree)}
 				self._accountViews = {self.NULL_BACKEND: null_views.AccountInfo(self._widgetTree)}
-				self._recentViews = {self.NULL_BACKEND: null_views.RecentCallsView(self._widgetTree)}
+				self._historyViews = {self.NULL_BACKEND: null_views.CallHistoryView(self._widgetTree)}
 				self._messagesViews = {self.NULL_BACKEND: null_views.MessagesView(self._widgetTree)}
 				self._contactsViews = {self.NULL_BACKEND: null_views.ContactsView(self._widgetTree)}
 
 				self._dialpads[self._selectedBackendId].enable()
 				self._accountViews[self._selectedBackendId].enable()
-				self._recentViews[self._selectedBackendId].enable()
+				self._historyViews[self._selectedBackendId].enable()
 				self._messagesViews[self._selectedBackendId].enable()
 				self._contactsViews[self._selectedBackendId].enable()
 		except Exception, e:
@@ -297,8 +297,8 @@ class Dialcentral(object):
 					),
 				})
 				self._accountViews[self.GV_BACKEND].save_everything = self._save_settings
-				self._recentViews.update({
-					self.GV_BACKEND: gv_views.RecentCallsView(
+				self._historyViews.update({
+					self.GV_BACKEND: gv_views.CallHistoryView(
 						self._widgetTree, self._phoneBackends[self.GV_BACKEND], self._errorDisplay
 					),
 				})
@@ -317,7 +317,7 @@ class Dialcentral(object):
 			fileBackend = file_backend.FilesystemAddressBookFactory(fsContactsPath)
 
 			self._dialpads[self.GV_BACKEND].number_selected = self._select_action
-			self._recentViews[self.GV_BACKEND].number_selected = self._select_action
+			self._historyViews[self.GV_BACKEND].number_selected = self._select_action
 			self._messagesViews[self.GV_BACKEND].number_selected = self._select_action
 			self._contactsViews[self.GV_BACKEND].number_selected = self._select_action
 
@@ -501,13 +501,13 @@ class Dialcentral(object):
 
 		self._dialpads[oldStatus].disable()
 		self._accountViews[oldStatus].disable()
-		self._recentViews[oldStatus].disable()
+		self._historyViews[oldStatus].disable()
 		self._messagesViews[oldStatus].disable()
 		self._contactsViews[oldStatus].disable()
 
 		self._dialpads[newStatus].enable()
 		self._accountViews[newStatus].enable()
-		self._recentViews[newStatus].enable()
+		self._historyViews[newStatus].enable()
 		self._messagesViews[newStatus].enable()
 		self._contactsViews[newStatus].enable()
 
@@ -556,7 +556,7 @@ class Dialcentral(object):
 			self._dialpads.iteritems(),
 			self._accountViews.iteritems(),
 			self._messagesViews.iteritems(),
-			self._recentViews.iteritems(),
+			self._historyViews.iteritems(),
 			self._contactsViews.iteritems(),
 		):
 			sectionName = "%s - %s" % (backendId, view.name())
@@ -623,7 +623,7 @@ class Dialcentral(object):
 			self._dialpads.iteritems(),
 			self._accountViews.iteritems(),
 			self._messagesViews.iteritems(),
-			self._recentViews.iteritems(),
+			self._historyViews.iteritems(),
 			self._contactsViews.iteritems(),
 		):
 			sectionName = "%s - %s" % (backendId, view.name())
@@ -644,7 +644,7 @@ class Dialcentral(object):
 		if pageIndex == self.CONTACTS_TAB:
 			self._contactsViews[self._selectedBackendId].update(force=True)
 		elif pageIndex == self.RECENT_TAB:
-			self._recentViews[self._selectedBackendId].update(force=True)
+			self._historyViews[self._selectedBackendId].update(force=True)
 		elif pageIndex == self.MESSAGES_TAB:
 			self._messagesViews[self._selectedBackendId].update(force=True)
 
@@ -750,7 +750,7 @@ class Dialcentral(object):
 		try:
 			self._phoneBackends[self._selectedBackendId].logout()
 			self._accountViews[self._selectedBackendId].clear()
-			self._recentViews[self._selectedBackendId].clear()
+			self._historyViews[self._selectedBackendId].clear()
 			self._messagesViews[self._selectedBackendId].clear()
 			self._contactsViews[self._selectedBackendId].clear()
 			self._change_loggedin_status(self.NULL_BACKEND)
@@ -767,7 +767,7 @@ class Dialcentral(object):
 			didMessagesUpdate = False
 
 			if pageIndex == self.RECENT_TAB:
-				didRecentUpdate = self._recentViews[self._selectedBackendId].update()
+				didRecentUpdate = self._historyViews[self._selectedBackendId].update()
 			elif pageIndex == self.MESSAGES_TAB:
 				didMessagesUpdate = self._messagesViews[self._selectedBackendId].update()
 			elif pageIndex == self.CONTACTS_TAB:

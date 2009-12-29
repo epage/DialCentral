@@ -799,7 +799,7 @@ class AccountInfo(object):
 			self._errorDisplay.push_exception()
 
 
-class RecentCallsView(object):
+class CallHistoryView(object):
 
 	NUMBER_IDX = 0
 	DATE_IDX = 1
@@ -812,15 +812,15 @@ class RecentCallsView(object):
 		self._backend = backend
 
 		self._isPopulated = False
-		self._recentmodel = gtk.ListStore(
+		self._historymodel = gtk.ListStore(
 			gobject.TYPE_STRING, # number
 			gobject.TYPE_STRING, # date
 			gobject.TYPE_STRING, # action
 			gobject.TYPE_STRING, # from
 			gobject.TYPE_STRING, # from id
 		)
-		self._recentview = widgetTree.get_widget("recentview")
-		self._recentviewselection = None
+		self._historyview = widgetTree.get_widget("historyview")
+		self._historyviewselection = None
 		self._onRecentviewRowActivatedId = 0
 
 		textrenderer = gtk.CellRendererText()
@@ -851,40 +851,40 @@ class RecentCallsView(object):
 		self._nameColumn.add_attribute(textrenderer, "text", self.FROM_IDX)
 		self._nameColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
-		self._window = gtk_toolbox.find_parent_window(self._recentview)
+		self._window = gtk_toolbox.find_parent_window(self._historyview)
 		self._phoneTypeSelector = SmsEntryDialog(widgetTree)
 
 		self._updateSink = gtk_toolbox.threaded_stage(
 			gtk_toolbox.comap(
-				self._idly_populate_recentview,
+				self._idly_populate_historyview,
 				gtk_toolbox.null_sink(),
 			)
 		)
 
 	def enable(self):
 		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
-		self._recentview.set_model(self._recentmodel)
-		self._recentview.set_fixed_height_mode(False)
+		self._historyview.set_model(self._historymodel)
+		self._historyview.set_fixed_height_mode(False)
 
-		self._recentview.append_column(self._dateColumn)
-		self._recentview.append_column(self._actionColumn)
-		self._recentview.append_column(self._numberColumn)
-		self._recentview.append_column(self._nameColumn)
-		self._recentviewselection = self._recentview.get_selection()
-		self._recentviewselection.set_mode(gtk.SELECTION_SINGLE)
+		self._historyview.append_column(self._dateColumn)
+		self._historyview.append_column(self._actionColumn)
+		self._historyview.append_column(self._numberColumn)
+		self._historyview.append_column(self._nameColumn)
+		self._historyviewselection = self._historyview.get_selection()
+		self._historyviewselection.set_mode(gtk.SELECTION_SINGLE)
 
-		self._onRecentviewRowActivatedId = self._recentview.connect("row-activated", self._on_recentview_row_activated)
+		self._onRecentviewRowActivatedId = self._historyview.connect("row-activated", self._on_historyview_row_activated)
 
 	def disable(self):
-		self._recentview.disconnect(self._onRecentviewRowActivatedId)
+		self._historyview.disconnect(self._onRecentviewRowActivatedId)
 
 		self.clear()
 
-		self._recentview.remove_column(self._dateColumn)
-		self._recentview.remove_column(self._actionColumn)
-		self._recentview.remove_column(self._nameColumn)
-		self._recentview.remove_column(self._numberColumn)
-		self._recentview.set_model(None)
+		self._historyview.remove_column(self._dateColumn)
+		self._historyview.remove_column(self._actionColumn)
+		self._historyview.remove_column(self._nameColumn)
+		self._historyview.remove_column(self._numberColumn)
+		self._historyview.set_model(None)
 
 	def number_selected(self, action, number, message):
 		"""
@@ -900,7 +900,7 @@ class RecentCallsView(object):
 
 	def clear(self):
 		self._isPopulated = False
-		self._recentmodel.clear()
+		self._historymodel.clear()
 
 	@staticmethod
 	def name():
@@ -915,26 +915,26 @@ class RecentCallsView(object):
 		"""
 		pass
 
-	def _idly_populate_recentview(self):
+	def _idly_populate_historyview(self):
 		with gtk_toolbox.gtk_lock():
-			banner = hildonize.show_busy_banner_start(self._window, "Loading Recent History")
+			banner = hildonize.show_busy_banner_start(self._window, "Loading Call History")
 		try:
-			self._recentmodel.clear()
+			self._historymodel.clear()
 			self._isPopulated = True
 
 			try:
-				recentItems = self._backend.get_recent()
+				historyItems = self._backend.get_recent()
 			except Exception, e:
 				self._errorDisplay.push_exception_with_lock()
 				self._isPopulated = False
-				recentItems = []
+				historyItems = []
 
-			recentItems = (
+			historyItems = (
 				gv_backend.decorate_recent(data)
-				for data in gv_backend.sort_messages(recentItems)
+				for data in gv_backend.sort_messages(historyItems)
 			)
 
-			for contactId, personName, phoneNumber, date, action in recentItems:
+			for contactId, personName, phoneNumber, date, action in historyItems:
 				if not personName:
 					personName = "Unknown"
 				date = abbrev_relative_date(date)
@@ -942,7 +942,7 @@ class RecentCallsView(object):
 				prettyNumber = make_pretty(prettyNumber)
 				item = (prettyNumber, date, action.capitalize(), personName, contactId)
 				with gtk_toolbox.gtk_lock():
-					self._recentmodel.append(item)
+					self._historymodel.append(item)
 		except Exception, e:
 			self._errorDisplay.push_exception_with_lock()
 		finally:
@@ -951,16 +951,16 @@ class RecentCallsView(object):
 
 		return False
 
-	def _on_recentview_row_activated(self, treeview, path, view_column):
+	def _on_historyview_row_activated(self, treeview, path, view_column):
 		try:
-			itr = self._recentmodel.get_iter(path)
+			itr = self._historymodel.get_iter(path)
 			if not itr:
 				return
 
-			number = self._recentmodel.get_value(itr, self.NUMBER_IDX)
+			number = self._historymodel.get_value(itr, self.NUMBER_IDX)
 			number = make_ugly(number)
-			description = self._recentmodel.get_value(itr, self.FROM_IDX)
-			contactId = self._recentmodel.get_value(itr, self.FROM_ID_IDX)
+			description = self._historymodel.get_value(itr, self.FROM_IDX)
+			contactId = self._historymodel.get_value(itr, self.FROM_ID_IDX)
 			if contactId:
 				contactPhoneNumbers = list(self._backend.get_contact_details(contactId))
 				defaultMatches = [
@@ -992,7 +992,7 @@ class RecentCallsView(object):
 			assert phoneNumber, "A lack of phone number exists"
 
 			self.number_selected(action, phoneNumber, message)
-			self._recentviewselection.unselect_all()
+			self._historyviewselection.unselect_all()
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

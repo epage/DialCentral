@@ -110,7 +110,7 @@ class AccountInfo(object):
 		pass
 
 
-class RecentCallsView(object):
+class CallHistoryView(object):
 
 	def __init__(self, widgetTree):
 		pass
