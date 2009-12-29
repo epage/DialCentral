@@ -32,6 +32,8 @@ __build__ = constants.__build__
 __changelog__ = """
 1.0.10
 * Renamed Recent to History
+* Bugfix: Messages tab not showing all of a message in Fremantle
+* Bugfix: When selecting a message, the wrong message is displayed in the Send SMS dialog
 
 1.0.9
 * Added .deb packages for generic linux

@@ -1221,7 +1221,8 @@ class MessagesView(object):
 
 	def _on_messageview_row_activated(self, treeview, path, view_column):
 		try:
-			itr = self._messagemodel.get_iter(path)
+			childPath = self._messagemodelfiltered.convert_path_to_child_path(path)
+			itr = self._messagemodel.get_iter(childPath)
 			if not itr:
 				return
 
