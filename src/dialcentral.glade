@@ -1038,14 +1038,14 @@
           <widget class="GtkScrolledWindow" id="smsMessages_scrolledwindow">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="hscrollbar_policy">automatic</property>
+            <property name="hscrollbar_policy">never</property>
             <property name="vscrollbar_policy">automatic</property>
             <child>
               <widget class="GtkViewport" id="viewport1">
                 <property name="visible">True</property>
                 <property name="resize_mode">queue</property>
                 <child>
-                  <widget class="GtkVBox" id="vbox1">
+                  <widget class="GtkVBox" id="smsMessagesLayout">
                     <property name="visible">True</property>
                     <property name="orientation">vertical</property>
                     <child>
