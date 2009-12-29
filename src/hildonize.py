@@ -407,6 +407,27 @@ except AttributeError:
 		hildonize_scrollwindow_with_viewport = _null_hildonize_scrollwindow
 
 
+def _fremantle_pannable_treeview_theme_workaround(treeview):
+	scrollWindow = treeview.get_parent()
+	scrollWindow.remove(treeview)
+
+	vbox = gtk.VBox()
+	vbox.add(treeview)
+	viewport = gtk.Viewport()
+	viewport.add(vbox)
+	scrollWindow.add(viewport)
+
+
+def _null_pannable_treeview_theme_workaround(treeview):
+	pass
+
+
+if IS_FREMANTLE_SUPPORTED:
+	pannable_treeview_theme_workaround = _fremantle_pannable_treeview_theme_workaround
+else:
+	pannable_treeview_theme_workaround = _null_pannable_treeview_theme_workaround
+
+
 def _hildon_request_number(parent, title, range, default):
 	spinner = hildon.NumberEditor(*range)
 	spinner.set_value(default)

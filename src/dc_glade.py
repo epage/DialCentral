@@ -133,6 +133,12 @@ class Dialcentral(object):
 			scrollingWidget = self._widgetTree.get_widget(scrollingWidgetName)
 			assert scrollingWidget is not None, scrollingWidgetName
 			hildonize.hildonize_scrollwindow_with_viewport(scrollingWidget)
+		for pannableTreeViewName in (
+			"messages_view",
+		):
+			view = self._widgetTree.get_widget(pannableTreeViewName)
+			assert view is not None, pannableTreeViewName
+			hildonize.pannable_treeview_theme_workaround(scrollingWidget)
 
 		for buttonName in (
 			"back",
