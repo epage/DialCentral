@@ -199,8 +199,7 @@ class SmsEntryDialog(object):
 
 		self._phoneButton = self._widgetTree.get_widget("phoneTypeSelection")
 		self._smsEntry = self._widgetTree.get_widget("smsEntry")
-		self._smsLayout = self._widgetTree.get_widget("smsMessagesLayout")
-		self._smsLayoutSize = None
+		self._smsEntrySize = None
 
 		self._action = self.ACTION_CANCEL
 
@@ -308,10 +307,10 @@ class SmsEntryDialog(object):
 			self._keyPressEventId = self._dialog.disconnect(keyConnectId)
 
 	def _update_letter_count(self, *args):
-		if self._smsLayoutSize is None:
-			self._smsLayoutSize = self._smsLayout.size_request()
+		if self._smsEntrySize is None:
+			self._smsEntrySize = self._smsEntry.size_request()
 		else:
-			self._smsLayout.set_size_request(*self._smsLayoutSize)
+			self._smsEntry.set_size_request(*self._smsEntrySize)
 		entryLength = self._smsEntry.get_buffer().get_char_count()
 
 		charsLeft = self.MAX_CHAR - entryLength
