@@ -139,12 +139,7 @@ def notify_on_change():
 		import led_handler
 		led = led_handler.LedHandler()
 		led.on()
-		print "Notify!"
-	else:
-		print "Nothing to report"
 
 
 if __name__ == "__main__":
-	import logging
-	logging.basicConfig(level=logging.DEBUG)
 	notify_on_change()
