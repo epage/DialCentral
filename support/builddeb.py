@@ -33,6 +33,8 @@ __changelog__ = """
 1.0.10
 * Renamed Recent to History
 * Sped up GV contacts
+* Remember if fullscreen (Ctrl+enter) in settings
+* Added Ctrl+w and Ctrl+q to quit
 * Bugfix: Messages tab not showing all of a message in Fremantle
 * Bugfix: When selecting a message, the wrong message is displayed in the Send SMS dialog
 
