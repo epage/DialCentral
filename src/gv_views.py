@@ -812,6 +812,8 @@ class CallHistoryView(object):
 	FROM_IDX = 3
 	FROM_ID_IDX = 4
 
+	HISTORY_ITEM_TYPES = ["All", "Received", "Missed", "Placed"]
+
 	def __init__(self, widgetTree, backend, errorDisplay):
 		self._errorDisplay = errorDisplay
 		self._backend = backend
@@ -824,6 +826,8 @@ class CallHistoryView(object):
 			gobject.TYPE_STRING, # from
 			gobject.TYPE_STRING, # from id
 		)
+		self._historymodelfiltered = self._historymodel.filter_new()
+		self._historymodelfiltered.set_visible_func(self._is_history_visible)
 		self._historyview = widgetTree.get_widget("historyview")
 		self._historyviewselection = None
 		self._onRecentviewRowActivatedId = 0
@@ -859,6 +863,10 @@ class CallHistoryView(object):
 		self._window = gtk_toolbox.find_parent_window(self._historyview)
 		self._phoneTypeSelector = SmsEntryDialog(widgetTree)
 
+		self._historyFilterSelector = widgetTree.get_widget("historyFilterSelector")
+		self._historyFilterSelector.connect("clicked", self._on_history_filter_clicked)
+		self._selectedFilter = "All"
+
 		self._updateSink = gtk_toolbox.threaded_stage(
 			gtk_toolbox.comap(
 				self._idly_populate_historyview,
@@ -868,7 +876,9 @@ class CallHistoryView(object):
 
 	def enable(self):
 		assert self._backend.is_authed(), "Attempting to enable backend while not logged in"
-		self._historyview.set_model(self._historymodel)
+		self._historyFilterSelector.set_label(self._selectedFilter)
+
+		self._historyview.set_model(self._historymodelfiltered)
 		self._historyview.set_fixed_height_mode(False)
 
 		self._historyview.append_column(self._dateColumn)
@@ -911,14 +921,32 @@ class CallHistoryView(object):
 	def name():
 		return "Recent Calls"
 
-	def load_settings(self, config, section):
-		pass
+	def load_settings(self, config, sectionName):
+		try:
+			self._selectedFilter = config.get(sectionName, "filter")
+			if self._selectedFilter not in self.HISTORY_ITEM_TYPES:
+				self._messageType = self.HISTORY_ITEM_TYPES[0]
+		except ConfigParser.NoOptionError:
+			pass
 
-	def save_settings(self, config, section):
+	def save_settings(self, config, sectionName):
 		"""
 		@note Thread Agnostic
 		"""
-		pass
+		config.set(sectionName, "filter", self._selectedFilter)
+
+	def _is_history_visible(self, model, iter):
+		try:
+			action = model.get_value(iter, self.ACTION_IDX)
+			if action is None:
+				return False # this seems weird but oh well
+
+			if self._selectedFilter in [action, "All"]:
+				return True
+			else:
+				return False
+		except Exception, e:
+			self._errorDisplay.push_exception()
 
 	def _idly_populate_historyview(self):
 		with gtk_toolbox.gtk_lock():
@@ -956,9 +984,31 @@ class CallHistoryView(object):
 
 		return False
 
+	def _on_history_filter_clicked(self, *args, **kwds):
+		try:
+			selectedComboIndex = self.HISTORY_ITEM_TYPES.index(self._selectedFilter)
+
+			try:
+				newSelectedComboIndex = hildonize.touch_selector(
+					self._window,
+					"History",
+					self.HISTORY_ITEM_TYPES,
+					selectedComboIndex,
+				)
+			except RuntimeError:
+				return
+
+			option = self.HISTORY_ITEM_TYPES[newSelectedComboIndex]
+			self._selectedFilter = option
+			self._historyFilterSelector.set_label(self._selectedFilter)
+			self._historymodelfiltered.refilter()
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
 	def _on_historyview_row_activated(self, treeview, path, view_column):
 		try:
-			itr = self._historymodel.get_iter(path)
+			childPath = self._historymodelfiltered.convert_path_to_child_path(path)
+			itr = self._historymodel.get_iter(childPath)
 			if not itr:
 				return
 

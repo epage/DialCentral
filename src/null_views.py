@@ -113,13 +113,13 @@ class AccountInfo(object):
 class CallHistoryView(object):
 
 	def __init__(self, widgetTree):
-		pass
+		self._historyFilterSelector = widgetTree.get_widget("historyFilterSelector")
 
 	def enable(self):
-		pass
+		self._historyFilterSelector.set_sensitive(False)
 
 	def disable(self):
-		pass
+		self._historyFilterSelector.set_sensitive(True)
 
 	def update(self, force = False):
 		return False
