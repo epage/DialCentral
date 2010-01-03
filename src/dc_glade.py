@@ -537,6 +537,10 @@ class Dialcentral(object):
 
 			if self._alarmHandler is not None:
 				self._alarmHandler.load_settings(config, "alarm")
+
+			isFullscreen = config.getboolean(constants.__pretty_app_name__, "fullscreen")
+			if isFullscreen:
+				self._window.fullscreen()
 		except ConfigParser.NoOptionError, e:
 			_moduleLogger.exception(
 				"Settings file %s is missing section %s" % (
@@ -612,6 +616,7 @@ class Dialcentral(object):
 		config.add_section(constants.__pretty_app_name__)
 		config.set(constants.__pretty_app_name__, "active", str(backend))
 		config.set(constants.__pretty_app_name__, "orientation", str(int(gtk_toolbox.get_screen_orientation())))
+		config.set(constants.__pretty_app_name__, "fullscreen", str(self._isFullScreen))
 		for i, value in enumerate(self._credentials):
 			blob = base64.b64encode(value)
 			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
@@ -741,6 +746,8 @@ class Dialcentral(object):
 					logLines = f.xreadlines()
 					log = "".join(logLines)
 					self._clipboard.set_text(str(log))
+			elif event.keyval in (ord("w"), ord("q")) and event.get_state() & gtk.gdk.CONTROL_MASK:
+				self._window.destroy()
 			elif event.keyval == ord("r") and event.get_state() & gtk.gdk.CONTROL_MASK:
 				self._refresh_active_tab()
 		except Exception, e:
