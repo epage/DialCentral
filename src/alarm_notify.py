@@ -4,25 +4,26 @@ import os
 import filecmp
 import ConfigParser
 import pprint
+import logging
 
 import constants
-from backends import gv_backend
+from backends import gvoice
 
 
 def get_missed(backend):
-	missedPage = backend._browser.download(backend._missedCallsURL)
+	missedPage = backend._browser.download(backend._XML_MISSED_URL)
 	missedJson = backend._grab_json(missedPage)
 	return missedJson
 
 
 def get_voicemail(backend):
-	voicemailPage = backend._browser.download(backend._voicemailURL)
+	voicemailPage = backend._browser.download(backend._XML_VOICEMAIL_URL)
 	voicemailJson = backend._grab_json(voicemailPage)
 	return voicemailJson
 
 
 def get_sms(backend):
-	smsPage = backend._browser.download(backend._smsURL)
+	smsPage = backend._browser.download(backend._XML_SMS_URL)
 	smsJson = backend._grab_json(smsPage)
 	return smsJson
 
@@ -30,6 +31,11 @@ def get_sms(backend):
 def remove_reltime(data):
 	for messageData in data["messages"].itervalues():
 		del messageData["relativeStartTime"]
+		del messageData["labels"]
+		del messageData["isRead"]
+		del messageData["isSpam"]
+		del messageData["isTrash"]
+		del messageData["star"]
 
 
 def is_type_changed(backend, type, get_material):
@@ -71,7 +77,7 @@ def is_type_changed(backend, type, get_material):
 
 def create_backend(config):
 	gvCookiePath = os.path.join(constants._data_path_, "gv_cookies.txt")
-	backend = gv_backend.GVDialer(gvCookiePath)
+	backend = gvoice.GVoiceBackend(gvCookiePath)
 
 	loggedIn = False
 
@@ -136,10 +142,22 @@ def notify_on_change():
 	notifyUser = is_changed(config, backend)
 
 	if notifyUser:
+		logging.info("Changed")
 		import led_handler
 		led = led_handler.LedHandler()
 		led.on()
+	else:
+		logging.info("No Change")
 
 
 if __name__ == "__main__":
-	notify_on_change()
+	logging.basicConfig(level=logging.DEBUG, filename=constants._notifier_logpath_)
+	logging.info("Notifier %s-%s" % (constants.__version__, constants.__build__))
+	logging.info("OS: %s" % (os.uname()[0], ))
+	logging.info("Kernel: %s (%s) for %s" % os.uname()[2:])
+	logging.info("Hostname: %s" % os.uname()[1])
+	try:
+		notify_on_change()
+	except:
+		logging.exception("Error")
+		raise

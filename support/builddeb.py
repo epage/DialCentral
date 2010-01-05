@@ -38,6 +38,7 @@ __changelog__ = """
 * Added a filter for the Call History
 * Bugfix: Messages tab not showing all of a message in Fremantle
 * Bugfix: When selecting a message, the wrong message is displayed in the Send SMS dialog
+* Bugfix: Removing some false positives for notification
 
 1.0.9
 * Added .deb packages for generic linux
@@ -222,6 +223,7 @@ __changelog__ = """
 __postinstall__ = """#!/bin/sh -e
 
 gtk-update-icon-cache -f /usr/share/icons/hicolor
+rm -f ~/.dialcentral/notifier.log
 rm -f ~/.dialcentral/dialcentral.log
 """
 
