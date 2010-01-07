@@ -169,7 +169,7 @@ class GVDialer(object):
 			self._update_contacts_cache()
 		contactDetails = self._contacts[contactId]
 		return (
-			(number["phoneType"], number["phoneNumber"])
+			(number.get("phoneType", ""), number["phoneNumber"])
 			for number in contactDetails["numbers"]
 		)
 
