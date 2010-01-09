@@ -101,7 +101,7 @@ class Message(object):
 class Conversation(object):
 
 	TYPE_VOICEMAIL = "Voicemail"
-	TYPE_SMS = "SMS"
+	TYPE_SMS = "Texts"
 
 	def __init__(self):
 		self.type = None
