@@ -36,6 +36,7 @@ __changelog__ = """
 * Remember if fullscreen (Ctrl+enter) in settings
 * Added Ctrl+w and Ctrl+q to quit
 * Added a filter for the Call History
+* Error logging for notifications
 * Bugfix: Messages tab not showing all of a message in Fremantle
 * Bugfix: When selecting a message, the wrong message is displayed in the Send SMS dialog
 * Bugfix: Removing some false positives for notification

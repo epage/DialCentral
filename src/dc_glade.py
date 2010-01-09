@@ -741,14 +741,17 @@ class Dialcentral(object):
 					self._window.unfullscreen()
 				else:
 					self._window.fullscreen()
-			elif event.keyval == ord("l") and event.get_state() & gtk.gdk.CONTROL_MASK:
+			elif event.keyval == gtk.keysyms.l and event.get_state() & gtk.gdk.CONTROL_MASK:
 				with open(constants._user_logpath_, "r") as f:
 					logLines = f.xreadlines()
 					log = "".join(logLines)
 					self._clipboard.set_text(str(log))
-			elif event.keyval in (ord("w"), ord("q")) and event.get_state() & gtk.gdk.CONTROL_MASK:
+			elif (
+				event.keyval in (gtk.keysyms.w, gtk.keysyms.q) and
+				event.get_state() & gtk.gdk.CONTROL_MASK
+			):
 				self._window.destroy()
-			elif event.keyval == ord("r") and event.get_state() & gtk.gdk.CONTROL_MASK:
+			elif event.keyval == gtk.keysyms.r and event.get_state() & gtk.gdk.CONTROL_MASK:
 				self._refresh_active_tab()
 		except Exception, e:
 			self._errorDisplay.push_exception()
