@@ -119,6 +119,9 @@ def is_changed(config, backend):
 		notifyOnMissed = False
 		notifyOnVoicemail = False
 		notifyOnSms = False
+	logging.debug(
+		"Missed: %s, Voicemail: %s, SMS: %s" % (notifyOnMissed, notifyOnVoicemail, notifyOnSms)
+	)
 
 	notifySources = []
 	if notifyOnMissed:
