@@ -169,8 +169,9 @@ class GVDialer(object):
 			self._update_contacts_cache()
 		contactDetails = self._contacts[contactId]
 		return (
-			(number.get("phoneType", ""), number["phoneNumber"])
+			(number["phoneType"], number["phoneNumber"])
 			for number in contactDetails["numbers"]
+			if "phoneType" in number
 		)
 
 	def get_messages(self):
