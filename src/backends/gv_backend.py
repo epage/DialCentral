@@ -168,11 +168,10 @@ class GVDialer(object):
 		if self._contacts is None:
 			self._update_contacts_cache()
 		contactDetails = self._contacts[contactId]
-		# Filtering out lack of a phoneType because those are just things like faxes
+		# Defaulting phoneTypes because those are just things like faxes
 		return (
-			(number["phoneType"], number["phoneNumber"])
+			(number.get("phoneType", ""), number["phoneNumber"])
 			for number in contactDetails["numbers"]
-			if "phoneType" in number
 		)
 
 	def get_messages(self):
