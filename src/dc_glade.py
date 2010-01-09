@@ -325,7 +325,7 @@ class Dialcentral(object):
 				self._phoneBackends[self.GV_BACKEND],
 				fileBackend,
 			]
-			mergedBook = merge_backend.MergedAddressBook(addressBooks, merge_backend.MergedAddressBook.advanced_lastname_sorter)
+			mergedBook = merge_backend.MergedAddressBook(addressBooks, merge_backend.MergedAddressBook.basic_firtname_sorter)
 			self._contactsViews[self.GV_BACKEND].append(mergedBook)
 			self._contactsViews[self.GV_BACKEND].extend(addressBooks)
 			self._contactsViews[self.GV_BACKEND].open_addressbook(*self._contactsViews[self.GV_BACKEND].get_addressbooks().next()[0][0:2])
