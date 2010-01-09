@@ -153,7 +153,7 @@ class Dialcentral(object):
 			self._window,
 			self._widgetTree.get_widget("dialpad_menubar"),
 		)
-		if hildonize.IS_FREMANTLE_SUPPORTED:
+		if not hildonize.GTK_MENU_USED:
 			button = gtk.Button("New Login")
 			button.connect("clicked", self._on_clearcookies_clicked)
 			menu.append(button)
