@@ -36,7 +36,7 @@ def notify_on_change():
 
 
 if __name__ == "__main__":
-	logging.basicConfig(level=logging.DEBUG, filename=constants._notifier_logpath_)
+	logging.basicConfig(level=logging.WARNING, filename=constants._notifier_logpath_)
 	logging.info("Sound Notifier %s-%s" % (constants.__version__, constants.__build__))
 	logging.info("OS: %s" % (os.uname()[0], ))
 	logging.info("Kernel: %s (%s) for %s" % os.uname()[2:])

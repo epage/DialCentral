@@ -16,7 +16,7 @@ import alarm_notify
 
 def notify_on_change():
 	filename = "%s/notification.log" % constants._data_path_
-	with open(filename, "a") as file:
+	with open(constants._notifier_logpath_, "a") as file:
 		file.write("Notification: %r\n" % (datetime.datetime.now(), ))
 
 		config = ConfigParser.SafeConfigParser()
