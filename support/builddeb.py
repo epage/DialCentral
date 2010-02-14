@@ -278,8 +278,7 @@ def build_package(distribution):
 	maemoSpecificDepends = ", python-osso | python2.5-osso, python-hildon | python2.5-hildon"
 	p.depends += {
 		"debian": ", python-glade2",
-		"chinook": maemoSpecificDepends,
-		"diablo": maemoSpecificDepends,
+		"diablo": maemoSpecificDepends + ", python2.5-conic",
 		"fremantle": maemoSpecificDepends + ", python-glade2, python-alarm",
 		"mer": maemoSpecificDepends + ", python-glade2",
 	}[distribution]
@@ -287,21 +286,19 @@ def build_package(distribution):
 	])
 	p.section = {
 		"debian": "comm",
-		"chinook": "communication",
 		"diablo": "user/network",
 		"fremantle": "user/network",
 		"mer": "user/network",
 	}[distribution]
 	p.arch = "all"
 	p.urgency = "low"
-	p.distribution = "chinook diablo fremantle mer debian"
+	p.distribution = "diablo fremantle mer debian"
 	p.repository = "extras"
 	p.changelog = __changelog__
 	p.postinstall = __postinstall__
 	p.preremove = __preremove__
 	p.icon = {
 		"debian": "26x26-dialcentral.png",
-		"chinook": "26x26-dialcentral.png",
 		"diablo": "26x26-dialcentral.png",
 		"fremantle": "64x64-dialcentral.png", # Fremantle natively uses 48x48
 		"mer": "64x64-dialcentral.png",
