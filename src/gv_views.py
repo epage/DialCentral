@@ -346,7 +346,7 @@ class SmsEntryDialog(object):
 			if self._action == self.ACTION_SEND_SMS:
 				entryBuffer = self._smsEntry.get_buffer()
 				enteredMessage = entryBuffer.get_text(entryBuffer.get_start_iter(), entryBuffer.get_end_iter())
-				enteredMessage = enteredMessage[0:self.MAX_CHAR].strip()
+				enteredMessage = enteredMessage.strip()
 				if not enteredMessage:
 					phoneNumber = ""
 					self._action = self.ACTION_CANCEL
@@ -370,16 +370,18 @@ class SmsEntryDialog(object):
 		entryLength = self._smsEntry.get_buffer().get_char_count()
 
 		charsLeft = self.MAX_CHAR - entryLength
-		self._letterCountLabel.set_text(str(charsLeft))
-		if charsLeft < 0 or charsLeft == self.MAX_CHAR:
-			self._smsButton.set_sensitive(False)
+		numTexts, numCharInText = divmod(entryLength, self.MAX_CHAR)
+		if numTexts:
+			self._letterCountLabel.set_text("%s.%s" % (numTexts, numCharInText))
 		else:
-			self._smsButton.set_sensitive(True)
+			self._letterCountLabel.set_text("%s" % (numCharInText, ))
 
 		if entryLength == 0:
 			self._dialButton.set_sensitive(True)
+			self._smsButton.set_sensitive(False)
 		else:
 			self._dialButton.set_sensitive(False)
+			self._smsButton.set_sensitive(True)
 
 	def _request_number(self):
 		try:
