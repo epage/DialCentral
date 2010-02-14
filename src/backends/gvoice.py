@@ -101,7 +101,7 @@ class Message(object):
 class Conversation(object):
 
 	TYPE_VOICEMAIL = "Voicemail"
-	TYPE_SMS = "Texts"
+	TYPE_SMS = "SMS"
 
 	def __init__(self):
 		self.type = None
@@ -477,21 +477,21 @@ class GVoiceBackend(object):
 			if contactId != "0":
 				yield contactId, contactDetails
 
-	def get_conversations(self):
+	def get_voicemails(self):
 		voicemailPage = self._get_page(self._XML_VOICEMAIL_URL)
 		voicemailHtml = self._grab_html(voicemailPage)
 		voicemailJson = self._grab_json(voicemailPage)
 		parsedVoicemail = self._parse_voicemail(voicemailHtml)
 		voicemails = self._merge_conversation_sources(parsedVoicemail, voicemailJson)
+		return voicemails
 
+	def get_texts(self):
 		smsPage = self._get_page(self._XML_SMS_URL)
 		smsHtml = self._grab_html(smsPage)
 		smsJson = self._grab_json(smsPage)
 		parsedSms = self._parse_sms(smsHtml)
 		smss = self._merge_conversation_sources(parsedSms, smsJson)
-
-		allConversations = itertools.chain(voicemails, smss)
-		return allConversations
+		return smss
 
 	def mark_message(self, messageId, asRead):
 		postData = {
@@ -546,10 +546,6 @@ class GVoiceBackend(object):
 			raise ValueError('Number is not valid: "%s"' % number)
 		elif not self.is_authed():
 			raise RuntimeError("Not Authenticated")
-
-		if len(number) == 11 and number[0] == 1:
-			# Strip leading 1 from 11 digit dialing
-			number = number[1:]
 		return number
 
 	def _parse_history(self, historyHtml):
@@ -801,13 +797,13 @@ def validate_response(response):
 
 
 def guess_phone_type(number):
-	if number.startswith("747") or number.startswith("1747"):
+	if number.startswith("747") or number.startswith("1747") or number.startswith("+1747"):
 		return GVoiceBackend.PHONE_TYPE_GIZMO
 	else:
 		return GVoiceBackend.PHONE_TYPE_MOBILE
 
 
-def set_sane_callback(backend):
+def get_sane_callback(backend):
 	"""
 	Try to set a sane default callback number on these preferences
 	1) 1747 numbers ( Gizmo )
@@ -818,7 +814,9 @@ def set_sane_callback(backend):
 	numbers = backend.get_callback_numbers()
 
 	priorityOrderedCriteria = [
+		("\+1747", None),
 		("1747", None),
+		("747", None),
 		(None, "gizmo"),
 		(None, "computer"),
 		(None, "sip"),
@@ -826,13 +824,31 @@ def set_sane_callback(backend):
 	]
 
 	for numberCriteria, descriptionCriteria in priorityOrderedCriteria:
+		numberMatcher = None
+		descriptionMatcher = None
+		if numberCriteria is not None:
+			numberMatcher = re.compile(numberCriteria)
+		elif descriptionCriteria is not None:
+			descriptionMatcher = re.compile(descriptionCriteria, re.I)
+
 		for number, description in numbers.iteritems():
-			if numberCriteria is not None and re.compile(numberCriteria).match(number) is None:
+			if numberMatcher is not None and numberMatcher.match(number) is None:
 				continue
-			if descriptionCriteria is not None and re.compile(descriptionCriteria).match(description) is None:
+			if descriptionMatcher is not None and descriptionMatcher.match(description) is None:
 				continue
-			backend.set_callback_number(number)
-			return
+			return number
+
+
+def set_sane_callback(backend):
+	"""
+	Try to set a sane default callback number on these preferences
+	1) 1747 numbers ( Gizmo )
+	2) anything with gizmo in the name
+	3) anything with computer in the name
+	4) the first value
+	"""
+	number = get_sane_callback(backend)
+	backend.set_callback_number(number)
 
 
 def _is_not_special(name):

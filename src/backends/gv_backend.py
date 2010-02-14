@@ -27,6 +27,7 @@ Resources
 
 from __future__ import with_statement
 
+import itertools
 import logging
 
 import gvoice
@@ -175,7 +176,9 @@ class GVDialer(object):
 		)
 
 	def get_messages(self):
-		conversations = self._gvoice.get_conversations()
+		voicemails = self._gvoice.get_voicemails()
+		smss = self._gvoice.get_texts()
+		conversations = itertools.chain(voicemails, smss)
 		for conversation in conversations:
 			messages = conversation.messages
 			messageParts = (

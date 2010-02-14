@@ -33,7 +33,7 @@ import socket
 
 
 _moduleLogger = logging.getLogger("browser_emu")
-socket.setdefaulttimeout(10)
+socket.setdefaulttimeout(20)
 
 
 class MozillaEmulator(object):
@@ -41,8 +41,9 @@ class MozillaEmulator(object):
 	def __init__(self, trycount = 1):
 		"""Create a new MozillaEmulator object.
 
-		@param trycount: The download() method will retry the operation if it fails. You can specify -1 for infinite retrying.
-			 A value of 0 means no retrying. A value of 1 means one retry. etc."""
+		@param trycount: The download() method will retry the operation if it
+		fails. You can specify -1 for infinite retrying.  A value of 0 means no
+		retrying. A value of 1 means one retry. etc."""
 		self.debug = False
 		self.trycount = trycount
 		self._cookies = cookielib.LWPCookieJar()
@@ -94,7 +95,7 @@ class MozillaEmulator(object):
 
 		@return: The raw HTML page data
 		"""
-		_moduleLogger.info("Performing download of %s" % url)
+		_moduleLogger.debug("Performing download of %s" % url)
 
 		if extraheaders is None:
 			extraheaders = {}
@@ -115,13 +116,14 @@ class MozillaEmulator(object):
 					return openerdirector
 
 				return self._read(openerdirector, trycount)
-			except urllib2.URLError:
+			except urllib2.URLError, e:
+				_moduleLogger.debug("%s: %s" % (e, url))
 				cnt += 1
 				if (-1 < trycount) and (trycount < cnt):
 					raise
 
 			# Retry :-)
-			_moduleLogger.info("MozillaEmulator: urllib2.URLError, retryting %d" % cnt)
+			_moduleLogger.debug("MozillaEmulator: urllib2.URLError, retrying %d" % cnt)
 
 	def _build_opener(self, url, postdata = None, extraheaders = None, forbidRedirect = False):
 		if extraheaders is None:
@@ -154,7 +156,7 @@ class MozillaEmulator(object):
 		)
 		u.addheaders = [(
 			'User-Agent',
-			'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.7.8) Gecko/20050511 Firefox/1.0.4'
+			'Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.1.4) Gecko/20091016 Firefox/3.5.4 (.NET CLR 3.5.30729)'
 		)]
 		if not postdata is None:
 			req.add_data(postdata)
