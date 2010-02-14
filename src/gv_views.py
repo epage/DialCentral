@@ -24,9 +24,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 from __future__ import with_statement
 
+import re
 import ConfigParser
-import logging
 import itertools
+import logging
 
 import gobject
 import pango
@@ -47,11 +48,65 @@ def make_ugly(prettynumber):
 	characters
 
 	>>> make_ugly("+012-(345)-678-90")
-	'01234567890'
+	'+01234567890'
 	"""
-	import re
-	uglynumber = re.sub('\D', '', prettynumber)
+	return normalize_number(prettynumber)
+
+
+def normalize_number(prettynumber):
+	"""
+	function to take a phone number and strip out all non-numeric
+	characters
+
+	>>> normalize_number("+012-(345)-678-90")
+	'+01234567890'
+	>>> normalize_number("1-(345)-678-9000")
+	'+13456789000'
+	>>> normalize_number("+1-(345)-678-9000")
+	'+13456789000'
+	"""
+	uglynumber = re.sub('[^0-9+]', '', prettynumber)
+	if uglynumber.startswith("+"):
+		pass
+	elif uglynumber.startswith("1") and len(uglynumber) == 11:
+		uglynumber = "+"+uglynumber
+	elif len(uglynumber) == 10:
+		uglynumber = "+1"+uglynumber
+	else:
+		pass
+
+	#validateRe = re.compile("^\+?[0-9]{10,}$")
+	#assert validateRe.match(uglynumber) is not None
+
 	return uglynumber
+
+
+def _make_pretty_with_areacodde(phonenumber):
+	prettynumber = "(%s)" % (phonenumber[0:3], )
+	if 3 < len(phonenumber):
+		prettynumber += " %s" % (phonenumber[3:6], )
+		if 6 < len(phonenumber):
+			prettynumber += "-%s" % (phonenumber[6:], )
+	return prettynumber
+
+
+def _make_pretty_local(phonenumber):
+	prettynumber = "%s" % (phonenumber[0:3], )
+	if 3 < len(phonenumber):
+		prettynumber += "-%s" % (phonenumber[3:], )
+	return prettynumber
+
+
+def _make_pretty_international(phonenumber):
+	prettynumber = phonenumber
+	if phonenumber.startswith("0"):
+		prettynumber = "+%s " % (phonenumber[0:3], )
+		if 3 < len(phonenumber):
+			prettynumber += _make_pretty_with_areacodde(phonenumber[3:])
+	if phonenumber.startswith("1"):
+		prettynumber = "1 "
+		prettynumber += _make_pretty_with_areacodde(phonenumber[1:])
+	return prettynumber
 
 
 def make_pretty(phonenumber):
@@ -71,37 +126,38 @@ def make_pretty(phonenumber):
 	>>> make_pretty("1234567")
 	'123-4567'
 	>>> make_pretty("2345678901")
-	'(234)-567-8901'
+	'+1 (234) 567-8901'
 	>>> make_pretty("12345678901")
-	'1 (234)-567-8901'
+	'+1 (234) 567-8901'
 	>>> make_pretty("01234567890")
-	'+012-(345)-678-90'
+	'+012 (345) 678-90'
+	>>> make_pretty("+01234567890")
+	'+012 (345) 678-90'
+	>>> make_pretty("+12")
+	'+1 (2)'
+	>>> make_pretty("+123")
+	'+1 (23)'
+	>>> make_pretty("+1234")
+	'+1 (234)'
 	"""
 	if phonenumber is None or phonenumber is "":
 		return ""
 
-	phonenumber = make_ugly(phonenumber)
+	phonenumber = normalize_number(phonenumber)
 
-	if len(phonenumber) < 3:
-		return phonenumber
-
-	if phonenumber[0] == "0":
-		prettynumber = ""
-		prettynumber += "+%s" % phonenumber[0:3]
-		if 3 < len(phonenumber):
-			prettynumber += "-(%s)" % phonenumber[3:6]
-			if 6 < len(phonenumber):
-				prettynumber += "-%s" % phonenumber[6:9]
-				if 9 < len(phonenumber):
-					prettynumber += "-%s" % phonenumber[9:]
-		return prettynumber
-	elif len(phonenumber) <= 7:
-		prettynumber = "%s-%s" % (phonenumber[0:3], phonenumber[3:])
-	elif len(phonenumber) > 8 and phonenumber[0] == "1":
-		prettynumber = "1 (%s)-%s-%s" % (phonenumber[1:4], phonenumber[4:7], phonenumber[7:])
-	elif len(phonenumber) > 7:
-		prettynumber = "(%s)-%s-%s" % (phonenumber[0:3], phonenumber[3:6], phonenumber[6:])
-	return prettynumber
+	if phonenumber[0] == "+":
+		prettynumber = _make_pretty_international(phonenumber[1:])
+		if not prettynumber.startswith("+"):
+			prettynumber = "+"+prettynumber
+	elif 8 < len(phonenumber) and phonenumber[0] in ("0", "1"):
+		prettynumber = _make_pretty_international(phonenumber)
+	elif 7 < len(phonenumber):
+		prettynumber = _make_pretty_with_areacodde(phonenumber)
+	elif 3 < len(phonenumber):
+		prettynumber = _make_pretty_local(phonenumber)
+	else:
+		prettynumber = phonenumber
+	return prettynumber.strip()
 
 
 def abbrev_relative_date(date):
@@ -380,6 +436,7 @@ class Dialpad(object):
 		self._smsButton = widgetTree.get_widget("sms")
 		self._dialButton = widgetTree.get_widget("dial")
 		self._backButton = widgetTree.get_widget("back")
+		self._zeroOrPlusButton = widgetTree.get_widget("digit0")
 		self._phonenumber = ""
 		self._prettynumber = ""
 
@@ -396,6 +453,9 @@ class Dialpad(object):
 		self._backTapHandler.on_hold = self._on_clearall
 		self._backTapHandler.on_holding = self._set_clear_button
 		self._backTapHandler.on_cancel = self._reset_back_button
+		self._zeroOrPlusTapHandler = gtk_toolbox.TapOrHold(self._zeroOrPlusButton)
+		self._zeroOrPlusTapHandler.on_tap = self._on_zero
+		self._zeroOrPlusTapHandler.on_hold = self._on_plus
 
 		self._window = gtk_toolbox.find_parent_window(self._numberdisplay)
 		self._keyPressEventId = 0
@@ -403,6 +463,7 @@ class Dialpad(object):
 	def enable(self):
 		self._dialButton.grab_focus()
 		self._backTapHandler.enable()
+		self._zeroOrPlusTapHandler.enable()
 		self._keyPressEventId = self._window.connect("key-press-event", self._on_key_press)
 
 	def disable(self):
@@ -410,6 +471,7 @@ class Dialpad(object):
 		self._keyPressEventId = 0
 		self._reset_back_button()
 		self._backTapHandler.disable()
+		self._zeroOrPlusTapHandler.disable()
 
 	def number_selected(self, action, number, message):
 		"""
@@ -479,6 +541,18 @@ class Dialpad(object):
 	def _on_digit_clicked(self, widget):
 		try:
 			self.set_number(self._phonenumber + widget.get_name()[-1])
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_zero(self, *args):
+		try:
+			self.set_number(self._phonenumber + "0")
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_plus(self, *args):
+		try:
+			self.set_number(self._phonenumber + "+")
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

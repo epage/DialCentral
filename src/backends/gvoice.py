@@ -48,7 +48,7 @@ except ImportError:
 import browser_emu
 
 
-_moduleLogger = logging.getLogger("gvoice.backend")
+_moduleLogger = logging.getLogger("gvoice")
 
 
 class NetworkError(RuntimeError):

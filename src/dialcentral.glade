@@ -391,13 +391,12 @@
                         <property name="can_focus">False</property>
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
-                        <signal name="clicked" handler="on_digit_clicked"/>
                         <accelerator key="0" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label19">
                             <property name="visible">True</property>
                             <property name="label" translatable="yes">&lt;span size="33000" weight="bold"&gt;0&lt;/span&gt;
-&lt;span size="9000"&gt;&lt;/span&gt;</property>
+&lt;span size="9000"&gt;+&lt;/span&gt;</property>
                             <property name="use_markup">True</property>
                             <property name="justify">center</property>
                           </widget>
