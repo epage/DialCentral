@@ -29,6 +29,7 @@ import threading
 import base64
 import ConfigParser
 import itertools
+import shutils
 import logging
 
 import gtk
@@ -97,6 +98,7 @@ class Dialcentral(object):
 		self._alarmHandler = None
 		self._ledHandler = None
 		self._originalCurrentLabels = []
+		self._fsContactsPath = os.path.join(constants._data_path_, "contacts")
 
 		for path in self._glade_files:
 			if os.path.isfile(path):
@@ -156,6 +158,10 @@ class Dialcentral(object):
 		if not hildonize.GTK_MENU_USED:
 			button = gtk.Button("New Login")
 			button.connect("clicked", self._on_clearcookies_clicked)
+			menu.append(button)
+
+			button= gtk.Button("Import Contacts")
+			button.connect("clicked", self._on_contact_import)
 			menu.append(button)
 
 			button= gtk.Button("Refresh")
@@ -313,8 +319,7 @@ class Dialcentral(object):
 					),
 				})
 
-			fsContactsPath = os.path.join(constants._data_path_, "contacts")
-			fileBackend = file_backend.FilesystemAddressBookFactory(fsContactsPath)
+			fileBackend = file_backend.FilesystemAddressBookFactory(self._fsContactsPath)
 
 			self._dialpads[self.GV_BACKEND].number_selected = self._select_action
 			self._historyViews[self.GV_BACKEND].number_selected = self._select_action
@@ -335,6 +340,7 @@ class Dialcentral(object):
 				"on_refresh": self._on_menu_refresh,
 				"on_clearcookies_clicked": self._on_clearcookies_clicked,
 				"on_about_activate": self._on_about_activate,
+				"on_import": self._on_contact_import,
 			}
 			if hildonize.GTK_MENU_USED:
 				self._widgetTree.signal_autoconnect(callbackMapping)
@@ -876,6 +882,27 @@ class Dialcentral(object):
 
 			if dialed:
 				self._dialpads[self._selectedBackendId].clear()
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_contact_import(self, *args):
+		try:
+			csvFilter = gtk.FileFilter()
+			csvFilter.set_name("Contacts")
+			csvFilter.add_pattern("*.csv")
+			importFileChooser = gtk.FileChooserDialog(
+				title="Contacts",
+				parent=self._window,
+			)
+			importFileChooser.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+			importFileChooser.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
+
+			importFileChooser.set_property("filter", csvFilter)
+			userResponse = importFileChooser.run()
+			importFileChooser.hide()
+			if userResponse == gtk.RESPONSE_OK:
+				filename = importFileChooser.get_filename()
+				shutils.copy2(filename, self._fsContactsPath)
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
