@@ -364,12 +364,16 @@ class GVoiceBackend(object):
 		)
 		self._parse_with_validation(page)
 
-	def send_sms(self, phoneNumber, message):
-		phoneNumber = self._send_validation(phoneNumber)
+	def send_sms(self, phoneNumbers, message):
+		validatedPhoneNumbers = [
+			self._send_validation(phoneNumber)
+			for phoneNumber in phoneNumbers
+		]
+		flattenedPhoneNumbers = ",".join(validatedPhoneNumbers)
 		page = self._get_page_with_token(
 			self._sendSmsURL,
 			{
-				'phoneNumber': phoneNumber,
+				'phoneNumber': flattenedPhoneNumbers,
 				'text': message
 			},
 		)

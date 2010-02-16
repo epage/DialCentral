@@ -278,7 +278,6 @@ AlarmHandler = {
 
 
 def main():
-	import ConfigParser
 	import constants
 	try:
 		import optparse

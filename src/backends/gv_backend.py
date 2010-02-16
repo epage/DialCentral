@@ -86,8 +86,8 @@ class GVDialer(object):
 		"""
 		return self._gvoice.cancel(outgoingNumber)
 
-	def send_sms(self, phoneNumber, message):
-		self._gvoice.send_sms(phoneNumber, message)
+	def send_sms(self, phoneNumbers, message):
+		self._gvoice.send_sms(phoneNumbers, message)
 
 	def search(self, query):
 		"""

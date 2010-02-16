@@ -29,7 +29,7 @@ import threading
 import base64
 import ConfigParser
 import itertools
-import shutils
+import shutil
 import logging
 
 import gtk
@@ -160,11 +160,11 @@ class Dialcentral(object):
 			button.connect("clicked", self._on_clearcookies_clicked)
 			menu.append(button)
 
-			button= gtk.Button("Import Contacts")
+			button = gtk.Button("Import Contacts")
 			button.connect("clicked", self._on_contact_import)
 			menu.append(button)
 
-			button= gtk.Button("Refresh")
+			button = gtk.Button("Refresh")
 			button.connect("clicked", self._on_menu_refresh)
 			menu.append(button)
 
@@ -491,12 +491,14 @@ class Dialcentral(object):
 
 		return loggedIn, serviceId
 
-	def _select_action(self, action, number, message):
+	def _select_action(self, action, numbers, message):
 		self.refresh_session()
 		if action == "dial":
+			assert len(numbers) == 1
+			number = numbers[0]
 			self._on_dial_clicked(number)
 		elif action == "sms":
-			self._on_sms_clicked(number, message)
+			self._on_sms_clicked(numbers, message)
 		else:
 			assert False, "Unknown action: %s" % action
 
@@ -823,9 +825,9 @@ class Dialcentral(object):
 			self._errorDisplay.push_exception()
 		return False
 
-	def _on_sms_clicked(self, number, message):
+	def _on_sms_clicked(self, numbers, message):
 		try:
-			assert number, "No number specified"
+			assert numbers, "No number specified"
 			assert message, "Empty message"
 			try:
 				loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
@@ -842,9 +844,9 @@ class Dialcentral(object):
 
 			dialed = False
 			try:
-				self._phoneBackends[self._selectedBackendId].send_sms(number, message)
-				hildonize.show_information_banner(self._window, "Sending to %s" % number)
-				_moduleLogger.info("Sending SMS to %s" % number)
+				self._phoneBackends[self._selectedBackendId].send_sms(numbers, message)
+				hildonize.show_information_banner(self._window, "Sending to %s" % ", ".join(numbers))
+				_moduleLogger.info("Sending SMS to %r" % numbers)
 				dialed = True
 			except Exception, e:
 				self._errorDisplay.push_exception()
@@ -902,7 +904,7 @@ class Dialcentral(object):
 			importFileChooser.hide()
 			if userResponse == gtk.RESPONSE_OK:
 				filename = importFileChooser.get_filename()
-				shutils.copy2(filename, self._fsContactsPath)
+				shutil.copy2(filename, self._fsContactsPath)
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

@@ -338,17 +338,17 @@ class SmsEntryDialog(object):
 			# Process the users response
 			if userResponse == gtk.RESPONSE_OK and 0 <= self._numberIndex:
 				phoneNumber = self._contactDetails[self._numberIndex][0]
-				phoneNumber = make_ugly(phoneNumber)
+				phoneNumbers = [make_ugly(phoneNumber)]
 			else:
-				phoneNumber = ""
-			if not phoneNumber:
+				phoneNumbers = []
+			if not phoneNumbers:
 				self._action = self.ACTION_CANCEL
 			if self._action == self.ACTION_SEND_SMS:
 				entryBuffer = self._smsEntry.get_buffer()
 				enteredMessage = entryBuffer.get_text(entryBuffer.get_start_iter(), entryBuffer.get_end_iter())
 				enteredMessage = enteredMessage.strip()
 				if not enteredMessage:
-					phoneNumber = ""
+					phoneNumbers = []
 					self._action = self.ACTION_CANCEL
 			else:
 				enteredMessage = ""
@@ -356,7 +356,7 @@ class SmsEntryDialog(object):
 			self._messagesView.remove_column(messageColumn)
 			self._messagesView.set_model(None)
 
-			return self._action, phoneNumber, enteredMessage
+			return self._action, phoneNumbers, enteredMessage
 		finally:
 			self._smsEntry.get_buffer().disconnect(entryConnectId)
 			self._phoneButton.disconnect(phoneConnectId)
@@ -475,7 +475,7 @@ class Dialpad(object):
 		self._backTapHandler.disable()
 		self._zeroOrPlusTapHandler.disable()
 
-	def number_selected(self, action, number, message):
+	def number_selected(self, action, numbers, message):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -523,20 +523,20 @@ class Dialpad(object):
 	def _on_sms_clicked(self, widget):
 		try:
 			phoneNumber = self.get_number()
-			action, phoneNumber, message = self._smsDialog.run([("Dialer", phoneNumber)], (), self._window)
+			action, phoneNumbers, message = self._smsDialog.run([("Dialer", phoneNumber)], (), self._window)
 
 			if action == SmsEntryDialog.ACTION_CANCEL:
 				return
-			self.number_selected(action, phoneNumber, message)
+			self.number_selected(action, phoneNumbers, message)
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_dial_clicked(self, widget):
 		try:
 			action = SmsEntryDialog.ACTION_DIAL
-			phoneNumber = self.get_number()
+			phoneNumbers = [self.get_number()]
 			message = ""
-			self.number_selected(action, phoneNumber, message)
+			self.number_selected(action, phoneNumbers, message)
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
@@ -937,7 +937,7 @@ class CallHistoryView(object):
 		self._nameColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 		self._window = gtk_toolbox.find_parent_window(self._historyview)
-		self._phoneTypeSelector = SmsEntryDialog(widgetTree)
+		self._smsDialog = SmsEntryDialog(widgetTree)
 
 		self._historyFilterSelector = widgetTree.get_widget("historyFilterSelector")
 		self._historyFilterSelector.connect("clicked", self._on_history_filter_clicked)
@@ -977,7 +977,7 @@ class CallHistoryView(object):
 		self._historyview.remove_column(self._numberColumn)
 		self._historyview.set_model(None)
 
-	def number_selected(self, action, number, message):
+	def number_selected(self, action, numbers, message):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -1112,7 +1112,7 @@ class CallHistoryView(object):
 				contactPhoneNumbers = [("Phone", number)]
 				defaultIndex = -1
 
-			action, phoneNumber, message = self._phoneTypeSelector.run(
+			action, phoneNumbers, message = self._smsDialog.run(
 				contactPhoneNumbers,
 				messages = (description, ),
 				parent = self._window,
@@ -1120,9 +1120,9 @@ class CallHistoryView(object):
 			)
 			if action == SmsEntryDialog.ACTION_CANCEL:
 				return
-			assert phoneNumber, "A lack of phone number exists"
+			assert phoneNumbers, "A lack of phone number exists"
 
-			self.number_selected(action, phoneNumber, message)
+			self.number_selected(action, phoneNumbers, message)
 			self._historyviewselection.unselect_all()
 		except Exception, e:
 			self._errorDisplay.push_exception()
@@ -1178,7 +1178,7 @@ class MessagesView(object):
 		self._messageColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 		self._window = gtk_toolbox.find_parent_window(self._messageview)
-		self._phoneTypeSelector = SmsEntryDialog(widgetTree)
+		self._smsDialog = SmsEntryDialog(widgetTree)
 
 		self._messageTypeButton = widgetTree.get_widget("messageTypeButton")
 		self._onMessageTypeClickedId = 0
@@ -1227,7 +1227,7 @@ class MessagesView(object):
 		self._messageview.remove_column(self._messageColumn)
 		self._messageview.set_model(None)
 
-	def number_selected(self, action, number, message):
+	def number_selected(self, action, numbers, message):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -1381,7 +1381,7 @@ class MessagesView(object):
 				contactPhoneNumbers = [("Phone", number)]
 				defaultIndex = -1
 
-			action, phoneNumber, message = self._phoneTypeSelector.run(
+			action, phoneNumbers, message = self._smsDialog.run(
 				contactPhoneNumbers,
 				messages = description,
 				parent = self._window,
@@ -1389,9 +1389,9 @@ class MessagesView(object):
 			)
 			if action == SmsEntryDialog.ACTION_CANCEL:
 				return
-			assert phoneNumber, "A lock of phone number exists"
+			assert phoneNumbers, "A lock of phone number exists"
 
-			self.number_selected(action, phoneNumber, message)
+			self.number_selected(action, phoneNumbers, message)
 			self._messageviewselection.unselect_all()
 		except Exception, e:
 			self._errorDisplay.push_exception()
@@ -1482,7 +1482,7 @@ class ContactsView(object):
 		self._onContactsviewRowActivatedId = 0
 		self._onAddressbookButtonChangedId = 0
 		self._window = gtk_toolbox.find_parent_window(self._contactsview)
-		self._phoneTypeSelector = SmsEntryDialog(widgetTree)
+		self._smsDialog = SmsEntryDialog(widgetTree)
 
 		self._updateSink = gtk_toolbox.threaded_stage(
 			gtk_toolbox.comap(
@@ -1534,7 +1534,7 @@ class ContactsView(object):
 		self._contactsview.set_model(None)
 		self._contactsview.remove_column(self._contactColumn)
 
-	def number_selected(self, action, number, message):
+	def number_selected(self, action, numbers, message):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -1661,16 +1661,16 @@ class ContactsView(object):
 			if len(contactPhoneNumbers) == 0:
 				return
 
-			action, phoneNumber, message = self._phoneTypeSelector.run(
+			action, phoneNumbers, message = self._smsDialog.run(
 				contactPhoneNumbers,
 				messages = (contactName, ),
 				parent = self._window,
 			)
 			if action == SmsEntryDialog.ACTION_CANCEL:
 				return
-			assert phoneNumber, "A lack of phone number exists"
+			assert phoneNumbers, "A lack of phone number exists"
 
-			self.number_selected(action, phoneNumber, message)
+			self.number_selected(action, phoneNumbers, message)
 			self._contactsviewselection.unselect_all()
 		except Exception, e:
 			self._errorDisplay.push_exception()
