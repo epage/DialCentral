@@ -141,7 +141,6 @@ class Dialcentral(object):
 			"addressbookSelectButton",
 			"sendSmsButton",
 			"dialButton",
-			"cancelSmsButton",
 			"callbackSelectButton",
 			"minutesEntryButton",
 			"clearcookies",
@@ -659,24 +658,6 @@ class Dialcentral(object):
 		if pageIndex in (self.RECENT_TAB, self.MESSAGES_TAB):
 			if self._ledHandler is not None:
 				self._ledHandler.off()
-
-	def _import_contacts(self):
-		csvFilter = gtk.FileFilter()
-		csvFilter.set_name("Contacts")
-		csvFilter.add_pattern("*.csv")
-		importFileChooser = gtk.FileChooserDialog(
-			title="Contacts",
-			parent=self._window,
-		)
-		importFileChooser.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
-		importFileChooser.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
-
-		importFileChooser.set_property("filter", csvFilter)
-		userResponse = importFileChooser.run()
-		importFileChooser.hide()
-		if userResponse == gtk.RESPONSE_OK:
-			filename = importFileChooser.get_filename()
-			shutil.copy2(filename, self._fsContactsPath)
 
 	@gtk_toolbox.log_exception(_moduleLogger)
 	def _on_close(self, *args, **kwds):
