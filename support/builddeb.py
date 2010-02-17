@@ -33,7 +33,7 @@ __changelog__ = """
 1.1.0
 * Support for "+" in numbers, including on Dialpad by holding "0".  I'm hoping this makes both international and Gizmo users happier
 * Added support for multi-part SMS messages (just like the GV site)
-* Importing of contacts files
+* Unofficial support for importing of contacts files
 * Bugfixes carried over from TOR work
 
 1.0.10
