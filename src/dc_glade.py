@@ -160,10 +160,6 @@ class Dialcentral(object):
 			button.connect("clicked", self._on_clearcookies_clicked)
 			menu.append(button)
 
-			button = gtk.Button("Import Contacts")
-			button.connect("clicked", self._on_contact_import)
-			menu.append(button)
-
 			button = gtk.Button("Refresh")
 			button.connect("clicked", self._on_menu_refresh)
 			menu.append(button)
@@ -340,7 +336,6 @@ class Dialcentral(object):
 				"on_refresh": self._on_menu_refresh,
 				"on_clearcookies_clicked": self._on_clearcookies_clicked,
 				"on_about_activate": self._on_about_activate,
-				"on_import": self._on_contact_import,
 			}
 			if hildonize.GTK_MENU_USED:
 				self._widgetTree.signal_autoconnect(callbackMapping)
@@ -665,6 +660,24 @@ class Dialcentral(object):
 			if self._ledHandler is not None:
 				self._ledHandler.off()
 
+	def _import_contacts(self):
+		csvFilter = gtk.FileFilter()
+		csvFilter.set_name("Contacts")
+		csvFilter.add_pattern("*.csv")
+		importFileChooser = gtk.FileChooserDialog(
+			title="Contacts",
+			parent=self._window,
+		)
+		importFileChooser.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+		importFileChooser.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
+
+		importFileChooser.set_property("filter", csvFilter)
+		userResponse = importFileChooser.run()
+		importFileChooser.hide()
+		if userResponse == gtk.RESPONSE_OK:
+			filename = importFileChooser.get_filename()
+			shutil.copy2(filename, self._fsContactsPath)
+
 	@gtk_toolbox.log_exception(_moduleLogger)
 	def _on_close(self, *args, **kwds):
 		try:
@@ -761,6 +774,8 @@ class Dialcentral(object):
 				self._window.destroy()
 			elif event.keyval == gtk.keysyms.r and event.get_state() & gtk.gdk.CONTROL_MASK:
 				self._refresh_active_tab()
+			elif event.keyval == gtk.keysyms.i and event.get_state() & gtk.gdk.CONTROL_MASK:
+				self._import_contacts()
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
@@ -887,26 +902,23 @@ class Dialcentral(object):
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
-	def _on_contact_import(self, *args):
-		try:
-			csvFilter = gtk.FileFilter()
-			csvFilter.set_name("Contacts")
-			csvFilter.add_pattern("*.csv")
-			importFileChooser = gtk.FileChooserDialog(
-				title="Contacts",
-				parent=self._window,
-			)
-			importFileChooser.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
-			importFileChooser.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
+	def _import_contacts(self):
+		csvFilter = gtk.FileFilter()
+		csvFilter.set_name("Contacts")
+		csvFilter.add_pattern("*.csv")
+		importFileChooser = gtk.FileChooserDialog(
+			title="Contacts",
+			parent=self._window,
+		)
+		importFileChooser.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+		importFileChooser.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
 
-			importFileChooser.set_property("filter", csvFilter)
-			userResponse = importFileChooser.run()
-			importFileChooser.hide()
-			if userResponse == gtk.RESPONSE_OK:
-				filename = importFileChooser.get_filename()
-				shutil.copy2(filename, self._fsContactsPath)
-		except Exception, e:
-			self._errorDisplay.push_exception()
+		importFileChooser.set_property("filter", csvFilter)
+		userResponse = importFileChooser.run()
+		importFileChooser.hide()
+		if userResponse == gtk.RESPONSE_OK:
+			filename = importFileChooser.get_filename()
+			shutil.copy2(filename, self._fsContactsPath)
 
 	def _on_menu_refresh(self, *args):
 		try:

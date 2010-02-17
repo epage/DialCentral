@@ -21,14 +21,6 @@
               </widget>
             </child>
             <child>
-              <widget class="GtkMenuItem" id="import_menu_item">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Import</property>
-                <property name="use_underline">True</property>
-                <signal name="activate" handler="on_import"/>
-              </widget>
-            </child>
-            <child>
               <widget class="GtkMenuItem" id="paste_menu_item">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">Paste</property>
