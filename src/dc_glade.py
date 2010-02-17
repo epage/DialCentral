@@ -113,6 +113,7 @@ class Dialcentral(object):
 		self._notebook = self._widgetTree.get_widget("notebook")
 		self._errorDisplay = gtk_toolbox.ErrorDisplay(self._widgetTree)
 		self._credentialsDialog = gtk_toolbox.LoginWindow(self._widgetTree)
+		self._smsEntryWindow = None
 
 		self._isFullScreen = False
 		self._app = hildonize.get_app_class()()
@@ -277,6 +278,7 @@ class Dialcentral(object):
 			import gv_views
 			from backends import merge_backend
 
+			self._smsEntryWindow = gv_views.SmsEntryWindow(self._widgetTree)
 			try:
 				os.makedirs(constants._data_path_)
 			except OSError, e:
@@ -316,10 +318,10 @@ class Dialcentral(object):
 
 			fileBackend = file_backend.FilesystemAddressBookFactory(self._fsContactsPath)
 
-			self._dialpads[self.GV_BACKEND].number_selected = self._select_action
-			self._historyViews[self.GV_BACKEND].number_selected = self._select_action
-			self._messagesViews[self.GV_BACKEND].number_selected = self._select_action
-			self._contactsViews[self.GV_BACKEND].number_selected = self._select_action
+			self._dialpads[self.GV_BACKEND].add_contact = self._add_contact
+			self._historyViews[self.GV_BACKEND].add_contact = self._add_contact
+			self._messagesViews[self.GV_BACKEND].add_contact = self._add_contact
+			self._contactsViews[self.GV_BACKEND].add_contact = self._add_contact
 
 			addressBooks = [
 				self._phoneBackends[self.GV_BACKEND],
@@ -485,16 +487,8 @@ class Dialcentral(object):
 
 		return loggedIn, serviceId
 
-	def _select_action(self, action, numbers, message):
-		self.refresh_session()
-		if action == "dial":
-			assert len(numbers) == 1
-			number = numbers[0]
-			self._on_dial_clicked(number)
-		elif action == "sms":
-			self._on_sms_clicked(numbers, message)
-		else:
-			assert False, "Unknown action: %s" % action
+	def _add_contact(self, *args, **kwds):
+		self._smsEntryWindow.add_contact(*args, **kwds)
 
 	def _change_loggedin_status(self, newStatus):
 		oldStatus = self._selectedBackendId
@@ -825,6 +819,7 @@ class Dialcentral(object):
 		try:
 			assert numbers, "No number specified"
 			assert message, "Empty message"
+			self.refresh_session()
 			try:
 				loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
 			except Exception, e:
@@ -855,6 +850,7 @@ class Dialcentral(object):
 	def _on_dial_clicked(self, number):
 		try:
 			assert number, "No number to call"
+			self.refresh_session()
 			try:
 				loggedIn = self._phoneBackends[self._selectedBackendId].is_authed()
 			except Exception, e:

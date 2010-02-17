@@ -19,7 +19,6 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 @todo Collapse voicemails
-@todo Alternate UI for dialogs (stackables)
 """
 
 from __future__ import with_statement
@@ -221,8 +220,7 @@ def collapse_message(message, maxCharsPerLine, maxLines):
 	return "\n".join(_collapse_message(messageLines, maxCharsPerLine, maxLines))
 
 
-class SmsEntryDialog(object):
-	# @todo Need to consolidate instances
+class SmsEntryWindow(object):
 
 	MAX_CHAR = 160
 
@@ -453,7 +451,6 @@ class Dialpad(object):
 	def __init__(self, widgetTree, errorDisplay):
 		self._clipboard = gtk.clipboard_get()
 		self._errorDisplay = errorDisplay
-		self._smsDialog = SmsEntryDialog(widgetTree)
 
 		self._numberdisplay = widgetTree.get_widget("numberdisplay")
 		self._smsButton = widgetTree.get_widget("sms")
@@ -496,7 +493,7 @@ class Dialpad(object):
 		self._backTapHandler.disable()
 		self._zeroOrPlusTapHandler.disable()
 
-	def number_selected(self, action, numbers, message):
+	def add_contact(self, *args, **kwds):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -544,7 +541,7 @@ class Dialpad(object):
 	def _on_sms_clicked(self, widget):
 		try:
 			phoneNumber = self.get_number()
-			self._smsDialog.add_contact(
+			self.add_contact(
 				[("Dialer", phoneNumber)], (), self._window
 			)
 		except Exception, e:
@@ -552,10 +549,8 @@ class Dialpad(object):
 
 	def _on_dial_clicked(self, widget):
 		try:
-			action = SmsEntryDialog.ACTION_DIAL
-			phoneNumbers = [self.get_number()]
-			message = ""
-			self.number_selected(action, phoneNumbers, message)
+			#self.number_selected(action, phoneNumbers, message) TODO
+			pass
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
@@ -956,7 +951,6 @@ class CallHistoryView(object):
 		self._nameColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 		self._window = gtk_toolbox.find_parent_window(self._historyview)
-		self._smsDialog = SmsEntryDialog(widgetTree)
 
 		self._historyFilterSelector = widgetTree.get_widget("historyFilterSelector")
 		self._historyFilterSelector.connect("clicked", self._on_history_filter_clicked)
@@ -996,7 +990,7 @@ class CallHistoryView(object):
 		self._historyview.remove_column(self._numberColumn)
 		self._historyview.set_model(None)
 
-	def number_selected(self, action, numbers, message):
+	def add_contact(self, *args, **kwds):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -1131,7 +1125,7 @@ class CallHistoryView(object):
 				contactPhoneNumbers = [("Phone", number)]
 				defaultIndex = -1
 
-			self._smsDialog.add_contact(
+			self.add_contact(
 				contactPhoneNumbers,
 				messages = (description, ),
 				parent = self._window,
@@ -1192,7 +1186,6 @@ class MessagesView(object):
 		self._messageColumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 
 		self._window = gtk_toolbox.find_parent_window(self._messageview)
-		self._smsDialog = SmsEntryDialog(widgetTree)
 
 		self._messageTypeButton = widgetTree.get_widget("messageTypeButton")
 		self._onMessageTypeClickedId = 0
@@ -1241,7 +1234,7 @@ class MessagesView(object):
 		self._messageview.remove_column(self._messageColumn)
 		self._messageview.set_model(None)
 
-	def number_selected(self, action, numbers, message):
+	def add_contact(self, *args, **kwds):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -1395,7 +1388,7 @@ class MessagesView(object):
 				contactPhoneNumbers = [("Phone", number)]
 				defaultIndex = -1
 
-			self._smsDialog.add_contact(
+			self.add_contact(
 				contactPhoneNumbers,
 				messages = description,
 				parent = self._window,
@@ -1491,7 +1484,6 @@ class ContactsView(object):
 		self._onContactsviewRowActivatedId = 0
 		self._onAddressbookButtonChangedId = 0
 		self._window = gtk_toolbox.find_parent_window(self._contactsview)
-		self._smsDialog = SmsEntryDialog(widgetTree)
 
 		self._updateSink = gtk_toolbox.threaded_stage(
 			gtk_toolbox.comap(
@@ -1543,7 +1535,7 @@ class ContactsView(object):
 		self._contactsview.set_model(None)
 		self._contactsview.remove_column(self._contactColumn)
 
-	def number_selected(self, action, numbers, message):
+	def add_contact(self, *args, **kwds):
 		"""
 		@note Actual dial function is patched in later
 		"""
@@ -1670,7 +1662,7 @@ class ContactsView(object):
 			if len(contactPhoneNumbers) == 0:
 				return
 
-			self._smsDialog.add_contact(
+			self.add_contact(
 				contactPhoneNumbers,
 				messages = (contactName, ),
 				parent = self._window,
