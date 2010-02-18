@@ -213,12 +213,15 @@ class SmsEntryWindow(object):
 
 	MAX_CHAR = 160
 
-	def __init__(self, widgetTree):
+	def __init__(self, widgetTree, parent):
 		self._clipboard = gtk.clipboard_get()
 		self._widgetTree = widgetTree
 		self._window = self._widgetTree.get_widget("smsWindow")
 		self._window.connect("delete-event", self._on_delete)
 		self._window.connect("key-press-event", self._on_key_press)
+		self._window.connect("window-state-event", self._on_window_state_change)
+		self._isFullScreen = False
+		self._parent = parent
 
 		self._smsButton = self._widgetTree.get_widget("sendSmsButton")
 		self._smsButton.connect("clicked", self._on_send)
@@ -255,7 +258,7 @@ class SmsEntryWindow(object):
 
 		self._contacts = []
 
-	def add_contact(self, contactDetails, messages = (), parent = None, defaultIndex = -1):
+	def add_contact(self, contactDetails, messages = (), defaultIndex = -1):
 		contactNumbers = list(self._to_contact_numbers(contactDetails))
 		assert contactNumbers
 		contactIndex = defaultIndex if defaultIndex != -1 else 0
@@ -274,9 +277,8 @@ class SmsEntryWindow(object):
 		self._update_button_state()
 		self._update_context()
 
-		if parent is not None:
-			parentSize = parent.get_size()
-			self._window.resize(parentSize[0], max(parentSize[1]-10, 100))
+		parentSize = self._parent.get_size()
+		self._window.resize(parentSize[0], max(parentSize[1]-10, 100))
 		self._window.show()
 		self._window.present()
 
@@ -294,6 +296,12 @@ class SmsEntryWindow(object):
 		self._smsEntry.get_buffer().set_text("")
 		self._update_letter_count()
 		self._update_context()
+
+	def fullscreen(self):
+		self._window.fullscreen()
+
+	def unfullscreen(self):
+		self._window.unfullscreen()
 
 	def _remove_contact(self, contactIndex):
 		del self._contacts[contactIndex]
@@ -461,14 +469,45 @@ class SmsEntryWindow(object):
 		self._hide()
 		return True
 
-	def _on_key_press(self, widget, event):
+	def _on_window_state_change(self, widget, event, *args):
+		"""
+		@note Hildon specific
+		"""
 		try:
-			if event.keyval == ord("c") and event.get_state() & gtk.gdk.CONTROL_MASK:
+			if event.new_window_state & gtk.gdk.WINDOW_STATE_FULLSCREEN:
+				self._isFullScreen = True
+			else:
+				self._isFullScreen = False
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_key_press(self, widget, event):
+		RETURN_TYPES = (gtk.keysyms.Return, gtk.keysyms.ISO_Enter, gtk.keysyms.KP_Enter)
+		try:
+			if (
+				event.keyval == gtk.keysyms.F6 or
+				event.keyval in RETURN_TYPES and event.get_state() & gtk.gdk.CONTROL_MASK
+			):
+				if self._isFullScreen:
+					self._window.unfullscreen()
+				else:
+					self._window.fullscreen()
+			elif event.keyval == ord("c") and event.get_state() & gtk.gdk.CONTROL_MASK:
 				message = "\n".join(
 					messagePart[0]
 					for messagePart in self._messagemodel
 				)
 				self._clipboard.set_text(str(message))
+			elif (
+				event.keyval == gtk.keysyms.w and
+				event.get_state() & gtk.gdk.CONTROL_MASK
+			):
+				self._hide()
+			elif (
+				event.keyval == gtk.keysyms.q and
+				event.get_state() & gtk.gdk.CONTROL_MASK
+			):
+				self._parent.destroy()
 		except Exception, e:
 			_moduleLogger.exception(str(e))
 
@@ -563,7 +602,7 @@ class Dialpad(object):
 		try:
 			phoneNumber = self.get_number()
 			self.add_contact(
-				[("Dialer", phoneNumber)], (), self._window
+				[("Dialer", phoneNumber)], ()
 			)
 			self.set_number("")
 		except Exception, e:
@@ -1137,7 +1176,6 @@ class CallHistoryView(object):
 			self.add_contact(
 				contactPhoneNumbers,
 				messages = (description, ),
-				parent = self._window,
 				defaultIndex = defaultIndex,
 			)
 			self._historyviewselection.unselect_all()
@@ -1400,7 +1438,6 @@ class MessagesView(object):
 			self.add_contact(
 				contactPhoneNumbers,
 				messages = description,
-				parent = self._window,
 				defaultIndex = defaultIndex,
 			)
 			self._messageviewselection.unselect_all()
@@ -1674,7 +1711,6 @@ class ContactsView(object):
 			self.add_contact(
 				contactPhoneNumbers,
 				messages = (contactName, ),
-				parent = self._window,
 			)
 			self._contactsviewselection.unselect_all()
 		except Exception, e:

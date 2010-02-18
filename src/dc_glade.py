@@ -278,7 +278,7 @@ class Dialcentral(object):
 			import gv_views
 			from backends import merge_backend
 
-			self._smsEntryWindow = gv_views.SmsEntryWindow(self._widgetTree)
+			self._smsEntryWindow = gv_views.SmsEntryWindow(self._widgetTree, self._window)
 			try:
 				os.makedirs(constants._data_path_)
 			except OSError, e:
