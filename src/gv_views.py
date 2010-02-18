@@ -264,7 +264,6 @@ class SmsEntryWindow(object):
 		self._smsEntry.get_buffer().connect("changed", self._on_entry_changed)
 		self._smsEntrySize = None
 
-		self._numberIndex = -1
 		self._contacts = []
 
 	def add_contact(self, contactDetails, messages = (), parent = None, defaultIndex = -1):
@@ -275,14 +274,14 @@ class SmsEntryWindow(object):
 		self._contacts.append(contact)
 
 		selector = gtk.Button(contactNumbers[0][1])
-		#selector.connect("clicked", , len(self._contacts)) TODO
 		removeContact = gtk.Button(stock="gtk-delete")
-		#removeContact.connect("clicked", , len(self._contacts)) TODO
 		row = gtk.HBox()
 		row.pack_start(selector, True, True)
 		row.pack_start(removeContact, False, False)
 		row.show_all()
 		self._targetList.pack_start(row)
+		selector.connect("clicked", self._on_choose_phone_n, row)
+		removeContact.connect("clicked", self._on_remove_phone_n, row)
 		self._update_button_state()
 		self._update_context()
 
@@ -382,26 +381,60 @@ class SmsEntryWindow(object):
 			display = " - ".join((make_pretty(phoneNumber), phoneType))
 			yield (phoneNumber, display)
 
-	def _request_number(self):
-		try:
-			assert 0 <= self._numberIndex, "%r" % self._numberIndex
-
-			self._numberIndex = hildonize.touch_selector(
-				self._dialog,
-				"Phone Numbers",
-				(description for (number, description) in self._contactDetails),
-				self._numberIndex,
-			)
-			self._phoneButton.set_label(self._contactDetails[self._numberIndex][1])
-		except Exception, e:
-			_moduleLogger.exception("%s" % str(e))
-
 	def _hide(self):
 		self.clear()
 		self._window.hide()
 
+	def _request_number(self, contactIndex):
+		contactNumbers, index, messages = self._contacts[contactIndex]
+		assert 0 <= index, "%r" % index
+
+		index = hildonize.touch_selector(
+			self._window,
+			"Phone Numbers",
+			(description for (number, description) in contactNumbers),
+			index,
+		)
+		self._contacts[contactIndex] = contactNumbers, index, messages
+
 	def _on_phone(self, *args):
-		self._request_number()
+		try:
+			assert len(self._contacts) == 1
+			self._request_number(0)
+
+			contactNumbers, numberIndex, messages = self._contacts[0]
+			self._phoneButton.set_label(contactNumbers[numberIndex][1])
+			row = list(self._targetList.get_children())[0]
+			phoneButton = list(row.get_children())[0]
+			phoneButton.set_label(contactNumbers[numberIndex][1])
+		except Exception, e:
+			_moduleLogger.exception("%s" % str(e))
+
+	def _on_choose_phone_n(self, button, row):
+		try:
+			assert 1 < len(self._contacts)
+			targetList = list(self._targetList.get_children())
+			index = targetList.index(row)
+			self._request_number(index)
+
+			contactNumbers, numberIndex, messages = self._contacts[0]
+			phoneButton = list(row.get_children())[0]
+			phoneButton.set_label(contactNumbers[numberIndex][1])
+		except Exception, e:
+			_moduleLogger.exception("%s" % str(e))
+
+	def _on_remove_phone_n(self, button, row):
+		try:
+			assert 1 < len(self._contacts)
+			targetList = list(self._targetList.get_children())
+			index = targetList.index(row)
+
+			del self._contacts[index]
+			self._targetList.remove(row)
+			self._update_context()
+			self._update_button_state()
+		except Exception, e:
+			_moduleLogger.exception("%s" % str(e))
 
 	def _on_entry_changed(self, *args):
 		self._update_letter_count()
