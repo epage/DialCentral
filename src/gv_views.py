@@ -485,10 +485,9 @@ class Dialpad(object):
 		self._errorDisplay = errorDisplay
 
 		self._numberdisplay = widgetTree.get_widget("numberdisplay")
-		self._smsButton = widgetTree.get_widget("sms")
-		self._dialButton = widgetTree.get_widget("dial")
+		self._okButton = widgetTree.get_widget("dialpadOk")
 		self._backButton = widgetTree.get_widget("back")
-		self._zeroOrPlusButton = widgetTree.get_widget("digit0")
+		self._plusButton = widgetTree.get_widget("plus")
 		self._phonenumber = ""
 		self._prettynumber = ""
 
@@ -496,8 +495,8 @@ class Dialpad(object):
 			"on_digit_clicked": self._on_digit_clicked,
 		}
 		widgetTree.signal_autoconnect(callbackMapping)
-		self._dialButton.connect("clicked", self._on_dial_clicked)
-		self._smsButton.connect("clicked", self._on_sms_clicked)
+		self._okButton.connect("clicked", self._on_ok_clicked)
+		self._plusButton.connect("clicked", self._on_plus)
 
 		self._originalLabel = self._backButton.get_label()
 		self._backTapHandler = gtk_toolbox.TapOrHold(self._backButton)
@@ -505,17 +504,13 @@ class Dialpad(object):
 		self._backTapHandler.on_hold = self._on_clearall
 		self._backTapHandler.on_holding = self._set_clear_button
 		self._backTapHandler.on_cancel = self._reset_back_button
-		self._zeroOrPlusTapHandler = gtk_toolbox.TapOrHold(self._zeroOrPlusButton)
-		self._zeroOrPlusTapHandler.on_tap = self._on_zero
-		self._zeroOrPlusTapHandler.on_hold = self._on_plus
 
 		self._window = gtk_toolbox.find_parent_window(self._numberdisplay)
 		self._keyPressEventId = 0
 
 	def enable(self):
-		self._dialButton.grab_focus()
+		self._okButton.grab_focus()
 		self._backTapHandler.enable()
-		self._zeroOrPlusTapHandler.enable()
 		self._keyPressEventId = self._window.connect("key-press-event", self._on_key_press)
 
 	def disable(self):
@@ -523,7 +518,6 @@ class Dialpad(object):
 		self._keyPressEventId = 0
 		self._reset_back_button()
 		self._backTapHandler.disable()
-		self._zeroOrPlusTapHandler.disable()
 
 	def add_contact(self, *args, **kwds):
 		"""
@@ -570,7 +564,7 @@ class Dialpad(object):
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
-	def _on_sms_clicked(self, widget):
+	def _on_ok_clicked(self, widget):
 		try:
 			phoneNumber = self.get_number()
 			self.add_contact(
@@ -579,22 +573,9 @@ class Dialpad(object):
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
-	def _on_dial_clicked(self, widget):
-		try:
-			#self.number_selected(action, phoneNumbers, message) TODO
-			pass
-		except Exception, e:
-			self._errorDisplay.push_exception()
-
 	def _on_digit_clicked(self, widget):
 		try:
 			self.set_number(self._phonenumber + widget.get_name()[-1])
-		except Exception, e:
-			self._errorDisplay.push_exception()
-
-	def _on_zero(self, *args):
-		try:
-			self.set_number(self._phonenumber + "0")
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
