@@ -209,6 +209,40 @@ def collapse_message(message, maxCharsPerLine, maxLines):
 	return "\n".join(_collapse_message(messageLines, maxCharsPerLine, maxLines))
 
 
+def _get_contact_numbers(backend, contactId, number):
+	if contactId:
+		contactPhoneNumbers = list(backend.get_contact_details(contactId))
+		uglyContactNumbers = (
+			make_ugly(contactNumber)
+			for (numberDescription, contactNumber) in contactPhoneNumbers
+		)
+		defaultMatches = [
+			(
+				number == contactNumber or
+				number[1:] == contactNumber and number.startswith("1") or
+				number[2:] == contactNumber and number.startswith("+1") or
+				number == contactNumber[1:] and contactNumber.startswith("1") or
+				number == contactNumber[2:] and contactNumber.startswith("+1")
+			)
+			for contactNumber in uglyContactNumbers
+		]
+		try:
+			defaultIndex = defaultMatches.index(True)
+		except ValueError:
+			contactPhoneNumbers.append(("Other", number))
+			defaultIndex = len(contactPhoneNumbers)-1
+			_moduleLogger.warn(
+				"Could not find contact %r's number %s among %r" % (
+					contactId, number, contactPhoneNumbers
+				)
+			)
+	else:
+		contactPhoneNumbers = [("Phone", number)]
+		defaultIndex = -1
+
+	return contactPhoneNumbers, defaultIndex
+
+
 class SmsEntryWindow(object):
 
 	MAX_CHAR = 160
@@ -1142,6 +1176,11 @@ class CallHistoryView(object):
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
+	def _history_summary(self, expectedNumber):
+		for number, action, date, whoFrom, whoFromId in self._historymodel:
+			if expectedNumber is not None and expectedNumber == number:
+				yield "%s <i>(%s)</i> - %s %s" % (number, whoFrom, date, action)
+
 	def _on_historyview_row_activated(self, treeview, path, view_column):
 		try:
 			childPath = self._historymodelfiltered.convert_path_to_child_path(path)
@@ -1149,33 +1188,15 @@ class CallHistoryView(object):
 			if not itr:
 				return
 
-			number = self._historymodel.get_value(itr, self.NUMBER_IDX)
-			number = make_ugly(number)
-			description = self._historymodel.get_value(itr, self.FROM_IDX)
+			prettyNumber = self._historymodel.get_value(itr, self.NUMBER_IDX)
+			number = make_ugly(prettyNumber)
+			description = list(self._history_summary(prettyNumber))
 			contactId = self._historymodel.get_value(itr, self.FROM_ID_IDX)
-			if contactId:
-				contactPhoneNumbers = list(self._backend.get_contact_details(contactId))
-				defaultMatches = [
-					(number == make_ugly(contactNumber) or number[1:] == make_ugly(contactNumber))
-					for (numberDescription, contactNumber) in contactPhoneNumbers
-				]
-				try:
-					defaultIndex = defaultMatches.index(True)
-				except ValueError:
-					contactPhoneNumbers.append(("Other", number))
-					defaultIndex = len(contactPhoneNumbers)-1
-					_moduleLogger.warn(
-						"Could not find contact %r's number %s among %r" % (
-							contactId, number, contactPhoneNumbers
-						)
-					)
-			else:
-				contactPhoneNumbers = [("Phone", number)]
-				defaultIndex = -1
+			contactPhoneNumbers, defaultIndex = _get_contact_numbers(self._backend, contactId, number)
 
 			self.add_contact(
 				contactPhoneNumbers,
-				messages = (description, ),
+				messages = description,
 				defaultIndex = defaultIndex,
 			)
 			self._historyviewselection.unselect_all()
@@ -1415,25 +1436,7 @@ class MessagesView(object):
 			description = self._messagemodel.get_value(itr, self.MESSAGES_IDX)
 
 			contactId = self._messagemodel.get_value(itr, self.FROM_ID_IDX)
-			if contactId:
-				contactPhoneNumbers = list(self._backend.get_contact_details(contactId))
-				defaultMatches = [
-					(number == make_ugly(contactNumber) or number[1:] == make_ugly(contactNumber))
-					for (numberDescription, contactNumber) in contactPhoneNumbers
-				]
-				try:
-					defaultIndex = defaultMatches.index(True)
-				except ValueError:
-					contactPhoneNumbers.append(("Other", number))
-					defaultIndex = len(contactPhoneNumbers)-1
-					_moduleLogger.warn(
-						"Could not find contact %r's number %s among %r" % (
-							contactId, number, contactPhoneNumbers
-						)
-					)
-			else:
-				contactPhoneNumbers = [("Phone", number)]
-				defaultIndex = -1
+			contactPhoneNumbers, defaultIndex = _get_contact_numbers(self._backend, contactId, number)
 
 			self.add_contact(
 				contactPhoneNumbers,
