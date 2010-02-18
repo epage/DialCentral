@@ -30,6 +30,12 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
+1.1.1
+* Added icons to the SMS window buttons
+* When selecting a number in the history tab, the call history is now shown in the SMS window
+* Bugfix: "Letters Left:" is now "Letters:"
+* Bugfix: When looking for alt numbers, there were issues
+
 1.1.0
 * Support for "+" in numbers, including on Dialpad by holding "0".  I'm hoping this makes both international and Gizmo users happier
 * Added support for multi-part SMS messages (just like the GV site)
