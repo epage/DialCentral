@@ -282,8 +282,7 @@ class SmsEntryWindow(object):
 		row.pack_start(selector, True, True)
 		row.pack_start(removeContact, False, False)
 		row.show_all()
-		# @bug List appears to be coming up backwards
-		self._targetList.pack_end(row)
+		self._targetList.pack_start(row)
 		self._update_button_state()
 		self._update_context()
 
