@@ -60,22 +60,11 @@ def normalize_number(prettynumber):
 	>>> normalize_number("+012-(345)-678-90")
 	'+01234567890'
 	>>> normalize_number("1-(345)-678-9000")
-	'+13456789000'
+	'13456789000'
 	>>> normalize_number("+1-(345)-678-9000")
 	'+13456789000'
 	"""
 	uglynumber = re.sub('[^0-9+]', '', prettynumber)
-	if uglynumber.startswith("+"):
-		pass
-	elif uglynumber.startswith("1") and len(uglynumber) == 11:
-		uglynumber = "+"+uglynumber
-	elif len(uglynumber) == 10:
-		uglynumber = "+1"+uglynumber
-	else:
-		pass
-
-	#validateRe = re.compile("^\+?[0-9]{10,}$")
-	#assert validateRe.match(uglynumber) is not None
 
 	return uglynumber
 
@@ -397,6 +386,12 @@ class SmsEntryWindow(object):
 		)
 		self._contacts[contactIndex] = contactNumbers, index, messages
 
+	def send_sms(self, numbers, message):
+		raise NotImplementedError()
+
+	def dial(self, number):
+		raise NotImplementedError()
+
 	def _on_phone(self, *args):
 		try:
 			assert len(self._contacts) == 1
@@ -450,7 +445,7 @@ class SmsEntryWindow(object):
 		enteredMessage = entryBuffer.get_text(entryBuffer.get_start_iter(), entryBuffer.get_end_iter())
 		enteredMessage = enteredMessage.strip()
 		assert enteredMessage
-		# @todo
+		self.send_sms(phoneNumbers, enteredMessage)
 		self._hide()
 
 	def _on_dial(self, *args):
@@ -458,7 +453,7 @@ class SmsEntryWindow(object):
 		contact = self._contacts[0]
 		contactNumber = contact[0][contact[1]][0]
 		phoneNumber = make_ugly(contactNumber)
-		# @todo
+		self.dial(phoneNumber)
 		self._hide()
 
 	def _on_delete(self, *args):
@@ -570,6 +565,7 @@ class Dialpad(object):
 			self.add_contact(
 				[("Dialer", phoneNumber)], (), self._window
 			)
+			self.set_number("")
 		except Exception, e:
 			self._errorDisplay.push_exception()
 

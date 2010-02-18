@@ -391,6 +391,7 @@
                         <property name="can_focus">False</property>
                         <property name="receives_default">False</property>
                         <property name="focus_on_click">False</property>
+                        <signal name="clicked" handler="on_digit_clicked"/>
                         <accelerator key="0" signal="clicked"/>
                         <child>
                           <widget class="GtkLabel" id="label19">
