@@ -292,16 +292,20 @@ class SmsEntryWindow(object):
 
 		self._contacts = []
 
-	def add_contact(self, contactDetails, messages = (), defaultIndex = -1):
+	def add_contact(self, name, contactDetails, messages = (), defaultIndex = -1):
 		contactNumbers = list(self._to_contact_numbers(contactDetails))
 		assert contactNumbers
 		contactIndex = defaultIndex if defaultIndex != -1 else 0
 		contact = contactNumbers, contactIndex, messages
 		self._contacts.append(contact)
 
+		nameLabel = gtk.Label(name)
 		selector = gtk.Button(contactNumbers[0][1])
+		if len(contactNumbers) == 1:
+			selector.set_sensitive(False)
 		removeContact = gtk.Button(stock="gtk-delete")
 		row = gtk.HBox()
+		row.pack_start(nameLabel, True, True)
 		row.pack_start(selector, True, True)
 		row.pack_start(removeContact, False, False)
 		row.show_all()
@@ -325,8 +329,8 @@ class SmsEntryWindow(object):
 	def clear(self):
 		del self._contacts[:]
 
-		for contactNumberSelector in list(self._targetList.get_children()):
-			self._targetList.remove(contactNumberSelector)
+		for row in list(self._targetList.get_children()):
+			self._targetList.remove(row)
 		self._smsEntry.get_buffer().set_text("")
 		self._update_letter_count()
 		self._update_context()
@@ -340,8 +344,8 @@ class SmsEntryWindow(object):
 	def _remove_contact(self, contactIndex):
 		del self._contacts[contactIndex]
 
-		contactNumberSelector = list(self._targetList.get_children())[contactIndex]
-		self._targetList.remove(contactNumberSelector)
+		row = list(self._targetList.get_children())[contactIndex]
+		self._targetList.remove(row)
 		self._update_button_state()
 		self._update_context()
 
@@ -442,7 +446,7 @@ class SmsEntryWindow(object):
 			contactNumbers, numberIndex, messages = self._contacts[0]
 			self._phoneButton.set_label(contactNumbers[numberIndex][1])
 			row = list(self._targetList.get_children())[0]
-			phoneButton = list(row.get_children())[0]
+			phoneButton = list(row.get_children())[1]
 			phoneButton.set_label(contactNumbers[numberIndex][1])
 		except Exception, e:
 			_moduleLogger.exception("%s" % str(e))
@@ -455,7 +459,7 @@ class SmsEntryWindow(object):
 			self._request_number(index)
 
 			contactNumbers, numberIndex, messages = self._contacts[0]
-			phoneButton = list(row.get_children())[0]
+			phoneButton = list(row.get_children())[1]
 			phoneButton.set_label(contactNumbers[numberIndex][1])
 		except Exception, e:
 			_moduleLogger.exception("%s" % str(e))
@@ -636,6 +640,7 @@ class Dialpad(object):
 		try:
 			phoneNumber = self.get_number()
 			self.add_contact(
+				"(Dialpad)",
 				[("Dialer", phoneNumber)], ()
 			)
 			self.set_number("")
@@ -1191,10 +1196,12 @@ class CallHistoryView(object):
 			prettyNumber = self._historymodel.get_value(itr, self.NUMBER_IDX)
 			number = make_ugly(prettyNumber)
 			description = list(self._history_summary(prettyNumber))
+			contactName = self._historymodel.get_value(itr, self.FROM_IDX)
 			contactId = self._historymodel.get_value(itr, self.FROM_ID_IDX)
 			contactPhoneNumbers, defaultIndex = _get_contact_numbers(self._backend, contactId, number)
 
 			self.add_contact(
+				contactName,
 				contactPhoneNumbers,
 				messages = description,
 				defaultIndex = defaultIndex,
@@ -1436,9 +1443,11 @@ class MessagesView(object):
 			description = self._messagemodel.get_value(itr, self.MESSAGES_IDX)
 
 			contactId = self._messagemodel.get_value(itr, self.FROM_ID_IDX)
+			header = self._messagemodel.get_value(itr, self.HEADER_IDX)
 			contactPhoneNumbers, defaultIndex = _get_contact_numbers(self._backend, contactId, number)
 
 			self.add_contact(
+				header,
 				contactPhoneNumbers,
 				messages = description,
 				defaultIndex = defaultIndex,
@@ -1712,6 +1721,7 @@ class ContactsView(object):
 				return
 
 			self.add_contact(
+				contactName,
 				contactPhoneNumbers,
 				messages = (contactName, ),
 			)
