@@ -111,7 +111,10 @@ class Dialcentral(object):
 
 		self._window = self._widgetTree.get_widget("mainWindow")
 		self._notebook = self._widgetTree.get_widget("notebook")
-		self._errorDisplay = gtk_toolbox.ErrorDisplay(self._widgetTree)
+		errorBox = self._widgetTree.get_widget("errorEventBox")
+		errorDescription = self._widgetTree.get_widget("errorDescription")
+		errorClose = self._widgetTree.get_widget("errorClose")
+		self._errorDisplay = gtk_toolbox.ErrorDisplay(errorBox, errorDescription, errorClose)
 		self._credentialsDialog = gtk_toolbox.LoginWindow(self._widgetTree)
 		self._smsEntryWindow = None
 
@@ -278,7 +281,8 @@ class Dialcentral(object):
 			import gv_views
 			from backends import merge_backend
 
-			self._smsEntryWindow = gv_views.SmsEntryWindow(self._widgetTree, self._window)
+			with gtk_toolbox.gtk_lock():
+				self._smsEntryWindow = gv_views.SmsEntryWindow(self._widgetTree, self._window, self._app)
 			try:
 				os.makedirs(constants._data_path_)
 			except OSError, e:

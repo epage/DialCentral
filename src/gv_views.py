@@ -247,7 +247,7 @@ class SmsEntryWindow(object):
 
 	MAX_CHAR = 160
 
-	def __init__(self, widgetTree, parent):
+	def __init__(self, widgetTree, parent, app):
 		self._clipboard = gtk.clipboard_get()
 		self._widgetTree = widgetTree
 		self._window = self._widgetTree.get_widget("smsWindow")
@@ -256,6 +256,11 @@ class SmsEntryWindow(object):
 		self._window.connect("window-state-event", self._on_window_state_change)
 		self._isFullScreen = False
 		self._parent = parent
+
+		errorBox = self._widgetTree.get_widget("smsErrorEventBox")
+		errorDescription = self._widgetTree.get_widget("smsErrorDescription")
+		errorClose = self._widgetTree.get_widget("smsErrorClose")
+		self._errorDisplay = gtk_toolbox.ErrorDisplay(errorBox, errorDescription, errorClose)
 
 		self._smsButton = self._widgetTree.get_widget("sendSmsButton")
 		self._smsButton.connect("clicked", self._on_send)
@@ -289,6 +294,9 @@ class SmsEntryWindow(object):
 		self._smsEntry = self._widgetTree.get_widget("smsEntry")
 		self._smsEntry.get_buffer().connect("changed", self._on_entry_changed)
 		self._smsEntrySize = None
+
+		self._app = app
+		self._window = hildonize.hildonize_window(self._app, self._window)
 
 		self._contacts = []
 
@@ -448,8 +456,8 @@ class SmsEntryWindow(object):
 			row = list(self._targetList.get_children())[0]
 			phoneButton = list(row.get_children())[1]
 			phoneButton.set_label(contactNumbers[numberIndex][1])
-		except Exception, e:
-			_moduleLogger.exception("%s" % str(e))
+		except TypeError, e:
+			self._errorDisplay.push_exception()
 
 	def _on_choose_phone_n(self, button, row):
 		try:
@@ -461,8 +469,8 @@ class SmsEntryWindow(object):
 			contactNumbers, numberIndex, messages = self._contacts[0]
 			phoneButton = list(row.get_children())[1]
 			phoneButton.set_label(contactNumbers[numberIndex][1])
-		except Exception, e:
-			_moduleLogger.exception("%s" % str(e))
+		except TypeError, e:
+			self._errorDisplay.push_exception()
 
 	def _on_remove_phone_n(self, button, row):
 		try:
@@ -474,43 +482,52 @@ class SmsEntryWindow(object):
 			self._targetList.remove(row)
 			self._update_context()
 			self._update_button_state()
-		except Exception, e:
-			_moduleLogger.exception("%s" % str(e))
+		except TypeError, e:
+			self._errorDisplay.push_exception()
 
 	def _on_entry_changed(self, *args):
-		self._update_letter_count()
+		try:
+			self._update_letter_count()
+		except TypeError, e:
+			self._errorDisplay.push_exception()
 
 	def _on_send(self, *args):
-		assert 0 < len(self._contacts), "%r" % self._contacts
-		phoneNumbers = [
-			make_ugly(contact[0][contact[1]][0])
-			for contact in self._contacts
-		]
+		try:
+			assert 0 < len(self._contacts), "%r" % self._contacts
+			phoneNumbers = [
+				make_ugly(contact[0][contact[1]][0])
+				for contact in self._contacts
+			]
 
-		entryBuffer = self._smsEntry.get_buffer()
-		enteredMessage = entryBuffer.get_text(entryBuffer.get_start_iter(), entryBuffer.get_end_iter())
-		enteredMessage = enteredMessage.strip()
-		assert enteredMessage
-		self.send_sms(phoneNumbers, enteredMessage)
-		self._hide()
+			entryBuffer = self._smsEntry.get_buffer()
+			enteredMessage = entryBuffer.get_text(entryBuffer.get_start_iter(), entryBuffer.get_end_iter())
+			enteredMessage = enteredMessage.strip()
+			assert enteredMessage
+			self.send_sms(phoneNumbers, enteredMessage)
+			self._hide()
+		except TypeError, e:
+			self._errorDisplay.push_exception()
 
 	def _on_dial(self, *args):
-		assert len(self._contacts) == 1, "%r" % self._contacts
-		contact = self._contacts[0]
-		contactNumber = contact[0][contact[1]][0]
-		phoneNumber = make_ugly(contactNumber)
-		self.dial(phoneNumber)
-		self._hide()
+		try:
+			assert len(self._contacts) == 1, "%r" % self._contacts
+			contact = self._contacts[0]
+			contactNumber = contact[0][contact[1]][0]
+			phoneNumber = make_ugly(contactNumber)
+			self.dial(phoneNumber)
+			self._hide()
+		except TypeError, e:
+			self._errorDisplay.push_exception()
 
 	def _on_delete(self, *args):
-		self._window.emit_stop_by_name("delete-event")
-		self._hide()
+		try:
+			self._window.emit_stop_by_name("delete-event")
+			self._hide()
+		except TypeError, e:
+			self._errorDisplay.push_exception()
 		return True
 
 	def _on_window_state_change(self, widget, event, *args):
-		"""
-		@note Hildon specific
-		"""
 		try:
 			if event.new_window_state & gtk.gdk.WINDOW_STATE_FULLSCREEN:
 				self._isFullScreen = True
@@ -546,8 +563,8 @@ class SmsEntryWindow(object):
 				event.get_state() & gtk.gdk.CONTROL_MASK
 			):
 				self._parent.destroy()
-		except Exception, e:
-			_moduleLogger.exception(str(e))
+		except TypeError, e:
+			self._errorDisplay.push_exception()
 
 
 class Dialpad(object):

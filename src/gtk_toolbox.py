@@ -414,11 +414,11 @@ def safecall(f, errorDisplay=None, default=None, exception=Exception):
 
 class ErrorDisplay(object):
 
-	def __init__(self, widgetTree):
+	def __init__(self, errorBox, errorDescription, errorClose):
 		super(ErrorDisplay, self).__init__()
-		self.__errorBox = widgetTree.get_widget("errorEventBox")
-		self.__errorDescription = widgetTree.get_widget("errorDescription")
-		self.__errorClose = widgetTree.get_widget("errorClose")
+		self.__errorBox = errorBox
+		self.__errorDescription = errorDescription
+		self.__errorClose = errorClose
 		self.__parentBox = self.__errorBox.get_parent()
 
 		self.__errorBox.connect("button_release_event", self._on_close)
