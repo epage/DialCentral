@@ -250,12 +250,15 @@ class SmsEntryWindow(object):
 	def __init__(self, widgetTree, parent, app):
 		self._clipboard = gtk.clipboard_get()
 		self._widgetTree = widgetTree
+		self._parent = parent
+		self._app = app
+		self._isFullScreen = False
+
 		self._window = self._widgetTree.get_widget("smsWindow")
+		self._window = hildonize.hildonize_window(self._app, self._window)
 		self._window.connect("delete-event", self._on_delete)
 		self._window.connect("key-press-event", self._on_key_press)
 		self._window.connect("window-state-event", self._on_window_state_change)
-		self._isFullScreen = False
-		self._parent = parent
 
 		errorBox = self._widgetTree.get_widget("smsErrorEventBox")
 		errorDescription = self._widgetTree.get_widget("smsErrorDescription")
@@ -294,9 +297,6 @@ class SmsEntryWindow(object):
 		self._smsEntry = self._widgetTree.get_widget("smsEntry")
 		self._smsEntry.get_buffer().connect("changed", self._on_entry_changed)
 		self._smsEntrySize = None
-
-		self._app = app
-		self._window = hildonize.hildonize_window(self._app, self._window)
 
 		self._contacts = []
 
@@ -424,7 +424,7 @@ class SmsEntryWindow(object):
 			display = " - ".join((make_pretty(phoneNumber), phoneType))
 			yield (phoneNumber, display)
 
-	def _hide(self):
+	def _pseudo_destroy(self):
 		self.clear()
 		self._window.hide()
 
@@ -504,7 +504,7 @@ class SmsEntryWindow(object):
 			enteredMessage = enteredMessage.strip()
 			assert enteredMessage
 			self.send_sms(phoneNumbers, enteredMessage)
-			self._hide()
+			self._pseudo_destroy()
 		except TypeError, e:
 			self._errorDisplay.push_exception()
 
@@ -515,14 +515,17 @@ class SmsEntryWindow(object):
 			contactNumber = contact[0][contact[1]][0]
 			phoneNumber = make_ugly(contactNumber)
 			self.dial(phoneNumber)
-			self._hide()
+			self._pseudo_destroy()
 		except TypeError, e:
 			self._errorDisplay.push_exception()
 
 	def _on_delete(self, *args):
 		try:
 			self._window.emit_stop_by_name("delete-event")
-			self._hide()
+			if hildonize.IS_FREMANTLE_SUPPORTED:
+				self._window.hide()
+			else:
+				self._pseudo_destroy()
 		except TypeError, e:
 			self._errorDisplay.push_exception()
 		return True
@@ -554,10 +557,15 @@ class SmsEntryWindow(object):
 				)
 				self._clipboard.set_text(str(message))
 			elif (
+				event.keyval == gtk.keysyms.h and
+				event.get_state() & gtk.gdk.CONTROL_MASK
+			):
+				self._window.hide()
+			elif (
 				event.keyval == gtk.keysyms.w and
 				event.get_state() & gtk.gdk.CONTROL_MASK
 			):
-				self._hide()
+				self._pseudo_destroy()
 			elif (
 				event.keyval == gtk.keysyms.q and
 				event.get_state() & gtk.gdk.CONTROL_MASK
