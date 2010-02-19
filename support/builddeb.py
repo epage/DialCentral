@@ -30,6 +30,14 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
+1.1.2
+* Added names to the rows
+* Disabled changing number when there weren't numbers to change to
+* Reformatted the SMS window a tad
+* Added a proper non-modal error box to the SMS window
+* Bugfix: hildonizing the SMS Entry Window
+* Bugfix: Race condition in creating SMS Entry Window
+
 1.1.1
 * Added icons to the SMS window buttons
 * When selecting a number in the history tab, the call history is now shown in the SMS window
