@@ -330,10 +330,7 @@ class SmsEntryWindow(object):
 		self._window.present()
 
 		self._smsEntry.grab_focus()
-		dx = self._conversationView.get_allocation().height - self._conversationViewPort.get_allocation().height
-		dx = max(dx, 0)
-		adjustment = self._scrollWindow.get_vadjustment()
-		adjustment.value = dx
+		self._scroll_to_bottom()
 
 	def clear(self):
 		del self._contacts[:]
@@ -357,6 +354,13 @@ class SmsEntryWindow(object):
 		self._targetList.remove(row)
 		self._update_button_state()
 		self._update_context()
+		self._scroll_to_bottom()
+
+	def _scroll_to_bottom(self):
+		dx = self._conversationView.get_allocation().height - self._conversationViewPort.get_allocation().height
+		dx = max(dx, 0)
+		adjustment = self._scrollWindow.get_vadjustment()
+		adjustment.value = dx
 
 	def _update_letter_count(self):
 		if self._smsEntrySize is None:
