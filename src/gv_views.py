@@ -259,6 +259,7 @@ class SmsEntryWindow(object):
 		self._window.connect("delete-event", self._on_delete)
 		self._window.connect("key-press-event", self._on_key_press)
 		self._window.connect("window-state-event", self._on_window_state_change)
+		self._widgetTree.get_widget("smsMessagesViewPort").show()
 
 		errorBox = self._widgetTree.get_widget("smsErrorEventBox")
 		errorDescription = self._widgetTree.get_widget("smsErrorDescription")
