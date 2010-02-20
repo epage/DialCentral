@@ -30,6 +30,9 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
+1.1.4
+* Bugfix from 1.1.0: Scroll to bottom when removing a recipient
+* Bugfix for 1.1.1: Maemo 5 fix was incomplete
 1.1.3
 * Broadcast SMS: Increased the spacing between contacts
 * SMS: Added Ctrl+h shortcut to hide the window for adding more recipients to the SMS
