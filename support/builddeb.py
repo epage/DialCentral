@@ -30,25 +30,30 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
+1.1.3
+* Broadcast SMS: Increased the spacing between contacts
+* SMS: Added Ctrl+h shortcut to hide the window for adding more recipients to the SMS
+* Bugfix from 1.1.0: In "Messages" if "Texts" was selected, you saw nothing
+* Bugfix from 1.1.0: Issues with SMS window on Maemo
+* Bugfix from 1.1.0: Maemo 5 SMS dialog is not working
 1.1.2
-* Added names to the rows
-* Disabled changing number when there weren't numbers to change to
-* Reformatted the SMS window a tad
-* Added a proper non-modal error box to the SMS window
-* Bugfix: hildonizing the SMS Entry Window
-* Bugfix: Race condition in creating SMS Entry Window
-
+* Broadcast SMS: Added names to the rows
+* Broadcast SMS: Disabled changing number when there weren't numbers to change to
+* SMS: Reformatted the SMS window a tad
+* SMS: Added a proper non-modal error box to the SMS window
+* Bugfix from 1.1.0: hildonizing the SMS Entry Window
+* Bugfix from 1.1.0: Race condition in creating SMS Entry Window
 1.1.1
-* Added icons to the SMS window buttons
-* When selecting a number in the history tab, the call history is now shown in the SMS window
-* Bugfix: "Letters Left:" is now "Letters:"
-* Bugfix: When looking for alt numbers, there were issues
-
+* SMS: Added icons to the SMS window buttons
+* SMS: When selecting a number in the history tab, the call history is now shown in the SMS window
+* Bugfix from 1.1.0: "Letters Left:" is now "Letters:"
+* Bugfix from 1.1.0: When looking for alt numbers, there were issues
 1.1.0
-* Support for "+" in numbers, including on Dialpad by holding "0".  I'm hoping this makes both international and Gizmo users happier
-* Added support for multi-part SMS messages (just like the GV site)
-* Switching the sms entry dialog to a window, mainly for multi-part sms but also fullscreen and better key combos
-* Unofficial support for importing of contacts files through Ctrl+i
+* Dialpad: Support for "+" in numbers, including on Dialpad by holding "0".  I'm hoping this makes both international and Gizmo users happier
+* SMS: Added support for multi-part SMS messages (just like the GV site)
+* SMS: Switching the sms entry dialog to a window with some key combos
+* Broadcast SMS: Added it
+* Contacts: Unofficial support for importing of contacts files through Ctrl+i
 * Bugfixes carried over from TOR work
 
 1.0.10
