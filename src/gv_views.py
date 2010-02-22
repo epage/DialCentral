@@ -303,7 +303,7 @@ class SmsEntryWindow(object):
 
 	def add_contact(self, name, contactDetails, messages = (), defaultIndex = -1):
 		contactNumbers = list(self._to_contact_numbers(contactDetails))
-		assert contactNumbers
+		assert contactNumbers, "Contact must have at least one number"
 		contactIndex = defaultIndex if defaultIndex != -1 else 0
 		contact = contactNumbers, contactIndex, messages
 		self._contacts.append(contact)
@@ -453,7 +453,7 @@ class SmsEntryWindow(object):
 
 	def _on_phone(self, *args):
 		try:
-			assert len(self._contacts) == 1
+			assert len(self._contacts) == 1, "One and only one contact is required"
 			self._request_number(0)
 
 			contactNumbers, numberIndex, messages = self._contacts[0]
@@ -461,12 +461,12 @@ class SmsEntryWindow(object):
 			row = list(self._targetList.get_children())[0]
 			phoneButton = list(row.get_children())[1]
 			phoneButton.set_label(contactNumbers[numberIndex][1])
-		except TypeError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_choose_phone_n(self, button, row):
 		try:
-			assert 1 < len(self._contacts)
+			assert 1 < len(self._contacts), "More than one contact required"
 			targetList = list(self._targetList.get_children())
 			index = targetList.index(row)
 			self._request_number(index)
@@ -474,12 +474,12 @@ class SmsEntryWindow(object):
 			contactNumbers, numberIndex, messages = self._contacts[0]
 			phoneButton = list(row.get_children())[1]
 			phoneButton.set_label(contactNumbers[numberIndex][1])
-		except TypeError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_remove_phone_n(self, button, row):
 		try:
-			assert 1 < len(self._contacts)
+			assert 1 < len(self._contacts), "More than one contact required"
 			targetList = list(self._targetList.get_children())
 			index = targetList.index(row)
 
@@ -487,18 +487,18 @@ class SmsEntryWindow(object):
 			self._targetList.remove(row)
 			self._update_context()
 			self._update_button_state()
-		except TypeError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_entry_changed(self, *args):
 		try:
 			self._update_letter_count()
-		except TypeError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_send(self, *args):
 		try:
-			assert 0 < len(self._contacts), "%r" % self._contacts
+			assert 0 < len(self._contacts), "At least one contact required (%r)" % self._contacts
 			phoneNumbers = [
 				make_ugly(contact[0][contact[1]][0])
 				for contact in self._contacts
@@ -507,21 +507,21 @@ class SmsEntryWindow(object):
 			entryBuffer = self._smsEntry.get_buffer()
 			enteredMessage = entryBuffer.get_text(entryBuffer.get_start_iter(), entryBuffer.get_end_iter())
 			enteredMessage = enteredMessage.strip()
-			assert enteredMessage
+			assert enteredMessage, "No message provided"
 			self.send_sms(phoneNumbers, enteredMessage)
 			self._pseudo_destroy()
-		except TypeError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_dial(self, *args):
 		try:
-			assert len(self._contacts) == 1, "%r" % self._contacts
+			assert len(self._contacts) == 1, "One and only one contact allowed (%r)" % self._contacts
 			contact = self._contacts[0]
 			contactNumber = contact[0][contact[1]][0]
 			phoneNumber = make_ugly(contactNumber)
 			self.dial(phoneNumber)
 			self._pseudo_destroy()
-		except TypeError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 	def _on_delete(self, *args):
@@ -531,7 +531,7 @@ class SmsEntryWindow(object):
 				self._window.hide()
 			else:
 				self._pseudo_destroy()
-		except TypeError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 		return True
 
@@ -576,7 +576,7 @@ class SmsEntryWindow(object):
 				event.get_state() & gtk.gdk.CONTROL_MASK
 			):
 				self._parent.destroy()
-		except TypeError, e:
+		except Exception, e:
 			self._errorDisplay.push_exception()
 
 
