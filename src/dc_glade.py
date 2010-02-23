@@ -501,6 +501,7 @@ class Dialcentral(object):
 		if oldStatus == newStatus:
 			return
 
+		_moduleLogger.debug("Changing from %s to %s" % (oldStatus, newStatus))
 		self._dialpads[oldStatus].disable()
 		self._accountViews[oldStatus].disable()
 		self._historyViews[oldStatus].disable()
