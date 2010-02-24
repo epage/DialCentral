@@ -587,7 +587,8 @@ class Dialpad(object):
 		self._errorDisplay = errorDisplay
 
 		self._numberdisplay = widgetTree.get_widget("numberdisplay")
-		self._okButton = widgetTree.get_widget("dialpadOk")
+		self._callButton = widgetTree.get_widget("dialpadCall")
+		self._sendSMSButton = widgetTree.get_widget("dialpadSMS")
 		self._backButton = widgetTree.get_widget("back")
 		self._plusButton = widgetTree.get_widget("plus")
 		self._phonenumber = ""
@@ -597,7 +598,8 @@ class Dialpad(object):
 			"on_digit_clicked": self._on_digit_clicked,
 		}
 		widgetTree.signal_autoconnect(callbackMapping)
-		self._okButton.connect("clicked", self._on_ok_clicked)
+		self._sendSMSButton.connect("clicked", self._on_sms_clicked)
+		self._callButton.connect("clicked", self._on_call_clicked)
 		self._plusButton.connect("clicked", self._on_plus)
 
 		self._originalLabel = self._backButton.get_label()
@@ -611,7 +613,7 @@ class Dialpad(object):
 		self._keyPressEventId = 0
 
 	def enable(self):
-		self._okButton.grab_focus()
+		self._sendSMSButton.grab_focus()
 		self._backTapHandler.enable()
 		self._keyPressEventId = self._window.connect("key-press-event", self._on_key_press)
 
@@ -623,7 +625,13 @@ class Dialpad(object):
 
 	def add_contact(self, *args, **kwds):
 		"""
-		@note Actual dial function is patched in later
+		@note Actual function is patched in later
+		"""
+		raise NotImplementedError("Horrible unknown error has occurred")
+
+	def dial(self, number):
+		"""
+		@note Actual function is patched in later
 		"""
 		raise NotImplementedError("Horrible unknown error has occurred")
 
@@ -638,6 +646,10 @@ class Dialpad(object):
 			self._phonenumber = make_ugly(number)
 			self._prettynumber = make_pretty(self._phonenumber)
 			self._numberdisplay.set_label("<span size='30000' weight='bold'>%s</span>" % (self._prettynumber))
+			if self._phonenumber:
+				self._plusButton.set_sensitive(False)
+			else:
+				self._plusButton.set_sensitive(True)
 		except TypeError, e:
 			self._errorDisplay.push_exception()
 
@@ -666,7 +678,15 @@ class Dialpad(object):
 		except Exception, e:
 			self._errorDisplay.push_exception()
 
-	def _on_ok_clicked(self, widget):
+	def _on_call_clicked(self, widget):
+		try:
+			phoneNumber = self.get_number()
+			self.dial(phoneNumber)
+			self.set_number("")
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_sms_clicked(self, widget):
 		try:
 			phoneNumber = self.get_number()
 			self.add_contact(

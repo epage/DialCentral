@@ -26,14 +26,19 @@ import gtk
 class Dialpad(object):
 
 	def __init__(self, widgetTree):
+		self._buttons = [
+			widgetTree.get_widget(buttonName)
+			for buttonName in ("dialpadCall", "dialpadSMS")
+		]
 		self._numberdisplay = widgetTree.get_widget("numberdisplay")
-		self._dialButton = widgetTree.get_widget("dialpadOk")
 
 	def enable(self):
-		self._dialButton.set_sensitive(False)
+		for button in self._buttons:
+			button.set_sensitive(False)
 
 	def disable(self):
-		self._dialButton.set_sensitive(True)
+		for button in self._buttons:
+			button.set_sensitive(True)
 
 	@staticmethod
 	def name():

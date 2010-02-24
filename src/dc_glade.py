@@ -325,6 +325,7 @@ class Dialcentral(object):
 			self._smsEntryWindow.send_sms = self._on_sms_clicked
 			self._smsEntryWindow.dial = self._on_dial_clicked
 			self._dialpads[self.GV_BACKEND].add_contact = self._add_contact
+			self._dialpads[self.GV_BACKEND].dial = self._on_dial_clicked
 			self._historyViews[self.GV_BACKEND].add_contact = self._add_contact
 			self._messagesViews[self.GV_BACKEND].add_contact = self._add_contact
 			self._contactsViews[self.GV_BACKEND].add_contact = self._add_contact
