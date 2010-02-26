@@ -70,7 +70,7 @@ def normalize_number(prettynumber):
 		pass
 	elif uglynumber.startswith("1"):
 		uglynumber = "+"+uglynumber
-	elif len(uglynumber) == 10:
+	elif 10 <= len(uglynumber):
 		assert uglynumber[0] not in ("+", "1")
 		uglynumber = "+1"+uglynumber
 	else:
@@ -97,11 +97,7 @@ def _make_pretty_local(phonenumber):
 
 def _make_pretty_international(phonenumber):
 	prettynumber = phonenumber
-	if phonenumber.startswith("0"):
-		prettynumber = "+%s " % (phonenumber[0:3], )
-		if 3 < len(phonenumber):
-			prettynumber += _make_pretty_with_areacode(phonenumber[3:])
-	elif phonenumber.startswith("1"):
+	if phonenumber.startswith("1"):
 		prettynumber = "1 "
 		prettynumber += _make_pretty_with_areacode(phonenumber[1:])
 	return prettynumber
@@ -147,7 +143,7 @@ def make_pretty(phonenumber):
 		prettynumber = _make_pretty_international(phonenumber[1:])
 		if not prettynumber.startswith("+"):
 			prettynumber = "+"+prettynumber
-	elif 8 < len(phonenumber) and phonenumber[0] in ("0", "1"):
+	elif 8 < len(phonenumber) and phonenumber[0] in ("1", ):
 		prettynumber = _make_pretty_international(phonenumber)
 	elif 7 < len(phonenumber):
 		prettynumber = _make_pretty_with_areacode(phonenumber)
