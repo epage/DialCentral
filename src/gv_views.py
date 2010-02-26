@@ -60,11 +60,21 @@ def normalize_number(prettynumber):
 	>>> normalize_number("+012-(345)-678-90")
 	'+01234567890'
 	>>> normalize_number("1-(345)-678-9000")
-	'13456789000'
+	'+13456789000'
 	>>> normalize_number("+1-(345)-678-9000")
 	'+13456789000'
 	"""
 	uglynumber = re.sub('[^0-9+]', '', prettynumber)
+
+	if uglynumber.startswith("+"):
+		pass
+	elif uglynumber.startswith("1"):
+		uglynumber = "+"+uglynumber
+	elif len(uglynumber) == 10:
+		assert uglynumber[0] not in ("+", "1")
+		uglynumber = "+1"+uglynumber
+	else:
+		pass
 
 	return uglynumber
 
