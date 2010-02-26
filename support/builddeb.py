@@ -30,6 +30,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
+1.1.7
+* Adjusting how numbers are normalized
 1.1.6
 * Added back in separate call/sms buttons
 1.1.5
