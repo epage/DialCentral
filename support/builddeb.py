@@ -30,6 +30,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
+1.1.8
+* Bugfix: Error when parsing time when the user's locale didn't match googles
 1.1.7
 * Adjusting how numbers are normalized
 1.1.6
