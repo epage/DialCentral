@@ -277,30 +277,16 @@ else:
 	hildonize_text_entry = _null_hildonize_text_entry
 
 
-def _hildon_mark_window_rotatable(window):
-	# gtk documentation is unclear whether this does a "=" or a "|="
-	window.set_flags(hildon.HILDON_PORTRAIT_MODE_SUPPORT)
-
-
-def _null_mark_window_rotatable(window):
-	pass
-
-
-try:
-	hildon.HILDON_PORTRAIT_MODE_SUPPORT
-	mark_window_rotatable = _hildon_mark_window_rotatable
-except AttributeError:
-	mark_window_rotatable = _null_mark_window_rotatable
-
-
 def _hildon_window_to_portrait(window):
 	# gtk documentation is unclear whether this does a "=" or a "|="
-	window.set_flags(hildon.HILDON_PORTRAIT_MODE_SUPPORT)
+	flags = hildon.PORTRAIT_MODE_SUPPORT | hildon.PORTRAIT_MODE_REQUEST
+	hildon.hildon_gtk_window_set_portrait_flags(window, flags)
 
 
 def _hildon_window_to_landscape(window):
 	# gtk documentation is unclear whether this does a "=" or a "&= ~"
-	window.unset_flags(hildon.HILDON_PORTRAIT_MODE_REQUEST)
+	flags = hildon.PORTRAIT_MODE_SUPPORT
+	hildon.hildon_gtk_window_set_portrait_flags(window, flags)
 
 
 def _null_window_to_portrait(window):
@@ -312,8 +298,9 @@ def _null_window_to_landscape(window):
 
 
 try:
-	hildon.HILDON_PORTRAIT_MODE_SUPPORT
-	hildon.HILDON_PORTRAIT_MODE_REQUEST
+	hildon.PORTRAIT_MODE_SUPPORT
+	hildon.PORTRAIT_MODE_REQUEST
+	hildon.hildon_gtk_window_set_portrait_flags
 
 	window_to_portrait = _hildon_window_to_portrait
 	window_to_landscape = _hildon_window_to_landscape

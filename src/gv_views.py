@@ -676,6 +676,14 @@ class Dialpad(object):
 		"""
 		pass
 
+	def set_orientation(self, orientation):
+		if orientation == gtk.ORIENTATION_VERTICAL:
+			pass
+		elif orientation == gtk.ORIENTATION_HORIZONTAL:
+			pass
+		else:
+			raise NotImplementedError(orientation)
+
 	def _on_key_press(self, widget, event):
 		try:
 			if event.keyval == ord("v") and event.get_state() & gtk.gdk.CONTROL_MASK:
@@ -871,6 +879,14 @@ class AccountInfo(object):
 		config.set(section, "notifyOnMissed", repr(self._notifyOnMissed))
 		config.set(section, "notifyOnVoicemail", repr(self._notifyOnVoicemail))
 		config.set(section, "notifyOnSms", repr(self._notifyOnSms))
+
+	def set_orientation(self, orientation):
+		if orientation == gtk.ORIENTATION_VERTICAL:
+			pass
+		elif orientation == gtk.ORIENTATION_HORIZONTAL:
+			pass
+		else:
+			raise NotImplementedError(orientation)
 
 	def _populate_callback_combo(self):
 		self._isPopulated = True
@@ -1168,6 +1184,14 @@ class CallHistoryView(object):
 		"""
 		config.set(sectionName, "filter", self._selectedFilter)
 
+	def set_orientation(self, orientation):
+		if orientation == gtk.ORIENTATION_VERTICAL:
+			pass
+		elif orientation == gtk.ORIENTATION_HORIZONTAL:
+			pass
+		else:
+			raise NotImplementedError(orientation)
+
 	def _is_history_visible(self, model, iter):
 		try:
 			action = model.get_value(iter, self.ACTION_IDX)
@@ -1403,6 +1427,14 @@ class MessagesView(object):
 		"""
 		config.set(sectionName, "status", self._messageStatus)
 		config.set(sectionName, "type", self._messageType)
+
+	def set_orientation(self, orientation):
+		if orientation == gtk.ORIENTATION_VERTICAL:
+			pass
+		elif orientation == gtk.ORIENTATION_HORIZONTAL:
+			pass
+		else:
+			raise NotImplementedError(orientation)
 
 	def _is_message_visible(self, model, iter):
 		try:
@@ -1700,6 +1732,14 @@ class ContactsView(object):
 
 	def save_settings(self, config, sectionName):
 		config.set(sectionName, "selectedAddressbook", str(self._selectedComboIndex))
+
+	def set_orientation(self, orientation):
+		if orientation == gtk.ORIENTATION_VERTICAL:
+			pass
+		elif orientation == gtk.ORIENTATION_HORIZONTAL:
+			pass
+		else:
+			raise NotImplementedError(orientation)
 
 	def _idly_populate_contactsview(self):
 		with gtk_toolbox.gtk_lock():

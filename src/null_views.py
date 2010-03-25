@@ -53,6 +53,14 @@ class Dialpad(object):
 		"""
 		pass
 
+	def set_orientation(self, orientation):
+		if orientation == gtk.ORIENTATION_VERTICAL:
+			pass
+		elif orientation == gtk.ORIENTATION_HORIZONTAL:
+			pass
+		else:
+			raise NotImplementedError(orientation)
+
 
 class AccountInfo(object):
 
@@ -111,6 +119,14 @@ class AccountInfo(object):
 		"""
 		pass
 
+	def set_orientation(self, orientation):
+		if orientation == gtk.ORIENTATION_VERTICAL:
+			pass
+		elif orientation == gtk.ORIENTATION_HORIZONTAL:
+			pass
+		else:
+			raise NotImplementedError(orientation)
+
 
 class CallHistoryView(object):
 
@@ -142,6 +158,14 @@ class CallHistoryView(object):
 		@note Thread Agnostic
 		"""
 		pass
+
+	def set_orientation(self, orientation):
+		if orientation == gtk.ORIENTATION_VERTICAL:
+			pass
+		elif orientation == gtk.ORIENTATION_HORIZONTAL:
+			pass
+		else:
+			raise NotImplementedError(orientation)
 
 
 class MessagesView(object):
@@ -178,6 +202,14 @@ class MessagesView(object):
 		"""
 		pass
 
+	def set_orientation(self, orientation):
+		if orientation == gtk.ORIENTATION_VERTICAL:
+			pass
+		elif orientation == gtk.ORIENTATION_HORIZONTAL:
+			pass
+		else:
+			raise NotImplementedError(orientation)
+
 
 class ContactsView(object):
 
@@ -209,3 +241,11 @@ class ContactsView(object):
 		@note Thread Agnostic
 		"""
 		pass
+
+	def set_orientation(self, orientation):
+		if orientation == gtk.ORIENTATION_VERTICAL:
+			pass
+		elif orientation == gtk.ORIENTATION_HORIZONTAL:
+			pass
+		else:
+			raise NotImplementedError(orientation)

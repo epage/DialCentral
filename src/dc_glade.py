@@ -119,6 +119,7 @@ class Dialcentral(object):
 		self._smsEntryWindow = None
 
 		self._isFullScreen = False
+		self.__isPortrait = False
 		self._app = hildonize.get_app_class()()
 		self._window = hildonize.hildonize_window(self._app, self._window)
 		hildonize.hildonize_text_entry(self._widgetTree.get_widget("usernameentry"))
@@ -519,6 +520,7 @@ class Dialcentral(object):
 
 		self._accountViews[self._selectedBackendId].update()
 		self._refresh_active_tab()
+		self._refresh_orientation()
 
 	def load_settings(self, config):
 		"""
@@ -545,6 +547,14 @@ class Dialcentral(object):
 			isFullscreen = config.getboolean(constants.__pretty_app_name__, "fullscreen")
 			if isFullscreen:
 				self._window.fullscreen()
+
+			isPortrait = config.getboolean(constants.__pretty_app_name__, "portrait")
+			if isPortrait ^ self.__isPortrait:
+				if isPortrait:
+					orientation = gtk.ORIENTATION_VERTICAL
+				else:
+					orientation = gtk.ORIENTATION_HORIZONTAL
+				self.set_orientation(orientation)
 		except ConfigParser.NoOptionError, e:
 			_moduleLogger.exception(
 				"Settings file %s is missing section %s" % (
@@ -585,27 +595,6 @@ class Dialcentral(object):
 					),
 				)
 
-		try:
-			previousOrientation = config.getint(constants.__pretty_app_name__, "orientation")
-			if previousOrientation == gtk.ORIENTATION_HORIZONTAL:
-				hildonize.window_to_landscape(self._window)
-			elif previousOrientation == gtk.ORIENTATION_VERTICAL:
-				hildonize.window_to_portrait(self._window)
-		except ConfigParser.NoOptionError, e:
-			_moduleLogger.exception(
-				"Settings file %s is missing section %s" % (
-					constants._user_settings_,
-					e.section,
-				),
-			)
-		except ConfigParser.NoSectionError, e:
-			_moduleLogger.exception(
-				"Settings file %s is missing section %s" % (
-					constants._user_settings_,
-					e.section,
-				),
-			)
-
 	def save_settings(self, config):
 		"""
 		@note Thread Agnostic
@@ -619,7 +608,7 @@ class Dialcentral(object):
 
 		config.add_section(constants.__pretty_app_name__)
 		config.set(constants.__pretty_app_name__, "active", str(backend))
-		config.set(constants.__pretty_app_name__, "orientation", str(int(gtk_toolbox.get_screen_orientation())))
+		config.set(constants.__pretty_app_name__, "portrait", str(self.__isPortrait))
 		config.set(constants.__pretty_app_name__, "fullscreen", str(self._isFullScreen))
 		for i, value in enumerate(self._credentials):
 			blob = base64.b64encode(value)
@@ -660,6 +649,36 @@ class Dialcentral(object):
 		if pageIndex in (self.RECENT_TAB, self.MESSAGES_TAB):
 			if self._ledHandler is not None:
 				self._ledHandler.off()
+
+	def set_orientation(self, orientation):
+		if orientation == gtk.ORIENTATION_VERTICAL:
+			hildonize.window_to_portrait(self._window)
+			self._notebook.set_property("tab-pos", gtk.POS_BOTTOM)
+			self.__isPortrait = True
+		elif orientation == gtk.ORIENTATION_HORIZONTAL:
+			hildonize.window_to_landscape(self._window)
+			self._notebook.set_property("tab-pos", gtk.POS_LEFT)
+			self.__isPortrait = False
+		else:
+			raise NotImplementedError(orientation)
+
+	def get_orientation(self):
+		return gtk.ORIENTATION_VERTICAL if self.__isPortrait else gtk.ORIENTATION_HORIZONTAL
+
+	def _toggle_rotate(self):
+		if self.__isPortrait:
+			self.set_orientation(gtk.ORIENTATION_HORIZONTAL)
+		else:
+			self.set_orientation(gtk.ORIENTATION_VERTICAL)
+
+	def _refresh_orientation(self):
+		"""
+		Mostly meant to be used when switching backends
+		"""
+		if self.__isPortrait:
+			self.set_orientation(gtk.ORIENTATION_VERTICAL)
+		else:
+			self.set_orientation(gtk.ORIENTATION_HORIZONTAL)
 
 	@gtk_toolbox.log_exception(_moduleLogger)
 	def _on_close(self, *args, **kwds):
@@ -755,6 +774,9 @@ class Dialcentral(object):
 				event.get_state() & gtk.gdk.CONTROL_MASK
 			):
 				self._window.destroy()
+			elif event.keyval == gtk.keysyms.o and event.get_state() & gtk.gdk.CONTROL_MASK:
+				self._toggle_rotate()
+				return True
 			elif event.keyval == gtk.keysyms.r and event.get_state() & gtk.gdk.CONTROL_MASK:
 				self._refresh_active_tab()
 			elif event.keyval == gtk.keysyms.i and event.get_state() & gtk.gdk.CONTROL_MASK:
