@@ -317,7 +317,6 @@ def build_package(distribution):
 		"debian": ", python-glade2",
 		"diablo": maemoSpecificDepends + ", python2.5-conic",
 		"fremantle": maemoSpecificDepends + ", python-glade2, python-alarm",
-		"mer": maemoSpecificDepends + ", python-glade2",
 	}[distribution]
 	p.recommends = ", ".join([
 	])
@@ -325,11 +324,10 @@ def build_package(distribution):
 		"debian": "comm",
 		"diablo": "user/network",
 		"fremantle": "user/network",
-		"mer": "user/network",
 	}[distribution]
 	p.arch = "all"
 	p.urgency = "low"
-	p.distribution = "diablo fremantle mer debian"
+	p.distribution = "diablo fremantle debian"
 	p.repository = "extras"
 	p.changelog = __changelog__
 	p.postinstall = __postinstall__
@@ -338,7 +336,6 @@ def build_package(distribution):
 		"debian": "26x26-dialcentral.png",
 		"diablo": "26x26-dialcentral.png",
 		"fremantle": "64x64-dialcentral.png", # Fremantle natively uses 48x48
-		"mer": "64x64-dialcentral.png",
 	}[distribution]
 	p["/usr/bin"] = [ "dialcentral.py" ]
 	for relPath, files in unflatten_files(find_files(".")).iteritems():

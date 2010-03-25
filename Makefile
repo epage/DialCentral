@@ -60,9 +60,6 @@ package: $(OBJ)
 	mkdir -p $(BUILD_PATH)/fremantle
 	cp -R $(BUILD_PATH)/generic/* $(BUILD_PATH)/fremantle
 	cd $(BUILD_PATH)/fremantle ; python builddeb.py fremantle
-	mkdir -p $(BUILD_PATH)/mer
-	cp -R $(BUILD_PATH)/generic/* $(BUILD_PATH)/mer
-	cd $(BUILD_PATH)/mer ; python builddeb.py mer
 	mkdir -p $(BUILD_PATH)/debian
 	cp -R $(BUILD_PATH)/generic/* $(BUILD_PATH)/debian
 	cd $(BUILD_PATH)/debian ; python builddeb.py debian
