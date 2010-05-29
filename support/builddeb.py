@@ -12,7 +12,8 @@ import constants
 
 
 __appname__ = constants.__app_name__
-__description__ = """
+__description__ = """REPLACEME
+REPLACEME
 .
 Homepage:
 """
@@ -21,6 +22,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
+REPLACEME
 """
 
 
@@ -30,13 +32,13 @@ gtk-update-icon-cache -f /usr/share/icons/hicolor
 """
 
 
-def find_files(path):
+def find_files(prefix, path):
 	for root, dirs, files in os.walk(path):
 		for file in files:
-			if file.startswith("src-"):
+			if file.startswith(prefix+"-"):
 				fileParts = file.split("-")
 				unused, relPathParts, newName = fileParts[0], fileParts[1:-1], fileParts[-1]
-				assert unused == "src"
+				assert unused == prefix
 				relPath = os.sep.join(relPathParts)
 				yield relPath, file, newName
 
@@ -80,9 +82,9 @@ def build_package(distribution):
 	p.recommends = ", ".join([
 	])
 	p.section = {
-		"debian": "",
-		"diablo": "",
-		"fremantle": "",
+		"debian": "REPLACEME",
+		"diablo": "user/REPLACEME",
+		"fremantle": "user/REPLACEME",
 	}[distribution]
 	p.arch = "all"
 	p.urgency = "low"
@@ -91,11 +93,11 @@ def build_package(distribution):
 	p.changelog = __changelog__
 	p.postinstall = __postinstall__
 	p.icon = {
-		"debian": "",
-		"diablo": "",
-		"fremantle": "", # Fremantle natively uses 48x48
+		"debian": "REPLACEME",
+		"diablo": "REPLACEME",
+		"fremantle": "REPLACEME", # Fremantle natively uses 48x48
 	}[distribution]
-	p["/usr/bin"] = [ "" ]
+	p["/usr/bin"] = [ "REPLACEME" ]
 	for relPath, files in unflatten_files(find_files(".")).iteritems():
 		fullPath = ""
 		if relPath:
@@ -104,10 +106,10 @@ def build_package(distribution):
 			"|".join((oldName, newName))
 			for (oldName, newName) in files
 		)
-	p["/usr/share/applications/hildon"] = [""]
-	p["/usr/share/icons/hicolor/26x26/hildon"] = [""]
-	p["/usr/share/icons/hicolor/64x64/hildon"] = [""]
-	p["/usr/share/icons/hicolor/scalable/hildon"] = [""]
+	p["/usr/share/applications/hildon"] = ["REPLACEME.desktop"]
+	p["/usr/share/icons/hicolor/26x26/hildon"] = ["REPLACEME"]
+	p["/usr/share/icons/hicolor/64x64/hildon"] = ["REPLACEME"]
+	p["/usr/share/icons/hicolor/scalable/hildon"] = ["REPLACEME"]
 
 	if distribution == "debian":
 		print p

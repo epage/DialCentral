@@ -1,7 +1,7 @@
 import os
 
-__pretty_app_name__ = ""
-__app_name__ = ""
+__pretty_app_name__ = "REPLACEME"
+__app_name__ = "REPLACEME"
 __version__ = "0.1.0"
 __build__ = 0
 __app_magic__ = 0xdeadbeef

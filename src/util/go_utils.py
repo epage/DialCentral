@@ -95,20 +95,24 @@ class Async(object):
 
 class Timeout(object):
 
-	def __init__(self, func):
+	def __init__(self, func, once = True):
 		self.__func = func
 		self.__timeoutId = None
+		self.__once = once
 
 	def start(self, **kwds):
 		assert self.__timeoutId is None
 
+		callback = self._on_once if self.__once else self.__func
+
 		assert len(kwds) == 1
 		timeoutInSeconds = kwds["seconds"]
 		assert 0 <= timeoutInSeconds
+
 		if timeoutInSeconds == 0:
-			self.__timeoutId = gobject.idle_add(self._on_once)
+			self.__timeoutId = gobject.idle_add(callback)
 		else:
-			self.__timeoutId = timeout_add_seconds(timeoutInSeconds, self._on_once)
+			self.__timeoutId = timeout_add_seconds(timeoutInSeconds, callback)
 
 	def is_running(self):
 		return self.__timeoutId is not None
@@ -152,6 +156,10 @@ class AsyncPool(object):
 		for _ in algorithms.itr_available(self.__workQueue):
 			pass # eat up queue to cut down dumb work
 		self.__workQueue.put(_QUEUE_EMPTY)
+
+	def clear_tasks(self):
+		for _ in algorithms.itr_available(self.__workQueue):
+			pass # eat up queue to cut down dumb work
 
 	def add_task(self, func, args, kwds, on_success, on_error):
 		task = func, args, kwds, on_success, on_error
@@ -242,6 +250,24 @@ class AsyncLinearExecution(object):
 				self.on_success,
 				self.on_error,
 			)
+
+
+class AutoSignal(object):
+
+	def __init__(self, toplevel):
+		self.__disconnectPool = []
+		toplevel.connect("destroy", self.__on_destroy)
+
+	def connect_auto(self, widget, *args):
+		id = widget.connect(*args)
+		self.__disconnectPool.append((widget, id))
+
+	@misc.log_exception(_moduleLogger)
+	def __on_destroy(self, widget):
+		_moduleLogger.info("Destroy: %r (%s to clean up)" % (self, len(self.__disconnectPool)))
+		for widget, id in self.__disconnectPool:
+			widget.disconnect(id)
+		del self.__disconnectPool[:]
 
 
 def throttled(minDelay, queue):
