@@ -15,7 +15,7 @@ __appname__ = constants.__app_name__
 __description__ = """REPLACEME
 REPLACEME
 .
-Homepage:
+Homepage: REPLACEME
 """
 __author__ = "Ed Page"
 __email__ = "eopage@byu.net"
@@ -23,14 +23,14 @@ __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
 REPLACEME
-"""
+""".strip()
 
 
 __postinstall__ = """#!/bin/sh -e
 
 gtk-update-icon-cache -f /usr/share/icons/hicolor
-rm -f ~/.REPLACEME/REPLACEME.log
-"""
+rm -f ~/.%(name)s/%(name)s.log
+""" % {"name": constants.__app_name__}
 
 __preremove__ = """#!/bin/sh -e
 """
@@ -101,19 +101,19 @@ def build_package(distribution):
 		"diablo": "REPLACEME",
 		"fremantle": "REPLACEME", # Fremantle natively uses 48x48
 	}[distribution]
-	p["/opt/REPLACEME/bin"] = [ "REPLACEME" ]
+	p["/opt/%s/bin" % constants.__appname__] = [ "%s.py" % constants.__appname__ ]
 	for relPath, files in unflatten_files(find_files("src", ".")).iteritems():
-		fullPath = "/opt/REPLACEME/lib"
+		fullPath = "/opt/%s/lib" % constants.__appname__
 		if relPath:
 			fullPath += os.sep+relPath
 		p[fullPath] = list(
 			"|".join((oldName, newName))
 			for (oldName, newName) in files
 		)
-	p["/usr/share/applications/hildon"] = ["REPLACEME.desktop"]
-	p["/usr/share/icons/hicolor/26x26/hildon"] = ["REPLACEME"]
-	p["/usr/share/icons/hicolor/64x64/hildon"] = ["REPLACEME"]
-	p["/usr/share/icons/hicolor/scalable/hildon"] = ["REPLACEME"]
+	p["/usr/share/applications/hildon"] = ["%s.desktop" % constants.__appname__]
+	p["/usr/share/icons/hicolor/26x26/hildon"] = ["%s.png" % constants.__appname__]
+	p["/usr/share/icons/hicolor/64x64/hildon"] = ["%s.png" % constants.__appname__]
+	p["/usr/share/icons/hicolor/scalable/hildon"] = ["%s.png" % constants.__appname__]
 
 	if distribution == "debian":
 		print p

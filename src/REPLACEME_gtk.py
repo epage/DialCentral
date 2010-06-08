@@ -25,10 +25,10 @@ _moduleLogger = logging.getLogger(__name__)
 PROFILE_STARTUP = False
 
 
-class REPLACEMElProgram(hildonize.get_app_class()):
+class REPLACEMEProgram(hildonize.get_app_class()):
 
 	def __init__(self):
-		super(REPLACEMElProgram, self).__init__()
+		super(REPLACEMEProgram, self).__init__()
 
 		if not hildonize.IS_HILDON_SUPPORTED:
 			_moduleLogger.info("No hildonization support")
