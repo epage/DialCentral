@@ -8,12 +8,14 @@ it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 """
 
+
 import os
 import sys
 import logging
 
+
 _moduleLogger = logging.getLogger(__name__)
-sys.path.append('../lib')
+sys.path.append("/opt/REPLACEME/lib")
 
 
 import constants
