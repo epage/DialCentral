@@ -29,6 +29,10 @@ REPLACEME
 __postinstall__ = """#!/bin/sh -e
 
 gtk-update-icon-cache -f /usr/share/icons/hicolor
+rm -f ~/.REPLACEME/REPLACEME.log
+"""
+
+__preremove__ = """#!/bin/sh -e
 """
 
 
@@ -62,8 +66,7 @@ def build_package(distribution):
 	p = py2deb.Py2deb(__appname__)
 	p.prettyName = constants.__pretty_app_name__
 	p.description = __description__
-	p.bugTracker = ""
-	p.upgradeDescription = __changelog__.split("\n\n", 1)[0]
+	p.bugTracker = "REPLACEME"
 	p.author = __author__
 	p.mail = __email__
 	p.license = "lgpl"
@@ -92,14 +95,15 @@ def build_package(distribution):
 	p.repository = "extras"
 	p.changelog = __changelog__
 	p.postinstall = __postinstall__
+	p.preremove = __preremove__
 	p.icon = {
 		"debian": "REPLACEME",
 		"diablo": "REPLACEME",
 		"fremantle": "REPLACEME", # Fremantle natively uses 48x48
 	}[distribution]
-	p["/usr/bin"] = [ "REPLACEME" ]
-	for relPath, files in unflatten_files(find_files(".")).iteritems():
-		fullPath = ""
+	p["/opt/REPLACEME/bin"] = [ "REPLACEME" ]
+	for relPath, files in unflatten_files(find_files("src", ".")).iteritems():
+		fullPath = "/opt/REPLACEME/lib"
 		if relPath:
 			fullPath += os.sep+relPath
 		p[fullPath] = list(

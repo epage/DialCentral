@@ -567,7 +567,202 @@ class PopupCalendar(object):
 			_moduleLogger.exception(e)
 
 
+class QuickAddView(object):
+
+	def __init__(self, widgetTree, errorDisplay, signalSink, prefix):
+		self._errorDisplay = errorDisplay
+		self._manager = None
+		self._signalSink = signalSink
+
+		self._clipboard = gtk.clipboard_get()
+
+		self._taskNameEntry = widgetTree.get_widget(prefix+"-nameEntry")
+		self._addTaskButton = widgetTree.get_widget(prefix+"-addButton")
+		self._pasteTaskNameButton = widgetTree.get_widget(prefix+"-pasteNameButton")
+		self._clearTaskNameButton = widgetTree.get_widget(prefix+"-clearNameButton")
+		self._onAddId = None
+		self._onAddClickedId = None
+		self._onAddReleasedId = None
+		self._addToEditTimerId = None
+		self._onClearId = None
+		self._onPasteId = None
+
+	def enable(self, manager):
+		self._manager = manager
+
+		self._onAddId = self._addTaskButton.connect("clicked", self._on_add)
+		self._onAddClickedId = self._addTaskButton.connect("pressed", self._on_add_pressed)
+		self._onAddReleasedId = self._addTaskButton.connect("released", self._on_add_released)
+		self._onPasteId = self._pasteTaskNameButton.connect("clicked", self._on_paste)
+		self._onClearId = self._clearTaskNameButton.connect("clicked", self._on_clear)
+
+	def disable(self):
+		self._manager = None
+
+		self._addTaskButton.disconnect(self._onAddId)
+		self._addTaskButton.disconnect(self._onAddClickedId)
+		self._addTaskButton.disconnect(self._onAddReleasedId)
+		self._pasteTaskNameButton.disconnect(self._onPasteId)
+		self._clearTaskNameButton.disconnect(self._onClearId)
+
+	def set_addability(self, addability):
+		self._addTaskButton.set_sensitive(addability)
+
+	def _on_add(self, *args):
+		try:
+			name = self._taskNameEntry.get_text()
+			self._taskNameEntry.set_text("")
+
+			self._signalSink.stage.send(("add", name))
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_add_edit(self, *args):
+		try:
+			name = self._taskNameEntry.get_text()
+			self._taskNameEntry.set_text("")
+
+			self._signalSink.stage.send(("add-edit", name))
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_add_pressed(self, widget):
+		try:
+			self._addToEditTimerId = gobject.timeout_add(1000, self._on_add_edit)
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_add_released(self, widget):
+		try:
+			if self._addToEditTimerId is not None:
+				gobject.source_remove(self._addToEditTimerId)
+			self._addToEditTimerId = None
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_paste(self, *args):
+		try:
+			entry = self._taskNameEntry.get_text()
+			addedText = self._clipboard.wait_for_text()
+			if addedText:
+				entry += addedText
+			self._taskNameEntry.set_text(entry)
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+	def _on_clear(self, *args):
+		try:
+			self._taskNameEntry.set_text("")
+		except Exception, e:
+			self._errorDisplay.push_exception()
+
+
+class TapOrHold(object):
+
+	def __init__(self, widget):
+		self._widget = widget
+		self._isTap = True
+		self._isPointerInside = True
+		self._holdTimeoutId = None
+		self._tapTimeoutId = None
+		self._taps = 0
+
+		self._bpeId = None
+		self._breId = None
+		self._eneId = None
+		self._lneId = None
+
+	def enable(self):
+		self._bpeId = self._widget.connect("button-press-event", self._on_button_press)
+		self._breId = self._widget.connect("button-release-event", self._on_button_release)
+		self._eneId = self._widget.connect("enter-notify-event", self._on_enter)
+		self._lneId = self._widget.connect("leave-notify-event", self._on_leave)
+
+	def disable(self):
+		self._widget.disconnect(self._bpeId)
+		self._widget.disconnect(self._breId)
+		self._widget.disconnect(self._eneId)
+		self._widget.disconnect(self._lneId)
+
+	def on_tap(self, taps):
+		print "TAP", taps
+
+	def on_hold(self, taps):
+		print "HOLD", taps
+
+	def on_holding(self):
+		print "HOLDING"
+
+	def on_cancel(self):
+		print "CANCEL"
+
+	def _on_button_press(self, *args):
+		# Hack to handle weird notebook behavior
+		self._isPointerInside = True
+		self._isTap = True
+
+		if self._tapTimeoutId is not None:
+			gobject.source_remove(self._tapTimeoutId)
+			self._tapTimeoutId = None
+
+		# Handle double taps
+		if self._holdTimeoutId is None:
+			self._tapTimeoutId = None
+
+			self._taps = 1
+			self._holdTimeoutId = gobject.timeout_add(1000, self._on_hold_timeout)
+		else:
+			self._taps = 2
+
+	def _on_button_release(self, *args):
+		assert self._tapTimeoutId is None
+		# Handle release after timeout if user hasn't double-clicked
+		self._tapTimeoutId = gobject.timeout_add(100, self._on_tap_timeout)
+
+	def _on_actual_press(self, *args):
+		if self._holdTimeoutId is not None:
+			gobject.source_remove(self._holdTimeoutId)
+		self._holdTimeoutId = None
+
+		if self._isPointerInside:
+			if self._isTap:
+				self.on_tap(self._taps)
+			else:
+				self.on_hold(self._taps)
+		else:
+			self.on_cancel()
+
+	def _on_tap_timeout(self, *args):
+		self._tapTimeoutId = None
+		self._on_actual_press()
+		return False
+
+	def _on_hold_timeout(self, *args):
+		self._holdTimeoutId = None
+		self._isTap = False
+		self.on_holding()
+		return False
+
+	def _on_enter(self, *args):
+		self._isPointerInside = True
+
+	def _on_leave(self, *args):
+		self._isPointerInside = False
+
+
 if __name__ == "__main__":
+	if True:
+		win = gtk.Window()
+		win.set_title("Tap'N'Hold")
+		eventBox = gtk.EventBox()
+		win.add(eventBox)
+
+		context = ContextHandler(eventBox, coroutines.printer_sink())
+		context.enable()
+		win.connect("destroy", lambda w: gtk.main_quit())
+
+		win.show_all()
+
 	if False:
 		import datetime
 		cal = PopupCalendar(None, datetime.datetime.now())
