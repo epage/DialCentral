@@ -105,6 +105,8 @@ class _FremantleAlarmHandler(object):
 				self._launcher = launcher
 		except ConfigParser.NoOptionError:
 			pass
+		except ConfigParser.NoSectionError:
+			pass
 
 	def save_settings(self, config, sectionName):
 		config.set(sectionName, "recurrence", str(self._recurrence))
@@ -182,6 +184,8 @@ class _DiabloAlarmHandler(object):
 			if launcher:
 				self._launcher = launcher
 		except ConfigParser.NoOptionError:
+			pass
+		except ConfigParser.NoSectionError:
 			pass
 
 	def save_settings(self, config, sectionName):
