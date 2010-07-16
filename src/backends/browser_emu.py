@@ -32,8 +32,8 @@ import logging
 import socket
 
 
-_moduleLogger = logging.getLogger("browser_emu")
-socket.setdefaulttimeout(20)
+_moduleLogger = logging.getLogger(__name__)
+socket.setdefaulttimeout(45)
 
 
 class MozillaEmulator(object):
@@ -63,8 +63,7 @@ class MozillaEmulator(object):
 			_moduleLogger.exception("No cookie file")
 		except Exception, e:
 			_moduleLogger.exception("Unknown error with cookies")
-		else:
-			self._loadedFromCookies = True
+		self._loadedFromCookies = True
 
 		return self._loadedFromCookies
 

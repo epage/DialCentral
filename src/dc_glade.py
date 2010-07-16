@@ -1,4 +1,4 @@
-#!/usr/bin/python2.5
+#!/usr/bin/env python
 
 """
 DialCentral - Front end for Google's GoogleVoice service.
@@ -968,8 +968,6 @@ def run_doctest():
 
 
 def run_dialpad():
-	_lock_file = os.path.join(constants._data_path_, ".lock")
-	#with gtk_toolbox.flock(_lock_file, 0):
 	gtk.gdk.threads_init()
 
 	if hildonize.IS_HILDON_SUPPORTED:
