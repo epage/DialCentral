@@ -175,7 +175,7 @@ class Dialcentral(object):
 		if not hildonize.IS_HILDON_SUPPORTED:
 			_moduleLogger.warning("No hildonization support")
 
-		hildonize.set_application_title(self._window, "%s" % constants.__pretty_app_name__)
+		hildonize.set_application_name("%s" % constants.__pretty_app_name__)
 
 		self._window.connect("destroy", self._on_close)
 		self._window.set_default_size(800, 300)
@@ -970,8 +970,6 @@ def run_doctest():
 def run_dialpad():
 	gtk.gdk.threads_init()
 
-	if hildonize.IS_HILDON_SUPPORTED:
-		gtk.set_application_name(constants.__pretty_app_name__)
 	handle = Dialcentral()
 	if not PROFILE_STARTUP:
 		gtk.main()

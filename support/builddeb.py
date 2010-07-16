@@ -37,9 +37,9 @@ __changelog__ = """
 __postinstall__ = """#!/bin/sh -e
 
 gtk-update-icon-cache -f /usr/share/icons/hicolor
-rm -f ~/.dialcentral/notifier.log
-rm -f ~/.dialcentral/dialcentral.log
-"""
+rm -f ~/.%(name)s/%(name)s.log
+rm -f ~/.%(name)s/notifier.log
+""" % {"name": constants.__app_name__}
 
 __preremove__ = """#!/bin/sh -e
 
@@ -47,13 +47,13 @@ python /usr/lib/dialcentral/alarm_handler.py -d || true
 """
 
 
-def find_files(path):
+def find_files(prefix, path):
 	for root, dirs, files in os.walk(path):
 		for file in files:
-			if file.startswith("src-"):
+			if file.startswith(prefix+"-"):
 				fileParts = file.split("-")
 				unused, relPathParts, newName = fileParts[0], fileParts[1:-1], fileParts[-1]
-				assert unused == "src"
+				assert unused == prefix
 				relPath = os.sep.join(relPathParts)
 				yield relPath, file, newName
 
@@ -78,7 +78,6 @@ def build_package(distribution):
 	p.prettyName = constants.__pretty_app_name__
 	p.description = __description__
 	p.bugTracker = "https://bugs.maemo.org/enter_bug.cgi?product=Dialcentral"
-	p.upgradeDescription = __changelog__.split("\n\n", 1)[0]
 	p.author = __author__
 	p.mail = __email__
 	p.license = "lgpl"
@@ -113,9 +112,9 @@ def build_package(distribution):
 		"diablo": "26x26-dialcentral.png",
 		"fremantle": "64x64-dialcentral.png", # Fremantle natively uses 48x48
 	}[distribution]
-	p["/usr/bin"] = [ "dialcentral.py" ]
-	for relPath, files in unflatten_files(find_files(".")).iteritems():
-		fullPath = "/usr/lib/dialcentral"
+	p["/opt/%s/bin" % __appname__] = [ "%s.py" % __appname__ ]
+	for relPath, files in unflatten_files(find_files("src", ".")).iteritems():
+		fullPath = "/opt/%s/lib" % __appname__
 		if relPath:
 			fullPath += os.sep+relPath
 		p[fullPath] = list(

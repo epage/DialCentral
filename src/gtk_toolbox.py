@@ -17,7 +17,7 @@ import gobject
 import gtk
 
 
-_moduleLogger = logging.getLogger("gtk_toolbox")
+_moduleLogger = logging.getLogger(__name__)
 
 
 def get_screen_orientation():

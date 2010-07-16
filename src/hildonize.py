@@ -47,24 +47,26 @@ except AttributeError:
 	get_app_class = _null_get_app_class
 
 
-def _hildon_set_application_title(window, title):
+def _hildon_set_application_name(name):
+	gtk.set_application_name(name)
+
+
+def _null_set_application_name(name):
 	pass
 
 
-def _null_set_application_title(window, title):
-	window.set_title(title)
-
-
-if IS_HILDON_SUPPORTED:
-	set_application_title = _hildon_set_application_title
-else:
-	set_application_title = _null_set_application_title
+try:
+	gtk.set_application_name
+	set_application_name = _hildon_set_application_name
+except AttributeError:
+	set_application_name = _null_set_application_name
 
 
 def _fremantle_hildonize_window(app, window):
 	oldWindow = window
 	newWindow = hildon.StackableWindow()
-	oldWindow.get_child().reparent(newWindow)
+	if oldWindow.get_child() is not None:
+		oldWindow.get_child().reparent(newWindow)
 	app.add_window(newWindow)
 	return newWindow
 
@@ -72,7 +74,8 @@ def _fremantle_hildonize_window(app, window):
 def _hildon_hildonize_window(app, window):
 	oldWindow = window
 	newWindow = hildon.Window()
-	oldWindow.get_child().reparent(newWindow)
+	if oldWindow.get_child() is not None:
+		oldWindow.get_child().reparent(newWindow)
 	app.add_window(newWindow)
 	return newWindow
 
@@ -354,6 +357,28 @@ if IS_HILDON_SUPPORTED:
 	hildonize_combo_entry = _hildon_hildonize_combo_entry
 else:
 	hildonize_combo_entry = _null_hildonize_combo_entry
+
+
+def _null_create_seekbar():
+	adjustment = gtk.Adjustment(0, 0, 101, 1, 5, 1)
+	seek = gtk.HScale(adjustment)
+	seek.set_draw_value(False)
+	return seek
+
+
+def _fremantle_create_seekbar():
+	seek = hildon.Seekbar()
+	seek.set_range(0.0, 100)
+	seek.set_draw_value(False)
+	seek.set_update_policy(gtk.UPDATE_DISCONTINUOUS)
+	return seek
+
+
+try:
+	hildon.Seekbar
+	create_seekbar = _fremantle_create_seekbar
+except AttributeError:
+	create_seekbar = _null_create_seekbar
 
 
 def _fremantle_hildonize_scrollwindow(scrolledWindow):

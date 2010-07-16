@@ -3,5 +3,5 @@ Encoding=UTF-8
 Version=1.0
 Type=Application
 Name=DialCentral
-Exec=/usr/bin/run-standalone.sh /usr/bin/dialcentral.py
+Exec=/usr/bin/run-standalone.sh /opt/dialcentral/bin/dialcentral.py
 Icon=dialcentral
