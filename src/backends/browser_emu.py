@@ -36,7 +36,18 @@ _moduleLogger = logging.getLogger(__name__)
 socket.setdefaulttimeout(45)
 
 
+def add_proxy(protocol, url, port):
+	proxyInfo = "%s:%s" % (url, port)
+	proxy = urllib2.ProxyHandler(
+		{protocol: proxyInfo}
+	)
+	opener = urllib2.build_opener(proxy)
+	urllib2.install_opener(opener)
+
+
 class MozillaEmulator(object):
+
+	USER_AGENT = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.1.4) Gecko/20091016 Firefox/3.5.4 (.NET CLR 3.5.30729)'
 
 	def __init__(self, trycount = 1):
 		"""Create a new MozillaEmulator object.
@@ -154,8 +165,7 @@ class MozillaEmulator(object):
 			redirector
 		)
 		u.addheaders = [(
-			'User-Agent',
-			'Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.1.4) Gecko/20091016 Firefox/3.5.4 (.NET CLR 3.5.30729)'
+			'User-Agent', self.USER_AGENT
 		)]
 		if not postdata is None:
 			req.add_data(postdata)
