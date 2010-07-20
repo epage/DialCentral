@@ -6,7 +6,7 @@ import logging
 
 
 _moduleLogger = logging.getLogger("dialcentral")
-sys.path.insert(0,"/usr/lib/dialcentral/")
+sys.path.insert(0,"/opt/dialcentral/lib")
 
 
 import constants
