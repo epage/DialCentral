@@ -216,7 +216,7 @@ def collapse_message(message, maxCharsPerLine, maxLines):
 
 
 def _get_contact_numbers(backend, contactId, number):
-	if contactId:
+	if contactId and contactId != '0':
 		contactPhoneNumbers = list(backend.get_contact_details(contactId))
 		uglyContactNumbers = (
 			make_ugly(contactNumber)
