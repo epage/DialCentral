@@ -37,6 +37,7 @@ import itertools
 import logging
 import inspect
 
+from xml.sax import saxutils
 from xml.etree import ElementTree
 
 try:
@@ -479,6 +480,8 @@ class GVoiceBackend(object):
 		for contactId, contactDetails in accountData["contacts"].iteritems():
 			# A zero contact id is the catch all for unknown contacts
 			if contactId != "0":
+				if "name" in contactDetails:
+					contactDetails["name"] = unescape(contactDetails["name"])
 				yield contactId, contactDetails
 
 	def get_voicemails(self):
@@ -575,12 +578,12 @@ class GVoiceBackend(object):
 			yield {
 				"id": messageId.strip(),
 				"contactId": contactId,
-				"name": name,
+				"name": unescape(name),
 				"time": exactTime,
 				"relTime": relativeTime,
 				"prettyNumber": prettyNumber,
 				"number": number,
-				"location": location,
+				"location": unescape(location),
 			}
 
 	@staticmethod
@@ -589,7 +592,7 @@ class GVoiceBackend(object):
 		text = MessageText()
 		if quality is not None and content is not None:
 			text.accuracy = quality
-			text.text = content
+			text.text = unescape(content)
 			return text
 		elif number is not None:
 			text.accuracy = MessageText.ACCURACY_HIGH
@@ -609,10 +612,10 @@ class GVoiceBackend(object):
 			relativeTimeGroup = self._relativeVoicemailTimeRegex.search(messageHtml)
 			conv.relTime = relativeTimeGroup.group(1).strip() if relativeTimeGroup else ""
 			locationGroup = self._voicemailLocationRegex.search(messageHtml)
-			conv.location = locationGroup.group(1).strip() if locationGroup else ""
+			conv.location = unescape(locationGroup.group(1).strip() if locationGroup else "")
 
 			nameGroup = self._voicemailNameRegex.search(messageHtml)
-			conv.name = nameGroup.group(1).strip() if nameGroup else ""
+			conv.name = unescape(nameGroup.group(1).strip() if nameGroup else "")
 			numberGroup = self._voicemailNumberRegex.search(messageHtml)
 			conv.number = numberGroup.group(1).strip() if numberGroup else ""
 			prettyNumberGroup = self._prettyVoicemailNumberRegex.search(messageHtml)
@@ -637,7 +640,7 @@ class GVoiceBackend(object):
 	def _interpret_sms_message_parts(fromPart, textPart, timePart):
 		text = MessageText()
 		text.accuracy = MessageText.ACCURACY_MEDIUM
-		text.text = textPart
+		text.text = unescape(textPart)
 
 		message = Message()
 		message.body = (text, )
@@ -661,7 +664,7 @@ class GVoiceBackend(object):
 			conv.location = ""
 
 			nameGroup = self._voicemailNameRegex.search(messageHtml)
-			conv.name = nameGroup.group(1).strip() if nameGroup else ""
+			conv.name = unescape(nameGroup.group(1).strip() if nameGroup else "")
 			numberGroup = self._voicemailNumberRegex.search(messageHtml)
 			conv.number = numberGroup.group(1).strip() if numberGroup else ""
 			prettyNumberGroup = self._prettyVoicemailNumberRegex.search(messageHtml)
@@ -720,6 +723,18 @@ class GVoiceBackend(object):
 		json = parse_json(page)
 		validate_response(json)
 		return json
+
+
+_UNESCAPE_ENTITIES = {
+ "&quot;": '"',
+ "&nbsp;": " ",
+ "&#39;": "'",
+}
+
+
+def unescape(text):
+	plain = saxutils.unescape(text, _UNESCAPE_ENTITIES)
+	return plain
 
 
 def google_strptime(time):
