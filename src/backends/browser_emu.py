@@ -143,6 +143,7 @@ class MozillaEmulator(object):
 			'Accept': 'text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png',
 			'Accept-Language': 'en,en-us;q=0.5',
 			'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+			'User-Agent': self.USER_AGENT,
 		}
 		for key, value in extraheaders.iteritems():
 			txheaders[key] = value
@@ -164,9 +165,6 @@ class MozillaEmulator(object):
 			urllib2.HTTPCookieProcessor(self._cookies),
 			redirector
 		)
-		u.addheaders = [(
-			'User-Agent', self.USER_AGENT
-		)]
 		if not postdata is None:
 			req.add_data(postdata)
 		return (req, u)
