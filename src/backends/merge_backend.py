@@ -1,7 +1,7 @@
 import logging
 
 
-_moduleLogger = logging.getLogger("merge_backend")
+_moduleLogger = logging.getLogger(__name__)
 
 
 class MergedAddressBook(object):

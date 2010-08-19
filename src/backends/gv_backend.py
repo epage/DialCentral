@@ -30,10 +30,10 @@ from __future__ import with_statement
 import itertools
 import logging
 
-import gvoice
+from gvoice import gvoice
 
 
-_moduleLogger = logging.getLogger("gv_backend")
+_moduleLogger = logging.getLogger(__name__)
 
 
 class GVDialer(object):
