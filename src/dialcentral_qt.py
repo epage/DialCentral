@@ -14,6 +14,7 @@ from PyQt4 import QtCore
 
 import constants
 import maeqt
+from util import qtpie
 from util import misc as misc_utils
 
 
@@ -289,6 +290,271 @@ class AccountDialog(object):
 		self._dialog.accept()
 
 
+class SMSEntryWindow(object):
+
+	def __init__(self, parent, app):
+		self._contacts = []
+		self._app = app
+
+		self._history = QtGui.QListView()
+		self._smsEntry = QtGui.QTextEdit()
+		self._smsEntry.textChanged.connect(self._on_letter_count_changed)
+
+		self._entryLayout = QtGui.QVBoxLayout()
+		self._entryLayout.addWidget(self._history)
+		self._entryLayout.addWidget(self._smsEntry)
+		self._entryWidget = QtGui.QWidget()
+		self._entryWidget.setLayout(self._entryLayout)
+		self._scrollEntry = QtGui.QScrollArea()
+		self._scrollEntry.setWidget(self._entryWidget)
+		self._scrollEntry.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignBottom)
+		self._scrollEntry.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+		self._scrollEntry.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+
+		self._characterCountLabel = QtGui.QLabel("Letters: %s" % 0)
+		self._numberSelector = None
+		self._smsButton = QtGui.QPushButton("SMS")
+		self._dialButton = QtGui.QPushButton("Dial")
+
+		self._buttonLayout = QtGui.QHBoxLayout()
+		self._buttonLayout.addWidget(self._characterCountLabel)
+		self._buttonLayout.addWidget(self._smsButton)
+		self._buttonLayout.addWidget(self._dialButton)
+
+		self._layout = QtGui.QVBoxLayout()
+		self._layout.addLayout(self._entryLayout)
+		self._layout.addLayout(self._buttonLayout)
+
+		centralWidget = QtGui.QWidget()
+		centralWidget.setLayout(self._layout)
+
+		self._window = QtGui.QMainWindow(parent)
+		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
+		maeqt.set_autorient(self._window, True)
+		maeqt.set_stackable(self._window, True)
+		self._window.setWindowTitle("Contact")
+		self._window.setCentralWidget(centralWidget)
+
+	def _update_letter_count(self):
+		count = self._smsEntry.toPlainText().size()
+		self._characterCountLabel.setText("Letters: %s" % count)
+
+	def _update_button_state(self):
+		if len(self._contacts) == 0:
+			self._dialButton.setEnabled(False)
+			self._smsButton.setEnabled(False)
+		elif len(self._contacts) == 1:
+			count = self._smsEntry.toPlainText().size()
+			if count == 0:
+				self._dialButton.setEnabled(True)
+				self._smsButton.setEnabled(False)
+			else:
+				self._dialButton.setEnabled(False)
+				self._smsButton.setEnabled(True)
+		else:
+			self._dialButton.setEnabled(False)
+			self._smsButton.setEnabled(True)
+
+	def _on_letter_count_changed(self):
+		self._update_letter_count()
+		self._update_button_state()
+
+
+class Dialpad(object):
+
+	def __init__(self, app):
+		self._app = app
+
+		self._plus = self._generate_key_button("+", "")
+		self._entry = QtGui.QLineEdit()
+
+		backAction = QtGui.QAction(None)
+		backAction.setText("Back")
+		backAction.triggered.connect(self._on_backspace)
+		backPieItem = qtpie.QActionPieItem(backAction)
+		clearAction = QtGui.QAction(None)
+		clearAction.setText("Clear")
+		clearAction.triggered.connect(self._on_clear_text)
+		clearPieItem = qtpie.QActionPieItem(clearAction)
+		self._back = qtpie.QPieButton(backPieItem)
+		self._back.set_center(backPieItem)
+		self._back.insertItem(qtpie.PieFiling.NULL_CENTER)
+		self._back.insertItem(clearPieItem)
+		self._back.insertItem(qtpie.PieFiling.NULL_CENTER)
+		self._back.insertItem(qtpie.PieFiling.NULL_CENTER)
+
+		self._entryLayout = QtGui.QHBoxLayout()
+		self._entryLayout.addWidget(self._plus, 0, QtCore.Qt.AlignCenter)
+		self._entryLayout.addWidget(self._entry, 10)
+		self._entryLayout.addWidget(self._back, 0, QtCore.Qt.AlignCenter)
+
+		self._smsButton = QtGui.QPushButton("SMS")
+		self._smsButton.clicked.connect(self._on_sms_clicked)
+		self._callButton = QtGui.QPushButton("Call")
+		self._callButton.clicked.connect(self._on_call_clicked)
+
+		self._padLayout = QtGui.QGridLayout()
+		rows = [0, 0, 0, 1, 1, 1, 2, 2, 2]
+		columns = [0, 1, 2] * 3
+		keys = [
+			("1", ""),
+			("2", "ABC"),
+			("3", "DEF"),
+			("4", "GHI"),
+			("5", "JKL"),
+			("6", "MNO"),
+			("7", "PQRS"),
+			("8", "TUV"),
+			("9", "WXYZ"),
+		]
+		for (num, letters), (row, column) in zip(keys, zip(rows, columns)):
+			self._padLayout.addWidget(
+				self._generate_key_button(num, letters), row, column, QtCore.Qt.AlignCenter
+			)
+		self._padLayout.addWidget(self._smsButton, 3, 0)
+		self._padLayout.addWidget(
+			self._generate_key_button("0", ""), 3, 1, QtCore.Qt.AlignCenter
+		)
+		self._padLayout.addWidget(self._callButton, 3, 2)
+
+		self._layout = QtGui.QVBoxLayout()
+		self._layout.addLayout(self._entryLayout)
+		self._layout.addLayout(self._padLayout)
+		self._widget = QtGui.QWidget()
+		self._widget.setLayout(self._layout)
+
+	@property
+	def toplevel(self):
+		return self._widget
+
+	def enable(self):
+		self._smsButton.setEnabled(True)
+		self._callButton.setEnabled(True)
+
+	def disable(self):
+		self._smsButton.setEnabled(False)
+		self._callButton.setEnabled(False)
+
+	def refresh(self):
+		pass
+
+	def _generate_key_button(self, center, letters):
+		centerPieItem = self._generate_button_slice(center)
+		button = qtpie.QPieButton(centerPieItem)
+		button.set_center(centerPieItem)
+
+		if len(letters) == 0:
+			for i in xrange(8):
+				pieItem = qtpie.PieFiling.NULL_CENTER
+				button.insertItem(pieItem)
+		elif len(letters) in [3, 4]:
+			for i in xrange(6 - len(letters)):
+				pieItem = qtpie.PieFiling.NULL_CENTER
+				button.insertItem(pieItem)
+
+			for letter in letters:
+				pieItem = self._generate_button_slice(letter)
+				button.insertItem(pieItem)
+
+			for i in xrange(2):
+				pieItem = qtpie.PieFiling.NULL_CENTER
+				button.insertItem(pieItem)
+		else:
+			raise NotImplementedError("Cannot handle %r" % letters)
+		return button
+
+	def _generate_button_slice(self, letter):
+		action = QtGui.QAction(None)
+		action.setText(letter)
+		action.triggered.connect(lambda: self._on_keypress(letter))
+		pieItem = qtpie.QActionPieItem(action)
+		return pieItem
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_keypress(self, key):
+		self._entry.insert(key)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_backspace(self, toggled = False):
+		self._entry.backspace()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_clear_text(self, toggled = False):
+		self._entry.clear()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_sms_clicked(self, checked = False):
+		number = str(self._entry.text())
+		self._entry.clear()
+		print "sms", number
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_call_clicked(self, checked = False):
+		number = str(self._entry.text())
+		self._entry.clear()
+		print "call", number
+
+
+class History(object):
+
+	def __init__(self, app):
+		self._app = app
+		self._widget = QtGui.QWidget()
+
+	@property
+	def toplevel(self):
+		return self._widget
+
+	def enable(self):
+		pass
+
+	def disable(self):
+		pass
+
+	def refresh(self):
+		pass
+
+
+class Messages(object):
+
+	def __init__(self, app):
+		self._app = app
+		self._widget = QtGui.QWidget()
+
+	@property
+	def toplevel(self):
+		return self._widget
+
+	def enable(self):
+		pass
+
+	def disable(self):
+		pass
+
+	def refresh(self):
+		pass
+
+
+class Contacts(object):
+
+	def __init__(self, app):
+		self._app = app
+		self._widget = QtGui.QWidget()
+
+	@property
+	def toplevel(self):
+		return self._widget
+
+	def enable(self):
+		pass
+
+	def disable(self):
+		pass
+
+	def refresh(self):
+		pass
+
+
 class MainWindow(object):
 
 	KEYPAD_TAB = 0
@@ -303,11 +569,20 @@ class MainWindow(object):
 
 		self._errorDisplay = QErrorDisplay()
 
+		self._dialpad = Dialpad(self._app)
+		self._history = History(self._app)
+		self._messages = Messages(self._app)
+		self._contacts = Contacts(self._app)
+
 		self._tabs = QtGui.QTabWidget()
 		if maeqt.screen_orientation() == QtCore.Qt.Vertical:
 			self._tabs.setTabPosition(QtGui.QTabWidget.South)
 		else:
 			self._tabs.setTabPosition(QtGui.QTabWidget.West)
+		self._tabs.addTab(self._dialpad.toplevel, "Dialpad")
+		self._tabs.addTab(self._history.toplevel, "History")
+		self._tabs.addTab(self._messages.toplevel, "Messages")
+		self._tabs.addTab(self._contacts.toplevel, "Contacts")
 
 		self._layout = QtGui.QVBoxLayout()
 		self._layout.addWidget(self._errorDisplay.toplevel)
@@ -432,6 +707,7 @@ class MainWindow(object):
 def run():
 	app = QtGui.QApplication([])
 	handle = Dialcentral(app)
+	qtpie.init_pies()
 	return app.exec_()
 
 

@@ -25,7 +25,7 @@ CTAGS=ctags-exuberant
 all: test
 
 run: $(OBJ)
-	$(SOURCE_PATH)/dc_glade.py
+	$(SOURCE_PATH)/$(PROJECT_NAME)_qt.py
 
 profile: $(OBJ)
 	$(PROFILE_GEN) $(PROGRAM)
