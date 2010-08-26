@@ -134,12 +134,14 @@ def make_pretty(phonenumber):
 	>>> make_pretty("+1234")
 	'+1 (234)'
 	"""
-	if phonenumber is None or phonenumber is "":
+	if phonenumber is None or phonenumber == "":
 		return ""
 
 	phonenumber = normalize_number(phonenumber)
 
-	if phonenumber[0] == "+":
+	if phonenumber == "":
+		return ""
+	elif phonenumber[0] == "+":
 		prettynumber = _make_pretty_international(phonenumber[1:])
 		if not prettynumber.startswith("+"):
 			prettynumber = "+"+prettynumber
@@ -902,7 +904,10 @@ class AccountInfo(object):
 			callbackNumbers = {"": "No callback numbers available"}
 
 		for number, description in callbackNumbers.iteritems():
-			self._callbackList.append((make_pretty(number), description))
+			numberDisplay = make_pretty(number)
+			if not numberDisplay:
+				continue
+			self._callbackList.append((numberDisplay, description))
 
 		self._set_callback_number(self._callbackNumber)
 
