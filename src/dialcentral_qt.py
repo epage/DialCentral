@@ -360,6 +360,50 @@ class SMSEntryWindow(object):
 		self._update_button_state()
 
 
+class DelayedWidget(object):
+
+	def __init__(self, app):
+		self._layout = QtGui.QVBoxLayout()
+		self._widget = QtGui.QWidget()
+		self._widget.setLayout(self._layout)
+
+		self._child = None
+		self._isEnabled = True
+
+	@property
+	def toplevel(self):
+		return self._widget
+
+	def has_child(self):
+		return self._child is not None
+
+	def set_child(self, child):
+		if self._child is not None:
+			self._layout.removeWidget(self._child.toplevel)
+		self._child = child
+		if self._child is not None:
+			self._layout.addWidget(self._child.toplevel)
+
+		if self._isEnabled:
+			self._child.enable()
+		else:
+			self._child.disable()
+
+	def enable(self):
+		self._isEnabled = True
+		if self._child is not None:
+			self._child.enable()
+
+	def disable(self):
+		self._isEnabled = False
+		if self._child is not None:
+			self._child.disable()
+
+	def refresh(self):
+		if self._child is not None:
+			self._child.refresh()
+
+
 class Dialpad(object):
 
 	def __init__(self, app):
@@ -497,9 +541,42 @@ class Dialpad(object):
 
 class History(object):
 
+	DATE_IDX = 0
+	ACTION_IDX = 1
+	NUMBER_IDX = 2
+	FROM_IDX = 3
+	MAX_IDX = 4
+
+	HISTORY_ITEM_TYPES = ["All", "Received", "Missed", "Placed"]
+	HISTORY_COLUMNS = ["When", "What", "Number", "From"]
+	assert len(HISTORY_COLUMNS) == MAX_IDX
+
 	def __init__(self, app):
+		self._selectedFilter = self.HISTORY_ITEM_TYPES[0]
 		self._app = app
+
+		self._listSelection = QtGui.QComboBox()
+		self._listSelection.addItems(self.HISTORY_ITEM_TYPES)
+		self._listSelection.setCurrentIndex(self.HISTORY_ITEM_TYPES.index(self._selectedFilter))
+		self._listSelection.currentIndexChanged.connect(self._on_filter_changed)
+
+		self._itemStore = QtGui.QStandardItemModel()
+		self._itemStore.setHorizontalHeaderLabels(self.HISTORY_COLUMNS)
+
+		self._itemView = QtGui.QTreeView()
+		self._itemView.setModel(self._itemStore)
+		self._itemView.setUniformRowHeights(True)
+		self._itemView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+		self._itemView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+		self._itemView.setHeaderHidden(True)
+		self._itemView.activated.connect(self._on_row_activated)
+
+		self._layout = QtGui.QVBoxLayout()
+		self._layout.addWidget(self._listSelection)
+		self._layout.addWidget(self._itemView)
 		self._widget = QtGui.QWidget()
+		self._widget.setLayout(self._layout)
 
 	@property
 	def toplevel(self):
@@ -513,13 +590,37 @@ class History(object):
 
 	def refresh(self):
 		pass
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_filter_changed(self, newItem):
+		self._selectedFilter = str(newItem)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_row_activated(self, index):
+		rowIndex = index.row()
 
 
 class Messages(object):
 
 	def __init__(self, app):
 		self._app = app
+
+		self._itemStore = QtGui.QStandardItemModel()
+		self._itemStore.setHorizontalHeaderLabels(["Messages"])
+
+		self._itemView = QtGui.QTreeView()
+		self._itemView.setModel(self._itemStore)
+		self._itemView.setUniformRowHeights(True)
+		self._itemView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+		self._itemView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+		self._itemView.setHeaderHidden(True)
+		self._itemView.activated.connect(self._on_row_activated)
+
+		self._layout = QtGui.QVBoxLayout()
+		self._layout.addWidget(self._itemView)
 		self._widget = QtGui.QWidget()
+		self._widget.setLayout(self._layout)
 
 	@property
 	def toplevel(self):
@@ -533,13 +634,40 @@ class Messages(object):
 
 	def refresh(self):
 		pass
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_row_activated(self, index):
+		rowIndex = index.row()
 
 
 class Contacts(object):
 
 	def __init__(self, app):
+		self._selectedFilter = ""
 		self._app = app
+
+		self._listSelection = QtGui.QComboBox()
+		self._listSelection.addItems([])
+		#self._listSelection.setCurrentIndex(self.HISTORY_ITEM_TYPES.index(self._selectedFilter))
+		self._listSelection.currentIndexChanged.connect(self._on_filter_changed)
+
+		self._itemStore = QtGui.QStandardItemModel()
+		self._itemStore.setHorizontalHeaderLabels(["Contacts"])
+
+		self._itemView = QtGui.QTreeView()
+		self._itemView.setModel(self._itemStore)
+		self._itemView.setUniformRowHeights(True)
+		self._itemView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+		self._itemView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+		self._itemView.setHeaderHidden(True)
+		self._itemView.activated.connect(self._on_row_activated)
+
+		self._layout = QtGui.QVBoxLayout()
+		self._layout.addWidget(self._listSelection)
+		self._layout.addWidget(self._itemView)
 		self._widget = QtGui.QWidget()
+		self._widget.setLayout(self._layout)
 
 	@property
 	def toplevel(self):
@@ -553,6 +681,14 @@ class Contacts(object):
 
 	def refresh(self):
 		pass
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_filter_changed(self, newItem):
+		self._selectedFilter = str(newItem)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_row_activated(self, index):
+		rowIndex = index.row()
 
 
 class MainWindow(object):
@@ -561,7 +697,23 @@ class MainWindow(object):
 	RECENT_TAB = 1
 	MESSAGES_TAB = 2
 	CONTACTS_TAB = 3
-	ACCOUNT_TAB = 4
+	MAX_TABS = 4
+
+	_TAB_TITLES = [
+		"Dialpad",
+		"History",
+		"Messages",
+		"Contacts",
+	]
+	assert len(_TAB_TITLES) == MAX_TABS
+
+	_TAB_CLASS = [
+		Dialpad,
+		History,
+		Messages,
+		Contacts,
+	]
+	assert len(_TAB_CLASS) == MAX_TABS
 
 	def __init__(self, parent, app):
 		self._fsContactsPath = os.path.join(constants._data_path_, "contacts")
@@ -569,24 +721,23 @@ class MainWindow(object):
 
 		self._errorDisplay = QErrorDisplay()
 
-		self._dialpad = Dialpad(self._app)
-		self._history = History(self._app)
-		self._messages = Messages(self._app)
-		self._contacts = Contacts(self._app)
+		self._tabsContents = [
+			DelayedWidget(self._app)
+			for i in xrange(self.MAX_TABS)
+		]
 
-		self._tabs = QtGui.QTabWidget()
+		self._tabWidget = QtGui.QTabWidget()
 		if maeqt.screen_orientation() == QtCore.Qt.Vertical:
-			self._tabs.setTabPosition(QtGui.QTabWidget.South)
+			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
 		else:
-			self._tabs.setTabPosition(QtGui.QTabWidget.West)
-		self._tabs.addTab(self._dialpad.toplevel, "Dialpad")
-		self._tabs.addTab(self._history.toplevel, "History")
-		self._tabs.addTab(self._messages.toplevel, "Messages")
-		self._tabs.addTab(self._contacts.toplevel, "Contacts")
+			self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
+		for tabIndex, tabTitle in enumerate(self._TAB_TITLES):
+			self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, tabTitle)
+		self._tabWidget.currentChanged.connect(self._on_tab_changed)
 
 		self._layout = QtGui.QVBoxLayout()
 		self._layout.addWidget(self._errorDisplay.toplevel)
-		self._layout.addWidget(self._tabs)
+		self._layout.addWidget(self._tabWidget)
 
 		centralWidget = QtGui.QWidget()
 		centralWidget.setLayout(self._layout)
@@ -642,6 +793,7 @@ class MainWindow(object):
 
 		self._window.addAction(self._app.logAction)
 
+		self._initialize_tab(self._tabWidget.currentIndex())
 		self.set_fullscreen(self._app.fullscreenAction.isChecked())
 		self._window.show()
 
@@ -676,8 +828,10 @@ class MainWindow(object):
 		for child in self.walk_children():
 			child.set_fullscreen(isFullscreen)
 
-	def _populate_tab(self, index):
-		pass
+	def _initialize_tab(self, index):
+		assert index < self.MAX_TABS
+		if not self._tabsContents[index].has_child():
+			self._tabsContents[index].set_child(self._TAB_CLASS[index](self._app))
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_login(self, checked = True):
@@ -685,12 +839,12 @@ class MainWindow(object):
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_tab_changed(self, index):
-		self._populate_tab(index)
+		self._initialize_tab(index)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh(self, checked = True):
-		index = self._tabs.currentIndex()
-		self._populate_tab(index)
+		index = self._tabWidget.currentIndex()
+		self._tabsContents[index].refresh()
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_import(self, checked = True):
