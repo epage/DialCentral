@@ -555,10 +555,12 @@ class History(object):
 		self._selectedFilter = self.HISTORY_ITEM_TYPES[0]
 		self._app = app
 
-		self._listSelection = QtGui.QComboBox()
-		self._listSelection.addItems(self.HISTORY_ITEM_TYPES)
-		self._listSelection.setCurrentIndex(self.HISTORY_ITEM_TYPES.index(self._selectedFilter))
-		self._listSelection.currentIndexChanged.connect(self._on_filter_changed)
+		self._typeSelection = QtGui.QComboBox()
+		self._typeSelection.addItems(self.HISTORY_ITEM_TYPES)
+		self._typeSelection.setCurrentIndex(
+			self.HISTORY_ITEM_TYPES.index(self._selectedFilter)
+		)
+		self._typeSelection.currentIndexChanged.connect(self._on_filter_changed)
 
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(self.HISTORY_COLUMNS)
@@ -573,7 +575,7 @@ class History(object):
 		self._itemView.activated.connect(self._on_row_activated)
 
 		self._layout = QtGui.QVBoxLayout()
-		self._layout.addWidget(self._listSelection)
+		self._layout.addWidget(self._typeSelection)
 		self._layout.addWidget(self._itemView)
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
@@ -602,8 +604,39 @@ class History(object):
 
 class Messages(object):
 
+	NO_MESSAGES = "None"
+	VOICEMAIL_MESSAGES = "Voicemail"
+	TEXT_MESSAGES = "SMS"
+	ALL_TYPES = "All Messages"
+	MESSAGE_TYPES = [NO_MESSAGES, VOICEMAIL_MESSAGES, TEXT_MESSAGES, ALL_TYPES]
+
+	UNREAD_STATUS = "Unread"
+	UNARCHIVED_STATUS = "Inbox"
+	ALL_STATUS = "Any"
+	MESSAGE_STATUSES = [UNREAD_STATUS, UNARCHIVED_STATUS, ALL_STATUS]
+
 	def __init__(self, app):
+		self._selectedTypeFilter = self.ALL_TYPES
+		self._selectedStatusFilter = self.ALL_STATUS
 		self._app = app
+
+		self._typeSelection = QtGui.QComboBox()
+		self._typeSelection.addItems(self.MESSAGE_TYPES)
+		self._typeSelection.setCurrentIndex(
+			self.MESSAGE_TYPES.index(self._selectedTypeFilter)
+		)
+		self._typeSelection.currentIndexChanged.connect(self._on_type_filter_changed)
+
+		self._statusSelection = QtGui.QComboBox()
+		self._statusSelection.addItems(self.MESSAGE_STATUSES)
+		self._statusSelection.setCurrentIndex(
+			self.MESSAGE_STATUSES.index(self._selectedStatusFilter)
+		)
+		self._statusSelection.currentIndexChanged.connect(self._on_status_filter_changed)
+
+		self._selectionLayout = QtGui.QHBoxLayout()
+		self._selectionLayout.addWidget(self._typeSelection)
+		self._selectionLayout.addWidget(self._statusSelection)
 
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(["Messages"])
@@ -618,6 +651,7 @@ class Messages(object):
 		self._itemView.activated.connect(self._on_row_activated)
 
 		self._layout = QtGui.QVBoxLayout()
+		self._layout.addLayout(self._selectionLayout)
 		self._layout.addWidget(self._itemView)
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
@@ -634,6 +668,14 @@ class Messages(object):
 
 	def refresh(self):
 		pass
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_type_filter_changed(self, newItem):
+		self._selectedTypeFilter = str(newItem)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_status_filter_changed(self, newItem):
+		self._selectedStatusFilter = str(newItem)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
