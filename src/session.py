@@ -20,7 +20,7 @@ class Draft(QtCore.QObject):
 	recipientsChanged = QtCore.pyqtSignal()
 
 	def __init__(self):
-		self._contacts = []
+		self._contacts = {}
 
 	def send(self, text):
 		assert 0 < len(self._contacts)
@@ -29,7 +29,7 @@ class Draft(QtCore.QObject):
 		# self.clear()
 
 	def call(self):
-		assert 0 < len(self._contacts)
+		assert len(self._contacts) == 1
 		self.calling.emit()
 		self.error.emit("Not Implemented")
 		# self.clear()
@@ -38,21 +38,21 @@ class Draft(QtCore.QObject):
 		self.cancelling.emit()
 		self.error.emit("Not Implemented")
 
-	def add_contact(self, contact):
+	def add_contact(self, contact, details):
 		assert contact not in self._contacts
-		self._contacts.append(contact)
+		self._contacts[contact] = details
 		self.recipientsChanged.emit()
 
 	def remove_contact(self, contact):
 		assert contact not in self._contacts
-		self._contacts.remove(contact)
+		del self._contacts[contact]
 		self.recipientsChanged.emit()
 
 	def get_contacts(self, contact):
 		return self._contacts
 
 	def clear(self):
-		self._contacts = []
+		self._contacts = {}
 		self.recipientsChanged.emit()
 
 

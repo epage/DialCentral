@@ -17,6 +17,8 @@ import maeqt
 from util import qtpie
 from util import misc as misc_utils
 
+import session
+
 
 _moduleLogger = logging.getLogger(__name__)
 
@@ -410,8 +412,9 @@ class DelayedWidget(object):
 
 class Dialpad(object):
 
-	def __init__(self, app):
+	def __init__(self, app, session):
 		self._app = app
+		self._session = session
 
 		self._plus = self._generate_key_button("+", "")
 		self._entry = QtGui.QLineEdit()
@@ -537,13 +540,14 @@ class Dialpad(object):
 	def _on_sms_clicked(self, checked = False):
 		number = str(self._entry.text())
 		self._entry.clear()
-		print "sms", number
+		self._session.draft.add_contact(number, [])
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_call_clicked(self, checked = False):
 		number = str(self._entry.text())
 		self._entry.clear()
-		print "call", number
+		self._session.draft.add_contact(number, [])
+		self._session.call()
 
 
 class History(object):
@@ -558,9 +562,11 @@ class History(object):
 	HISTORY_COLUMNS = ["When", "What", "Number", "From"]
 	assert len(HISTORY_COLUMNS) == MAX_IDX
 
-	def __init__(self, app):
+	def __init__(self, app, session):
 		self._selectedFilter = self.HISTORY_ITEM_TYPES[0]
 		self._app = app
+		self._session = session
+		self._session.historyUpdated.connect(self._on_history_updated)
 
 		self._typeSelection = QtGui.QComboBox()
 		self._typeSelection.addItems(self.HISTORY_ITEM_TYPES)
@@ -587,6 +593,8 @@ class History(object):
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
 
+		self._populate_items()
+
 	@property
 	def toplevel(self):
 		return self._widget
@@ -603,13 +611,21 @@ class History(object):
 	def refresh(self):
 		pass
 
+	def _populate_items(self):
+		pass
+
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
 		self._selectedFilter = str(newItem)
 
 	@misc_utils.log_exception(_moduleLogger)
+	def _on_history_updated(self):
+		self._populate_items()
+
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		rowIndex = index.row()
+		#self._session.draft.add_contact(number, details)
 
 
 class Messages(object):
@@ -625,10 +641,12 @@ class Messages(object):
 	ALL_STATUS = "Any"
 	MESSAGE_STATUSES = [UNREAD_STATUS, UNARCHIVED_STATUS, ALL_STATUS]
 
-	def __init__(self, app):
+	def __init__(self, app, session):
 		self._selectedTypeFilter = self.ALL_TYPES
 		self._selectedStatusFilter = self.ALL_STATUS
 		self._app = app
+		self._session = session
+		self._session.messagesUpdated.connect(self._on_messages_updated)
 
 		self._typeSelection = QtGui.QComboBox()
 		self._typeSelection.addItems(self.MESSAGE_TYPES)
@@ -666,6 +684,8 @@ class Messages(object):
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
 
+		self._populate_items()
+
 	@property
 	def toplevel(self):
 		return self._widget
@@ -682,6 +702,9 @@ class Messages(object):
 	def refresh(self):
 		pass
 
+	def _populate_items(self):
+		pass
+
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_type_filter_changed(self, newItem):
 		self._selectedTypeFilter = str(newItem)
@@ -691,15 +714,22 @@ class Messages(object):
 		self._selectedStatusFilter = str(newItem)
 
 	@misc_utils.log_exception(_moduleLogger)
+	def _on_messages_updated(self):
+		self._populate_items()
+
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		rowIndex = index.row()
+		#self._session.draft.add_contact(number, details)
 
 
 class Contacts(object):
 
-	def __init__(self, app):
+	def __init__(self, app, session):
 		self._selectedFilter = ""
 		self._app = app
+		self._session = session
+		self._session.contactsUpdated.connect(self._on_contacts_updated)
 
 		self._listSelection = QtGui.QComboBox()
 		self._listSelection.addItems([])
@@ -724,6 +754,8 @@ class Contacts(object):
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
 
+		self._populate_items()
+
 	@property
 	def toplevel(self):
 		return self._widget
@@ -740,13 +772,21 @@ class Contacts(object):
 	def refresh(self):
 		pass
 
+	def _populate_items(self):
+		pass
+
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
 		self._selectedFilter = str(newItem)
 
 	@misc_utils.log_exception(_moduleLogger)
+	def _on_contacts_updated(self):
+		self._populate_items()
+
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		rowIndex = index.row()
+		#self._session.draft.add_contact(number, details)
 
 
 class MainWindow(object):
@@ -776,6 +816,7 @@ class MainWindow(object):
 	def __init__(self, parent, app):
 		self._fsContactsPath = os.path.join(constants._data_path_, "contacts")
 		self._app = app
+		self._session = session.Session()
 
 		self._errorDisplay = QErrorDisplay()
 
@@ -783,6 +824,8 @@ class MainWindow(object):
 			DelayedWidget(self._app)
 			for i in xrange(self.MAX_TABS)
 		]
+		for tab in self._tabsContents:
+			tab.disable()
 
 		self._tabWidget = QtGui.QTabWidget()
 		if maeqt.screen_orientation() == QtCore.Qt.Vertical:
@@ -889,7 +932,9 @@ class MainWindow(object):
 	def _initialize_tab(self, index):
 		assert index < self.MAX_TABS
 		if not self._tabsContents[index].has_child():
-			self._tabsContents[index].set_child(self._TAB_CLASS[index](self._app))
+			self._tabsContents[index].set_child(
+				self._TAB_CLASS[index](self._app, self._session)
+			)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_login(self, checked = True):
