@@ -399,6 +399,10 @@ class DelayedWidget(object):
 		if self._child is not None:
 			self._child.disable()
 
+	def clear(self):
+		if self._child is not None:
+			self._child.clear()
+
 	def refresh(self):
 		if self._child is not None:
 			self._child.refresh()
@@ -478,6 +482,9 @@ class Dialpad(object):
 	def disable(self):
 		self._smsButton.setEnabled(False)
 		self._callButton.setEnabled(False)
+
+	def clear(self):
+		pass
 
 	def refresh(self):
 		pass
@@ -585,10 +592,13 @@ class History(object):
 		return self._widget
 
 	def enable(self):
-		pass
+		self._itemView.setEnabled(True)
 
 	def disable(self):
-		pass
+		self._itemView.setEnabled(False)
+
+	def clear(self):
+		self._itemView.clear()
 
 	def refresh(self):
 		pass
@@ -661,10 +671,13 @@ class Messages(object):
 		return self._widget
 
 	def enable(self):
-		pass
+		self._itemView.setEnabled(True)
 
 	def disable(self):
-		pass
+		self._itemView.setEnabled(False)
+
+	def clear(self):
+		self._itemView.clear()
 
 	def refresh(self):
 		pass
@@ -716,10 +729,13 @@ class Contacts(object):
 		return self._widget
 
 	def enable(self):
-		pass
+		self._itemView.setEnabled(True)
 
 	def disable(self):
-		pass
+		self._itemView.setEnabled(False)
+
+	def clear(self):
+		self._itemView.clear()
 
 	def refresh(self):
 		pass
