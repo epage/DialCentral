@@ -130,10 +130,41 @@ class Dialcentral(object):
 		self._close_windows()
 
 
-class QErrorDisplay(object):
+class QErrorLog(QtCore.QObject):
+
+	messagePushed = QtCore.pyqtSignal()
+	messagePopped = QtCore.pyqtSignal()
 
 	def __init__(self):
+		QtCore.QObject.__init__(self)
 		self._messages = []
+
+	def push_message(self, message):
+		self._messages.append(message)
+		self.messagePushed.emit()
+
+	def push_exception(self):
+		userMessage = str(sys.exc_info()[1])
+		_moduleLogger.exception(userMessage)
+		self.push_message(userMessage)
+
+	def pop_message(self):
+		del self._messages[0]
+		self.messagePopped.emit()
+
+	def peek_message(self):
+		return self._messages[0]
+
+	def __len__(self):
+		return len(self._messages)
+
+
+class ErrorDisplay(object):
+
+	def __init__(self, errorLog):
+		self._errorLog = errorLog
+		self._errorLog.messagePushed.connect(self._on_message_pushed)
+		self._errorLog.messagePopped.connect(self._on_message_popped)
 
 		errorIcon = maeqt.get_theme_icon(("dialog-error", "app_install_error", "gtk-dialog-error"))
 		self._severityIcon = errorIcon.pixmap(32, 32)
@@ -156,39 +187,29 @@ class QErrorDisplay(object):
 		self._topLevelLayout.addLayout(self._controlLayout)
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._topLevelLayout)
-		self._hide_message()
+		self._widget.hide()
 
 	@property
 	def toplevel(self):
 		return self._widget
 
-	def push_message(self, message):
-		self._messages.append(message)
-		if 1 == len(self._messages):
-			self._show_message(message)
-
-	def push_exception(self):
-		userMessage = str(sys.exc_info()[1])
-		_moduleLogger.exception(userMessage)
-		self.push_message(userMessage)
-
-	def pop_message(self):
-		del self._messages[0]
-		if 0 == len(self._messages):
-			self._hide_message()
-		else:
-			self._message.setText(self._messages[0])
-
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_close(self, *args):
-		self.pop_message()
+		self._errorLog.pop_message()
 
-	def _show_message(self, message):
-		self._message.setText(message)
-		self._widget.show()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_message_pushed(self):
+		if 1 <= len(self._errorLog) and self._widget.isHidden():
+			self._message.setText(self._errorLog.peek_message())
+			self._widget.show()
 
-	def _hide_message(self):
-		self._message.setText("")
-		self._widget.hide()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_message_popped(self):
+		if len(self._errorLog) == 0:
+			self._message.setText("")
+			self._widget.hide()
+		else:
+			self._message.setText(self._errorLog.peek_message())
 
 
 class CredentialsDialog(object):
@@ -294,9 +315,11 @@ class AccountDialog(object):
 
 class SMSEntryWindow(object):
 
-	def __init__(self, parent, app):
+	def __init__(self, parent, app, session, errorLog):
 		self._contacts = []
 		self._app = app
+		self._session = session
+		self._errorLog = errorLog
 
 		self._history = QtGui.QListView()
 		self._smsEntry = QtGui.QTextEdit()
@@ -357,6 +380,7 @@ class SMSEntryWindow(object):
 			self._dialButton.setEnabled(False)
 			self._smsButton.setEnabled(True)
 
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_letter_count_changed(self):
 		self._update_letter_count()
 		self._update_button_state()
@@ -412,9 +436,10 @@ class DelayedWidget(object):
 
 class Dialpad(object):
 
-	def __init__(self, app, session):
+	def __init__(self, app, session, errorLog):
 		self._app = app
 		self._session = session
+		self._errorLog = errorLog
 
 		self._plus = self._generate_key_button("+", "")
 		self._entry = QtGui.QLineEdit()
@@ -562,11 +587,12 @@ class History(object):
 	HISTORY_COLUMNS = ["When", "What", "Number", "From"]
 	assert len(HISTORY_COLUMNS) == MAX_IDX
 
-	def __init__(self, app, session):
+	def __init__(self, app, session, errorLog):
 		self._selectedFilter = self.HISTORY_ITEM_TYPES[0]
 		self._app = app
 		self._session = session
 		self._session.historyUpdated.connect(self._on_history_updated)
+		self._errorLog = errorLog
 
 		self._typeSelection = QtGui.QComboBox()
 		self._typeSelection.addItems(self.HISTORY_ITEM_TYPES)
@@ -612,7 +638,7 @@ class History(object):
 		pass
 
 	def _populate_items(self):
-		pass
+		self._errorLog.push_message("Not supported")
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
@@ -641,12 +667,13 @@ class Messages(object):
 	ALL_STATUS = "Any"
 	MESSAGE_STATUSES = [UNREAD_STATUS, UNARCHIVED_STATUS, ALL_STATUS]
 
-	def __init__(self, app, session):
+	def __init__(self, app, session, errorLog):
 		self._selectedTypeFilter = self.ALL_TYPES
 		self._selectedStatusFilter = self.ALL_STATUS
 		self._app = app
 		self._session = session
 		self._session.messagesUpdated.connect(self._on_messages_updated)
+		self._errorLog = errorLog
 
 		self._typeSelection = QtGui.QComboBox()
 		self._typeSelection.addItems(self.MESSAGE_TYPES)
@@ -703,7 +730,7 @@ class Messages(object):
 		pass
 
 	def _populate_items(self):
-		pass
+		self._errorLog.push_message("Not supported")
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_type_filter_changed(self, newItem):
@@ -725,11 +752,12 @@ class Messages(object):
 
 class Contacts(object):
 
-	def __init__(self, app, session):
+	def __init__(self, app, session, errorLog):
 		self._selectedFilter = ""
 		self._app = app
 		self._session = session
 		self._session.contactsUpdated.connect(self._on_contacts_updated)
+		self._errorLog = errorLog
 
 		self._listSelection = QtGui.QComboBox()
 		self._listSelection.addItems([])
@@ -773,7 +801,7 @@ class Contacts(object):
 		pass
 
 	def _populate_items(self):
-		pass
+		self._errorLog.push_message("Not supported")
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
@@ -817,8 +845,12 @@ class MainWindow(object):
 		self._fsContactsPath = os.path.join(constants._data_path_, "contacts")
 		self._app = app
 		self._session = session.Session()
+		self._session.error.connect(self._on_session_error)
+		self._session.loggedIn.connect(self._on_login)
+		self._session.loggedOut.connect(self._on_logout)
 
-		self._errorDisplay = QErrorDisplay()
+		self._errorLog = QErrorLog()
+		self._errorDisplay = ErrorDisplay(self._errorLog)
 
 		self._tabsContents = [
 			DelayedWidget(self._app)
@@ -852,7 +884,7 @@ class MainWindow(object):
 
 		self._loginTabAction = QtGui.QAction(None)
 		self._loginTabAction.setText("Login")
-		self._loginTabAction.triggered.connect(self._on_login)
+		self._loginTabAction.triggered.connect(self._on_login_requested)
 
 		self._importTabAction = QtGui.QAction(None)
 		self._importTabAction.setText("Import")
@@ -933,11 +965,25 @@ class MainWindow(object):
 		assert index < self.MAX_TABS
 		if not self._tabsContents[index].has_child():
 			self._tabsContents[index].set_child(
-				self._TAB_CLASS[index](self._app, self._session)
+				self._TAB_CLASS[index](self._app, self._session, self._errorLog)
 			)
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_login(self, checked = True):
+	def _on_session_error(self, message):
+		self._errorLog.push_message(message)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_login(self):
+		for tab in self._tabsContents:
+			tab.enable()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_logout(self):
+		for tab in self._tabsContents:
+			tab.disable()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_login_requested(self):
 		pass
 
 	@misc_utils.log_exception(_moduleLogger)
