@@ -66,6 +66,18 @@ class AsyncLinearExecution(object):
 				self.on_error,
 			)
 
+	def __repr__(self):
+		return "<async %s at 0x%x>" % (self._func.__name__, id(self))
+
+	def __hash__(self):
+		return hash(self._func)
+
+	def __eq__(self, other):
+		return self._func == other._func
+
+	def __ne__(self, other):
+		return self._func != other._func
+
 
 def synchronized(lock):
 	"""

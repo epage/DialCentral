@@ -584,6 +584,7 @@ class QPieButton(QtGui.QWidget):
 		self._popupLocation = mouseEvent.globalPos()
 		self._delayPopupTimer.start()
 
+	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_delayed_popup(self):
 		assert self._popupLocation is not None

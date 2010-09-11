@@ -35,7 +35,7 @@ if __name__ == "__main__":
 		if e.errno != 17:
 			raise
 
-	logFormat = '(%(asctime)s) %(levelname)-5s %(threadName)s.%(name)s: %(message)s'
+	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
 	logging.basicConfig(level=logging.DEBUG, filename=constants._user_logpath_, format=logFormat)
 	_moduleLogger.info("%s %s-%s" % (constants.__app_name__, constants.__version__, constants.__build__))
 	_moduleLogger.info("OS: %s" % (os.uname()[0], ))

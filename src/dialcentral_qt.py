@@ -13,7 +13,7 @@ from PyQt4 import QtGui
 from PyQt4 import QtCore
 
 import constants
-import maeqt
+from util import qui_utils
 from util import qtpie
 from util import misc as misc_utils
 
@@ -105,19 +105,26 @@ class Dialcentral(object):
 			self._mainWindow.close()
 			self._mainWindow = None
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_app_quit(self, checked = False):
 		self.save_settings()
 
+	@QtCore.pyqtSlot(QtCore.QObject)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_child_close(self, obj = None):
 		self._mainWindow = None
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_toggle_fullscreen(self, checked = False):
 		for window in self._walk_children():
 			window.set_fullscreen(checked)
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_log(self, checked = False):
 		with open(constants._user_logpath_, "r") as f:
@@ -125,91 +132,11 @@ class Dialcentral(object):
 			log = "".join(logLines)
 			self._clipboard.setText(log)
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_quit(self, checked = False):
 		self._close_windows()
-
-
-class QErrorLog(QtCore.QObject):
-
-	messagePushed = QtCore.pyqtSignal()
-	messagePopped = QtCore.pyqtSignal()
-
-	def __init__(self):
-		QtCore.QObject.__init__(self)
-		self._messages = []
-
-	def push_message(self, message):
-		self._messages.append(message)
-		self.messagePushed.emit()
-
-	def push_exception(self):
-		userMessage = str(sys.exc_info()[1])
-		_moduleLogger.exception(userMessage)
-		self.push_message(userMessage)
-
-	def pop_message(self):
-		del self._messages[0]
-		self.messagePopped.emit()
-
-	def peek_message(self):
-		return self._messages[0]
-
-	def __len__(self):
-		return len(self._messages)
-
-
-class ErrorDisplay(object):
-
-	def __init__(self, errorLog):
-		self._errorLog = errorLog
-		self._errorLog.messagePushed.connect(self._on_message_pushed)
-		self._errorLog.messagePopped.connect(self._on_message_popped)
-
-		errorIcon = maeqt.get_theme_icon(("dialog-error", "app_install_error", "gtk-dialog-error"))
-		self._severityIcon = errorIcon.pixmap(32, 32)
-		self._severityLabel = QtGui.QLabel()
-		self._severityLabel.setPixmap(self._severityIcon)
-
-		self._message = QtGui.QLabel()
-		self._message.setText("Boo")
-
-		closeIcon = maeqt.get_theme_icon(("window-close", "general_close", "gtk-close"))
-		self._closeLabel = QtGui.QPushButton(closeIcon, "")
-		self._closeLabel.clicked.connect(self._on_close)
-
-		self._controlLayout = QtGui.QHBoxLayout()
-		self._controlLayout.addWidget(self._severityLabel)
-		self._controlLayout.addWidget(self._message)
-		self._controlLayout.addWidget(self._closeLabel)
-
-		self._topLevelLayout = QtGui.QHBoxLayout()
-		self._topLevelLayout.addLayout(self._controlLayout)
-		self._widget = QtGui.QWidget()
-		self._widget.setLayout(self._topLevelLayout)
-		self._widget.hide()
-
-	@property
-	def toplevel(self):
-		return self._widget
-
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_close(self, *args):
-		self._errorLog.pop_message()
-
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_message_pushed(self):
-		if 1 <= len(self._errorLog) and self._widget.isHidden():
-			self._message.setText(self._errorLog.peek_message())
-			self._widget.show()
-
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_message_popped(self):
-		if len(self._errorLog) == 0:
-			self._message.setText("")
-			self._widget.hide()
-		else:
-			self._message.setText(self._errorLog.peek_message())
 
 
 class CredentialsDialog(object):
@@ -231,28 +158,29 @@ class CredentialsDialog(object):
 
 		self._layout = QtGui.QVBoxLayout()
 		self._layout.addLayout(self._credLayout)
-		self._layout.addLayout(self._buttonLayout)
-
-		centralWidget = QtGui.QWidget()
-		centralWidget.setLayout(self._layout)
+		self._layout.addWidget(self._buttonLayout)
 
 		self._dialog = QtGui.QDialog()
 		self._dialog.setWindowTitle("Login")
-		self._dialog.setCentralWidget(centralWidget)
-		maeqt.set_autorient(self._dialog, True)
+		self._dialog.setLayout(self._layout)
+		self._dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
+		qui_utils.set_autorient(self._dialog, True)
 		self._buttonLayout.accepted.connect(self._dialog.accept)
 		self._buttonLayout.rejected.connect(self._dialog.reject)
 
 	def run(self, defaultUsername, defaultPassword, parent=None):
-		self._dialog.setParent(parent)
-		self._usernameField.setText(defaultUsername)
-		self._passwordField.setText(defaultPassword)
+		self._dialog.setParent(parent, QtCore.Qt.Dialog)
+		try:
+			self._usernameField.setText(defaultUsername)
+			self._passwordField.setText(defaultPassword)
 
-		response = self._dialog.exec_()
-		if response == QtGui.QDialog.Accepted:
-			return str(self._usernameField.text()), str(self._passwordField.text())
-		elif response == QtGui.QDialog.Rejected:
-			raise RuntimeError("Login Cancelled")
+			response = self._dialog.exec_()
+			if response == QtGui.QDialog.Accepted:
+				return str(self._usernameField.text()), str(self._passwordField.text())
+			elif response == QtGui.QDialog.Rejected:
+				raise RuntimeError("Login Cancelled")
+		finally:
+			self._dialog.setParent(None, QtCore.Qt.Dialog)
 
 
 class AccountDialog(object):
@@ -277,13 +205,10 @@ class AccountDialog(object):
 		self._layout.addLayout(self._credLayout)
 		self._layout.addLayout(self._buttonLayout)
 
-		centralWidget = QtGui.QWidget()
-		centralWidget.setLayout(self._layout)
-
 		self._dialog = QtGui.QDialog()
 		self._dialog.setWindowTitle("Login")
-		self._dialog.setCentralWidget(centralWidget)
-		maeqt.set_autorient(self._dialog, True)
+		self._dialog.setLayout(self._layout)
+		qui_utils.set_autorient(self._dialog, True)
 		self._buttonLayout.accepted.connect(self._dialog.accept)
 		self._buttonLayout.rejected.connect(self._dialog.reject)
 
@@ -308,6 +233,8 @@ class AccountDialog(object):
 		elif response == QtGui.QDialog.Rejected:
 			raise RuntimeError("Login Cancelled")
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
 	def _on_clear(self, checked = False):
 		self._doClear = True
 		self._dialog.accept()
@@ -355,8 +282,8 @@ class SMSEntryWindow(object):
 
 		self._window = QtGui.QMainWindow(parent)
 		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
-		maeqt.set_autorient(self._window, True)
-		maeqt.set_stackable(self._window, True)
+		qui_utils.set_autorient(self._window, True)
+		qui_utils.set_stackable(self._window, True)
 		self._window.setWindowTitle("Contact")
 		self._window.setCentralWidget(centralWidget)
 
@@ -380,6 +307,7 @@ class SMSEntryWindow(object):
 			self._dialButton.setEnabled(False)
 			self._smsButton.setEnabled(True)
 
+	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_letter_count_changed(self):
 		self._update_letter_count()
@@ -561,18 +489,22 @@ class Dialpad(object):
 	def _on_clear_text(self, toggled = False):
 		self._entry.clear()
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_sms_clicked(self, checked = False):
 		number = str(self._entry.text())
 		self._entry.clear()
 		self._session.draft.add_contact(number, [])
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_call_clicked(self, checked = False):
 		number = str(self._entry.text())
 		self._entry.clear()
 		self._session.draft.add_contact(number, [])
-		self._session.call()
+		self._session.draft.call()
 
 
 class History(object):
@@ -640,14 +572,17 @@ class History(object):
 	def _populate_items(self):
 		self._errorLog.push_message("Not supported")
 
+	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
 		self._selectedFilter = str(newItem)
 
+	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_history_updated(self):
 		self._populate_items()
 
+	@QtCore.pyqtSlot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		rowIndex = index.row()
@@ -732,18 +667,22 @@ class Messages(object):
 	def _populate_items(self):
 		self._errorLog.push_message("Not supported")
 
+	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_type_filter_changed(self, newItem):
 		self._selectedTypeFilter = str(newItem)
 
+	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_status_filter_changed(self, newItem):
 		self._selectedStatusFilter = str(newItem)
 
+	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_messages_updated(self):
 		self._populate_items()
 
+	@QtCore.pyqtSlot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		rowIndex = index.row()
@@ -803,14 +742,17 @@ class Contacts(object):
 	def _populate_items(self):
 		self._errorLog.push_message("Not supported")
 
+	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
 		self._selectedFilter = str(newItem)
 
+	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_contacts_updated(self):
 		self._populate_items()
 
+	@QtCore.pyqtSlot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		rowIndex = index.row()
@@ -849,8 +791,10 @@ class MainWindow(object):
 		self._session.loggedIn.connect(self._on_login)
 		self._session.loggedOut.connect(self._on_logout)
 
-		self._errorLog = QErrorLog()
-		self._errorDisplay = ErrorDisplay(self._errorLog)
+		self._credentialsDialog = None
+
+		self._errorLog = qui_utils.QErrorLog()
+		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
 
 		self._tabsContents = [
 			DelayedWidget(self._app)
@@ -860,7 +804,7 @@ class MainWindow(object):
 			tab.disable()
 
 		self._tabWidget = QtGui.QTabWidget()
-		if maeqt.screen_orientation() == QtCore.Qt.Vertical:
+		if qui_utils.screen_orientation() == QtCore.Qt.Vertical:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
 		else:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
@@ -877,8 +821,8 @@ class MainWindow(object):
 
 		self._window = QtGui.QMainWindow(parent)
 		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-		maeqt.set_autorient(self._window, True)
-		maeqt.set_stackable(self._window, True)
+		qui_utils.set_autorient(self._window, True)
+		qui_utils.set_stackable(self._window, True)
 		self._window.setWindowTitle("%s" % constants.__pretty_app_name__)
 		self._window.setCentralWidget(centralWidget)
 
@@ -968,33 +912,46 @@ class MainWindow(object):
 				self._TAB_CLASS[index](self._app, self._session, self._errorLog)
 			)
 
+	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_session_error(self, message):
 		self._errorLog.push_message(message)
 
+	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_login(self):
 		for tab in self._tabsContents:
 			tab.enable()
 
+	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_logout(self):
 		for tab in self._tabsContents:
 			tab.disable()
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_login_requested(self):
-		pass
+	def _on_login_requested(self, checked = True):
+		if self._credentialsDialog is None:
+			self._credentialsDialog = CredentialsDialog()
+		username, password = self._credentialsDialog.run("", "", self.window)
+		self._session.login(username, password)
 
+	@QtCore.pyqtSlot(int)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_tab_changed(self, index):
 		self._initialize_tab(index)
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh(self, checked = True):
 		index = self._tabWidget.currentIndex()
 		self._tabsContents[index].refresh()
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_import(self, checked = True):
 		csvName = QtGui.QFileDialog.getOpenFileName(self._window, caption="Import", filter="CSV Files (*.csv)")
@@ -1002,6 +959,8 @@ class MainWindow(object):
 			return
 		shutil.copy2(csvName, self._fsContactsPath)
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
 		self.close()
@@ -1015,7 +974,7 @@ def run():
 
 
 if __name__ == "__main__":
-	logFormat = '(%(asctime)s) %(levelname)-5s %(threadName)s.%(name)s: %(message)s'
+	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
 	logging.basicConfig(level=logging.DEBUG, format=logFormat)
 	try:
 		os.makedirs(constants._data_path_)

@@ -1,10 +1,14 @@
 import os
+import time
 import logging
 
 from PyQt4 import QtCore
 
 from util import qore_utils
 from util import concurrent
+
+from backends import gv_backend
+
 
 _moduleLogger = logging.getLogger(__name__)
 
@@ -22,6 +26,7 @@ class Draft(QtCore.QObject):
 	recipientsChanged = QtCore.pyqtSignal()
 
 	def __init__(self, pool):
+		QtCore.QObject.__init__(self)
 		self._contacts = {}
 		self._pool = pool
 
@@ -78,11 +83,12 @@ class Session(QtCore.QObject):
 	LOGGEDIN_STATE = "logged in"
 
 	_LOGGEDOUT_TIME = -1
-	_LOGGINGING_TIME = 0
+	_LOGGINGIN_TIME = 0
 
 	def __init__(self, cachePath = None):
 		QtCore.QObject.__init__(self)
 		self._pool = qore_utils.AsyncPool()
+		self._backend = None
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._loginOps = []
 		self._cachePath = cachePath
@@ -99,7 +105,7 @@ class Session(QtCore.QObject):
 		return {
 			self._LOGGEDOUT_TIME: self.LOGGEDOUT_STATE,
 			self._LOGGINGIN_TIME: self.LOGGINGIN_STATE,
-		}.get(self._loggedInTime, default=self.LOGGEDIN_STATE)
+		}.get(self._loggedInTime, self.LOGGEDIN_STATE)
 
 	@property
 	def draft(self):
@@ -112,12 +118,12 @@ class Session(QtCore.QObject):
 		else:
 			cookiePath = None
 
-		self._pool.start()
-		self.error.emit("Not Implemented")
+		if self._username != username or self._backend is None:
+			self._backend = gv_backend.GVDialer(cookiePath)
 
-		# if the username is the same, do nothing
-		# else clear the in-memory caches and attempt to load from file-caches
-		# If caches went from empty to something, fire signals
+		self._pool.start()
+		le = concurrent.AsyncLinearExecution(self._pool, self._login)
+		le.start(username, password)
 
 	def logout(self):
 		assert self.state != self.LOGGEDOUT_STATE
@@ -126,6 +132,7 @@ class Session(QtCore.QObject):
 
 	def clear(self):
 		assert self.state == self.LOGGEDOUT_STATE
+		self._backend = None
 		self._draft.clear()
 		self._contacts = []
 		self.contactsUpdated.emit()
@@ -137,25 +144,29 @@ class Session(QtCore.QObject):
 		self.dndStateChange.emit(self._dnd)
 
 	def update_contacts(self):
-		self._perform_op_while_loggedin(self._update_contacts)
+		le = concurrent.AsyncLinearExecution(self._pool, self._update_contacts)
+		self._perform_op_while_loggedin(le)
 
 	def get_contacts(self):
 		return self._contacts
 
 	def update_messages(self):
-		self._perform_op_while_loggedin(self._update_messages)
+		le = concurrent.AsyncLinearExecution(self._pool, self._update_messages)
+		self._perform_op_while_loggedin(le)
 
 	def get_messages(self):
 		return self._messages
 
 	def update_history(self):
-		self._perform_op_while_loggedin(self._update_history)
+		le = concurrent.AsyncLinearExecution(self._pool, self._update_history)
+		self._perform_op_while_loggedin(le)
 
 	def get_history(self):
 		return self._history
 
 	def update_dnd(self):
-		self._perform_op_while_loggedin(self._update_dnd)
+		le = concurrent.AsyncLinearExecution(self._pool, self._update_dnd)
+		self._perform_op_while_loggedin(le)
 
 	def set_dnd(self, dnd):
 		assert self.state == self.LOGGEDIN_STATE
@@ -174,19 +185,100 @@ class Session(QtCore.QObject):
 		assert self.state == self.LOGGEDIN_STATE
 		self.error.emit("Not Implemented")
 
+	def _login(self, username, password):
+		self._loggedInTime = self._LOGGINGIN_TIME
+		self.stateChange.emit(self.LOGGINGIN_STATE)
+		finalState = self.LOGGEDOUT_STATE
+		try:
+			isLoggedIn = False
+
+			if not isLoggedIn and self._backend.is_quick_login_possible():
+				try:
+					isLoggedIn = yield (
+						self._backend.is_authed,
+						(),
+						{},
+					)
+				except Exception, e:
+					self.error.emit(str(e))
+					return
+				if isLoggedIn:
+					_moduleLogger.info("Logged in through cookies")
+
+			if not isLoggedIn:
+				try:
+					isLoggedIn = yield (
+						self._backend.login,
+						(username, password),
+						{},
+					)
+				except Exception, e:
+					self.error.emit(str(e))
+					return
+				if isLoggedIn:
+					_moduleLogger.info("Logged in through credentials")
+
+			if isLoggedIn:
+				self._loggedInTime = time.time()
+				self._username = username
+				finalState = self.LOGGEDIN_STATE
+				self.loggedIn.emit()
+				# if the username is the same, do nothing
+				# else clear the in-memory caches and attempt to load from file-caches
+				# If caches went from empty to something, fire signals
+				# Fire off queued async ops
+		except Exception, e:
+			self.error.emit(str(e))
+		finally:
+			self.stateChange.emit(finalState)
+
 	def _update_contacts(self):
-		le = concurrent.AsyncLinearExecution(self._asyncPool, self._login)
-		le.start()
 		self.error.emit("Not Implemented")
+		try:
+			isLoggedIn = yield (
+				self._backend.is_authed,
+				(),
+				{},
+			)
+		except Exception, e:
+			self.error.emit(str(e))
+			return
 
 	def _update_messages(self):
 		self.error.emit("Not Implemented")
+		try:
+			isLoggedIn = yield (
+				self._backend.is_authed,
+				(),
+				{},
+			)
+		except Exception, e:
+			self.error.emit(str(e))
+			return
 
 	def _update_history(self):
 		self.error.emit("Not Implemented")
+		try:
+			isLoggedIn = yield (
+				self._backend.is_authed,
+				(),
+				{},
+			)
+		except Exception, e:
+			self.error.emit(str(e))
+			return
 
 	def _update_dnd(self):
 		self.error.emit("Not Implemented")
+		try:
+			isLoggedIn = yield (
+				self._backend.is_authed,
+				(),
+				{},
+			)
+		except Exception, e:
+			self.error.emit(str(e))
+			return
 
 	def _perform_op_while_loggedin(self, op):
 		if self.state == self.LOGGEDIN_STATE:
@@ -194,9 +286,9 @@ class Session(QtCore.QObject):
 		else:
 			self._push_login_op(op)
 
-	def _push_login_op(self, op):
+	def _push_login_op(self, asyncOp):
 		assert self.state != self.LOGGEDIN_STATE
-		if op in self._loginOps:
-			_moduleLogger.info("Skipping queueing duplicate op: %r" % op)
+		if asyncOp in self._loginOps:
+			_moduleLogger.info("Skipping queueing duplicate op: %r" % asyncOp)
 			return
-		self._loginOps.append(op)
+		self._loginOps.append(asyncOp)
