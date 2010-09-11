@@ -3,6 +3,8 @@ import logging
 
 from PyQt4 import QtCore
 
+from util import qore_utils
+from util import concurrent
 
 _moduleLogger = logging.getLogger(__name__)
 
@@ -19,8 +21,9 @@ class Draft(QtCore.QObject):
 
 	recipientsChanged = QtCore.pyqtSignal()
 
-	def __init__(self):
+	def __init__(self, pool):
 		self._contacts = {}
+		self._pool = pool
 
 	def send(self, text):
 		assert 0 < len(self._contacts)
@@ -79,11 +82,12 @@ class Session(QtCore.QObject):
 
 	def __init__(self, cachePath = None):
 		QtCore.QObject.__init__(self)
+		self._pool = qore_utils.AsyncPool()
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._loginOps = []
 		self._cachePath = cachePath
 		self._username = None
-		self._draft = Draft()
+		self._draft = Draft(self._pool)
 
 		self._contacts = []
 		self._messages = []
@@ -108,6 +112,7 @@ class Session(QtCore.QObject):
 		else:
 			cookiePath = None
 
+		self._pool.start()
 		self.error.emit("Not Implemented")
 
 		# if the username is the same, do nothing
@@ -116,6 +121,7 @@ class Session(QtCore.QObject):
 
 	def logout(self):
 		assert self.state != self.LOGGEDOUT_STATE
+		self._pool.stop()
 		self.error.emit("Not Implemented")
 
 	def clear(self):
@@ -169,6 +175,8 @@ class Session(QtCore.QObject):
 		self.error.emit("Not Implemented")
 
 	def _update_contacts(self):
+		le = concurrent.AsyncLinearExecution(self._asyncPool, self._login)
+		le.start()
 		self.error.emit("Not Implemented")
 
 	def _update_messages(self):

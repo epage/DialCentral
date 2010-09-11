@@ -1015,7 +1015,8 @@ def run():
 
 
 if __name__ == "__main__":
-	logging.basicConfig(level = logging.DEBUG)
+	logFormat = '(%(asctime)s) %(levelname)-5s %(threadName)s.%(name)s: %(message)s'
+	logging.basicConfig(level=logging.DEBUG, format=logFormat)
 	try:
 		os.makedirs(constants._data_path_)
 	except OSError, e:
