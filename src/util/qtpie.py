@@ -526,6 +526,12 @@ class QPieButton(QtGui.QWidget):
 
 		self._mousePosition = None
 		self.setFocusPolicy(QtCore.Qt.StrongFocus)
+		self.setSizePolicy(
+			QtGui.QSizePolicy(
+				QtGui.QSizePolicy.MinimumExpanding,
+				QtGui.QSizePolicy.MinimumExpanding,
+			)
+		)
 
 	def insertItem(self, item, index = -1):
 		self._filing.insertItem(item, index)
@@ -566,6 +572,9 @@ class QPieButton(QtGui.QWidget):
 	def setButtonRadius(self, radius):
 		self._buttonFiling.setOuterRadius(radius)
 		self._buttonArtist.show(self.palette())
+
+	def sizeHint(self):
+		return self._buttonArtist.pieSize()
 
 	def minimumSizeHint(self):
 		return self._buttonArtist.centerSize()

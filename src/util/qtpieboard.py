@@ -49,7 +49,7 @@ class PieKeyboard(object):
 		"NORTH_EAST",
 	]
 
-	def __init__(self):
+	def __init__(self, rows, columns):
 		self._layout = QtGui.QGridLayout()
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)

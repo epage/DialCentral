@@ -96,6 +96,52 @@ class ErrorDisplay(object):
 			self._message.setText(self._errorLog.peek_message())
 
 
+class QHtmlDelegate(QtGui.QStyledItemDelegate):
+
+	def paint(self, painter, option, index):
+		newOption = QtGui.QStyleOptionViewItemV4(option)
+		self.initStyleOption(newOption, index)
+
+		doc = QtGui.QTextDocument()
+		doc.setHtml(newOption.text)
+		doc.setTextWidth(newOption.rect.width())
+
+		if newOption.widget is not None:
+			style = newOption.widget.style()
+		else:
+			style = QtGui.QApplication.style()
+
+		newOption.text = ""
+		style.drawControl(QtGui.QStyle.CE_ItemViewItem, newOption, painter)
+
+		ctx = QtGui.QAbstractTextDocumentLayout.PaintContext()
+		if newOption.state & QtGui.QStyle.State_Selected:
+			ctx.palette.setColor(
+				QtGui.QPalette.Text,
+				newOption.palette.color(
+					QtGui.QPalette.Active,
+					QtGui.QPalette.HighlightedText
+				)
+			)
+
+		textRect = style.subElementRect(QtGui.QStyle.SE_ItemViewItemText, newOption)
+		painter.save()
+		painter.translate(textRect.topLeft())
+		painter.setClipRect(textRect.translated(-textRect.topLeft()))
+		doc.documentLayout().draw(painter, ctx)
+		painter.restore()
+
+	def sizeHint(self, option, index):
+		newOption = QtGui.QStyleOptionViewItemV4(option)
+		self.initStyleOption(newOption, index)
+
+		doc = QtGui.QTextDocument()
+		doc.setHtml(newOption.text)
+		doc.setTextWidth(newOption.rect.width())
+		size = QtCore.QSize(doc.idealWidth(), doc.size().height())
+		return size
+
+
 def _null_set_stackable(window, isStackable):
 	pass
 

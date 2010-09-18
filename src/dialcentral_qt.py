@@ -7,6 +7,7 @@ import sys
 import os
 import shutil
 import simplejson
+import re
 import logging
 
 from PyQt4 import QtGui
@@ -246,6 +247,10 @@ class SMSEntryWindow(object):
 		self._contacts = []
 		self._app = app
 		self._session = session
+		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
+		self._session.draft.called.connect(self._on_op_finished)
+		self._session.draft.sentMessage.connect(self._on_op_finished)
+		self._session.draft.cancelled.connect(self._on_op_finished)
 		self._errorLog = errorLog
 
 		self._history = QtGui.QListView()
@@ -274,18 +279,18 @@ class SMSEntryWindow(object):
 		self._buttonLayout.addWidget(self._dialButton)
 
 		self._layout = QtGui.QVBoxLayout()
-		self._layout.addLayout(self._entryLayout)
+		self._layout.addWidget(self._scrollEntry)
 		self._layout.addLayout(self._buttonLayout)
 
 		centralWidget = QtGui.QWidget()
 		centralWidget.setLayout(self._layout)
 
 		self._window = QtGui.QMainWindow(parent)
-		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
 		qui_utils.set_autorient(self._window, True)
 		qui_utils.set_stackable(self._window, True)
 		self._window.setWindowTitle("Contact")
 		self._window.setCentralWidget(centralWidget)
+		self._window.show()
 
 	def _update_letter_count(self):
 		count = self._smsEntry.toPlainText().size()
@@ -306,6 +311,20 @@ class SMSEntryWindow(object):
 		else:
 			self._dialButton.setEnabled(False)
 			self._smsButton.setEnabled(True)
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_recipients_changed(self):
+		draftContacts = len(self._session.draft.get_contacts())
+		if draftContacts == 0:
+			self._window.hide()
+		else:
+			self._window.show()
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_op_finished(self):
+		self._window.hide()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -495,7 +514,12 @@ class Dialpad(object):
 	def _on_sms_clicked(self, checked = False):
 		number = str(self._entry.text())
 		self._entry.clear()
-		self._session.draft.add_contact(number, [])
+
+		contactId = number
+		title = number
+		description = number
+		numbersWithDescriptions = [(number, "")]
+		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
@@ -503,7 +527,12 @@ class Dialpad(object):
 	def _on_call_clicked(self, checked = False):
 		number = str(self._entry.text())
 		self._entry.clear()
-		self._session.draft.add_contact(number, [])
+
+		contactId = number
+		title = number
+		description = number
+		numbersWithDescriptions = [(number, "")]
+		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
 		self._session.draft.call()
 
 
@@ -515,12 +544,12 @@ class History(object):
 	FROM_IDX = 3
 	MAX_IDX = 4
 
-	HISTORY_ITEM_TYPES = ["All", "Received", "Missed", "Placed"]
+	HISTORY_ITEM_TYPES = ["Received", "Missed", "Placed", "All"]
 	HISTORY_COLUMNS = ["When", "What", "Number", "From"]
 	assert len(HISTORY_COLUMNS) == MAX_IDX
 
 	def __init__(self, app, session, errorLog):
-		self._selectedFilter = self.HISTORY_ITEM_TYPES[0]
+		self._selectedFilter = self.HISTORY_ITEM_TYPES[-1]
 		self._app = app
 		self._session = session
 		self._session.historyUpdated.connect(self._on_history_updated)
@@ -531,7 +560,7 @@ class History(object):
 		self._typeSelection.setCurrentIndex(
 			self.HISTORY_ITEM_TYPES.index(self._selectedFilter)
 		)
-		self._typeSelection.currentIndexChanged.connect(self._on_filter_changed)
+		self._typeSelection.currentIndexChanged[str].connect(self._on_filter_changed)
 
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(self.HISTORY_COLUMNS)
@@ -567,15 +596,44 @@ class History(object):
 		self._itemView.clear()
 
 	def refresh(self):
-		pass
+		self._session.update_history()
 
 	def _populate_items(self):
-		self._errorLog.push_message("Not supported")
+		self._itemStore.clear()
+		history = self._session.get_history()
+		history.sort(key=lambda item: item["time"], reverse=True)
+		for event in history:
+			if self._selectedFilter in [self.HISTORY_ITEM_TYPES[-1], event["action"]]:
+				relTime = abbrev_relative_date(event["relTime"])
+				action = event["action"]
+				number = event["number"]
+				prettyNumber = make_pretty(number)
+				name = event["name"]
+				if not name or name == number:
+					name = event["location"]
+				if not name:
+					name = "Unknown"
+
+				timeItem = QtGui.QStandardItem(relTime)
+				actionItem = QtGui.QStandardItem(action)
+				numberItem = QtGui.QStandardItem(prettyNumber)
+				nameItem = QtGui.QStandardItem(name)
+				row = timeItem, actionItem, numberItem, nameItem
+				for item in row:
+					item.setEditable(False)
+					item.setCheckable(False)
+					if item is not nameItem:
+						itemFont = item.font()
+						itemFont.setPointSize(max(itemFont.pointSize() - 3, 5))
+						item.setFont(itemFont)
+				numberItem.setData(event)
+				self._itemStore.appendRow(row)
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
 		self._selectedFilter = str(newItem)
+		self._populate_items()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -586,7 +644,30 @@ class History(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		rowIndex = index.row()
-		#self._session.draft.add_contact(number, details)
+		item = self._itemStore.item(rowIndex, self.NUMBER_IDX)
+		contactDetails = item.data().toPyObject()
+
+		title = str(self._itemStore.item(rowIndex, self.FROM_IDX).text())
+		number = str(contactDetails[QtCore.QString("number")])
+		contactId = number # ids don't seem too unique so using numbers
+
+		descriptionRows = []
+		# @bug doesn't seem to print multiple entries
+		for i in xrange(self._itemStore.rowCount()):
+			iItem = self._itemStore.item(i, self.NUMBER_IDX)
+			iContactDetails = iItem.data().toPyObject()
+			iNumber = str(iContactDetails[QtCore.QString("number")])
+			if number != iNumber:
+				continue
+			relTime = abbrev_relative_date(iContactDetails[QtCore.QString("relTime")])
+			action = str(iContactDetails[QtCore.QString("action")])
+			number = str(iContactDetails[QtCore.QString("number")])
+			prettyNumber = make_pretty(number)
+			rowItems = relTime, action, prettyNumber
+			descriptionRows.append("<tr><td>%s</td></tr>" % "</td><td>".join(rowItems))
+		description = "<table>%s</table>" % "".join(descriptionRows)
+		numbersWithDescriptions = [(str(contactDetails[QtCore.QString("number")]), "")]
+		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
 
 
 class Messages(object):
@@ -602,6 +683,8 @@ class Messages(object):
 	ALL_STATUS = "Any"
 	MESSAGE_STATUSES = [UNREAD_STATUS, UNARCHIVED_STATUS, ALL_STATUS]
 
+	_MIN_MESSAGES_SHOWN = 4
+
 	def __init__(self, app, session, errorLog):
 		self._selectedTypeFilter = self.ALL_TYPES
 		self._selectedStatusFilter = self.ALL_STATUS
@@ -615,14 +698,14 @@ class Messages(object):
 		self._typeSelection.setCurrentIndex(
 			self.MESSAGE_TYPES.index(self._selectedTypeFilter)
 		)
-		self._typeSelection.currentIndexChanged.connect(self._on_type_filter_changed)
+		self._typeSelection.currentIndexChanged[str].connect(self._on_type_filter_changed)
 
 		self._statusSelection = QtGui.QComboBox()
 		self._statusSelection.addItems(self.MESSAGE_STATUSES)
 		self._statusSelection.setCurrentIndex(
 			self.MESSAGE_STATUSES.index(self._selectedStatusFilter)
 		)
-		self._statusSelection.currentIndexChanged.connect(self._on_status_filter_changed)
+		self._statusSelection.currentIndexChanged[str].connect(self._on_status_filter_changed)
 
 		self._selectionLayout = QtGui.QHBoxLayout()
 		self._selectionLayout.addWidget(self._typeSelection)
@@ -631,13 +714,15 @@ class Messages(object):
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(["Messages"])
 
+		self._htmlDelegate = qui_utils.QHtmlDelegate()
 		self._itemView = QtGui.QTreeView()
 		self._itemView.setModel(self._itemStore)
-		self._itemView.setUniformRowHeights(True)
+		self._itemView.setUniformRowHeights(False)
 		self._itemView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 		self._itemView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
 		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
 		self._itemView.setHeaderHidden(True)
+		self._itemView.setItemDelegate(self._htmlDelegate)
 		self._itemView.activated.connect(self._on_row_activated)
 
 		self._layout = QtGui.QVBoxLayout()
@@ -662,20 +747,80 @@ class Messages(object):
 		self._itemView.clear()
 
 	def refresh(self):
-		pass
+		self._session.update_messages()
 
 	def _populate_items(self):
-		self._errorLog.push_message("Not supported")
+		self._itemStore.clear()
+		rawMessages = self._session.get_messages()
+		rawMessages.sort(key=lambda item: item["time"], reverse=True)
+		for item in rawMessages:
+			isUnarchived = not item["isArchived"]
+			isUnread = not item["isRead"]
+			visibleStatus = {
+				self.UNREAD_STATUS: isUnarchived and isUnread,
+				self.UNARCHIVED_STATUS: isUnarchived,
+				self.ALL_STATUS: True,
+			}[self._selectedStatusFilter]
+
+			visibleType = self._selectedTypeFilter in [item["type"], self.ALL_TYPES]
+			if visibleType and visibleStatus:
+				relTime = abbrev_relative_date(item["relTime"])
+				number = item["number"]
+				prettyNumber = make_pretty(number)
+				name = item["name"]
+				if not name or name == number:
+					name = item["location"]
+				if not name:
+					name = "Unknown"
+
+				messageParts = list(item["messageParts"])
+				if len(messageParts) == 0:
+					messages = ("No Transcription", )
+				elif len(messageParts) == 1:
+					if messageParts[0][1]:
+						messages = (messageParts[0][1], )
+					else:
+						messages = ("No Transcription", )
+				else:
+					messages = [
+						"<b>%s</b>: %s" % (messagePart[0], messagePart[1])
+						for messagePart in messageParts
+					]
+
+				firstMessage = "<b>%s - %s</b> <i>(%s)</i>" % (name, prettyNumber, relTime)
+
+				expandedMessages = [firstMessage]
+				expandedMessages.extend(messages)
+				if (self._MIN_MESSAGES_SHOWN + 1) < len(messages):
+					secondMessage = "<i>%d Messages Hidden...</i>" % (len(messages) - self._MIN_MESSAGES_SHOWN, )
+					collapsedMessages = [firstMessage, secondMessage]
+					collapsedMessages.extend(messages[-(self._MIN_MESSAGES_SHOWN+0):])
+				else:
+					collapsedMessages = expandedMessages
+
+				item = dict(item.iteritems())
+				item["collapsedMessages"] = "<br/>\n".join(collapsedMessages)
+				item["expandedMessages"] = "<br/>\n".join(expandedMessages)
+
+				messageItem = QtGui.QStandardItem(item["collapsedMessages"])
+				# @bug Not showing all of a message
+				messageItem.setData(item)
+				messageItem.setEditable(False)
+				messageItem.setCheckable(False)
+				row = (messageItem, )
+				self._itemStore.appendRow(row)
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_type_filter_changed(self, newItem):
 		self._selectedTypeFilter = str(newItem)
+		self._populate_items()
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_status_filter_changed(self, newItem):
 		self._selectedStatusFilter = str(newItem)
+		self._populate_items()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -686,7 +831,21 @@ class Messages(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		rowIndex = index.row()
-		#self._session.draft.add_contact(number, details)
+		item = self._itemStore.item(rowIndex, 0)
+		contactDetails = item.data().toPyObject()
+
+		name = str(contactDetails[QtCore.QString("name")])
+		number = str(contactDetails[QtCore.QString("number")])
+		if not name or name == number:
+			name = str(contactDetails[QtCore.QString("location")])
+		if not name:
+			name = "Unknown"
+
+		contactId = str(contactDetails[QtCore.QString("id")])
+		title = name
+		description = str(contactDetails[QtCore.QString("expandedMessages")])
+		numbersWithDescriptions = [(number, "")]
+		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
 
 
 class Contacts(object):
@@ -700,8 +859,9 @@ class Contacts(object):
 
 		self._listSelection = QtGui.QComboBox()
 		self._listSelection.addItems([])
+		# @todo Implement more contact lists
 		#self._listSelection.setCurrentIndex(self.HISTORY_ITEM_TYPES.index(self._selectedFilter))
-		self._listSelection.currentIndexChanged.connect(self._on_filter_changed)
+		self._listSelection.currentIndexChanged[str].connect(self._on_filter_changed)
 
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(["Contacts"])
@@ -737,10 +897,22 @@ class Contacts(object):
 		self._itemView.clear()
 
 	def refresh(self):
-		pass
+		self._session.update_contacts()
 
 	def _populate_items(self):
-		self._errorLog.push_message("Not supported")
+		self._itemStore.clear()
+
+		contacts = list(self._session.get_contacts().itervalues())
+		contacts.sort(key=lambda contact: contact["name"].lower())
+		for item in contacts:
+			name = item["name"]
+			numbers = item["numbers"]
+			nameItem = QtGui.QStandardItem(name)
+			nameItem.setEditable(False)
+			nameItem.setCheckable(False)
+			nameItem.setData(item)
+			row = (nameItem, )
+			self._itemStore.appendRow(row)
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
@@ -756,7 +928,43 @@ class Contacts(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		rowIndex = index.row()
-		#self._session.draft.add_contact(number, details)
+		item = self._itemStore.item(rowIndex, 0)
+		contactDetails = item.data().toPyObject()
+
+		name = str(contactDetails[QtCore.QString("name")])
+		if not name:
+			name = str(contactDetails[QtCore.QString("location")])
+		if not name:
+			name = "Unknown"
+
+		contactId = str(contactDetails[QtCore.QString("contactId")])
+		numbers = contactDetails[QtCore.QString("numbers")]
+		numbers = [
+			dict(
+				(str(k), str(v))
+				for (k, v) in number.iteritems()
+			)
+			for number in numbers
+		]
+		numbersWithDescriptions = [
+			(
+				number["phoneNumber"],
+				self._choose_phonetype(number),
+			)
+			for number in numbers
+		]
+		title = name
+		description = name
+		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+
+	@staticmethod
+	def _choose_phonetype(numberDetails):
+		if "phoneTypeName" in numberDetails:
+			return numberDetails["phoneTypeName"]
+		elif "phoneType" in numberDetails:
+			return numberDetails["phoneType"]
+		else:
+			return ""
 
 
 class MainWindow(object):
@@ -790,8 +998,10 @@ class MainWindow(object):
 		self._session.error.connect(self._on_session_error)
 		self._session.loggedIn.connect(self._on_login)
 		self._session.loggedOut.connect(self._on_logout)
+		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
 
 		self._credentialsDialog = None
+		self._smsEntryDialog = None
 
 		self._errorLog = qui_utils.QErrorLog()
 		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
@@ -908,9 +1118,9 @@ class MainWindow(object):
 	def _initialize_tab(self, index):
 		assert index < self.MAX_TABS
 		if not self._tabsContents[index].has_child():
-			self._tabsContents[index].set_child(
-				self._TAB_CLASS[index](self._app, self._session, self._errorLog)
-			)
+			tab = self._TAB_CLASS[index](self._app, self._session, self._errorLog)
+			self._tabsContents[index].set_child(tab)
+			self._tabsContents[index].refresh()
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
@@ -928,6 +1138,13 @@ class MainWindow(object):
 	def _on_logout(self):
 		for tab in self._tabsContents:
 			tab.disable()
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_recipients_changed(self):
+		if self._smsEntryDialog is None:
+			self._smsEntryDialog = SMSEntryWindow(self.window, self._app, self._session, self._errorLog)
+		pass
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
@@ -964,6 +1181,132 @@ class MainWindow(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
 		self.close()
+
+
+def make_ugly(prettynumber):
+	"""
+	function to take a phone number and strip out all non-numeric
+	characters
+
+	>>> make_ugly("+012-(345)-678-90")
+	'+01234567890'
+	"""
+	return normalize_number(prettynumber)
+
+
+def normalize_number(prettynumber):
+	"""
+	function to take a phone number and strip out all non-numeric
+	characters
+
+	>>> normalize_number("+012-(345)-678-90")
+	'+01234567890'
+	>>> normalize_number("1-(345)-678-9000")
+	'+13456789000'
+	>>> normalize_number("+1-(345)-678-9000")
+	'+13456789000'
+	"""
+	uglynumber = re.sub('[^0-9+]', '', prettynumber)
+
+	if uglynumber.startswith("+"):
+		pass
+	elif uglynumber.startswith("1"):
+		uglynumber = "+"+uglynumber
+	elif 10 <= len(uglynumber):
+		assert uglynumber[0] not in ("+", "1")
+		uglynumber = "+1"+uglynumber
+	else:
+		pass
+
+	return uglynumber
+
+
+def _make_pretty_with_areacode(phonenumber):
+	prettynumber = "(%s)" % (phonenumber[0:3], )
+	if 3 < len(phonenumber):
+		prettynumber += " %s" % (phonenumber[3:6], )
+		if 6 < len(phonenumber):
+			prettynumber += "-%s" % (phonenumber[6:], )
+	return prettynumber
+
+
+def _make_pretty_local(phonenumber):
+	prettynumber = "%s" % (phonenumber[0:3], )
+	if 3 < len(phonenumber):
+		prettynumber += "-%s" % (phonenumber[3:], )
+	return prettynumber
+
+
+def _make_pretty_international(phonenumber):
+	prettynumber = phonenumber
+	if phonenumber.startswith("1"):
+		prettynumber = "1 "
+		prettynumber += _make_pretty_with_areacode(phonenumber[1:])
+	return prettynumber
+
+
+def make_pretty(phonenumber):
+	"""
+	Function to take a phone number and return the pretty version
+	pretty numbers:
+		if phonenumber begins with 0:
+			...-(...)-...-....
+		if phonenumber begins with 1: ( for gizmo callback numbers )
+			1 (...)-...-....
+		if phonenumber is 13 digits:
+			(...)-...-....
+		if phonenumber is 10 digits:
+			...-....
+	>>> make_pretty("12")
+	'12'
+	>>> make_pretty("1234567")
+	'123-4567'
+	>>> make_pretty("2345678901")
+	'+1 (234) 567-8901'
+	>>> make_pretty("12345678901")
+	'+1 (234) 567-8901'
+	>>> make_pretty("01234567890")
+	'+012 (345) 678-90'
+	>>> make_pretty("+01234567890")
+	'+012 (345) 678-90'
+	>>> make_pretty("+12")
+	'+1 (2)'
+	>>> make_pretty("+123")
+	'+1 (23)'
+	>>> make_pretty("+1234")
+	'+1 (234)'
+	"""
+	if phonenumber is None or phonenumber is "":
+		return ""
+
+	phonenumber = normalize_number(phonenumber)
+
+	if phonenumber[0] == "+":
+		prettynumber = _make_pretty_international(phonenumber[1:])
+		if not prettynumber.startswith("+"):
+			prettynumber = "+"+prettynumber
+	elif 8 < len(phonenumber) and phonenumber[0] in ("1", ):
+		prettynumber = _make_pretty_international(phonenumber)
+	elif 7 < len(phonenumber):
+		prettynumber = _make_pretty_with_areacode(phonenumber)
+	elif 3 < len(phonenumber):
+		prettynumber = _make_pretty_local(phonenumber)
+	else:
+		prettynumber = phonenumber
+	return prettynumber.strip()
+
+
+def abbrev_relative_date(date):
+	"""
+	>>> abbrev_relative_date("42 hours ago")
+	'42 h'
+	>>> abbrev_relative_date("2 days ago")
+	'2 d'
+	>>> abbrev_relative_date("4 weeks ago")
+	'4 w'
+	"""
+	parts = date.split(" ")
+	return "%s %s" % (parts[0], parts[1][0])
 
 
 def run():

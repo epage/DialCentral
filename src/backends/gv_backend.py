@@ -41,8 +41,6 @@ class GVDialer(object):
 	def __init__(self, cookieFile = None):
 		self._gvoice = gvoice.GVoiceBackend(cookieFile)
 
-		self._contacts = None
-
 	def is_quick_login_possible(self):
 		"""
 		@returns True then is_authed might be enough to login, else full login is required
@@ -145,37 +143,18 @@ class GVDialer(object):
 		"""
 		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
 		"""
-		return self._gvoice.get_recent()
+		return list(self._gvoice.get_recent())
 
 	def get_contacts(self):
 		"""
-		@returns Iterable of (contact id, contact name)
+		@returns Fresh dictionary of items
 		"""
-		self._update_contacts_cache()
-		contactsToSort = [
-			(contactDetails["name"], contactId)
-			for contactId, contactDetails in self._contacts.iteritems()
-		]
-		contactsToSort.sort()
-		return (
-			(contactId, contactName)
-			for (contactName, contactId) in contactsToSort
-		)
-
-	def get_contact_details(self, contactId):
-		"""
-		@returns Iterable of (Phone Type, Phone Number)
-		"""
-		if self._contacts is None:
-			self._update_contacts_cache()
-		contactDetails = self._contacts[contactId]
-		# Defaulting phoneTypes because those are just things like faxes
-		return (
-			(number.get("phoneType", ""), number["phoneNumber"])
-			for number in contactDetails["numbers"]
-		)
+		return dict(self._gvoice.get_contacts())
 
 	def get_messages(self):
+		return list(self._get_messages())
+
+	def _get_messages(self):
 		voicemails = self._gvoice.get_voicemails()
 		smss = self._gvoice.get_texts()
 		conversations = itertools.chain(voicemails, smss)
@@ -223,9 +202,6 @@ class GVDialer(object):
 	@staticmethod
 	def factory_name():
 		return "Google Voice"
-
-	def _update_contacts_cache(self):
-		self._contacts = dict(self._gvoice.get_contacts())
 
 	def _format_message(self, message):
 		messagePartFormat = {
