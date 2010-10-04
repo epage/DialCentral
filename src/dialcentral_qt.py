@@ -8,6 +8,7 @@ import os
 import shutil
 import simplejson
 import re
+import functools
 import logging
 
 from PyQt4 import QtGui
@@ -253,11 +254,15 @@ class SMSEntryWindow(object):
 		self._session.draft.cancelled.connect(self._on_op_finished)
 		self._errorLog = errorLog
 
+		self._targetLayout = QtGui.QVBoxLayout()
+		self._targetList = QtGui.QWidget()
+		self._targetList.setLayout(self._targetLayout)
 		self._history = QtGui.QTextEdit()
 		self._smsEntry = QtGui.QTextEdit()
 		self._smsEntry.textChanged.connect(self._on_letter_count_changed)
 
 		self._entryLayout = QtGui.QVBoxLayout()
+		self._entryLayout.addWidget(self._targetList)
 		self._entryLayout.addWidget(self._history)
 		self._entryLayout.addWidget(self._smsEntry)
 		self._entryWidget = QtGui.QWidget()
@@ -315,44 +320,106 @@ class SMSEntryWindow(object):
 			self._smsButton.setEnabled(True)
 
 	def _update_recipients(self):
-		draftContacts = len(self._session.draft.get_contacts())
-		if draftContacts == 0:
+		draftContactsCount = self._session.draft.get_num_contacts()
+		if draftContactsCount == 0:
 			self._window.hide()
-		elif draftContacts == 1:
-			title, description, numbers = list(
-				self._session.draft.get_contacts().itervalues()
-			)[0]
+		elif draftContactsCount == 1:
+			(cid, ) = self._session.draft.get_contacts()
+			title = self._session.draft.get_title(cid)
+			description = self._session.draft.get_description(cid)
+			numbers = self._session.draft.get_numbers(cid)
+
+			self._targetList.setVisible(False)
+			if description:
+				self._history.setHtml(description)
+				self._history.setVisible(True)
+			else:
+				self._history.setHtml("")
+				self._history.setVisible(False)
+			self._populate_number_selector(self._singleNumberSelector, cid, numbers)
+
+			self._scroll_to_bottom()
 			self._window.setWindowTitle(title)
-			self._history.setHtml(description)
-			self._history.setVisible(True)
-			self._populate_number_selector(self._singleNumberSelector, numbers))
 			self._window.show()
 		else:
-			self._window.setWindowTitle("Contacts")
+			self._targetList.setVisible(True)
+			while self._targetLayout.count():
+				removedLayoutItem = self._targetLayout.takeAt(self._targetLayout.count()-1)
+				removedWidget = removedLayoutItem.widget()
+				removedWidget.close()
+			for cid in self._session.draft.get_contacts():
+				title = self._session.draft.get_title(cid)
+				description = self._session.draft.get_description(cid)
+				numbers = self._session.draft.get_numbers(cid)
+
+				titleLabel = QtGui.QLabel(title)
+				numberSelector = QtGui.QComboBox()
+				self._populate_number_selector(numberSelector, cid, numbers)
+				deleteButton = QtGui.QPushButton("Delete")
+				callback = functools.partial(
+					self._on_remove_contact,
+					cid
+				)
+				callback.__name__ = "b"
+				deleteButton.clicked.connect(
+					QtCore.pyqtSlot()(callback)
+				)
+
+				rowLayout = QtGui.QHBoxLayout()
+				rowLayout.addWidget(titleLabel)
+				rowLayout.addWidget(numberSelector)
+				rowLayout.addWidget(deleteButton)
+				rowWidget = QtGui.QWidget()
+				rowWidget.setLayout(rowLayout)
+				self._targetLayout.addWidget(rowWidget)
 			self._history.setHtml("")
 			self._history.setVisible(False)
 			self._singleNumberSelector.setVisible(False)
+
+			self._scroll_to_bottom()
+			self._window.setWindowTitle("Contacts")
 			self._window.show()
 
-	def _populate_number_selector(self, selector, numbers):
+	def _populate_number_selector(self, selector, cid, numbers):
 		while 0 < selector.count():
 			selector.removeItem(0)
 		for number, description in numbers:
 			if description:
-				label = "%s - %s" % number, description
+				label = "%s - %s" % (number, description)
 			else:
 				label = number
-			selector.addItem(label, numbers)
+			selector.addItem(label)
 		selector.setVisible(True)
 		if 1 < len(numbers):
 			selector.setEnabled(True)
 		else:
 			selector.setEnabled(False)
+		callback = functools.partial(
+			self._on_change_number,
+			cid
+		)
+		callback.__name__ = "b"
+		selector.currentIndexChanged.connect(
+			QtCore.pyqtSlot(int)(callback)
+		)
+
+	def _scroll_to_bottom(self):
+		self._scrollEntry.ensureWidgetVisible(self._smsEntry)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_remove_contact(self, cid):
+		self._session.draft.remove_contact(cid)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_change_number(self, cid, index):
+		numbers = self._session.draft.get_numbers(cid)
+		number = numbers[index][0]
+		self._session.draft.set_selected_number(cid, number)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_recipients_changed(self):
-		self._populate_recipients()
+		self._update_recipients()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -1176,7 +1243,7 @@ class MainWindow(object):
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_recipients_changed(self):
-		if len(self._session.draft.get_contacts()) == 0:
+		if self._session.draft.get_num_contacts() == 0:
 			return
 
 		if self._smsEntryDialog is None:

@@ -13,6 +13,15 @@ from backends import gv_backend
 _moduleLogger = logging.getLogger(__name__)
 
 
+class _DraftContact(object):
+
+	def __init__(self, title, description, numbersWithDescriptions):
+		self.title = title
+		self.description = description
+		self.numbers = numbersWithDescriptions
+		self.selectedNumber = numbersWithDescriptions[0][0]
+
+
 class Draft(QtCore.QObject):
 
 	sendingMessage = QtCore.pyqtSignal()
@@ -46,7 +55,7 @@ class Draft(QtCore.QObject):
 
 	def add_contact(self, contactId, title, description, numbersWithDescriptions):
 		assert contactId not in self._contacts
-		contactDetails = title, description, numbersWithDescriptions
+		contactDetails = _DraftContact(title, description, numbersWithDescriptions)
 		self._contacts[contactId] = contactDetails
 		self.recipientsChanged.emit()
 
@@ -56,7 +65,27 @@ class Draft(QtCore.QObject):
 		self.recipientsChanged.emit()
 
 	def get_contacts(self):
-		return self._contacts
+		return self._contacts.iterkeys()
+
+	def get_num_contacts(self):
+		return len(self._contacts)
+
+	def get_title(self, cid):
+		return self._contacts[cid].title
+
+	def get_description(self, cid):
+		return self._contacts[cid].description
+
+	def get_numbers(self, cid):
+		return self._contacts[cid].numbers
+
+	def get_selected_number(self, cid):
+		return self._contacts[cid].selectedNumber
+
+	def set_selected_number(self, cid, number):
+		# @note I'm lazy, this isn't firing any kind of signal since only one
+		# controller right now and that is the viewer
+		return self._contacts[cid].numbers
 
 	def clear(self):
 		oldContacts = self._contacts
