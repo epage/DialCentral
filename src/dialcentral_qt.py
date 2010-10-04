@@ -253,7 +253,7 @@ class SMSEntryWindow(object):
 		self._session.draft.cancelled.connect(self._on_op_finished)
 		self._errorLog = errorLog
 
-		self._history = QtGui.QListView()
+		self._history = QtGui.QTextEdit()
 		self._smsEntry = QtGui.QTextEdit()
 		self._smsEntry.textChanged.connect(self._on_letter_count_changed)
 
@@ -269,12 +269,13 @@ class SMSEntryWindow(object):
 		self._scrollEntry.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
 		self._characterCountLabel = QtGui.QLabel("Letters: %s" % 0)
-		self._numberSelector = None
+		self._singleNumberSelector = QtGui.QComboBox()
 		self._smsButton = QtGui.QPushButton("SMS")
 		self._dialButton = QtGui.QPushButton("Dial")
 
 		self._buttonLayout = QtGui.QHBoxLayout()
 		self._buttonLayout.addWidget(self._characterCountLabel)
+		self._buttonLayout.addWidget(self._singleNumberSelector)
 		self._buttonLayout.addWidget(self._smsButton)
 		self._buttonLayout.addWidget(self._dialButton)
 
@@ -291,6 +292,7 @@ class SMSEntryWindow(object):
 		self._window.setWindowTitle("Contact")
 		self._window.setCentralWidget(centralWidget)
 		self._window.show()
+		self._update_recipients()
 
 	def _update_letter_count(self):
 		count = self._smsEntry.toPlainText().size()
@@ -312,14 +314,45 @@ class SMSEntryWindow(object):
 			self._dialButton.setEnabled(False)
 			self._smsButton.setEnabled(True)
 
-	@QtCore.pyqtSlot()
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_recipients_changed(self):
+	def _update_recipients(self):
 		draftContacts = len(self._session.draft.get_contacts())
 		if draftContacts == 0:
 			self._window.hide()
-		else:
+		elif draftContacts == 1:
+			title, description, numbers = list(
+				self._session.draft.get_contacts().itervalues()
+			)[0]
+			self._window.setWindowTitle(title)
+			self._history.setHtml(description)
+			self._history.setVisible(True)
+			self._populate_number_selector(self._singleNumberSelector, numbers))
 			self._window.show()
+		else:
+			self._window.setWindowTitle("Contacts")
+			self._history.setHtml("")
+			self._history.setVisible(False)
+			self._singleNumberSelector.setVisible(False)
+			self._window.show()
+
+	def _populate_number_selector(self, selector, numbers):
+		while 0 < selector.count():
+			selector.removeItem(0)
+		for number, description in numbers:
+			if description:
+				label = "%s - %s" % number, description
+			else:
+				label = number
+			selector.addItem(label, numbers)
+		selector.setVisible(True)
+		if 1 < len(numbers):
+			selector.setEnabled(True)
+		else:
+			selector.setEnabled(False)
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_recipients_changed(self):
+		self._populate_recipients()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -532,6 +565,7 @@ class Dialpad(object):
 		title = number
 		description = number
 		numbersWithDescriptions = [(number, "")]
+		self._session.draft.clear()
 		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
 		self._session.draft.call()
 
@@ -1142,6 +1176,9 @@ class MainWindow(object):
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_recipients_changed(self):
+		if len(self._session.draft.get_contacts()) == 0:
+			return
+
 		if self._smsEntryDialog is None:
 			self._smsEntryDialog = SMSEntryWindow(self.window, self._app, self._session, self._errorLog)
 		pass

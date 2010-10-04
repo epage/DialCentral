@@ -59,8 +59,10 @@ class Draft(QtCore.QObject):
 		return self._contacts
 
 	def clear(self):
+		oldContacts = self._contacts
 		self._contacts = {}
-		self.recipientsChanged.emit()
+		if oldContacts:
+			self.recipientsChanged.emit()
 
 	def _send(self, text):
 		self.sendingMessage.emit()
