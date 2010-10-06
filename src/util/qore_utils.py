@@ -74,7 +74,7 @@ class _WorkerThread(QtCore.QObject):
 	@QtCore.pyqtSlot()
 	@misc.log_exception(_moduleLogger)
 	def _on_stop_requested(self):
-		self._thread.quit()
+		self._pool._thread.quit()
 
 
 class AsyncPool(QtCore.QObject):

@@ -88,6 +88,7 @@ class Dialcentral(object):
 		}
 		with open(constants._user_settings_, "w") as settingsFile:
 			simplejson.dump(settings, settingsFile)
+		self._mainWindow.destroy()
 
 	@property
 	def fullscreenAction(self):
@@ -491,9 +492,9 @@ class DelayedWidget(object):
 		if self._child is not None:
 			self._child.clear()
 
-	def refresh(self):
+	def refresh(self, force=True):
 		if self._child is not None:
-			self._child.refresh()
+			self._child.refresh(force)
 
 
 class Dialpad(object):
@@ -576,7 +577,7 @@ class Dialpad(object):
 	def clear(self):
 		pass
 
-	def refresh(self):
+	def refresh(self, force = True):
 		pass
 
 	def _generate_key_button(self, center, letters):
@@ -711,8 +712,8 @@ class History(object):
 	def clear(self):
 		self._itemView.clear()
 
-	def refresh(self):
-		self._session.update_history()
+	def refresh(self, force=True):
+		self._session.update_history(force)
 
 	def _populate_items(self):
 		self._itemStore.clear()
@@ -862,8 +863,8 @@ class Messages(object):
 	def clear(self):
 		self._itemView.clear()
 
-	def refresh(self):
-		self._session.update_messages()
+	def refresh(self, force=True):
+		self._session.update_messages(force)
 
 	def _populate_items(self):
 		self._itemStore.clear()
@@ -1012,8 +1013,8 @@ class Contacts(object):
 	def clear(self):
 		self._itemView.clear()
 
-	def refresh(self):
-		self._session.update_contacts()
+	def refresh(self, force=True):
+		self._session.update_contacts(force)
 
 	def _populate_items(self):
 		self._itemStore.clear()
@@ -1110,7 +1111,7 @@ class MainWindow(object):
 	def __init__(self, parent, app):
 		self._fsContactsPath = os.path.join(constants._data_path_, "contacts")
 		self._app = app
-		self._session = session.Session()
+		self._session = session.Session(constants._data_path_)
 		self._session.error.connect(self._on_session_error)
 		self._session.loggedIn.connect(self._on_login)
 		self._session.loggedOut.connect(self._on_logout)
@@ -1223,6 +1224,9 @@ class MainWindow(object):
 			child.close()
 		self._window.close()
 
+	def destroy(self):
+		self._session.logout()
+
 	def set_fullscreen(self, isFullscreen):
 		if isFullscreen:
 			self._window.showFullScreen()
@@ -1236,7 +1240,7 @@ class MainWindow(object):
 		if not self._tabsContents[index].has_child():
 			tab = self._TAB_CLASS[index](self._app, self._session, self._errorLog)
 			self._tabsContents[index].set_child(tab)
-			self._tabsContents[index].refresh()
+			self._tabsContents[index].refresh(force=False)
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
@@ -1284,7 +1288,7 @@ class MainWindow(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh(self, checked = True):
 		index = self._tabWidget.currentIndex()
-		self._tabsContents[index].refresh()
+		self._tabsContents[index].refresh(force=True)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)

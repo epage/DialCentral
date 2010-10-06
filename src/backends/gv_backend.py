@@ -65,6 +65,9 @@ class GVDialer(object):
 	def logout(self):
 		return self._gvoice.logout()
 
+	def persist(self):
+		return self._gvoice.persist()
+
 	def is_dnd(self):
 		return self._gvoice.is_dnd()
 
@@ -160,10 +163,10 @@ class GVDialer(object):
 		conversations = itertools.chain(voicemails, smss)
 		for conversation in conversations:
 			messages = conversation.messages
-			messageParts = (
+			messageParts = [
 				(message.whoFrom, self._format_message(message), message.when)
 				for message in messages
-			)
+			]
 
 			messageDetails = {
 				"id": conversation.id,

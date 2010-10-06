@@ -2,11 +2,19 @@ import os
 import time
 import logging
 
+try:
+	import cPickle
+	pickle = cPickle
+except ImportError:
+	import pickle
+
 from PyQt4 import QtCore
 
 from util import qore_utils
 from util import concurrent
+from util import misc as misc_utils
 
+import constants
 from backends import gv_backend
 
 
@@ -144,6 +152,8 @@ class Session(QtCore.QObject):
 	LOGGINGIN_STATE = "logging in"
 	LOGGEDIN_STATE = "logged in"
 
+	_OLDEST_COMPATIBLE_FORMAT_VERSION = misc_utils.parse_version("1.2.0")
+
 	_LOGGEDOUT_TIME = -1
 	_LOGGINGIN_TIME = 0
 
@@ -209,21 +219,27 @@ class Session(QtCore.QObject):
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self.clear()
 
-	def update_contacts(self):
+	def update_contacts(self, force = True):
+		if not force and self._contacts:
+			return
 		le = concurrent.AsyncLinearExecution(self._pool, self._update_contacts)
 		self._perform_op_while_loggedin(le)
 
 	def get_contacts(self):
 		return self._contacts
 
-	def update_messages(self):
+	def update_messages(self, force = True):
+		if not force and self._messages:
+			return
 		le = concurrent.AsyncLinearExecution(self._pool, self._update_messages)
 		self._perform_op_while_loggedin(le)
 
 	def get_messages(self):
 		return self._messages
 
-	def update_history(self):
+	def update_history(self, force = True):
+		if not force and self._history:
+			return
 		le = concurrent.AsyncLinearExecution(self._pool, self._update_history)
 		self._perform_op_while_loggedin(le)
 
@@ -319,8 +335,13 @@ class Session(QtCore.QObject):
 				finalState = self.LOGGEDIN_STATE
 				self.loggedIn.emit()
 				if oldUsername != self._username:
-					self._load_from_cache()
-				loginOps = self._loginOps[:]
+					needOps = not self._load()
+				else:
+					needOps = True
+				if needOps:
+					loginOps = self._loginOps[:]
+				else:
+					loginOps = []
 				del self._loginOps[:]
 				for asyncOp in loginOps:
 					asyncOp.start()
@@ -329,7 +350,7 @@ class Session(QtCore.QObject):
 		finally:
 			self.stateChange.emit(finalState)
 
-	def _load_from_cache(self):
+	def _load(self):
 		updateContacts = len(self._contacts) != 0
 		updateMessages = len(self._messages) != 0
 		updateHistory = len(self._history) != 0
@@ -342,6 +363,12 @@ class Session(QtCore.QObject):
 		self._dnd = False
 		self._callback = ""
 
+		loadedFromCache = self._load_from_cache()
+		if loadedFromCache:
+			updateContacts = True
+			updateMessages = True
+			updateHistory = True
+
 		if updateContacts:
 			self.contactsUpdated.emit()
 		if updateMessages:
@@ -353,9 +380,63 @@ class Session(QtCore.QObject):
 		if oldCallback != self._callback:
 			self.callbackNumberChanged.emit(self._callback)
 
+		return loadedFromCache
+
+	def _load_from_cache(self):
+		if self._cachePath is None:
+			return False
+		cachePath = os.path.join(self._cachePath, "%s.cache" % self._username)
+
+		try:
+			with open(cachePath, "rb") as f:
+				dumpedData = pickle.load(f)
+		except (pickle.PickleError, IOError, EOFError, ValueError):
+			_moduleLogger.exception("Pickle fun loading")
+			return False
+		except:
+			_moduleLogger.exception("Weirdness loading")
+			return False
+
+		(
+			version, build,
+			contacts, messages, history, dnd, callback
+		) = dumpedData
+
+		if misc_utils.compare_versions(
+			self._OLDEST_COMPATIBLE_FORMAT_VERSION,
+			misc_utils.parse_version(version),
+		) <= 0:
+			_moduleLogger.info("Loaded cache")
+			self._contacts = contacts
+			self._messages = messages
+			self._history = history
+			self._dnd = dnd
+			self._callback = callback
+			return True
+		else:
+			_moduleLogger.debug(
+				"Skipping cache due to version mismatch (%s-%s)" % (
+					version, build
+				)
+			)
+			return False
+
 	def _save_to_cache(self):
-		# @todo
-		pass
+		_moduleLogger.info("Saving cache")
+		if self._cachePath is None:
+			return
+		cachePath = os.path.join(self._cachePath, "%s.cache" % self._username)
+
+		try:
+			dataToDump = (
+				constants.__version__, constants.__build__,
+				self._contacts, self._messages, self._history, self._dnd, self._callback
+			)
+			with open(cachePath, "wb") as f:
+				pickle.dump(dataToDump, f, pickle.HIGHEST_PROTOCOL)
+			_moduleLogger.info("Cache saved")
+		except (pickle.PickleError, IOError):
+			_moduleLogger.exception("While saving")
 
 	def _clear_cache(self):
 		updateContacts = len(self._contacts) != 0
