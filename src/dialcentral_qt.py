@@ -276,7 +276,9 @@ class SMSEntryWindow(object):
 		self._characterCountLabel = QtGui.QLabel("Letters: %s" % 0)
 		self._singleNumberSelector = QtGui.QComboBox()
 		self._smsButton = QtGui.QPushButton("SMS")
+		self._smsButton.clicked.connect(self._on_sms_clicked)
 		self._dialButton = QtGui.QPushButton("Dial")
+		self._dialButton.clicked.connect(self._on_call_clicked)
 
 		self._buttonLayout = QtGui.QHBoxLayout()
 		self._buttonLayout.addWidget(self._characterCountLabel)
@@ -398,13 +400,26 @@ class SMSEntryWindow(object):
 			self._on_change_number,
 			cid
 		)
-		callback.__name__ = "b"
+		callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
 		selector.currentIndexChanged.connect(
 			QtCore.pyqtSlot(int)(callback)
 		)
 
 	def _scroll_to_bottom(self):
 		self._scrollEntry.ensureWidgetVisible(self._smsEntry)
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_sms_clicked(self):
+		message = str(self._smsEntry.toPlainText())
+		self._session.draft.send(message)
+		self._smsEntry.setPlainText("")
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_call_clicked(self):
+		self._session.draft.call()
+		self._smsEntry.setPlainText("")
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_remove_contact(self, cid):

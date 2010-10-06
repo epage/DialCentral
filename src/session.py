@@ -41,13 +41,15 @@ class Draft(QtCore.QObject):
 
 	def send(self, text):
 		assert 0 < len(self._contacts)
+		numbers = [contact.selectedNumber for contact in self._contacts.itervalues()]
 		le = concurrent.AsyncLinearExecution(self._pool, self._send)
-		le.start(text)
+		le.start(numbers, text)
 
 	def call(self):
 		assert len(self._contacts) == 1
+		(contact, ) = self._contacts.itervalues()
 		le = concurrent.AsyncLinearExecution(self._pool, self._call)
-		le.start()
+		le.start(contact.selectedNumber)
 
 	def cancel(self):
 		le = concurrent.AsyncLinearExecution(self._pool, self._cancel)
@@ -93,7 +95,7 @@ class Draft(QtCore.QObject):
 		if oldContacts:
 			self.recipientsChanged.emit()
 
-	def _send(self, text):
+	def _send(self, numbers, text):
 		self.sendingMessage.emit()
 		try:
 			self.error.emit("Not Implemented")
@@ -102,7 +104,7 @@ class Draft(QtCore.QObject):
 		except Exception, e:
 			self.error.emit(str(e))
 
-	def _call(self):
+	def _call(self, number):
 		self.calling.emit()
 		try:
 			self.error.emit("Not Implemented")
