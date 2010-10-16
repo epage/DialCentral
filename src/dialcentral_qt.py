@@ -25,8 +25,6 @@ import session
 
 
 _moduleLogger = logging.getLogger(__name__)
-
-
 IS_MAEMO = True
 
 
@@ -188,6 +186,8 @@ class CredentialsDialog(object):
 				return str(self._usernameField.text()), str(self._passwordField.text())
 			elif response == QtGui.QDialog.Rejected:
 				raise RuntimeError("Login Cancelled")
+			else:
+				raise RuntimeError("Unknown Response")
 		finally:
 			self._dialog.setParent(None, QtCore.Qt.Dialog)
 
@@ -195,24 +195,27 @@ class CredentialsDialog(object):
 class AccountDialog(object):
 
 	def __init__(self):
+		self._doClear = False
+
 		self._accountNumberLabel = QtGui.QLabel("NUMBER NOT SET")
 		self._clearButton = QtGui.QPushButton("Clear Account")
 		self._clearButton.clicked.connect(self._on_clear)
-		self._doClear = False
 
 		self._credLayout = QtGui.QGridLayout()
 		self._credLayout.addWidget(QtGui.QLabel("Account"), 0, 0)
 		self._credLayout.addWidget(self._accountNumberLabel, 0, 1)
 		self._credLayout.addWidget(QtGui.QLabel("Callback"), 1, 0)
+		self._credLayout.addWidget(QtGui.QLabel(""), 2, 0)
 		self._credLayout.addWidget(self._clearButton, 2, 1)
+		self._credLayout.addWidget(QtGui.QLabel(""), 3, 0)
 
-		self._loginButton = QtGui.QPushButton("&Login")
+		self._loginButton = QtGui.QPushButton("&Apply")
 		self._buttonLayout = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Cancel)
 		self._buttonLayout.addButton(self._loginButton, QtGui.QDialogButtonBox.AcceptRole)
 
 		self._layout = QtGui.QVBoxLayout()
 		self._layout.addLayout(self._credLayout)
-		self._layout.addLayout(self._buttonLayout)
+		self._layout.addWidget(self._buttonLayout)
 
 		self._dialog = QtGui.QDialog()
 		self._dialog.setWindowTitle("Login")
@@ -230,17 +233,12 @@ class AccountDialog(object):
 		lambda self, num: self._accountNumberLabel.setText(num),
 	)
 
-	def run(self, defaultUsername, defaultPassword, parent=None):
+	def run(self, parent=None):
 		self._doClear = False
 		self._dialog.setParent(parent)
-		self._usernameField.setText(defaultUsername)
-		self._passwordField.setText(defaultPassword)
 
 		response = self._dialog.exec_()
-		if response == QtGui.QDialog.Accepted:
-			return str(self._usernameField.text()), str(self._passwordField.text())
-		elif response == QtGui.QDialog.Rejected:
-			raise RuntimeError("Login Cancelled")
+		return response
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
@@ -1161,6 +1159,7 @@ class MainWindow(object):
 
 		self._credentialsDialog = None
 		self._smsEntryDialog = None
+		self._accountDialog = None
 
 		self._errorLog = qui_utils.QErrorLog()
 		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
@@ -1203,6 +1202,10 @@ class MainWindow(object):
 		self._importTabAction.setText("Import")
 		self._importTabAction.triggered.connect(self._on_import)
 
+		self._accountTabAction = QtGui.QAction(None)
+		self._accountTabAction.setText("Account")
+		self._accountTabAction.triggered.connect(self._on_account)
+
 		self._refreshTabAction = QtGui.QAction(None)
 		self._refreshTabAction.setText("Refresh")
 		self._refreshTabAction.setShortcut(QtGui.QKeySequence("CTRL+r"))
@@ -1219,6 +1222,7 @@ class MainWindow(object):
 			fileMenu.addAction(self._refreshTabAction)
 
 			toolsMenu = self._window.menuBar().addMenu("&Tools")
+			toolsMenu.addAction(self._accountTabAction)
 			toolsMenu.addAction(self._importTabAction)
 
 			self._window.addAction(self._closeWindowAction)
@@ -1235,6 +1239,7 @@ class MainWindow(object):
 			viewMenu.addAction(self._app.fullscreenAction)
 
 			toolsMenu = self._window.menuBar().addMenu("&Tools")
+			toolsMenu.addAction(self._accountTabAction)
 			toolsMenu.addAction(self._importTabAction)
 
 		self._window.addAction(self._app.logAction)
@@ -1342,6 +1347,22 @@ class MainWindow(object):
 			return
 		shutil.copy2(csvName, self._app.fsContactsPath)
 		self._tabsContents[self.CONTACTS_TAB].update_addressbooks()
+
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_account(self, checked = True):
+		if self._accountDialog is None:
+			self._accountDialog = AccountDialog()
+		self._accountDialog.accountNumber = self._session.get_account_number()
+		response = self._accountDialog.run()
+		if response == QtGui.QDialog.Accepted:
+			if self._accountDialog.doClear():
+				self._session.logout_and_clear()
+		elif response == QtGui.QDialog.Rejected:
+			_moduleLogger.info("Cancelled")
+		else:
+			_moduleLogger.info("Unknown response")
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)

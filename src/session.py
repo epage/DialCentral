@@ -15,7 +15,6 @@ from util import concurrent
 from util import misc as misc_utils
 
 import constants
-from backends import gv_backend
 
 
 _moduleLogger = logging.getLogger(__name__)
@@ -193,6 +192,7 @@ class Session(QtCore.QObject):
 			cookiePath = None
 
 		if self._username != username or self._backend is None:
+			from backends import gv_backend
 			self._backend = gv_backend.GVDialer(cookiePath)
 
 		self._pool.start()
@@ -270,6 +270,9 @@ class Session(QtCore.QObject):
 
 	def get_dnd(self):
 		return self._dnd
+
+	def get_account_number(self):
+		return self._backend.get_account_number()
 
 	def get_callback_numbers(self):
 		# @todo Remove evilness

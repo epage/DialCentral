@@ -23,7 +23,6 @@ Filesystem backend for contact support
 
 
 import os
-import re
 import csv
 
 
@@ -35,10 +34,6 @@ class CsvAddressBook(object):
 	@li Comma as delimiter
 	@li Column 0 is name, column 1 is number
 	"""
-
-	_nameRe = re.compile("name", re.IGNORECASE)
-	_phoneRe = re.compile("phone", re.IGNORECASE)
-	_mobileRe = re.compile("mobile", re.IGNORECASE)
 
 	def __init__(self, name, csvPath):
 		self._name = name
@@ -103,11 +98,11 @@ class CsvAddressBook(object):
 		names = []
 		phones = []
 		for i, item in enumerate(row):
-			if cls._nameRe.search(item) is not None:
+			if 0 <= item.lower().find("name"):
 				names.append((item, i))
-			elif cls._phoneRe.search(item) is not None:
+			elif 0 <= item.lower().find("phone"):
 				phones.append((item, i))
-			elif cls._mobileRe.search(item) is not None:
+			elif 0 <= item.lower().find("mobile"):
 				phones.append((item, i))
 		if len(names) == 0:
 			names.append(("Name", 0))
