@@ -54,8 +54,15 @@ class Dialcentral(object):
 		self._app.lastWindowClosed.connect(self._on_app_quit)
 		self._mainWindow = MainWindow(None, self)
 		self._mainWindow.window.destroyed.connect(self._on_child_close)
+
 		self.load_settings()
-		self._mainWindow.start()
+
+		self._mainWindow.show()
+		self._idleDelay = QtCore.QTimer()
+		self._idleDelay.setSingleShot(True)
+		self._idleDelay.setInterval(0)
+		self._idleDelay.timeout.connect(lambda: self._mainWindow.start())
+		self._idleDelay.start()
 
 	def load_settings(self):
 		try:
@@ -399,7 +406,6 @@ class MainWindow(object):
 
 	def start(self):
 		assert self._session.state == self._session.LOGGEDOUT_STATE
-		self.show()
 		if self._defaultCredentials != ("", ""):
 			username, password = self._defaultCredentials[0], self._defaultCredentials[1]
 			self._curentCredentials = username, password
