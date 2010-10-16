@@ -73,20 +73,23 @@ class Dialcentral(object):
 		except Exception:
 			_moduleLogger.exception("Unknown loading error")
 
+		blobs = "", ""
+		isFullscreen = False
+		tabIndex = 0
 		try:
 			blobs = (
 				config.get(constants.__pretty_app_name__, "bin_blob_%i" % i)
 				for i in xrange(len(self._mainWindow.get_default_credentials()))
 			)
 			isFullscreen = config.getboolean(constants.__pretty_app_name__, "fullscreen")
+			tabIndex = config.getint(constants.__pretty_app_name__, "tab")
 		except ConfigParser.NoOptionError, e:
 			_moduleLogger.info(
-				"Settings file %s is missing section %s" % (
+				"Settings file %s is missing option %s" % (
 					constants._user_settings_,
-					e.section,
+					e.option,
 				),
 			)
-			return
 		except ConfigParser.NoSectionError, e:
 			_moduleLogger.info(
 				"Settings file %s is missing section %s" % (
@@ -97,6 +100,7 @@ class Dialcentral(object):
 			return
 		except Exception:
 			_moduleLogger.exception("Unknown loading error")
+			return
 
 		creds = (
 			base64.b64decode(blob)
@@ -104,13 +108,14 @@ class Dialcentral(object):
 		)
 		self._mainWindow.set_default_credentials(*creds)
 		self._fullscreenAction.setChecked(isFullscreen)
-
+		self._mainWindow.set_current_tab(tabIndex)
 		self._mainWindow.load_settings(config)
 
 	def save_settings(self):
 		config = ConfigParser.SafeConfigParser()
 
 		config.add_section(constants.__pretty_app_name__)
+		config.set(constants.__pretty_app_name__, "tab", str(self._mainWindow.get_current_tab()))
 		config.set(constants.__pretty_app_name__, "fullscreen", str(self._fullscreenAction.isChecked()))
 		for i, value in enumerate(self._mainWindow.get_default_credentials()):
 			blob = base64.b64encode(value)
@@ -269,12 +274,15 @@ class MainWindow(object):
 		functools.partial(_tab_factory, "Contacts"),
 	]
 	assert len(_TAB_CLASS) == MAX_TABS
+
+	# Hack to allow delay importing/loading of tabs
 	_TAB_SETTINGS_NAMES = [
 		(),
 		("filter", ),
 		("status", "type"),
 		("selectedAddressbook", ),
 	]
+	assert len(_TAB_SETTINGS_NAMES) == MAX_TABS
 
 	def __init__(self, parent, app):
 		self._app = app
@@ -408,6 +416,12 @@ class MainWindow(object):
 	def destroy(self):
 		if self._session.state != self._session.LOGGEDOUT_STATE:
 			self._session.logout()
+
+	def get_current_tab(self):
+		return self._tabWidget.currentIndex()
+
+	def set_current_tab(self, tabIndex):
+		self._tabWidget.setCurrentIndex(tabIndex)
 
 	def load_settings(self, config):
 		backendId = 2 # For backwards compatibility
