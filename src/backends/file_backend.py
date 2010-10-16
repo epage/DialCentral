@@ -40,14 +40,33 @@ class CsvAddressBook(object):
 	_phoneRe = re.compile("phone", re.IGNORECASE)
 	_mobileRe = re.compile("mobile", re.IGNORECASE)
 
-	def __init__(self, csvPath):
-		self.__csvPath = csvPath
-		self.__contacts = list(
-			self.read_csv(csvPath)
+	def __init__(self, name, csvPath):
+		self._name = name
+		self._csvPath = csvPath
+		self._contacts = {}
+
+	@property
+	def name(self):
+		return self._name
+
+	def update_contacts(self, force = True):
+		if not force or not self._contacts:
+			return
+		self._contacts = dict(
+			self._read_csv(self._csvPath)
 		)
 
-	@classmethod
-	def read_csv(cls, csvPath):
+	def get_contacts(self):
+		"""
+		@returns Iterable of (contact id, contact name)
+		"""
+		if not self._contacts:
+			self._contacts = dict(
+				self._read_csv(self._csvPath)
+			)
+		return self._contacts
+
+	def _read_csv(self, csvPath):
 		try:
 			csvReader = iter(csv.reader(open(csvPath, "rU")))
 		except IOError, e:
@@ -56,7 +75,7 @@ class CsvAddressBook(object):
 			return
 
 		header = csvReader.next()
-		nameColumn, phoneColumns = cls._guess_columns(header)
+		nameColumn, phoneColumns = self._guess_columns(header)
 
 		yieldCount = 0
 		for row in csvReader:
@@ -65,11 +84,18 @@ class CsvAddressBook(object):
 				try:
 					if len(row[phoneColumn]) == 0:
 						continue
-					contactDetails.append((phoneType, row[phoneColumn]))
+					contactDetails.append({
+						"phoneType": phoneType,
+						"phoneNumber": row[phoneColumn],
+					})
 				except IndexError:
 					pass
-			if len(contactDetails) != 0:
-				yield str(yieldCount), row[nameColumn], contactDetails
+			if 0 < len(contactDetails):
+				yield str(yieldCount), {
+					"contactId": "%s-%d" % (self._name, yieldCount),
+					"name": row[nameColumn],
+					"numbers": contactDetails,
+				}
 				yieldCount += 1
 
 	@classmethod
@@ -90,31 +116,6 @@ class CsvAddressBook(object):
 
 		return names[0][1], phones
 
-	def clear_caches(self):
-		pass
-
-	@staticmethod
-	def factory_name():
-		return "csv"
-
-	@staticmethod
-	def contact_source_short_name(contactId):
-		return "csv"
-
-	def get_contacts(self):
-		"""
-		@returns Iterable of (contact id, contact name)
-		"""
-		for contact in self.__contacts:
-			yield contact[0:2]
-
-	def get_contact_details(self, contactId):
-		"""
-		@returns Iterable of (Phone Type, Phone Number)
-		"""
-		contactId = int(contactId)
-		return iter(self.__contacts[contactId][2])
-
 
 class FilesystemAddressBookFactory(object):
 
@@ -123,49 +124,18 @@ class FilesystemAddressBookFactory(object):
 	}
 
 	def __init__(self, path):
-		self.__path = path
-
-	def clear_caches(self):
-		pass
+		self._path = path
 
 	def get_addressbooks(self):
-		"""
-		@returns Iterable of (Address Book Factory, Book Id, Book Name)
-		"""
-		for root, dirs, filenames in os.walk(self.__path):
+		for root, dirs, filenames in os.walk(self._path):
 			for filename in filenames:
 				try:
 					name, ext = filename.rsplit(".", 1)
 				except ValueError:
 					continue
 
-				if ext in self.FILETYPE_SUPPORT:
-					yield self, os.path.join(root, filename), name
-
-	def open_addressbook(self, bookId):
-		name, ext = bookId.rsplit(".", 1)
-		assert ext in self.FILETYPE_SUPPORT, "Unsupported file extension %s" % ext
-		return self.FILETYPE_SUPPORT[ext](bookId)
-
-	@staticmethod
-	def factory_name():
-		return "File"
-
-
-def print_filebooks(contactPath = None):
-	"""
-	Included here for debugging.
-
-	Either insert it into the code or launch python with the "-i" flag
-	"""
-	if contactPath is None:
-		contactPath = os.path.join(os.path.expanduser("~"), ".dialcentral", "contacts")
-
-	abf = FilesystemAddressBookFactory(contactPath)
-	for book in abf.get_addressbooks():
-		ab = abf.open_addressbook(book[1])
-		print book
-		for contact in ab.get_contacts():
-			print "\t", contact
-			for details in ab.get_contact_details(contact[0]):
-				print "\t\t", details
+				try:
+					cls = self.FILETYPE_SUPPORT[ext]
+				except KeyError:
+					continue
+				yield cls(name, os.path.join(root, filename))

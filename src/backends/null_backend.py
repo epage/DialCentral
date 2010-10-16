@@ -20,127 +20,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 """
 
 
-class NullDialer(object):
+class NullAddressBook(object):
 
-	def __init__(self):
+	@property
+	def name(self):
+		return "None"
+
+	def update_contacts(self, force = True):
 		pass
-
-	def is_quick_login_possible(self):
-		return False
-
-	def is_authed(self, force = False):
-		return False
-
-	def login(self, username, password):
-		return self.is_authed()
-
-	def logout(self):
-		self.clear_caches()
-
-	def call(self, number):
-		return True
-
-	def cancel(self, outgoingNumber=None):
-		pass
-
-	def send_sms(self, number, message):
-		raise NotImplementedError("SMS Is Not Supported")
-
-	def search(self, query):
-		return []
-
-	def get_feed(self, feed):
-		return {}
-
-	def download(self, messageId, adir):
-		return ""
-
-	def clear_caches(self):
-		pass
-
-	def is_valid_syntax(self, number):
-		"""
-		@returns If This number be called ( syntax validation only )
-		"""
-		return False
-
-	def get_account_number(self):
-		"""
-		@returns The grand central phone number
-		"""
-		return ""
-
-	def get_callback_numbers(self):
-		return {}
-
-	def set_callback_number(self, callbacknumber):
-		return True
-
-	def get_callback_number(self):
-		return ""
-
-	def get_recent(self):
-		return ()
-
-	def get_addressbooks(self):
-		return ()
-
-	def open_addressbook(self, bookId):
-		return self
-
-	@staticmethod
-	def contact_source_short_name(contactId):
-		return "ERROR"
-
-	@staticmethod
-	def factory_name():
-		return "ERROR"
 
 	def get_contacts(self):
-		return ()
-
-	def get_contact_details(self, contactId):
-		return ()
-
-	def get_messages(self):
-		return ()
+		return {}
 
 
-class NullAddressBook(object):
-	"""
-	Minimal example of both an addressbook factory and an addressbook
-	"""
-
-	def clear_caches(self):
-		pass
+class NullAddressBookFactory(object):
 
 	def get_addressbooks(self):
-		"""
-		@returns Iterable of (Address Book Factory, Book Id, Book Name)
-		"""
-		yield self, "", "None"
-
-	def open_addressbook(self, bookId):
-		return self
-
-	@staticmethod
-	def contact_source_short_name(contactId):
-		return ""
-
-	@staticmethod
-	def factory_name():
-		return ""
-
-	@staticmethod
-	def get_contacts():
-		"""
-		@returns Iterable of (contact id, contact name)
-		"""
-		return []
-
-	@staticmethod
-	def get_contact_details(contactId):
-		"""
-		@returns Iterable of (Phone Type, Phone Number)
-		"""
-		return []
+		yield NullAddressBook()

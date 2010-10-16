@@ -19,6 +19,8 @@ from util import qui_utils
 from util import qtpie
 from util import misc as misc_utils
 
+import backends.null_backend as null_backend
+import backends.file_backend as file_backend
 import session
 
 
@@ -89,6 +91,10 @@ class Dialcentral(object):
 		with open(constants._user_settings_, "w") as settingsFile:
 			simplejson.dump(settings, settingsFile)
 		self._mainWindow.destroy()
+
+	@property
+	def fsContactsPath(self):
+		return os.path.join(constants._data_path_, "contacts")
 
 	@property
 	def fullscreenAction(self):
@@ -968,16 +974,18 @@ class Messages(object):
 class Contacts(object):
 
 	def __init__(self, app, session, errorLog):
-		self._selectedFilter = ""
 		self._app = app
 		self._session = session
 		self._session.contactsUpdated.connect(self._on_contacts_updated)
 		self._errorLog = errorLog
+		self._addressBookFactories = [
+			null_backend.NullAddressBookFactory(),
+			file_backend.FilesystemAddressBookFactory(app.fsContactsPath),
+		]
+		self._addressBooks = []
 
 		self._listSelection = QtGui.QComboBox()
 		self._listSelection.addItems([])
-		# @todo Implement more contact lists
-		#self._listSelection.setCurrentIndex(self.HISTORY_ITEM_TYPES.index(self._selectedFilter))
 		self._listSelection.currentIndexChanged[str].connect(self._on_filter_changed)
 
 		self._itemStore = QtGui.QStandardItemModel()
@@ -998,6 +1006,7 @@ class Contacts(object):
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
 
+		self.update_addressbooks()
 		self._populate_items()
 
 	@property
@@ -1014,12 +1023,46 @@ class Contacts(object):
 		self._itemView.clear()
 
 	def refresh(self, force=True):
-		self._session.update_contacts(force)
+		self._backend.update_contacts(force)
+
+	@property
+	def _backend(self):
+		return self._addressBooks[self._listSelection.currentIndex()]["book"]
+
+	def update_addressbooks(self):
+		self._addressBooks = [
+			{"book": book, "name": book.name}
+			for factory in self._addressBookFactories
+			for book in factory.get_addressbooks()
+		]
+		self._addressBooks.append(
+			{
+				"book": self._session,
+				"name": "Google Voice",
+			}
+		)
+
+		currentItem = str(self._listSelection.currentText())
+		if currentItem == "":
+			# Not loaded yet
+			currentItem = "None"
+		while 0 < self._listSelection.count():
+			self._listSelection.removeItem(0)
+		bookNames = [book["name"] for book in self._addressBooks]
+		try:
+			newIndex = bookNames.index(currentItem)
+		except ValueError:
+			# Switch over to None for the user
+			newIndex = 0
+			self._itemStore.clear()
+			_moduleLogger.info("Addressbook %r doesn't exist anymore, switching to None" % currentItem)
+		self._listSelection.addItems(bookNames)
+		self._listSelection.setCurrentIndex(newIndex)
 
 	def _populate_items(self):
 		self._itemStore.clear()
 
-		contacts = list(self._session.get_contacts().itervalues())
+		contacts = list(self._backend.get_contacts().itervalues())
 		contacts.sort(key=lambda contact: contact["name"].lower())
 		for item in contacts:
 			name = item["name"]
@@ -1034,7 +1077,7 @@ class Contacts(object):
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
-		self._selectedFilter = str(newItem)
+		self._populate_items()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -1109,7 +1152,6 @@ class MainWindow(object):
 	assert len(_TAB_CLASS) == MAX_TABS
 
 	def __init__(self, parent, app):
-		self._fsContactsPath = os.path.join(constants._data_path_, "contacts")
 		self._app = app
 		self._session = session.Session(constants._data_path_)
 		self._session.error.connect(self._on_session_error)
@@ -1225,7 +1267,8 @@ class MainWindow(object):
 		self._window.close()
 
 	def destroy(self):
-		self._session.logout()
+		if self._session.state != self._session.LOGGEDOUT_STATE:
+			self._session.logout()
 
 	def set_fullscreen(self, isFullscreen):
 		if isFullscreen:
@@ -1297,7 +1340,8 @@ class MainWindow(object):
 		csvName = QtGui.QFileDialog.getOpenFileName(self._window, caption="Import", filter="CSV Files (*.csv)")
 		if not csvName:
 			return
-		shutil.copy2(csvName, self._fsContactsPath)
+		shutil.copy2(csvName, self._app.fsContactsPath)
+		self._tabsContents[self.CONTACTS_TAB].update_addressbooks()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
