@@ -55,6 +55,7 @@ class Dialcentral(object):
 		self._mainWindow = MainWindow(None, self)
 		self._mainWindow.window.destroyed.connect(self._on_child_close)
 		self.load_settings()
+		self._mainWindow.start()
 
 	def load_settings(self):
 		try:
@@ -345,7 +346,6 @@ class MainWindow(object):
 
 		self._initialize_tab(self._tabWidget.currentIndex())
 		self.set_fullscreen(self._app.fullscreenAction.isChecked())
-		self._window.show()
 
 	@property
 	def window(self):
@@ -364,6 +364,16 @@ class MainWindow(object):
 		self._window.show()
 		for child in self.walk_children():
 			child.show()
+
+	def start(self):
+		assert self._session.state == self._session.LOGGEDOUT_STATE
+		self.show()
+		if self._defaultCredentials != ("", ""):
+			username, password = self._defaultCredentials[0], self._defaultCredentials[1]
+			self._curentCredentials = username, password
+			self._session.login(username, password)
+		else:
+			self._prompt_for_login()
 
 	def hide(self):
 		for child in self.walk_children():
@@ -394,6 +404,16 @@ class MainWindow(object):
 			tab = self._TAB_CLASS[index](self._app, self._session, self._errorLog)
 			self._tabsContents[index].set_child(tab)
 			self._tabsContents[index].refresh(force=False)
+
+	def _prompt_for_login(self):
+		if self._credentialsDialog is None:
+			import dialogs
+			self._credentialsDialog = dialogs.CredentialsDialog()
+		username, password = self._credentialsDialog.run(
+			self._defaultCredentials[0], self._defaultCredentials[1], self.window
+		)
+		self._curentCredentials = username, password
+		self._session.login(username, password)
 
 	def _show_account_dialog(self):
 		if self._accountDialog is None:
@@ -444,14 +464,7 @@ class MainWindow(object):
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_login_requested(self, checked = True):
-		if self._credentialsDialog is None:
-			import dialogs
-			self._credentialsDialog = dialogs.CredentialsDialog()
-		username, password = self._credentialsDialog.run(
-			self._defaultCredentials[0], self._defaultCredentials[1], self.window
-		)
-		self._curentCredentials = username, password
-		self._session.login(username, password)
+		self._prompt_for_login()
 
 	@QtCore.pyqtSlot(int)
 	@misc_utils.log_exception(_moduleLogger)
