@@ -4,7 +4,8 @@
 from __future__ import with_statement
 
 import os
-import simplejson
+import base64
+import ConfigParser
 import functools
 import logging
 
@@ -51,31 +52,65 @@ class Dialcentral(object):
 		self._quitAction.triggered.connect(self._on_quit)
 
 		self._app.lastWindowClosed.connect(self._on_app_quit)
-		self.load_settings()
-
 		self._mainWindow = MainWindow(None, self)
 		self._mainWindow.window.destroyed.connect(self._on_child_close)
+		self.load_settings()
 
 	def load_settings(self):
 		try:
-			with open(constants._user_settings_, "r") as settingsFile:
-				settings = simplejson.load(settingsFile)
+			config = ConfigParser.SafeConfigParser()
+			config.read(constants._user_settings_)
 		except IOError, e:
 			_moduleLogger.info("No settings")
-			settings = {}
+			return
 		except ValueError:
 			_moduleLogger.info("Settings were corrupt")
-			settings = {}
+			return
+		except ConfigParser.MissingSectionHeaderError:
+			_moduleLogger.info("Settings were corrupt")
+			return
 
-		self._fullscreenAction.setChecked(settings.get("isFullScreen", False))
+		try:
+			blobs = (
+				config.get(constants.__pretty_app_name__, "bin_blob_%i" % i)
+				for i in xrange(len(self._mainWindow.get_default_credentials()))
+			)
+			isFullscreen = config.getboolean(constants.__pretty_app_name__, "fullscreen")
+		except ConfigParser.NoOptionError, e:
+			_moduleLogger.exception(
+				"Settings file %s is missing section %s" % (
+					constants._user_settings_,
+					e.section,
+				),
+			)
+			return
+		except ConfigParser.NoSectionError, e:
+			_moduleLogger.exception(
+				"Settings file %s is missing section %s" % (
+					constants._user_settings_,
+					e.section,
+				),
+			)
+			return
+
+		creds = (
+			base64.b64decode(blob)
+			for blob in blobs
+		)
+		self._mainWindow.set_default_credentials(*creds)
+		self._fullscreenAction.setChecked(isFullscreen)
 
 	def save_settings(self):
-		settings = {
-			"isFullScreen": self._fullscreenAction.isChecked(),
-		}
-		with open(constants._user_settings_, "w") as settingsFile:
-			simplejson.dump(settings, settingsFile)
-		self._mainWindow.destroy()
+		config = ConfigParser.SafeConfigParser()
+
+		config.add_section(constants.__pretty_app_name__)
+		config.set(constants.__pretty_app_name__, "fullscreen", str(self._fullscreenAction.isChecked()))
+		for i, value in enumerate(self._mainWindow.get_default_credentials()):
+			blob = base64.b64encode(value)
+			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
+
+		with open(constants._user_settings_, "wb") as configFile:
+			config.write(configFile)
 
 	@property
 	def fsContactsPath(self):
@@ -104,6 +139,7 @@ class Dialcentral(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_app_quit(self, checked = False):
 		self.save_settings()
+		self._mainWindow.destroy()
 
 	@QtCore.pyqtSlot(QtCore.QObject)
 	@misc_utils.log_exception(_moduleLogger)
@@ -217,6 +253,8 @@ class MainWindow(object):
 		self._session.loggedIn.connect(self._on_login)
 		self._session.loggedOut.connect(self._on_logout)
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
+		self._defaultCredentials = "", ""
+		self._curentCredentials = "", ""
 
 		self._credentialsDialog = None
 		self._smsEntryDialog = None
@@ -313,6 +351,12 @@ class MainWindow(object):
 	def window(self):
 		return self._window
 
+	def set_default_credentials(self, username, password):
+		self._defaultCredentials = username, password
+
+	def get_default_credentials(self):
+		return self._defaultCredentials
+
 	def walk_children(self):
 		return ()
 
@@ -351,6 +395,20 @@ class MainWindow(object):
 			self._tabsContents[index].set_child(tab)
 			self._tabsContents[index].refresh(force=False)
 
+	def _show_account_dialog(self):
+		if self._accountDialog is None:
+			import dialogs
+			self._accountDialog = dialogs.AccountDialog()
+		self._accountDialog.accountNumber = self._session.get_account_number()
+		response = self._accountDialog.run()
+		if response == QtGui.QDialog.Accepted:
+			if self._accountDialog.doClear():
+				self._session.logout_and_clear()
+		elif response == QtGui.QDialog.Rejected:
+			_moduleLogger.info("Cancelled")
+		else:
+			_moduleLogger.info("Unknown response")
+
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_session_error(self, message):
@@ -359,6 +417,9 @@ class MainWindow(object):
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_login(self):
+		if self._defaultCredentials != self._curentCredentials:
+			self._show_account_dialog()
+		self._defaultCredentials = self._curentCredentials
 		for tab in self._tabsContents:
 			tab.enable()
 
@@ -386,7 +447,10 @@ class MainWindow(object):
 		if self._credentialsDialog is None:
 			import dialogs
 			self._credentialsDialog = dialogs.CredentialsDialog()
-		username, password = self._credentialsDialog.run("", "", self.window)
+		username, password = self._credentialsDialog.run(
+			self._defaultCredentials[0], self._defaultCredentials[1], self.window
+		)
+		self._curentCredentials = username, password
 		self._session.login(username, password)
 
 	@QtCore.pyqtSlot(int)
@@ -416,18 +480,7 @@ class MainWindow(object):
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_account(self, checked = True):
-		if self._accountDialog is None:
-			import dialogs
-			self._accountDialog = dialogs.AccountDialog()
-		self._accountDialog.accountNumber = self._session.get_account_number()
-		response = self._accountDialog.run()
-		if response == QtGui.QDialog.Accepted:
-			if self._accountDialog.doClear():
-				self._session.logout_and_clear()
-		elif response == QtGui.QDialog.Rejected:
-			_moduleLogger.info("Cancelled")
-		else:
-			_moduleLogger.info("Unknown response")
+		self._show_account_dialog()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
