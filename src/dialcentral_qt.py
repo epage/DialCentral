@@ -70,6 +70,8 @@ class Dialcentral(object):
 		except ConfigParser.MissingSectionHeaderError:
 			_moduleLogger.info("Settings were corrupt")
 			return
+		except Exception:
+			_moduleLogger.exception("Unknown loading error")
 
 		try:
 			blobs = (
@@ -78,7 +80,7 @@ class Dialcentral(object):
 			)
 			isFullscreen = config.getboolean(constants.__pretty_app_name__, "fullscreen")
 		except ConfigParser.NoOptionError, e:
-			_moduleLogger.exception(
+			_moduleLogger.info(
 				"Settings file %s is missing section %s" % (
 					constants._user_settings_,
 					e.section,
@@ -86,13 +88,15 @@ class Dialcentral(object):
 			)
 			return
 		except ConfigParser.NoSectionError, e:
-			_moduleLogger.exception(
+			_moduleLogger.info(
 				"Settings file %s is missing section %s" % (
 					constants._user_settings_,
 					e.section,
 				),
 			)
 			return
+		except Exception:
+			_moduleLogger.exception("Unknown loading error")
 
 		creds = (
 			base64.b64decode(blob)
@@ -100,6 +104,8 @@ class Dialcentral(object):
 		)
 		self._mainWindow.set_default_credentials(*creds)
 		self._fullscreenAction.setChecked(isFullscreen)
+
+		self._mainWindow.load_settings(config)
 
 	def save_settings(self):
 		config = ConfigParser.SafeConfigParser()
@@ -109,6 +115,8 @@ class Dialcentral(object):
 		for i, value in enumerate(self._mainWindow.get_default_credentials()):
 			blob = base64.b64encode(value)
 			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
+
+		self._mainWindow.save_settings(config)
 
 		with open(constants._user_settings_, "wb") as configFile:
 			config.write(configFile)
@@ -172,10 +180,11 @@ class Dialcentral(object):
 
 class DelayedWidget(object):
 
-	def __init__(self, app):
+	def __init__(self, app, settingsNames):
 		self._layout = QtGui.QVBoxLayout()
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
+		self._settings = dict((name, "") for name in settingsNames)
 
 		self._child = None
 		self._isEnabled = True
@@ -193,6 +202,8 @@ class DelayedWidget(object):
 		self._child = child
 		if self._child is not None:
 			self._layout.addWidget(self._child.toplevel)
+
+		self._child.set_settings(self._settings)
 
 		if self._isEnabled:
 			self._child.enable()
@@ -216,6 +227,18 @@ class DelayedWidget(object):
 	def refresh(self, force=True):
 		if self._child is not None:
 			self._child.refresh(force)
+
+	def get_settings(self):
+		if self._child is not None:
+			return self._child.get_settings()
+		else:
+			return self._settings
+
+	def set_settings(self, settings):
+		if self._child is not None:
+			self._child.set_settings(settings)
+		else:
+			self._settings = settings
 
 
 def _tab_factory(tab, app, session, errorLog):
@@ -246,6 +269,12 @@ class MainWindow(object):
 		functools.partial(_tab_factory, "Contacts"),
 	]
 	assert len(_TAB_CLASS) == MAX_TABS
+	_TAB_SETTINGS_NAMES = [
+		(),
+		("filter", ),
+		("status", "type"),
+		("selectedAddressbook", ),
+	]
 
 	def __init__(self, parent, app):
 		self._app = app
@@ -265,7 +294,7 @@ class MainWindow(object):
 		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
 
 		self._tabsContents = [
-			DelayedWidget(self._app)
+			DelayedWidget(self._app, self._TAB_SETTINGS_NAMES[i])
 			for i in xrange(self.MAX_TABS)
 		]
 		for tab in self._tabsContents:
@@ -360,11 +389,6 @@ class MainWindow(object):
 	def walk_children(self):
 		return ()
 
-	def show(self):
-		self._window.show()
-		for child in self.walk_children():
-			child.show()
-
 	def start(self):
 		assert self._session.state == self._session.LOGGEDOUT_STATE
 		self.show()
@@ -375,11 +399,6 @@ class MainWindow(object):
 		else:
 			self._prompt_for_login()
 
-	def hide(self):
-		for child in self.walk_children():
-			child.hide()
-		self._window.hide()
-
 	def close(self):
 		for child in self.walk_children():
 			child.window.destroyed.disconnect(self._on_child_close)
@@ -389,6 +408,55 @@ class MainWindow(object):
 	def destroy(self):
 		if self._session.state != self._session.LOGGEDOUT_STATE:
 			self._session.logout()
+
+	def load_settings(self, config):
+		backendId = 2 # For backwards compatibility
+		for tabIndex, tabTitle in enumerate(self._TAB_TITLES):
+			sectionName = "%s - %s" % (backendId, tabTitle)
+			settings = self._tabsContents[tabIndex].get_settings()
+			for settingName in settings.iterkeys():
+				try:
+					settingValue = config.get(sectionName, settingName)
+				except ConfigParser.NoOptionError, e:
+					_moduleLogger.info(
+						"Settings file %s is missing section %s" % (
+							constants._user_settings_,
+							e.section,
+						),
+					)
+					return
+				except ConfigParser.NoSectionError, e:
+					_moduleLogger.info(
+						"Settings file %s is missing section %s" % (
+							constants._user_settings_,
+							e.section,
+						),
+					)
+					return
+				except Exception:
+					_moduleLogger.exception("Unknown loading error")
+					return
+				settings[settingName] = settingValue
+			self._tabsContents[tabIndex].set_settings(settings)
+
+	def save_settings(self, config):
+		backendId = 2 # For backwards compatibility
+		for tabIndex, tabTitle in enumerate(self._TAB_TITLES):
+			sectionName = "%s - %s" % (backendId, tabTitle)
+			config.add_section(sectionName)
+			tabSettings = self._tabsContents[tabIndex].get_settings()
+			for settingName, settingValue in tabSettings.iteritems():
+				config.set(sectionName, settingName, settingValue)
+
+	def show(self):
+		self._window.show()
+		for child in self.walk_children():
+			child.show()
+
+	def hide(self):
+		for child in self.walk_children():
+			child.hide()
+		self._window.hide()
 
 	def set_fullscreen(self, isFullscreen):
 		if isFullscreen:

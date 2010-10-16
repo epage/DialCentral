@@ -97,6 +97,12 @@ class Dialpad(object):
 		self._smsButton.setEnabled(False)
 		self._callButton.setEnabled(False)
 
+	def get_settings(self):
+		return {}
+
+	def set_settings(self, settings):
+		pass
+
 	def clear(self):
 		pass
 
@@ -231,6 +237,19 @@ class History(object):
 
 	def disable(self):
 		self._itemView.setEnabled(False)
+
+	def get_settings(self):
+		return {
+			"filter": str(self._typeSelection.currentText()),
+		}
+
+	def set_settings(self, settings):
+		selectedFilter = settings.get("filter", self.HISTORY_ITEM_TYPES[-1])
+		if selectedFilter in self.HISTORY_ITEM_TYPES:
+			self._selectedFilter = selectedFilter
+			self._typeSelection.setCurrentIndex(
+				self.HISTORY_ITEM_TYPES.index(selectedFilter)
+			)
 
 	def clear(self):
 		self._itemView.clear()
@@ -382,6 +401,27 @@ class Messages(object):
 
 	def disable(self):
 		self._itemView.setEnabled(False)
+
+	def get_settings(self):
+		return {
+			"type": str(self._typeSelection.currentText()),
+			"status": str(self._statusSelection.currentText()),
+		}
+
+	def set_settings(self, settings):
+		selectedType = settings.get("type", self.ALL_TYPES)
+		if selectedType in self.MESSAGE_TYPES:
+			self._selectedTypeFilter = selectedType
+			self._typeSelection.setCurrentIndex(
+				self.MESSAGE_TYPES.index(self._selectedTypeFilter)
+			)
+
+		selectedStatus = settings.get("status", self.ALL_STATUS)
+		if selectedStatus in self.MESSAGE_STATUSES:
+			self._selectedStatusFilter = selectedStatus
+			self._statusSelection.setCurrentIndex(
+				self.MESSAGE_STATUSES.index(self._selectedStatusFilter)
+			)
 
 	def clear(self):
 		self._itemView.clear()
@@ -535,6 +575,21 @@ class Contacts(object):
 
 	def disable(self):
 		self._itemView.setEnabled(False)
+
+	def get_settings(self):
+		return {
+			"selectedAddressbook": str(self._listSelection.currentText()),
+		}
+
+	def set_settings(self, settings):
+		currentItem = settings.get("selectedAddressbook", "None")
+		bookNames = [book["name"] for book in self._addressBooks]
+		try:
+			newIndex = bookNames.index(currentItem)
+		except ValueError:
+			# Switch over to None for the user
+			newIndex = 0
+		self._listSelection.setCurrentIndex(newIndex)
 
 	def clear(self):
 		self._itemView.clear()
