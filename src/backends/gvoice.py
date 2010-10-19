@@ -477,6 +477,8 @@ class GVoiceBackend(object):
 		if contactsBody is None:
 			raise RuntimeError("Could not extract contact information")
 		accountData = _fake_parse_json(contactsBody.group(1))
+		if accountData is None:
+			return
 		for contactId, contactDetails in accountData["contacts"].iteritems():
 			# A zero contact id is the catch all for unknown contacts
 			if contactId != "0":
@@ -488,6 +490,8 @@ class GVoiceBackend(object):
 		voicemailPage = self._get_page(self._XML_VOICEMAIL_URL)
 		voicemailHtml = self._grab_html(voicemailPage)
 		voicemailJson = self._grab_json(voicemailPage)
+		if voicemailJson is None:
+			return ()
 		parsedVoicemail = self._parse_voicemail(voicemailHtml)
 		voicemails = self._merge_conversation_sources(parsedVoicemail, voicemailJson)
 		return voicemails
@@ -496,6 +500,8 @@ class GVoiceBackend(object):
 		smsPage = self._get_page(self._XML_SMS_URL)
 		smsHtml = self._grab_html(smsPage)
 		smsJson = self._grab_json(smsPage)
+		if smsJson is None:
+			return ()
 		parsedSms = self._parse_sms(smsHtml)
 		smss = self._merge_conversation_sources(parsedSms, smsJson)
 		return smss
@@ -788,7 +794,11 @@ def safe_eval(s):
 	_FALSE_REGEX = re.compile("false")
 	s = _TRUE_REGEX.sub("True", s)
 	s = _FALSE_REGEX.sub("False", s)
-	return eval(s, {}, {})
+	try:
+		results = eval(s, {}, {})
+	except SyntaxError:
+		_moduleLogger.exception("Oops")
+		return None
 
 
 def _fake_parse_json(flattened):
@@ -823,7 +833,9 @@ def validate_response(response):
 	Validates that the JSON response is A-OK
 	"""
 	try:
-		assert 'ok' in response and response['ok']
+		assert response is not None
+		assert 'ok' in response
+		assert response['ok']
 	except AssertionError:
 		raise RuntimeError('There was a problem with GV: %s' % response)
 

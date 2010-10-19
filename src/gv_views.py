@@ -218,33 +218,39 @@ def collapse_message(message, maxCharsPerLine, maxLines):
 
 
 def _get_contact_numbers(backend, contactId, number):
+	contactPhoneNumbers = []
 	if contactId and contactId != '0':
-		contactPhoneNumbers = list(backend.get_contact_details(contactId))
-		uglyContactNumbers = (
-			make_ugly(contactNumber)
-			for (numberDescription, contactNumber) in contactPhoneNumbers
-		)
-		defaultMatches = [
-			(
-				number == contactNumber or
-				number[1:] == contactNumber and number.startswith("1") or
-				number[2:] == contactNumber and number.startswith("+1") or
-				number == contactNumber[1:] and contactNumber.startswith("1") or
-				number == contactNumber[2:] and contactNumber.startswith("+1")
-			)
-			for contactNumber in uglyContactNumbers
-		]
 		try:
-			defaultIndex = defaultMatches.index(True)
-		except ValueError:
-			contactPhoneNumbers.append(("Other", number))
-			defaultIndex = len(contactPhoneNumbers)-1
-			_moduleLogger.warn(
-				"Could not find contact %r's number %s among %r" % (
-					contactId, number, contactPhoneNumbers
-				)
+			contactPhoneNumbers = list(backend.get_contact_details(contactId))
+		except KeyError:
+			contactPhoneNumbers = []
+		if contactPhoneNumbers:
+			uglyContactNumbers = (
+				make_ugly(contactNumber)
+				for (numberDescription, contactNumber) in contactPhoneNumbers
 			)
-	else:
+			defaultMatches = [
+				(
+					number == contactNumber or
+					number[1:] == contactNumber and number.startswith("1") or
+					number[2:] == contactNumber and number.startswith("+1") or
+					number == contactNumber[1:] and contactNumber.startswith("1") or
+					number == contactNumber[2:] and contactNumber.startswith("+1")
+				)
+				for contactNumber in uglyContactNumbers
+			]
+			try:
+				defaultIndex = defaultMatches.index(True)
+			except ValueError:
+				contactPhoneNumbers.append(("Other", number))
+				defaultIndex = len(contactPhoneNumbers)-1
+				_moduleLogger.warn(
+					"Could not find contact %r's number %s among %r" % (
+						contactId, number, contactPhoneNumbers
+					)
+				)
+
+	if not contactPhoneNumbers:
 		contactPhoneNumbers = [("Phone", number)]
 		defaultIndex = -1
 
