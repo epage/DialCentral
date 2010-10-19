@@ -792,13 +792,16 @@ def itergroup(iterator, count, padValue = None):
 def safe_eval(s):
 	_TRUE_REGEX = re.compile("true")
 	_FALSE_REGEX = re.compile("false")
+	_COMMENT_REGEX = re.compile("^\s+//.*$", re.M)
 	s = _TRUE_REGEX.sub("True", s)
 	s = _FALSE_REGEX.sub("False", s)
+	s = _COMMENT_REGEX.sub("#", s)
 	try:
 		results = eval(s, {}, {})
 	except SyntaxError:
 		_moduleLogger.exception("Oops")
-		return None
+		results = None
+	return results
 
 
 def _fake_parse_json(flattened):
