@@ -496,7 +496,7 @@ class MainWindow(object):
 	def _prompt_for_login(self):
 		if self._credentialsDialog is None:
 			import dialogs
-			self._credentialsDialog = dialogs.CredentialsDialog()
+			self._credentialsDialog = dialogs.CredentialsDialog(self._app)
 		username, password = self._credentialsDialog.run(
 			self._defaultCredentials[0], self._defaultCredentials[1], self.window
 		)
@@ -506,7 +506,7 @@ class MainWindow(object):
 	def _show_account_dialog(self):
 		if self._accountDialog is None:
 			import dialogs
-			self._accountDialog = dialogs.AccountDialog()
+			self._accountDialog = dialogs.AccountDialog(self._app)
 		self._accountDialog.accountNumber = self._session.get_account_number()
 		response = self._accountDialog.run()
 		if response == QtGui.QDialog.Accepted:

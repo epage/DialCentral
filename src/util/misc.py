@@ -806,6 +806,16 @@ def make_pretty(phonenumber):
 	return prettynumber.strip()
 
 
+def similar_ugly_numbers(lhs, rhs):
+	return (
+		lhs == rhs or
+		lhs[1:] == rhs and lhs.startswith("1") or
+		lhs[2:] == rhs and lhs.startswith("+1") or
+		lhs == rhs[1:] and rhs.startswith("1") or
+		lhs == rhs[2:] and rhs.startswith("+1")
+	)
+
+
 def abbrev_relative_date(date):
 	"""
 	>>> abbrev_relative_date("42 hours ago")

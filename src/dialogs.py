@@ -4,6 +4,7 @@ from __future__ import with_statement
 from __future__ import division
 
 import functools
+import copy
 import logging
 
 from PyQt4 import QtGui
@@ -18,7 +19,7 @@ _moduleLogger = logging.getLogger(__name__)
 
 class CredentialsDialog(object):
 
-	def __init__(self):
+	def __init__(self, app):
 		self._usernameField = QtGui.QLineEdit()
 		self._passwordField = QtGui.QLineEdit()
 		self._passwordField.setEchoMode(QtGui.QLineEdit.PasswordEchoOnEdit)
@@ -45,6 +46,15 @@ class CredentialsDialog(object):
 		self._buttonLayout.accepted.connect(self._dialog.accept)
 		self._buttonLayout.rejected.connect(self._dialog.reject)
 
+		self._closeWindowAction = QtGui.QAction(None)
+		self._closeWindowAction.setText("Close")
+		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
+		self._closeWindowAction.triggered.connect(self._on_close_window)
+
+		self._dialog.addAction(self._closeWindowAction)
+		self._dialog.addAction(app.quitAction)
+		self._dialog.addAction(app.fullscreenAction)
+
 	def run(self, defaultUsername, defaultPassword, parent=None):
 		self._dialog.setParent(parent, QtCore.Qt.Dialog)
 		try:
@@ -61,10 +71,16 @@ class CredentialsDialog(object):
 		finally:
 			self._dialog.setParent(None, QtCore.Qt.Dialog)
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_close_window(self, checked = True):
+		self._dialog.reject()
+
 
 class AccountDialog(object):
 
-	def __init__(self):
+	def __init__(self, app):
 		self._doClear = False
 
 		self._accountNumberLabel = QtGui.QLabel("NUMBER NOT SET")
@@ -94,6 +110,15 @@ class AccountDialog(object):
 		self._buttonLayout.accepted.connect(self._dialog.accept)
 		self._buttonLayout.rejected.connect(self._dialog.reject)
 
+		self._closeWindowAction = QtGui.QAction(None)
+		self._closeWindowAction.setText("Close")
+		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
+		self._closeWindowAction.triggered.connect(self._on_close_window)
+
+		self._dialog.addAction(self._closeWindowAction)
+		self._dialog.addAction(app.quitAction)
+		self._dialog.addAction(app.fullscreenAction)
+
 	@property
 	def doClear(self):
 		return self._doClear
@@ -116,12 +141,17 @@ class AccountDialog(object):
 		self._doClear = True
 		self._dialog.accept()
 
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_close_window(self, checked = True):
+		self._dialog.reject()
+
 
 class SMSEntryWindow(object):
 
 	def __init__(self, parent, app, session, errorLog):
 		self._contacts = []
-		self._app = app
 		self._session = session
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
 		self._session.draft.called.connect(self._on_op_finished)
@@ -173,6 +203,18 @@ class SMSEntryWindow(object):
 		qui_utils.set_stackable(self._window, True)
 		self._window.setWindowTitle("Contact")
 		self._window.setCentralWidget(centralWidget)
+
+		self._closeWindowAction = QtGui.QAction(None)
+		self._closeWindowAction.setText("Close")
+		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
+		self._closeWindowAction.triggered.connect(self._on_close_window)
+
+		fileMenu = self._window.menuBar().addMenu("&File")
+		fileMenu.addAction(self._closeWindowAction)
+		fileMenu.addAction(app.quitAction)
+		viewMenu = self._window.menuBar().addMenu("&View")
+		viewMenu.addAction(app.fullscreenAction)
+
 		self._window.show()
 		self._update_recipients()
 
@@ -238,9 +280,7 @@ class SMSEntryWindow(object):
 					cid
 				)
 				callback.__name__ = "b"
-				deleteButton.clicked.connect(
-					QtCore.pyqtSlot()(callback)
-				)
+				deleteButton.clicked.connect(callback)
 
 				rowLayout = QtGui.QHBoxLayout()
 				rowLayout.addWidget(titleLabel)
@@ -260,6 +300,12 @@ class SMSEntryWindow(object):
 	def _populate_number_selector(self, selector, cid, numbers):
 		while 0 < selector.count():
 			selector.removeItem(0)
+
+		if len(numbers) == 1:
+			numbers, defaultIndex = _get_contact_numbers(self._session, cid, numbers[0])
+		else:
+			defaultIndex = 0
+
 		for number, description in numbers:
 			if description:
 				label = "%s - %s" % (number, description)
@@ -269,6 +315,7 @@ class SMSEntryWindow(object):
 		selector.setVisible(True)
 		if 1 < len(numbers):
 			selector.setEnabled(True)
+			selector.setCurrentIndex(defaultIndex)
 		else:
 			selector.setEnabled(False)
 		callback = functools.partial(
@@ -297,11 +344,12 @@ class SMSEntryWindow(object):
 		self._smsEntry.setPlainText("")
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_remove_contact(self, cid):
+	def _on_remove_contact(self, cid, toggled):
 		self._session.draft.remove_contact(cid)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_change_number(self, cid, index):
+		# Exception thrown when the first item is removed
 		numbers = self._session.draft.get_numbers(cid)
 		number = numbers[index][0]
 		self._session.draft.set_selected_number(cid, number)
@@ -321,3 +369,48 @@ class SMSEntryWindow(object):
 	def _on_letter_count_changed(self):
 		self._update_letter_count()
 		self._update_button_state()
+
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_close_window(self, checked = True):
+		self._window.hide()
+
+
+def _get_contact_numbers(session, contactId, numberDescription):
+	contactPhoneNumbers = []
+	if contactId and contactId != "0":
+		try:
+			contactDetails = copy.deepcopy(session.get_contacts()[contactId])
+			contactPhoneNumbers = contactDetails["numbers"]
+		except KeyError:
+			contactPhoneNumbers = []
+		contactPhoneNumbers = [
+			(contactPhoneNumber["phoneNumber"], contactPhoneNumber["phoneType"])
+			for contactPhoneNumber in contactPhoneNumbers
+		]
+		if contactPhoneNumbers:
+			uglyContactNumbers = (
+				misc_utils.make_ugly(contactNumber)
+				for (contactNumber, _) in contactPhoneNumbers
+			)
+			defaultMatches = [
+				misc_utils.similar_ugly_numbers(numberDescription[0], contactNumber)
+				for contactNumber in uglyContactNumbers
+			]
+			try:
+				defaultIndex = defaultMatches.index(True)
+			except ValueError:
+				contactPhoneNumbers.append(numberDescription)
+				defaultIndex = len(contactPhoneNumbers)-1
+				_moduleLogger.warn(
+					"Could not find contact %r's number %s among %r" % (
+						contactId, numberDescription, contactPhoneNumbers
+					)
+				)
+
+	if not contactPhoneNumbers:
+		contactPhoneNumbers = [numberDescription]
+		defaultIndex = -1
+
+	return contactPhoneNumbers, defaultIndex
