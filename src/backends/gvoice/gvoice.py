@@ -236,6 +236,7 @@ class GVoiceBackend(object):
 		Attempts to detect a current session
 		@note Once logged in try not to reauth more than once a minute.
 		@returns If authenticated
+		@blocks
 		"""
 		isRecentledAuthed = (time.time() - self._lastAuthed) < 120
 		isPreviouslyAuthed = self._token is not None
@@ -283,6 +284,7 @@ class GVoiceBackend(object):
 		"""
 		Attempt to login to GoogleVoice
 		@returns Whether login was successful or not
+		@blocks
 		"""
 		self.logout()
 		galxToken = self._get_token()
@@ -306,6 +308,11 @@ class GVoiceBackend(object):
 	def persist(self):
 		self._browser.save_cookies()
 
+	def shutdown(self):
+		self._browser.save_cookies()
+		self._token = None
+		self._lastAuthed = 0.0
+
 	def logout(self):
 		self._browser.clear_cookies()
 		self._browser.save_cookies()
@@ -313,6 +320,9 @@ class GVoiceBackend(object):
 		self._lastAuthed = 0.0
 
 	def is_dnd(self):
+		"""
+		@blocks
+		"""
 		isDndPage = self._get_page(self._isDndURL)
 
 		dndGroup = self._isDndRe.search(isDndPage)
@@ -323,6 +333,9 @@ class GVoiceBackend(object):
 		return isDnd
 
 	def set_dnd(self, doNotDisturb):
+		"""
+		@blocks
+		"""
 		dndPostData = {
 			"doNotDisturb": 1 if doNotDisturb else 0,
 		}
@@ -332,6 +345,7 @@ class GVoiceBackend(object):
 	def call(self, outgoingNumber):
 		"""
 		This is the main function responsible for initating the callback
+		@blocks
 		"""
 		outgoingNumber = self._send_validation(outgoingNumber)
 		subscriberNumber = None
@@ -357,6 +371,7 @@ class GVoiceBackend(object):
 		"""
 		Cancels a call matching outgoing and forwarding numbers (if given). 
 		Will raise an error if no matching call is being placed
+		@blocks
 		"""
 		page = self._get_page_with_token(
 			self._callCancelURL,
@@ -369,6 +384,9 @@ class GVoiceBackend(object):
 		self._parse_with_validation(page)
 
 	def send_sms(self, phoneNumbers, message):
+		"""
+		@blocks
+		"""
 		validatedPhoneNumbers = [
 			self._send_validation(phoneNumber)
 			for phoneNumber in phoneNumbers
@@ -387,6 +405,7 @@ class GVoiceBackend(object):
 		"""
 		Search your Google Voice Account history for calls, voicemails, and sms
 		Returns ``Folder`` instance containting matching messages
+		@blocks
 		"""
 		page = self._get_page(
 			self._XML_SEARCH_URL,
@@ -396,6 +415,9 @@ class GVoiceBackend(object):
 		return json
 
 	def get_feed(self, feed):
+		"""
+		@blocks
+		"""
 		actualFeed = "_XML_%s_URL" % feed.upper()
 		feedUrl = getattr(self, actualFeed)
 
@@ -410,7 +432,8 @@ class GVoiceBackend(object):
 		which can either be a ``Message`` instance, or a SHA1 identifier. 
 		Saves files to ``adir`` (defaults to current directory). 
 		Message hashes can be found in ``self.voicemail().messages`` for example. 
-		Returns location of saved file.
+		@returns location of saved file.
+		@blocks
 		"""
 		page = self._get_page(self._downloadVoicemailURL, {"id": messageId})
 		fn = os.path.join(adir, '%s.mp3' % messageId)
@@ -457,6 +480,7 @@ class GVoiceBackend(object):
 	def get_recent(self):
 		"""
 		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
+		@blocks
 		"""
 		for action, url in (
 			("Received", self._XML_RECEIVED_URL),
@@ -474,12 +498,15 @@ class GVoiceBackend(object):
 	def get_contacts(self):
 		"""
 		@returns Iterable of (contact id, contact name)
+		@blocks
 		"""
 		page = self._get_page(self._XML_CONTACTS_URL)
 		contactsBody = self._contactsBodyRe.search(page)
 		if contactsBody is None:
 			raise RuntimeError("Could not extract contact information")
 		accountData = _fake_parse_json(contactsBody.group(1))
+		if accountData is None:
+			return
 		for contactId, contactDetails in accountData["contacts"].iteritems():
 			# A zero contact id is the catch all for unknown contacts
 			if contactId != "0":
@@ -488,22 +515,35 @@ class GVoiceBackend(object):
 				yield contactId, contactDetails
 
 	def get_voicemails(self):
+		"""
+		@blocks
+		"""
 		voicemailPage = self._get_page(self._XML_VOICEMAIL_URL)
 		voicemailHtml = self._grab_html(voicemailPage)
 		voicemailJson = self._grab_json(voicemailPage)
+		if voicemailJson is None:
+			return ()
 		parsedVoicemail = self._parse_voicemail(voicemailHtml)
 		voicemails = self._merge_conversation_sources(parsedVoicemail, voicemailJson)
 		return voicemails
 
 	def get_texts(self):
+		"""
+		@blocks
+		"""
 		smsPage = self._get_page(self._XML_SMS_URL)
 		smsHtml = self._grab_html(smsPage)
 		smsJson = self._grab_json(smsPage)
+		if smsJson is None:
+			return ()
 		parsedSms = self._parse_sms(smsHtml)
 		smss = self._merge_conversation_sources(parsedSms, smsJson)
 		return smss
 
 	def mark_message(self, messageId, asRead):
+		"""
+		@blocks
+		"""
 		postData = {
 			"read": 1 if asRead else 0,
 			"id": messageId,
@@ -512,6 +552,9 @@ class GVoiceBackend(object):
 		markPage = self._get_page(self._markAsReadURL, postData)
 
 	def archive_message(self, messageId):
+		"""
+		@blocks
+		"""
 		postData = {
 			"id": messageId,
 		}
@@ -748,7 +791,7 @@ def google_strptime(time):
 	"""
 	abbrevTime = time[:-3]
 	parsedTime = datetime.datetime.strptime(abbrevTime, "%m/%d/%y %I:%M")
-	if time[-2] == "PN":
+	if time.endswith("PM"):
 		parsedTime += datetime.timedelta(hours=12)
 	return parsedTime
 
@@ -789,9 +832,16 @@ def itergroup(iterator, count, padValue = None):
 def safe_eval(s):
 	_TRUE_REGEX = re.compile("true")
 	_FALSE_REGEX = re.compile("false")
+	_COMMENT_REGEX = re.compile("^\s+//.*$", re.M)
 	s = _TRUE_REGEX.sub("True", s)
 	s = _FALSE_REGEX.sub("False", s)
-	return eval(s, {}, {})
+	s = _COMMENT_REGEX.sub("#", s)
+	try:
+		results = eval(s, {}, {})
+	except SyntaxError:
+		_moduleLogger.exception("Oops")
+		results = None
+	return results
 
 
 def _fake_parse_json(flattened):
@@ -826,7 +876,9 @@ def validate_response(response):
 	Validates that the JSON response is A-OK
 	"""
 	try:
-		assert 'ok' in response and response['ok']
+		assert response is not None
+		assert 'ok' in response
+		assert response['ok']
 	except AssertionError:
 		raise RuntimeError('There was a problem with GV: %s' % response)
 
