@@ -697,15 +697,13 @@ def normalize_number(prettynumber):
 	uglynumber = re.sub('[^0-9+]', '', prettynumber)
 	if uglynumber.startswith("+"):
 		pass
-	elif uglynumber.startswith("1") and len(uglynumber) == 11:
+	elif uglynumber.startswith("1"):
 		uglynumber = "+"+uglynumber
-	elif len(uglynumber) == 10:
+	elif 10 <= len(uglynumber):
+		assert uglynumber[0] not in ("+", "1")
 		uglynumber = "+1"+uglynumber
 	else:
 		pass
-
-	#validateRe = re.compile("^\+?[0-9]{10,}$")
-	#assert validateRe.match(uglynumber) is not None
 
 	return uglynumber
 
@@ -718,6 +716,107 @@ def is_valid_number(number):
 	@returns If This number be called ( syntax validation only )
 	"""
 	return _VALIDATE_RE.match(number) is not None
+
+
+def make_ugly(prettynumber):
+	"""
+	function to take a phone number and strip out all non-numeric
+	characters
+
+	>>> make_ugly("+012-(345)-678-90")
+	'+01234567890'
+	"""
+	return normalize_number(prettynumber)
+
+
+def _make_pretty_with_areacode(phonenumber):
+	prettynumber = "(%s)" % (phonenumber[0:3], )
+	if 3 < len(phonenumber):
+		prettynumber += " %s" % (phonenumber[3:6], )
+		if 6 < len(phonenumber):
+			prettynumber += "-%s" % (phonenumber[6:], )
+	return prettynumber
+
+
+def _make_pretty_local(phonenumber):
+	prettynumber = "%s" % (phonenumber[0:3], )
+	if 3 < len(phonenumber):
+		prettynumber += "-%s" % (phonenumber[3:], )
+	return prettynumber
+
+
+def _make_pretty_international(phonenumber):
+	prettynumber = phonenumber
+	if phonenumber.startswith("1"):
+		prettynumber = "1 "
+		prettynumber += _make_pretty_with_areacode(phonenumber[1:])
+	return prettynumber
+
+
+def make_pretty(phonenumber):
+	"""
+	Function to take a phone number and return the pretty version
+	pretty numbers:
+		if phonenumber begins with 0:
+			...-(...)-...-....
+		if phonenumber begins with 1: ( for gizmo callback numbers )
+			1 (...)-...-....
+		if phonenumber is 13 digits:
+			(...)-...-....
+		if phonenumber is 10 digits:
+			...-....
+	>>> make_pretty("12")
+	'12'
+	>>> make_pretty("1234567")
+	'123-4567'
+	>>> make_pretty("2345678901")
+	'+1 (234) 567-8901'
+	>>> make_pretty("12345678901")
+	'+1 (234) 567-8901'
+	>>> make_pretty("01234567890")
+	'+012 (345) 678-90'
+	>>> make_pretty("+01234567890")
+	'+012 (345) 678-90'
+	>>> make_pretty("+12")
+	'+1 (2)'
+	>>> make_pretty("+123")
+	'+1 (23)'
+	>>> make_pretty("+1234")
+	'+1 (234)'
+	"""
+	if phonenumber is None or phonenumber == "":
+		return ""
+
+	phonenumber = normalize_number(phonenumber)
+
+	if phonenumber == "":
+		return ""
+	elif phonenumber[0] == "+":
+		prettynumber = _make_pretty_international(phonenumber[1:])
+		if not prettynumber.startswith("+"):
+			prettynumber = "+"+prettynumber
+	elif 8 < len(phonenumber) and phonenumber[0] in ("1", ):
+		prettynumber = _make_pretty_international(phonenumber)
+	elif 7 < len(phonenumber):
+		prettynumber = _make_pretty_with_areacode(phonenumber)
+	elif 3 < len(phonenumber):
+		prettynumber = _make_pretty_local(phonenumber)
+	else:
+		prettynumber = phonenumber
+	return prettynumber.strip()
+
+
+def abbrev_relative_date(date):
+	"""
+	>>> abbrev_relative_date("42 hours ago")
+	'42 h'
+	>>> abbrev_relative_date("2 days ago")
+	'2 d'
+	>>> abbrev_relative_date("4 weeks ago")
+	'4 w'
+	"""
+	parts = date.split(" ")
+	return "%s %s" % (parts[0], parts[1][0])
 
 
 def parse_version(versionText):

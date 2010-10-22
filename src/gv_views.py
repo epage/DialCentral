@@ -3,7 +3,6 @@
 from __future__ import with_statement
 from __future__ import division
 
-import re
 import logging
 
 from PyQt4 import QtGui
@@ -263,10 +262,10 @@ class History(object):
 		history.sort(key=lambda item: item["time"], reverse=True)
 		for event in history:
 			if self._selectedFilter in [self.HISTORY_ITEM_TYPES[-1], event["action"]]:
-				relTime = abbrev_relative_date(event["relTime"])
+				relTime = misc_utils.abbrev_relative_date(event["relTime"])
 				action = event["action"]
 				number = event["number"]
-				prettyNumber = make_pretty(number)
+				prettyNumber = misc_utils.make_pretty(number)
 				name = event["name"]
 				if not name or name == number:
 					name = event["location"]
@@ -318,10 +317,10 @@ class History(object):
 			iNumber = str(iContactDetails[QtCore.QString("number")])
 			if number != iNumber:
 				continue
-			relTime = abbrev_relative_date(iContactDetails[QtCore.QString("relTime")])
+			relTime = misc_utils.abbrev_relative_date(iContactDetails[QtCore.QString("relTime")])
 			action = str(iContactDetails[QtCore.QString("action")])
 			number = str(iContactDetails[QtCore.QString("number")])
-			prettyNumber = make_pretty(number)
+			prettyNumber = misc_utils.make_pretty(number)
 			rowItems = relTime, action, prettyNumber
 			descriptionRows.append("<tr><td>%s</td></tr>" % "</td><td>".join(rowItems))
 		description = "<table>%s</table>" % "".join(descriptionRows)
@@ -444,9 +443,9 @@ class Messages(object):
 
 			visibleType = self._selectedTypeFilter in [item["type"], self.ALL_TYPES]
 			if visibleType and visibleStatus:
-				relTime = abbrev_relative_date(item["relTime"])
+				relTime = misc_utils.abbrev_relative_date(item["relTime"])
 				number = item["number"]
-				prettyNumber = make_pretty(number)
+				prettyNumber = misc_utils.make_pretty(number)
 				name = item["name"]
 				if not name or name == number:
 					name = item["location"]
@@ -697,131 +696,3 @@ class Contacts(object):
 			return numberDetails["phoneType"]
 		else:
 			return ""
-
-
-def make_ugly(prettynumber):
-	"""
-	function to take a phone number and strip out all non-numeric
-	characters
-
-	>>> make_ugly("+012-(345)-678-90")
-	'+01234567890'
-	"""
-	return normalize_number(prettynumber)
-
-
-def normalize_number(prettynumber):
-	"""
-	function to take a phone number and strip out all non-numeric
-	characters
-
-	>>> normalize_number("+012-(345)-678-90")
-	'+01234567890'
-	>>> normalize_number("1-(345)-678-9000")
-	'+13456789000'
-	>>> normalize_number("+1-(345)-678-9000")
-	'+13456789000'
-	"""
-	uglynumber = re.sub('[^0-9+]', '', prettynumber)
-
-	if uglynumber.startswith("+"):
-		pass
-	elif uglynumber.startswith("1"):
-		uglynumber = "+"+uglynumber
-	elif 10 <= len(uglynumber):
-		assert uglynumber[0] not in ("+", "1")
-		uglynumber = "+1"+uglynumber
-	else:
-		pass
-
-	return uglynumber
-
-
-def _make_pretty_with_areacode(phonenumber):
-	prettynumber = "(%s)" % (phonenumber[0:3], )
-	if 3 < len(phonenumber):
-		prettynumber += " %s" % (phonenumber[3:6], )
-		if 6 < len(phonenumber):
-			prettynumber += "-%s" % (phonenumber[6:], )
-	return prettynumber
-
-
-def _make_pretty_local(phonenumber):
-	prettynumber = "%s" % (phonenumber[0:3], )
-	if 3 < len(phonenumber):
-		prettynumber += "-%s" % (phonenumber[3:], )
-	return prettynumber
-
-
-def _make_pretty_international(phonenumber):
-	prettynumber = phonenumber
-	if phonenumber.startswith("1"):
-		prettynumber = "1 "
-		prettynumber += _make_pretty_with_areacode(phonenumber[1:])
-	return prettynumber
-
-
-def make_pretty(phonenumber):
-	"""
-	Function to take a phone number and return the pretty version
-	pretty numbers:
-		if phonenumber begins with 0:
-			...-(...)-...-....
-		if phonenumber begins with 1: ( for gizmo callback numbers )
-			1 (...)-...-....
-		if phonenumber is 13 digits:
-			(...)-...-....
-		if phonenumber is 10 digits:
-			...-....
-	>>> make_pretty("12")
-	'12'
-	>>> make_pretty("1234567")
-	'123-4567'
-	>>> make_pretty("2345678901")
-	'+1 (234) 567-8901'
-	>>> make_pretty("12345678901")
-	'+1 (234) 567-8901'
-	>>> make_pretty("01234567890")
-	'+012 (345) 678-90'
-	>>> make_pretty("+01234567890")
-	'+012 (345) 678-90'
-	>>> make_pretty("+12")
-	'+1 (2)'
-	>>> make_pretty("+123")
-	'+1 (23)'
-	>>> make_pretty("+1234")
-	'+1 (234)'
-	"""
-	if phonenumber is None or phonenumber == "":
-		return ""
-
-	phonenumber = normalize_number(phonenumber)
-
-	if phonenumber == "":
-		return ""
-	elif phonenumber[0] == "+":
-		prettynumber = _make_pretty_international(phonenumber[1:])
-		if not prettynumber.startswith("+"):
-			prettynumber = "+"+prettynumber
-	elif 8 < len(phonenumber) and phonenumber[0] in ("1", ):
-		prettynumber = _make_pretty_international(phonenumber)
-	elif 7 < len(phonenumber):
-		prettynumber = _make_pretty_with_areacode(phonenumber)
-	elif 3 < len(phonenumber):
-		prettynumber = _make_pretty_local(phonenumber)
-	else:
-		prettynumber = phonenumber
-	return prettynumber.strip()
-
-
-def abbrev_relative_date(date):
-	"""
-	>>> abbrev_relative_date("42 hours ago")
-	'42 h'
-	>>> abbrev_relative_date("2 days ago")
-	'2 d'
-	>>> abbrev_relative_date("4 weeks ago")
-	'4 w'
-	"""
-	parts = date.split(" ")
-	return "%s %s" % (parts[0], parts[1][0])
