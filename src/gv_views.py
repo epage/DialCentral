@@ -542,6 +542,8 @@ class Messages(object):
 
 class Contacts(object):
 
+	# @todo Provide some sort of letter jump
+
 	def __init__(self, app, session, errorLog):
 		self._app = app
 		self._session = session

@@ -315,6 +315,7 @@ class MainWindow(object):
 		for tab in self._tabsContents:
 			tab.disable()
 
+		# @bug Tab names too long, switch to icons
 		self._tabWidget = QtGui.QTabWidget()
 		if qui_utils.screen_orientation() == QtCore.Qt.Vertical:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
@@ -510,7 +511,7 @@ class MainWindow(object):
 		self._accountDialog.accountNumber = self._session.get_account_number()
 		response = self._accountDialog.run()
 		if response == QtGui.QDialog.Accepted:
-			if self._accountDialog.doClear():
+			if self._accountDialog.doClear:
 				self._session.logout_and_clear()
 		elif response == QtGui.QDialog.Rejected:
 			_moduleLogger.info("Cancelled")

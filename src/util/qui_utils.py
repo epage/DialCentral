@@ -98,6 +98,8 @@ class ErrorDisplay(object):
 
 class QHtmlDelegate(QtGui.QStyledItemDelegate):
 
+	# @bug Doesn't show properly with dark themes (Maemo)
+
 	def paint(self, painter, option, index):
 		newOption = QtGui.QStyleOptionViewItemV4(option)
 		self.initStyleOption(newOption, index)

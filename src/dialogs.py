@@ -80,6 +80,8 @@ class CredentialsDialog(object):
 
 class AccountDialog(object):
 
+	# @bug Can't configure callback number
+
 	def __init__(self, app):
 		self._doClear = False
 
