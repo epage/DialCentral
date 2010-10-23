@@ -151,7 +151,6 @@ class AccountDialog(object):
 class SMSEntryWindow(object):
 
 	def __init__(self, parent, app, session, errorLog):
-		self._contacts = []
 		self._session = session
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
 		self._session.draft.called.connect(self._on_op_finished)
@@ -223,10 +222,10 @@ class SMSEntryWindow(object):
 		self._characterCountLabel.setText("Letters: %s" % count)
 
 	def _update_button_state(self):
-		if len(self._contacts) == 0:
+		if self._session.draft.get_num_contacts() == 0:
 			self._dialButton.setEnabled(False)
 			self._smsButton.setEnabled(False)
-		elif len(self._contacts) == 1:
+		elif self._session.draft.get_num_contacts() == 1:
 			count = self._smsEntry.toPlainText().size()
 			if count == 0:
 				self._dialButton.setEnabled(True)
@@ -330,16 +329,14 @@ class SMSEntryWindow(object):
 	def _scroll_to_bottom(self):
 		self._scrollEntry.ensureWidgetVisible(self._smsEntry)
 
-	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_sms_clicked(self):
+	def _on_sms_clicked(self, arg):
 		message = str(self._smsEntry.toPlainText())
 		self._session.draft.send(message)
 		self._smsEntry.setPlainText("")
 
-	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_call_clicked(self):
+	def _on_call_clicked(self, arg):
 		self._session.draft.call()
 		self._smsEntry.setPlainText("")
 

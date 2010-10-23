@@ -41,10 +41,11 @@ class Draft(QtCore.QObject):
 
 	recipientsChanged = QtCore.pyqtSignal()
 
-	def __init__(self, pool):
+	def __init__(self, pool, backend):
 		QtCore.QObject.__init__(self)
 		self._contacts = {}
 		self._pool = pool
+		self._backend = backend
 
 	def send(self, text):
 		assert 0 < len(self._contacts)
@@ -94,7 +95,8 @@ class Draft(QtCore.QObject):
 	def set_selected_number(self, cid, number):
 		# @note I'm lazy, this isn't firing any kind of signal since only one
 		# controller right now and that is the viewer
-		return self._contacts[cid].numbers
+		assert number in (nWD[0] for nWD in self._contacts[cid].numbers)
+		self._contacts[cid].selectedNumber = number
 
 	def clear(self):
 		oldContacts = self._contacts
@@ -105,7 +107,11 @@ class Draft(QtCore.QObject):
 	def _send(self, numbers, text):
 		self.sendingMessage.emit()
 		try:
-			self.error.emit("Not Implemented")
+			yield (
+				self._backend[0].send_sms,
+				(numbers, text),
+				{},
+			)
 			self.sentMessage.emit()
 			self.clear()
 		except Exception, e:
@@ -114,7 +120,11 @@ class Draft(QtCore.QObject):
 	def _call(self, number):
 		self.calling.emit()
 		try:
-			self.error.emit("Not Implemented")
+			yield (
+				self._backend[0].call,
+				(number, ),
+				{},
+			)
 			self.called.emit()
 			self.clear()
 		except Exception, e:
@@ -124,7 +134,7 @@ class Draft(QtCore.QObject):
 		self.cancelling.emit()
 		try:
 			yield (
-				self._backend.cancel,
+				self._backend[0].cancel,
 				(),
 				{},
 			)
@@ -159,12 +169,12 @@ class Session(QtCore.QObject):
 	def __init__(self, cachePath = None):
 		QtCore.QObject.__init__(self)
 		self._pool = qore_utils.AsyncPool()
-		self._backend = None
+		self._backend = []
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._loginOps = []
 		self._cachePath = cachePath
 		self._username = None
-		self._draft = Draft(self._pool)
+		self._draft = Draft(self._pool, self._backend)
 
 		self._contacts = {}
 		self._messages = []
@@ -191,9 +201,10 @@ class Session(QtCore.QObject):
 		else:
 			cookiePath = None
 
-		if self._username != username or self._backend is None:
+		if self._username != username or not self._backend:
 			from backends import gv_backend
-			self._backend = gv_backend.GVDialer(cookiePath)
+			del self._backend[:]
+			self._backend[0:0] = [gv_backend.GVDialer(cookiePath)]
 
 		self._pool.start()
 		le = concurrent.AsyncLinearExecution(self._pool, self._login)
@@ -203,13 +214,13 @@ class Session(QtCore.QObject):
 		assert self.state != self.LOGGEDOUT_STATE
 		self._pool.stop()
 		self._loggedInTime = self._LOGGEDOUT_TIME
-		self._backend.persist()
+		self._backend[0].persist()
 		self._save_to_cache()
 
 	def clear(self):
 		assert self.state == self.LOGGEDOUT_STATE
-		self._backend.logout()
-		self._backend = None
+		self._backend[0].logout()
+		del self._backend[0]
 		self._clear_cache()
 		self._draft.clear()
 
@@ -257,7 +268,7 @@ class Session(QtCore.QObject):
 		oldDnd = self._dnd
 		try:
 			yield (
-				self._backend.set_dnd,
+				self._backend[0].set_dnd,
 				(dnd),
 				{},
 			)
@@ -272,11 +283,11 @@ class Session(QtCore.QObject):
 		return self._dnd
 
 	def get_account_number(self):
-		return self._backend.get_account_number()
+		return self._backend[0].get_account_number()
 
 	def get_callback_numbers(self):
 		# @todo Remove evilness
-		return self._backend.get_callback_numbers()
+		return self._backend[0].get_callback_numbers()
 
 	def get_callback_number(self):
 		return self._callback
@@ -288,7 +299,7 @@ class Session(QtCore.QObject):
 		oldCallback = self._callback
 		try:
 			yield (
-				self._backend.set_callback_number,
+				self._backend[0].set_callback_number,
 				(callback),
 				{},
 			)
@@ -306,9 +317,9 @@ class Session(QtCore.QObject):
 		try:
 			isLoggedIn = False
 
-			if not isLoggedIn and self._backend.is_quick_login_possible():
+			if not isLoggedIn and self._backend[0].is_quick_login_possible():
 				isLoggedIn = yield (
-					self._backend.is_authed,
+					self._backend[0].is_authed,
 					(),
 					{},
 				)
@@ -317,14 +328,14 @@ class Session(QtCore.QObject):
 				else:
 					# Force a clearing of the cookies
 					yield (
-						self._backend.logout,
+						self._backend[0].logout,
 						(),
 						{},
 					)
 
 			if not isLoggedIn:
 				isLoggedIn = yield (
-					self._backend.login,
+					self._backend[0].login,
 					(username, password),
 					{},
 				)
@@ -470,7 +481,7 @@ class Session(QtCore.QObject):
 	def _update_contacts(self):
 		try:
 			self._contacts = yield (
-				self._backend.get_contacts,
+				self._backend[0].get_contacts,
 				(),
 				{},
 			)
@@ -482,7 +493,7 @@ class Session(QtCore.QObject):
 	def _update_messages(self):
 		try:
 			self._messages = yield (
-				self._backend.get_messages,
+				self._backend[0].get_messages,
 				(),
 				{},
 			)
@@ -494,7 +505,7 @@ class Session(QtCore.QObject):
 	def _update_history(self):
 		try:
 			self._history = yield (
-				self._backend.get_recent,
+				self._backend[0].get_recent,
 				(),
 				{},
 			)
@@ -507,7 +518,7 @@ class Session(QtCore.QObject):
 		oldDnd = self._dnd
 		try:
 			self._dnd = yield (
-				self._backend.is_dnd,
+				self._backend[0].is_dnd,
 				(),
 				{},
 			)
