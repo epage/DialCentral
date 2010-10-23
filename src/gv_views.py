@@ -37,12 +37,16 @@ class Dialpad(object):
 		clearAction.setText("Clear")
 		clearAction.triggered.connect(self._on_clear_text)
 		clearPieItem = qtpie.QActionPieItem(clearAction)
+		backSlices = [
+			qtpie.PieFiling.NULL_CENTER,
+			clearPieItem,
+			qtpie.PieFiling.NULL_CENTER,
+			qtpie.PieFiling.NULL_CENTER,
+		]
 		self._back = qtpie.QPieButton(backPieItem)
 		self._back.set_center(backPieItem)
-		self._back.insertItem(qtpie.PieFiling.NULL_CENTER)
-		self._back.insertItem(clearPieItem)
-		self._back.insertItem(qtpie.PieFiling.NULL_CENTER)
-		self._back.insertItem(qtpie.PieFiling.NULL_CENTER)
+		for slice in backSlices:
+			self._back.insertItem(slice)
 
 		self._entryLayout = QtGui.QHBoxLayout()
 		self._entryLayout.addWidget(self._plus, 0, QtCore.Qt.AlignCenter)
@@ -110,28 +114,37 @@ class Dialpad(object):
 
 	def _generate_key_button(self, center, letters):
 		centerPieItem = self._generate_button_slice(center)
+		pieItems = [
+			pieItem
+			for pieItem in self._generate_button_slices(letters)
+		]
+
 		button = qtpie.QPieButton(centerPieItem)
 		button.set_center(centerPieItem)
+		for item in pieItems:
+			button.insertItem(item)
 
+		return button
+
+	def _generate_button_slices(self, letters):
 		if len(letters) == 0:
 			for i in xrange(8):
 				pieItem = qtpie.PieFiling.NULL_CENTER
-				button.insertItem(pieItem)
+				yield pieItem
 		elif len(letters) in [3, 4]:
 			for i in xrange(6 - len(letters)):
 				pieItem = qtpie.PieFiling.NULL_CENTER
-				button.insertItem(pieItem)
+				yield pieItem
 
 			for letter in letters:
 				pieItem = self._generate_button_slice(letter)
-				button.insertItem(pieItem)
+				yield pieItem
 
 			for i in xrange(2):
 				pieItem = qtpie.PieFiling.NULL_CENTER
-				button.insertItem(pieItem)
+				yield pieItem
 		else:
 			raise NotImplementedError("Cannot handle %r" % letters)
-		return button
 
 	def _generate_button_slice(self, letter):
 		action = QtGui.QAction(None)

@@ -502,7 +502,7 @@ class QPieButton(QtGui.QWidget):
 	BUTTON_RADIUS = 24
 	DELAY = 250
 
-	def __init__(self, buttonSlice, parent = None):
+	def __init__(self, buttonSlice, parent = None, buttonSlices = None):
 		# @bug Artifacts on Maemo 5 due to window 3D effects, find way to disable them for just these?
 		# @bug The pie's are being pushed back on screen on Maemo, leading to coordinate issues
 		QtGui.QWidget.__init__(self, parent)
@@ -514,6 +514,9 @@ class QPieButton(QtGui.QWidget):
 
 		self._buttonFiling = PieFiling()
 		self._buttonFiling.set_center(buttonSlice)
+		if buttonSlices is not None:
+			for slice in buttonSlices:
+				self._buttonFiling.insertItem(slice)
 		self._buttonFiling.setOuterRadius(self.BUTTON_RADIUS)
 		self._buttonArtist = PieArtist(self._buttonFiling)
 		self._poppedUp = False
@@ -571,6 +574,7 @@ class QPieButton(QtGui.QWidget):
 
 	def setButtonRadius(self, radius):
 		self._buttonFiling.setOuterRadius(radius)
+		self._buttonFiling.setInnerRadius(radius / 2)
 		self._buttonArtist.show(self.palette())
 
 	def sizeHint(self):
