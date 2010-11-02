@@ -26,6 +26,11 @@ IS_MAEMO = True
 
 class Dialcentral(object):
 
+	_DATA_PATHS = [
+		os.path.join(os.path.dirname(__file__), "../share"),
+		os.path.join(os.path.dirname(__file__), "../data"),
+	]
+
 	def __init__(self, app):
 		self._app = app
 		self._recent = []
@@ -274,6 +279,14 @@ class MainWindow(object):
 	]
 	assert len(_TAB_TITLES) == MAX_TABS
 
+	_TAB_ICONS = [
+		"dialpad.png",
+		"history.png",
+		"messages.png",
+		"contacts.png",
+	]
+	assert len(_TAB_ICONS) == MAX_TABS
+
 	_TAB_CLASS = [
 		functools.partial(_tab_factory, "Dialpad"),
 		functools.partial(_tab_factory, "History"),
@@ -321,8 +334,24 @@ class MainWindow(object):
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
 		else:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
-		for tabIndex, tabTitle in enumerate(self._TAB_TITLES):
-			self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, tabTitle)
+		_dataPath = None
+		for tabIndex, (tabTitle, tabIcon) in enumerate(
+			zip(self._TAB_TITLES, self._TAB_ICONS)
+		):
+			if _dataPath is None:
+				for path in self._app._DATA_PATHS:
+					if os.path.exists(os.path.join(path, tabIcon)):
+						_dataPath = path
+						break
+			if IS_MAEMO:
+				if _dataPath is None:
+					self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, tabTitle)
+				else:
+					icon = QtGui.QIcon(os.path.join(_dataPath, tabIcon))
+					self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, icon, "")
+			else:
+				icon = QtGui.QIcon(os.path.join(_dataPath, tabIcon))
+				self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, icon, tabTitle)
 		self._tabWidget.currentChanged.connect(self._on_tab_changed)
 
 		self._layout = QtGui.QVBoxLayout()
