@@ -687,17 +687,8 @@ class Contacts(object):
 	def _prefixes(self):
 		return itertools.chain(string.ascii_uppercase, ("#", ))
 
-	def _jump_to_prefix(self, prefix):
-		i = -1
-		for i, item in enumerate(self._get_contacts()):
-			name = item["name"]
-			currentPrefix = name[0:len(prefix)]
-			if prefix <= currentPrefix:
-				break
-		if i < 0:
-			# if no items, don't jump
-			return
-
+	def _jump_to_prefix(self, letter):
+		i = list(self._prefixes()).index(letter)
 		rootIndex = self._itemView.rootIndex()
 		currentIndex = self._itemView.model().index(i, 0, rootIndex)
 		self._itemView.scrollTo(currentIndex)
