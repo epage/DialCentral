@@ -328,7 +328,6 @@ class MainWindow(object):
 		for tab in self._tabsContents:
 			tab.disable()
 
-		# @bug Tab names too long, switch to icons
 		self._tabWidget = QtGui.QTabWidget()
 		if qui_utils.screen_orientation() == QtCore.Qt.Vertical:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)

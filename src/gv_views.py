@@ -3,6 +3,8 @@
 from __future__ import with_statement
 from __future__ import division
 
+import string
+import itertools
 import logging
 
 from PyQt4 import QtGui
@@ -323,7 +325,6 @@ class History(object):
 		contactId = number # ids don't seem too unique so using numbers
 
 		descriptionRows = []
-		# @bug doesn't seem to print multiple entries
 		for i in xrange(self._itemStore.rowCount()):
 			iItem = self._itemStore.item(i, self.NUMBER_IDX)
 			iContactDetails = iItem.data().toPyObject()
@@ -495,7 +496,6 @@ class Messages(object):
 				item["expandedMessages"] = "<br/>\n".join(expandedMessages)
 
 				messageItem = QtGui.QStandardItem(item["collapsedMessages"])
-				# @bug Not showing all of a message
 				messageItem.setData(item)
 				messageItem.setEditable(False)
 				messageItem.setCheckable(False)
@@ -561,19 +561,32 @@ class Contacts(object):
 
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(["Contacts"])
+		self._alphaItem = {}
 
 		self._itemView = QtGui.QTreeView()
 		self._itemView.setModel(self._itemStore)
 		self._itemView.setUniformRowHeights(True)
+		self._itemView.setRootIsDecorated(False)
 		self._itemView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 		self._itemView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
 		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
 		self._itemView.setHeaderHidden(True)
+		self._itemView.setItemsExpandable(False)
 		self._itemView.activated.connect(self._on_row_activated)
+
+		self._alphaJumpLayout = QtGui.QBoxLayout(QtGui.QBoxLayout.TopToBottom)
+		self._alphaJump = QtGui.QWidget()
+		self._alphaJump.setLayout(self._alphaJumpLayout)
+
+		self._contactsAndJumpLayout = QtGui.QBoxLayout(QtGui.QBoxLayout.LeftToRight)
+		self._contactsAndJumpLayout.addWidget(self._itemView)
+		self._contactsAndJumpLayout.addWidget(self._alphaJump)
+		self._contactsAndJump = QtGui.QWidget()
+		self._contactsAndJump.setLayout(self._contactsAndJumpLayout)
 
 		self._layout = QtGui.QVBoxLayout()
 		self._layout.addWidget(self._listSelection)
-		self._layout.addWidget(self._itemView)
+		self._layout.addWidget(self._contactsAndJump)
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
 
@@ -647,10 +660,18 @@ class Contacts(object):
 
 	def _populate_items(self):
 		self._itemStore.clear()
+		self._alphaItem = dict(
+			(letter, QtGui.QStandardItem(letter))
+			for letter in self._prefixes()
+		)
+		for letter in self._prefixes():
+			item = self._alphaItem[letter]
+			item.setEditable(False)
+			item.setCheckable(False)
+			row = (item, )
+			self._itemStore.appendRow(row)
 
-		contacts = list(self._backend.get_contacts().itervalues())
-		contacts.sort(key=lambda contact: contact["name"].lower())
-		for item in contacts:
+		for item in self._get_contacts():
 			name = item["name"]
 			numbers = item["numbers"]
 			nameItem = QtGui.QStandardItem(name)
@@ -658,7 +679,34 @@ class Contacts(object):
 			nameItem.setCheckable(False)
 			nameItem.setData(item)
 			row = (nameItem, )
-			self._itemStore.appendRow(row)
+			rowKey = name[0].upper()
+			rowKey = rowKey if rowKey in self._alphaItem else "#"
+			self._alphaItem[rowKey].appendRow(row)
+		self._itemView.expandAll()
+
+	def _prefixes(self):
+		return itertools.chain(string.ascii_uppercase, ("#", ))
+
+	def _jump_to_prefix(self, prefix):
+		i = -1
+		for i, item in enumerate(self._get_contacts()):
+			name = item["name"]
+			currentPrefix = name[0:len(prefix)]
+			if prefix <= currentPrefix:
+				break
+		if i < 0:
+			# if no items, don't jump
+			return
+
+		rootIndex = self._itemView.rootIndex()
+		currentIndex = self._itemView.model().index(i, 0, rootIndex)
+		self._itemView.scrollTo(currentIndex)
+		self._itemView.setItemSelected(self._itemView.topLevelItem(i), True)
+
+	def _get_contacts(self):
+		contacts = list(self._backend.get_contacts().itervalues())
+		contacts.sort(key=lambda contact: contact["name"].lower())
+		return contacts
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
@@ -673,8 +721,13 @@ class Contacts(object):
 	@QtCore.pyqtSlot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
+		letterIndex = index.parent()
+		assert letterIndex.isValid()
+		letterRow = letterIndex.row()
+		letter = list(self._prefixes())[letterRow]
+		letterItem = self._alphaItem[letter]
 		rowIndex = index.row()
-		item = self._itemStore.item(rowIndex, 0)
+		item = letterItem.child(rowIndex, 0)
 		contactDetails = item.data().toPyObject()
 
 		name = str(contactDetails[QtCore.QString("name")])
