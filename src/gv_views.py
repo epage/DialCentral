@@ -198,14 +198,12 @@ class Dialpad(object):
 
 class History(object):
 
-	DATE_IDX = 0
-	ACTION_IDX = 1
-	NUMBER_IDX = 2
-	FROM_IDX = 3
-	MAX_IDX = 4
+	DETAILS_IDX = 0
+	FROM_IDX = 1
+	MAX_IDX = 2
 
 	HISTORY_ITEM_TYPES = ["Received", "Missed", "Placed", "All"]
-	HISTORY_COLUMNS = ["When", "What", "Number", "From"]
+	HISTORY_COLUMNS = ["", "From"]
 	assert len(HISTORY_COLUMNS) == MAX_IDX
 
 	def __init__(self, app, session, errorLog):
@@ -228,6 +226,7 @@ class History(object):
 		self._itemView = QtGui.QTreeView()
 		self._itemView.setModel(self._itemStore)
 		self._itemView.setUniformRowHeights(True)
+		self._itemView.setRootIsDecorated(False)
 		self._itemView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 		self._itemView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
 		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
@@ -273,6 +272,7 @@ class History(object):
 
 	def _populate_items(self):
 		self._itemStore.clear()
+
 		history = self._session.get_history()
 		history.sort(key=lambda item: item["time"], reverse=True)
 		for event in history:
@@ -287,11 +287,9 @@ class History(object):
 				if not name:
 					name = "Unknown"
 
-				timeItem = QtGui.QStandardItem(relTime)
-				actionItem = QtGui.QStandardItem(action)
-				numberItem = QtGui.QStandardItem(prettyNumber)
+				detailsItem = QtGui.QStandardItem("%s - %s\n%s" % (relTime, action, prettyNumber))
 				nameItem = QtGui.QStandardItem(name)
-				row = timeItem, actionItem, numberItem, nameItem
+				row = detailsItem, nameItem
 				for item in row:
 					item.setEditable(False)
 					item.setCheckable(False)
@@ -299,7 +297,7 @@ class History(object):
 						itemFont = item.font()
 						itemFont.setPointSize(max(itemFont.pointSize() - 3, 5))
 						item.setFont(itemFont)
-				numberItem.setData(event)
+				row[0].setData(event)
 				self._itemStore.appendRow(row)
 
 	@QtCore.pyqtSlot(str)
@@ -317,7 +315,7 @@ class History(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		rowIndex = index.row()
-		item = self._itemStore.item(rowIndex, self.NUMBER_IDX)
+		item = self._itemStore.item(rowIndex, 0)
 		contactDetails = item.data().toPyObject()
 
 		title = str(self._itemStore.item(rowIndex, self.FROM_IDX).text())
@@ -326,7 +324,7 @@ class History(object):
 
 		descriptionRows = []
 		for i in xrange(self._itemStore.rowCount()):
-			iItem = self._itemStore.item(i, self.NUMBER_IDX)
+			iItem = self._itemStore.item(i, 0)
 			iContactDetails = iItem.data().toPyObject()
 			iNumber = str(iContactDetails[QtCore.QString("number")])
 			if number != iNumber:
@@ -390,6 +388,7 @@ class Messages(object):
 		self._itemView = QtGui.QTreeView()
 		self._itemView.setModel(self._itemStore)
 		self._itemView.setUniformRowHeights(False)
+		self._itemView.setRootIsDecorated(False)
 		self._itemView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 		self._itemView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
 		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
