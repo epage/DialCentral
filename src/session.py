@@ -2,6 +2,7 @@ from __future__ import with_statement
 
 import os
 import time
+import datetime
 import logging
 
 try:
@@ -179,8 +180,11 @@ class Session(QtCore.QObject):
 		self._draft = Draft(self._pool, self._backend)
 
 		self._contacts = {}
+		self._contactUpdateTime = datetime.datetime(1971, 1, 1)
 		self._messages = []
+		self._messageUpdateTime = datetime.datetime(1971, 1, 1)
 		self._history = []
+		self._historyUpdateTime = datetime.datetime(1971, 1, 1)
 		self._dnd = False
 		self._callback = ""
 
@@ -241,6 +245,9 @@ class Session(QtCore.QObject):
 	def get_contacts(self):
 		return self._contacts
 
+	def get_when_contacts_updated(self):
+		return self._contactUpdateTime
+
 	def update_messages(self, force = True):
 		if not force and self._messages:
 			return
@@ -250,6 +257,9 @@ class Session(QtCore.QObject):
 	def get_messages(self):
 		return self._messages
 
+	def get_when_messages_updated(self):
+		return self._messageUpdateTime
+
 	def update_history(self, force = True):
 		if not force and self._history:
 			return
@@ -258,6 +268,9 @@ class Session(QtCore.QObject):
 
 	def get_history(self):
 		return self._history
+
+	def get_when_history_updated(self):
+		return self._historyUpdateTime
 
 	def update_dnd(self):
 		le = concurrent.AsyncLinearExecution(self._pool, self._update_dnd)
@@ -415,7 +428,10 @@ class Session(QtCore.QObject):
 
 		(
 			version, build,
-			contacts, messages, history, dnd, callback
+			contacts, contactUpdateTime,
+			messages, messageUpdateTime,
+			history, historyUpdateTime,
+			dnd, callback
 		) = dumpedData
 
 		if misc_utils.compare_versions(
@@ -424,8 +440,11 @@ class Session(QtCore.QObject):
 		) <= 0:
 			_moduleLogger.info("Loaded cache")
 			self._contacts = contacts
+			self._contactUpdateTime = contactUpdateTime
 			self._messages = messages
+			self._messageUpdateTime = messageUpdateTime
 			self._history = history
+			self._historyUpdateTime = historyUpdateTime
 			self._dnd = dnd
 			self._callback = callback
 			return True
@@ -446,7 +465,10 @@ class Session(QtCore.QObject):
 		try:
 			dataToDump = (
 				constants.__version__, constants.__build__,
-				self._contacts, self._messages, self._history, self._dnd, self._callback
+				self._contacts, self._contactUpdateTime,
+				self._messages, self._messageUpdateTime,
+				self._history, self._historyUpdateTime,
+				self._dnd, self._callback
 			)
 			with open(cachePath, "wb") as f:
 				pickle.dump(dataToDump, f, pickle.HIGHEST_PROTOCOL)
@@ -462,8 +484,11 @@ class Session(QtCore.QObject):
 		oldCallback = self._callback
 
 		self._contacts = {}
+		self._contactUpdateTime = datetime.datetime(1, 1, 1)
 		self._messages = []
+		self._messageUpdateTime = datetime.datetime(1, 1, 1)
 		self._history = []
+		self._historyUpdateTime = datetime.datetime(1, 1, 1)
 		self._dnd = False
 		self._callback = ""
 
@@ -490,6 +515,7 @@ class Session(QtCore.QObject):
 		except Exception, e:
 			self.error.emit(str(e))
 			return
+		self._contactUpdateTime = datetime.datetime.now()
 		self.contactsUpdated.emit()
 
 	def _update_messages(self):
@@ -502,6 +528,7 @@ class Session(QtCore.QObject):
 		except Exception, e:
 			self.error.emit(str(e))
 			return
+		self._messageUpdateTime = datetime.datetime.now()
 		self.messagesUpdated.emit()
 
 	def _update_history(self):
@@ -514,6 +541,7 @@ class Session(QtCore.QObject):
 		except Exception, e:
 			self.error.emit(str(e))
 			return
+		self._historyUpdateTime = datetime.datetime.now()
 		self.historyUpdated.emit()
 
 	def _update_dnd(self):
