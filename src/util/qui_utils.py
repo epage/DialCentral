@@ -104,15 +104,14 @@ class QHtmlDelegate(QtGui.QStyledItemDelegate):
 	def paint(self, painter, option, index):
 		newOption = QtGui.QStyleOptionViewItemV4(option)
 		self.initStyleOption(newOption, index)
-
-		doc = QtGui.QTextDocument()
-		doc.setHtml(newOption.text)
-		doc.setTextWidth(newOption.rect.width())
-
 		if newOption.widget is not None:
 			style = newOption.widget.style()
 		else:
 			style = QtGui.QApplication.style()
+
+		doc = QtGui.QTextDocument()
+		doc.setHtml(newOption.text)
+		doc.setTextWidth(newOption.rect.width())
 
 		newOption.text = ""
 		style.drawControl(QtGui.QStyle.CE_ItemViewItem, newOption, painter)
