@@ -203,7 +203,7 @@ class History(object):
 	MAX_IDX = 2
 
 	HISTORY_ITEM_TYPES = ["Received", "Missed", "Placed", "All"]
-	HISTORY_COLUMNS = ["", "From"]
+	HISTORY_COLUMNS = ["Details", "From"]
 	assert len(HISTORY_COLUMNS) == MAX_IDX
 
 	def __init__(self, app, session, errorLog):
@@ -288,7 +288,13 @@ class History(object):
 					name = "Unknown"
 
 				detailsItem = QtGui.QStandardItem("%s - %s\n%s" % (relTime, action, prettyNumber))
+				detailsFont = detailsItem.font()
+				detailsFont.setPointSize(detailsFont.pointSize() - 4)
+				detailsItem.setFont(detailsFont)
 				nameItem = QtGui.QStandardItem(name)
+				nameFont = nameItem.font()
+				nameFont.setPointSize(nameFont.pointSize() + 4)
+				nameItem.setFont(nameFont)
 				row = detailsItem, nameItem
 				for item in row:
 					item.setEditable(False)
@@ -573,19 +579,9 @@ class Contacts(object):
 		self._itemView.setItemsExpandable(False)
 		self._itemView.activated.connect(self._on_row_activated)
 
-		self._alphaJumpLayout = QtGui.QBoxLayout(QtGui.QBoxLayout.TopToBottom)
-		self._alphaJump = QtGui.QWidget()
-		self._alphaJump.setLayout(self._alphaJumpLayout)
-
-		self._contactsAndJumpLayout = QtGui.QBoxLayout(QtGui.QBoxLayout.LeftToRight)
-		self._contactsAndJumpLayout.addWidget(self._itemView)
-		self._contactsAndJumpLayout.addWidget(self._alphaJump)
-		self._contactsAndJump = QtGui.QWidget()
-		self._contactsAndJump.setLayout(self._contactsAndJumpLayout)
-
 		self._layout = QtGui.QVBoxLayout()
 		self._layout.addWidget(self._listSelection)
-		self._layout.addWidget(self._contactsAndJump)
+		self._layout.addWidget(self._itemView)
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
 
