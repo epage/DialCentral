@@ -152,6 +152,8 @@ class AccountDialog(object):
 
 class SMSEntryWindow(object):
 
+	MAX_CHAR = 160
+
 	def __init__(self, parent, app, session, errorLog):
 		self._session = session
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
@@ -221,7 +223,10 @@ class SMSEntryWindow(object):
 
 	def _update_letter_count(self):
 		count = self._smsEntry.toPlainText().size()
-		self._characterCountLabel.setText("Letters: %s" % count)
+		numTexts, numCharInText = divmod(count, self.MAX_CHAR)
+		numTexts += 1
+		numCharsLeftInText = self.MAX_CHAR - numCharInText
+		self._characterCountLabel.setText("%d (%d)" % (numCharsLeftInText, numTexts))
 
 	def _update_button_state(self):
 		if self._session.draft.get_num_contacts() == 0:
