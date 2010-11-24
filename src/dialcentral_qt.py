@@ -352,13 +352,16 @@ class MainWindow(object):
 				icon = QtGui.QIcon(os.path.join(_dataPath, tabIcon))
 				self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, icon, tabTitle)
 		self._tabWidget.currentChanged.connect(self._on_tab_changed)
+		self._tabWidget.setContentsMargins(0, 0, 0, 0)
 
 		self._layout = QtGui.QVBoxLayout()
+		self._layout.setContentsMargins(0, 0, 0, 0)
 		self._layout.addWidget(self._errorDisplay.toplevel)
 		self._layout.addWidget(self._tabWidget)
 
 		centralWidget = QtGui.QWidget()
 		centralWidget.setLayout(self._layout)
+		centralWidget.setContentsMargins(0, 0, 0, 0)
 
 		self._window = QtGui.QMainWindow(parent)
 		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
