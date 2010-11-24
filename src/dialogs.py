@@ -154,6 +154,8 @@ class SMSEntryWindow(object):
 
 	MAX_CHAR = 160
 
+	# @bug on n900 no scrolling for history qtextedit
+
 	def __init__(self, parent, app, session, errorLog):
 		self._session = session
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
@@ -167,6 +169,9 @@ class SMSEntryWindow(object):
 		self._targetList.setLayout(self._targetLayout)
 		self._history = QtGui.QTextEdit()
 		self._history.setReadOnly(True)
+		self._history.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignBottom)
+		self._history.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+		self._history.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 		self._smsEntry = QtGui.QTextEdit()
 		self._smsEntry.textChanged.connect(self._on_letter_count_changed)
 
