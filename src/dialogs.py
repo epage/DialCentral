@@ -162,7 +162,10 @@ class SMSEntryWindow(object):
 		self._session.draft.called.connect(self._on_op_finished)
 		self._session.draft.sentMessage.connect(self._on_op_finished)
 		self._session.draft.cancelled.connect(self._on_op_finished)
+		self._session.draft.error.connect(self._on_op_error)
 		self._errorLog = errorLog
+
+		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
 
 		self._targetLayout = QtGui.QVBoxLayout()
 		self._targetList = QtGui.QWidget()
@@ -204,6 +207,7 @@ class SMSEntryWindow(object):
 		self._buttonLayout.addWidget(self._dialButton)
 
 		self._layout = QtGui.QVBoxLayout()
+		self._layout.addWidget(self._errorDisplay.toplevel)
 		self._layout.addWidget(self._scrollEntry)
 		self._layout.addLayout(self._buttonLayout)
 
@@ -378,6 +382,11 @@ class SMSEntryWindow(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_finished(self):
 		self._window.hide()
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_op_error(self, message):
+		self._errorLog.push_message(message)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
