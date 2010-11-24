@@ -185,7 +185,7 @@ class SMSEntryWindow(object):
 		self._scrollEntry.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
 		self._scrollEntry.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-		self._characterCountLabel = QtGui.QLabel("Letters: %s" % 0)
+		self._characterCountLabel = QtGui.QLabel("0 (0)")
 		self._singleNumberSelector = QtGui.QComboBox()
 		self._smsButton = QtGui.QPushButton("SMS")
 		self._smsButton.clicked.connect(self._on_sms_clicked)
