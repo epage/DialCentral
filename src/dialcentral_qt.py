@@ -124,6 +124,7 @@ class Dialcentral(object):
 		self._mainWindow.load_settings(config)
 
 	def save_settings(self):
+		_moduleLogger.info("Saving settings")
 		config = ConfigParser.SafeConfigParser()
 
 		config.add_section(constants.__pretty_app_name__)
@@ -156,6 +157,7 @@ class Dialcentral(object):
 
 	def _close_windows(self):
 		if self._mainWindow is not None:
+			self.save_settings()
 			self._mainWindow.window.destroyed.disconnect(self._on_child_close)
 			self._mainWindow.close()
 			self._mainWindow = None
@@ -164,13 +166,16 @@ class Dialcentral(object):
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_app_quit(self, checked = False):
-		self.save_settings()
-		self._mainWindow.destroy()
+		if self._mainWindow is not None:
+			self.save_settings()
+			self._mainWindow.destroy()
 
 	@QtCore.pyqtSlot(QtCore.QObject)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_child_close(self, obj = None):
-		self._mainWindow = None
+		if self._mainWindow is not None:
+			self.save_settings()
+			self._mainWindow = None
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
