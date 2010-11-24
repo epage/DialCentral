@@ -320,6 +320,7 @@ class MainWindow(object):
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
 		self._defaultCredentials = "", ""
 		self._curentCredentials = "", ""
+		self._currentTab = 0
 
 		self._credentialsDialog = None
 		self._smsEntryDialog = None
@@ -463,7 +464,7 @@ class MainWindow(object):
 			self._session.logout()
 
 	def get_current_tab(self):
-		return self._tabWidget.currentIndex()
+		return self._currentTab
 
 	def set_current_tab(self, tabIndex):
 		self._tabWidget.setCurrentIndex(tabIndex)
@@ -596,14 +597,14 @@ class MainWindow(object):
 	@QtCore.pyqtSlot(int)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_tab_changed(self, index):
+		self._currentTab = index
 		self._initialize_tab(index)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh(self, checked = True):
-		index = self._tabWidget.currentIndex()
-		self._tabsContents[index].refresh(force=True)
+		self._tabsContents[self._currentTab].refresh(force=True)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
