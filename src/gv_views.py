@@ -28,7 +28,8 @@ class Dialpad(object):
 		self._session = session
 		self._errorLog = errorLog
 
-		self._plus = self._generate_key_button("+", "")
+		self._plus = QtGui.QPushButton("+")
+		self._plus.clicked.connect(lambda: self._on_keypress("+"))
 		self._entry = QtGui.QLineEdit()
 
 		backAction = QtGui.QAction(None)
@@ -78,10 +79,10 @@ class Dialpad(object):
 			self._padLayout.addWidget(
 				self._generate_key_button(num, letters), row, column, QtCore.Qt.AlignCenter
 			)
+		self._zerothButton = QtGui.QPushButton("0")
+		self._zerothButton.clicked.connect(lambda: self._on_keypress("0"))
 		self._padLayout.addWidget(self._smsButton, 3, 0)
-		self._padLayout.addWidget(
-			self._generate_key_button("0", ""), 3, 1, QtCore.Qt.AlignCenter
-		)
+		self._padLayout.addWidget(self._zerothButton)
 		self._padLayout.addWidget(self._callButton, 3, 2)
 
 		self._layout = QtGui.QVBoxLayout()
@@ -115,45 +116,9 @@ class Dialpad(object):
 		pass
 
 	def _generate_key_button(self, center, letters):
-		centerPieItem = self._generate_button_slice(center)
-		pieItems = [
-			pieItem
-			for pieItem in self._generate_button_slices(letters)
-		]
-
-		button = qtpie.QPieButton(centerPieItem)
-		button.set_center(centerPieItem)
-		for item in pieItems:
-			button.insertItem(item)
-
+		button = QtGui.QPushButton("%s\n%s" % (center, letters))
+		button.clicked.connect(lambda: self._on_keypress(center))
 		return button
-
-	def _generate_button_slices(self, letters):
-		if len(letters) == 0:
-			for i in xrange(8):
-				pieItem = qtpie.PieFiling.NULL_CENTER
-				yield pieItem
-		elif len(letters) in [3, 4]:
-			for i in xrange(6 - len(letters)):
-				pieItem = qtpie.PieFiling.NULL_CENTER
-				yield pieItem
-
-			for letter in letters:
-				pieItem = self._generate_button_slice(letter)
-				yield pieItem
-
-			for i in xrange(2):
-				pieItem = qtpie.PieFiling.NULL_CENTER
-				yield pieItem
-		else:
-			raise NotImplementedError("Cannot handle %r" % letters)
-
-	def _generate_button_slice(self, letter):
-		action = QtGui.QAction(None)
-		action.setText(letter)
-		action.triggered.connect(lambda: self._on_keypress(letter))
-		pieItem = qtpie.QActionPieItem(action)
-		return pieItem
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_keypress(self, key):
