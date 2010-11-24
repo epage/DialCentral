@@ -138,9 +138,9 @@ class Dialpad(object):
 		self._entry.clear()
 
 		contactId = number
-		title = number
-		description = number
-		numbersWithDescriptions = [(number, "")]
+		title = misc_utils.make_pretty(number)
+		description = misc_utils.make_pretty(number)
+		numbersWithDescriptions = [(misc_utils.make_pretty(number), "")]
 		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
 
 	@QtCore.pyqtSlot()
