@@ -199,7 +199,9 @@ class DelayedWidget(object):
 
 	def __init__(self, app, settingsNames):
 		self._layout = QtGui.QVBoxLayout()
+		self._layout.setContentsMargins(0, 0, 0, 0)
 		self._widget = QtGui.QWidget()
+		self._widget.setContentsMargins(0, 0, 0, 0)
 		self._widget.setLayout(self._layout)
 		self._settings = dict((name, "") for name in settingsNames)
 
