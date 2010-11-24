@@ -159,6 +159,10 @@ class SMSEntryWindow(object):
 	def __init__(self, parent, app, session, errorLog):
 		self._session = session
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
+		self._session.draft.sendingMessage.connect(self._on_op_started)
+		self._session.draft.calling.connect(self._on_op_started)
+		self._session.draft.cancelling.connect(self._on_op_started)
+		self._session.draft.calling.connect(self._on_calling_started)
 		self._session.draft.called.connect(self._on_op_finished)
 		self._session.draft.sentMessage.connect(self._on_op_finished)
 		self._session.draft.cancelled.connect(self._on_op_finished)
@@ -197,14 +201,19 @@ class SMSEntryWindow(object):
 		self._singleNumberSelector = QtGui.QComboBox()
 		self._smsButton = QtGui.QPushButton("SMS")
 		self._smsButton.clicked.connect(self._on_sms_clicked)
+		self._smsButton.setEnabled(False)
 		self._dialButton = QtGui.QPushButton("Dial")
 		self._dialButton.clicked.connect(self._on_call_clicked)
+		self._cancelButton = QtGui.QPushButton("Cancel Call")
+		self._cancelButton.clicked.connect(self._on_cancel_clicked)
+		self._cancelButton.setVisible(False)
 
 		self._buttonLayout = QtGui.QHBoxLayout()
 		self._buttonLayout.addWidget(self._characterCountLabel)
 		self._buttonLayout.addWidget(self._singleNumberSelector)
 		self._buttonLayout.addWidget(self._smsButton)
 		self._buttonLayout.addWidget(self._dialButton)
+		self._buttonLayout.addWidget(self._cancelButton)
 
 		self._layout = QtGui.QVBoxLayout()
 		self._layout.addWidget(self._errorDisplay.toplevel)
@@ -362,6 +371,11 @@ class SMSEntryWindow(object):
 		self._session.draft.call()
 		self._smsEntry.setPlainText("")
 
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_cancel_clicked(self, message):
+		self._session.draft.cancel()
+
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_remove_contact(self, cid, toggled):
 		self._session.draft.remove_contact(cid)
@@ -380,12 +394,35 @@ class SMSEntryWindow(object):
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
+	def _on_op_started(self):
+		self._smsEntry.setReadOnly(True)
+		self._smsButton.setVisible(False)
+		self._dialButton.setVisible(False)
+		self._window.show()
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_calling_started(self):
+		self._cancelButton.setVisible(True)
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_finished(self):
 		self._window.hide()
+
+		self._smsEntry.setReadOnly(False)
+		self._cancelButton.setVisible(False)
+		self._smsButton.setVisible(True)
+		self._dialButton.setVisible(True)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_error(self, message):
+		self._smsEntry.setReadOnly(False)
+		self._cancelButton.setVisible(False)
+		self._smsButton.setVisible(True)
+		self._dialButton.setVisible(True)
+
 		self._errorLog.push_message(message)
 
 	@QtCore.pyqtSlot()
