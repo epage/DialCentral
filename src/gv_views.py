@@ -663,6 +663,7 @@ class Contacts(object):
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
+		self.refresh(force=False)
 		self._populate_items()
 
 	@QtCore.pyqtSlot()
