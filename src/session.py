@@ -67,7 +67,11 @@ class Draft(QtCore.QObject):
 		le.start()
 
 	def add_contact(self, contactId, title, description, numbersWithDescriptions):
-		assert contactId not in self._contacts
+		if contactId in self._contacts:
+			_moduleLogger.info("Adding duplicate contact %r" % contactId)
+			# @todo Remove this evil hack to re-popup the dialog
+			self.recipientsChanged.emit()
+			return
 		contactDetails = _DraftContact(title, description, numbersWithDescriptions)
 		self._contacts[contactId] = contactDetails
 		self.recipientsChanged.emit()
