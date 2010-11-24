@@ -52,9 +52,9 @@ class Dialpad(object):
 			self._back.insertItem(slice)
 
 		self._entryLayout = QtGui.QHBoxLayout()
-		self._entryLayout.addWidget(self._plus, 0, QtCore.Qt.AlignCenter)
-		self._entryLayout.addWidget(self._entry, 10)
-		self._entryLayout.addWidget(self._back, 0, QtCore.Qt.AlignCenter)
+		self._entryLayout.addWidget(self._plus, 1, QtCore.Qt.AlignCenter)
+		self._entryLayout.addWidget(self._entry, 1000)
+		self._entryLayout.addWidget(self._back, 1, QtCore.Qt.AlignCenter)
 
 		self._smsButton = QtGui.QPushButton("SMS")
 		self._smsButton.clicked.connect(self._on_sms_clicked)
@@ -76,9 +76,7 @@ class Dialpad(object):
 			("9", "WXYZ"),
 		]
 		for (num, letters), (row, column) in zip(keys, zip(rows, columns)):
-			self._padLayout.addWidget(
-				self._generate_key_button(num, letters), row, column, QtCore.Qt.AlignCenter
-			)
+			self._padLayout.addWidget(self._generate_key_button(num, letters), row, column)
 		self._zerothButton = QtGui.QPushButton("0")
 		self._zerothButton.clicked.connect(lambda: self._on_keypress("0"))
 		self._padLayout.addWidget(self._smsButton, 3, 0)
