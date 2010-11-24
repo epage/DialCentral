@@ -270,6 +270,7 @@ class SMSEntryWindow(object):
 			self._scroll_to_bottom()
 			self._window.setWindowTitle(title)
 			self._window.show()
+			self._smsEntry.setFocus(QtCore.Qt.OtherFocusReason)
 		else:
 			self._targetList.setVisible(True)
 			while self._targetLayout.count():
@@ -306,6 +307,7 @@ class SMSEntryWindow(object):
 			self._scroll_to_bottom()
 			self._window.setWindowTitle("Contacts")
 			self._window.show()
+			self._smsEntry.setFocus(QtCore.Qt.OtherFocusReason)
 
 	def _populate_number_selector(self, selector, cid, numbers):
 		while 0 < selector.count():
