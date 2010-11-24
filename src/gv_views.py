@@ -134,25 +134,25 @@ class Dialpad(object):
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_sms_clicked(self, checked = False):
-		number = str(self._entry.text())
+		number = misc_utils.make_ugly(str(self._entry.text()))
 		self._entry.clear()
 
 		contactId = number
 		title = misc_utils.make_pretty(number)
 		description = misc_utils.make_pretty(number)
-		numbersWithDescriptions = [(misc_utils.make_pretty(number), "")]
+		numbersWithDescriptions = [(number, "")]
 		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_call_clicked(self, checked = False):
-		number = str(self._entry.text())
+		number = misc_utils.make_ugly(str(self._entry.text()))
 		self._entry.clear()
 
 		contactId = number
-		title = number
-		description = number
+		title = misc_utils.make_pretty(number)
+		description = misc_utils.make_pretty(number)
 		numbersWithDescriptions = [(number, "")]
 		self._session.draft.clear()
 		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
