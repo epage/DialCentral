@@ -281,6 +281,11 @@ class Session(QtCore.QObject):
 		self._perform_op_while_loggedin(le)
 
 	def set_dnd(self, dnd):
+		le = concurrent.AsyncLinearExecution(self._pool, self._set_dnd)
+		le.start(dnd)
+
+	def _set_dnd(self, dnd):
+		# @bug This should be exposed a different way
 		# I'm paranoid about our state geting out of sync so we set no matter
 		# what but act as if we have the cannonical state
 		assert self.state == self.LOGGEDIN_STATE
@@ -288,7 +293,7 @@ class Session(QtCore.QObject):
 		try:
 			yield (
 				self._backend[0].set_dnd,
-				(dnd),
+				(dnd, ),
 				{},
 			)
 		except Exception, e:
@@ -312,6 +317,11 @@ class Session(QtCore.QObject):
 		return self._callback
 
 	def set_callback_number(self, callback):
+		le = concurrent.AsyncLinearExecution(self._pool, self._set_callback_number)
+		le.start(callback)
+
+	def _set_callback_number(self, callback):
+		# @bug This should be exposed a different way
 		# I'm paranoid about our state geting out of sync so we set no matter
 		# what but act as if we have the cannonical state
 		assert self.state == self.LOGGEDIN_STATE
@@ -319,7 +329,7 @@ class Session(QtCore.QObject):
 		try:
 			yield (
 				self._backend[0].set_callback_number,
-				(callback),
+				(callback, ),
 				{},
 			)
 		except Exception, e:
