@@ -285,7 +285,6 @@ class Session(QtCore.QObject):
 		le.start(dnd)
 
 	def _set_dnd(self, dnd):
-		# @bug This should be exposed a different way
 		# I'm paranoid about our state geting out of sync so we set no matter
 		# what but act as if we have the cannonical state
 		assert self.state == self.LOGGEDIN_STATE
@@ -321,7 +320,6 @@ class Session(QtCore.QObject):
 		le.start(callback)
 
 	def _set_callback_number(self, callback):
-		# @bug This should be exposed a different way
 		# I'm paranoid about our state geting out of sync so we set no matter
 		# what but act as if we have the cannonical state
 		assert self.state == self.LOGGEDIN_STATE
