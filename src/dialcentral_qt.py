@@ -547,11 +547,17 @@ class MainWindow(object):
 		if self._accountDialog is None:
 			import dialogs
 			self._accountDialog = dialogs.AccountDialog(self._app)
+		self._accountDialog.set_callbacks(
+			self._session.get_callback_numbers(), self._session.get_callback_number()
+		)
 		self._accountDialog.accountNumber = self._session.get_account_number()
 		response = self._accountDialog.run()
 		if response == QtGui.QDialog.Accepted:
 			if self._accountDialog.doClear:
 				self._session.logout_and_clear()
+			else:
+				callbackNumber = self._accountDialog.selectedCallback
+				self._session.set_callback_number(callbackNumber)
 		elif response == QtGui.QDialog.Rejected:
 			_moduleLogger.info("Cancelled")
 		else:

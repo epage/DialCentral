@@ -80,7 +80,7 @@ class CredentialsDialog(object):
 
 class AccountDialog(object):
 
-	# @bug Can't configure callback number
+	# @bug Can't enter custom callback numbers
 
 	def __init__(self, app):
 		self._doClear = False
@@ -89,10 +89,15 @@ class AccountDialog(object):
 		self._clearButton = QtGui.QPushButton("Clear Account")
 		self._clearButton.clicked.connect(self._on_clear)
 
+		self._callbackSelector = QtGui.QComboBox()
+		#self._callbackSelector.setEditable(True)
+		self._callbackSelector.setInsertPolicy(QtGui.QComboBox.InsertAtTop)
+
 		self._credLayout = QtGui.QGridLayout()
 		self._credLayout.addWidget(QtGui.QLabel("Account"), 0, 0)
 		self._credLayout.addWidget(self._accountNumberLabel, 0, 1)
 		self._credLayout.addWidget(QtGui.QLabel("Callback"), 1, 0)
+		self._credLayout.addWidget(self._callbackSelector, 1, 1)
 		self._credLayout.addWidget(QtGui.QLabel(""), 2, 0)
 		self._credLayout.addWidget(self._clearButton, 2, 1)
 		self._credLayout.addWidget(QtGui.QLabel(""), 3, 0)
@@ -129,6 +134,27 @@ class AccountDialog(object):
 		lambda self: str(self._accountNumberLabel.text()),
 		lambda self, num: self._accountNumberLabel.setText(num),
 	)
+
+	@property
+	def selectedCallback(self):
+		index = self._callbackSelector.currentIndex()
+		data = str(self._callbackSelector.itemData(index).toPyObject())
+		return data
+
+	def set_callbacks(self, choices, default):
+		self._callbackSelector.clear()
+
+		uglyDefault = misc_utils.make_ugly(default)
+		for i, (number, description) in enumerate(choices.iteritems()):
+			prettyNumber = misc_utils.make_pretty(number)
+			uglyNumber = misc_utils.make_ugly(number)
+			if not uglyNumber:
+				continue
+
+			self._callbackSelector.addItem("%s - %s" % (prettyNumber, description), uglyNumber)
+			if uglyNumber == uglyDefault:
+				self._callbackSelector.setCurrentIndex(i)
+
 
 	def run(self, parent=None):
 		self._doClear = False
