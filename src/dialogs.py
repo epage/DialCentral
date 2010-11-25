@@ -328,8 +328,7 @@ class SMSEntryWindow(object):
 			self._smsEntry.setFocus(QtCore.Qt.OtherFocusReason)
 
 	def _populate_number_selector(self, selector, cid, numbers):
-		while 0 < selector.count():
-			selector.removeItem(0)
+		selector.clear()
 
 		if len(numbers) == 1:
 			numbers, defaultIndex = _get_contact_numbers(self._session, cid, numbers[0])

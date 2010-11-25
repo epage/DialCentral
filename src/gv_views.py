@@ -604,8 +604,7 @@ class Contacts(object):
 		if currentItem == "":
 			# Not loaded yet
 			currentItem = "None"
-		while 0 < self._listSelection.count():
-			self._listSelection.removeItem(0)
+		self._listSelection.clear()
 		bookNames = [book["name"] for book in self._addressBooks]
 		try:
 			newIndex = bookNames.index(currentItem)
