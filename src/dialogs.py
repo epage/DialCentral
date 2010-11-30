@@ -180,8 +180,6 @@ class SMSEntryWindow(object):
 
 	MAX_CHAR = 160
 
-	# @bug on n900 no scrolling for history qtextedit
-
 	def __init__(self, parent, app, session, errorLog):
 		self._session = session
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
@@ -200,11 +198,9 @@ class SMSEntryWindow(object):
 		self._targetLayout = QtGui.QVBoxLayout()
 		self._targetList = QtGui.QWidget()
 		self._targetList.setLayout(self._targetLayout)
-		self._history = QtGui.QTextEdit()
-		self._history.setReadOnly(True)
-		self._history.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignBottom)
-		self._history.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-		self._history.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+		self._history = QtGui.QLabel()
+		self._history.setTextFormat(QtCore.Qt.RichText)
+		self._history.setWordWrap(True)
 		self._smsEntry = QtGui.QTextEdit()
 		self._smsEntry.textChanged.connect(self._on_letter_count_changed)
 
@@ -304,10 +300,10 @@ class SMSEntryWindow(object):
 
 			self._targetList.setVisible(False)
 			if description:
-				self._history.setHtml(description)
+				self._history.setText(description)
 				self._history.setVisible(True)
 			else:
-				self._history.setHtml("")
+				self._history.setText("")
 				self._history.setVisible(False)
 			self._populate_number_selector(self._singleNumberSelector, cid, numbers)
 
@@ -344,7 +340,7 @@ class SMSEntryWindow(object):
 				rowWidget = QtGui.QWidget()
 				rowWidget.setLayout(rowLayout)
 				self._targetLayout.addWidget(rowWidget)
-			self._history.setHtml("")
+			self._history.setText("")
 			self._history.setVisible(False)
 			self._singleNumberSelector.setVisible(False)
 
