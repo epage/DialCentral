@@ -87,7 +87,7 @@ class Message(object):
 		return "%s (%s): %s" % (
 			self.whoFrom,
 			self.when,
-			"".join(str(part) for part in self.body)
+			"".join(unicode(part) for part in self.body)
 		)
 
 	def to_dict(self):
@@ -306,6 +306,9 @@ class GVoiceBackend(object):
 		self._lastAuthed = time.time()
 		return True
 
+	def persist(self):
+		self._browser.save_cookies()
+
 	def shutdown(self):
 		self._browser.save_cookies()
 		self._token = None
@@ -394,7 +397,7 @@ class GVoiceBackend(object):
 			self._sendSmsURL,
 			{
 				'phoneNumber': flattenedPhoneNumbers,
-				'text': message
+				'text': unicode(message).encode("utf-8"),
 			},
 		)
 		self._parse_with_validation(page)
@@ -480,18 +483,15 @@ class GVoiceBackend(object):
 		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
 		@blocks
 		"""
-		for action, url in (
-			("Received", self._XML_RECEIVED_URL),
-			("Missed", self._XML_MISSED_URL),
-			("Placed", self._XML_PLACED_URL),
-		):
-			flatXml = self._get_page(url)
-
-			allRecentHtml = self._grab_html(flatXml)
-			allRecentData = self._parse_history(allRecentHtml)
-			for recentCallData in allRecentData:
-				recentCallData["action"] = action
-				yield recentCallData
+		recentPages = [
+			(action, self._get_page(url))
+			for action, url in (
+				("Received", self._XML_RECEIVED_URL),
+				("Missed", self._XML_MISSED_URL),
+				("Placed", self._XML_PLACED_URL),
+			)
+		]
+		return self._parse_recent(recentPages)
 
 	def get_contacts(self):
 		"""
@@ -499,18 +499,7 @@ class GVoiceBackend(object):
 		@blocks
 		"""
 		page = self._get_page(self._XML_CONTACTS_URL)
-		contactsBody = self._contactsBodyRe.search(page)
-		if contactsBody is None:
-			raise RuntimeError("Could not extract contact information")
-		accountData = _fake_parse_json(contactsBody.group(1))
-		if accountData is None:
-			return
-		for contactId, contactDetails in accountData["contacts"].iteritems():
-			# A zero contact id is the catch all for unknown contacts
-			if contactId != "0":
-				if "name" in contactDetails:
-					contactDetails["name"] = unescape(contactDetails["name"])
-				yield contactId, contactDetails
+		return self._process_contacts(page)
 
 	def get_csv_contacts(self):
 		data = {
@@ -607,6 +596,24 @@ class GVoiceBackend(object):
 		elif not self.is_authed():
 			raise RuntimeError("Not Authenticated")
 		return number
+
+	def _parse_recent(self, recentPages):
+		for action, flatXml in recentPages:
+			allRecentHtml = self._grab_html(flatXml)
+			allRecentData = self._parse_history(allRecentHtml)
+			for recentCallData in allRecentData:
+				recentCallData["action"] = action
+				yield recentCallData
+
+	def _process_contacts(self, page):
+		contactsBody = self._contactsBodyRe.search(page)
+		if contactsBody is None:
+			raise RuntimeError("Could not extract contact information")
+		accountData = _fake_parse_json(contactsBody.group(1))
+		for contactId, contactDetails in accountData["contacts"].iteritems():
+			# A zero contact id is the catch all for unknown contacts
+			if contactId != "0":
+				yield contactId, contactDetails
 
 	def _parse_history(self, historyHtml):
 		splitVoicemail = self._seperateVoicemailsRegex.split(historyHtml)
