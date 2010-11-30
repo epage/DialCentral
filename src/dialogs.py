@@ -262,6 +262,11 @@ class SMSEntryWindow(object):
 		viewMenu = self._window.menuBar().addMenu("&View")
 		viewMenu.addAction(app.fullscreenAction)
 
+		self._scrollTimer = QtCore.QTimer()
+		self._scrollTimer.setInterval(0)
+		self._scrollTimer.setSingleShot(True)
+		self._scrollTimer.timeout.connect(self._on_delayed_scroll_to_bottom)
+
 		self._window.show()
 		self._update_recipients()
 
@@ -379,6 +384,10 @@ class SMSEntryWindow(object):
 		)
 
 	def _scroll_to_bottom(self):
+		self._scrollTimer.start()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_delayed_scroll_to_bottom(self):
 		self._scrollEntry.ensureWidgetVisible(self._smsEntry)
 
 	@misc_utils.log_exception(_moduleLogger)
