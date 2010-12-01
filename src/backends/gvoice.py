@@ -507,7 +507,8 @@ class GVoiceBackend(object):
 			"exportType": "ALL",
 			"out": "OUTLOOK_CSV",
 		}
-		contacts = self._get_page(self._CSV_CONTACTS_URL, data)
+		encodedData = urllib.urlencode(data)
+		contacts = self._get_page(self._CSV_CONTACTS_URL+"?"+encodedData)
 		return contacts
 
 	def get_voicemails(self):
