@@ -152,6 +152,8 @@ class Draft(QtCore.QObject):
 
 class Session(QtCore.QObject):
 
+	# @todo Somehow add support for csv contacts
+
 	stateChange = QtCore.pyqtSignal(str)
 	loggedOut = QtCore.pyqtSignal()
 	loggedIn = QtCore.pyqtSignal()
