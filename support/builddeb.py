@@ -43,7 +43,7 @@ rm -f ~/.%(name)s/notifier.log
 
 __preremove__ = """#!/bin/sh -e
 
-python /usr/lib/dialcentral/alarm_handler.py -d || true
+python /opt/dialcentral/lib/alarm_handler.py -d || true
 """
 
 
