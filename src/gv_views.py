@@ -634,6 +634,8 @@ class Contacts(object):
 
 		for item in self._get_contacts():
 			name = item["name"]
+			if not name:
+				name = "Unknown"
 			numbers = item["numbers"]
 			nameItem = QtGui.QStandardItem(name)
 			nameItem.setEditable(False)
