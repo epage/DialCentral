@@ -56,9 +56,11 @@ class Dialpad(object):
 		self._entryLayout.addWidget(self._entry, 1000)
 		self._entryLayout.addWidget(self._back, 1, QtCore.Qt.AlignCenter)
 
-		self._smsButton = QtGui.QPushButton("SMS")
+		smsIcon = self._app.get_icon("messages.png")
+		self._smsButton = QtGui.QPushButton(smsIcon, "SMS")
 		self._smsButton.clicked.connect(self._on_sms_clicked)
-		self._callButton = QtGui.QPushButton("Call")
+		callIcon = self._app.get_icon("dialpad.png")
+		self._callButton = QtGui.QPushButton(callIcon, "Call")
 		self._callButton.clicked.connect(self._on_call_clicked)
 
 		self._padLayout = QtGui.QGridLayout()

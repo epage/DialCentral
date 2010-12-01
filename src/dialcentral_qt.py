@@ -37,6 +37,7 @@ class Dialcentral(object):
 		self._hiddenCategories = set()
 		self._hiddenUnits = {}
 		self._clipboard = QtGui.QApplication.clipboard()
+		self._dataPath = None
 
 		self._mainWindow = None
 
@@ -138,6 +139,18 @@ class Dialcentral(object):
 
 		with open(constants._user_settings_, "wb") as configFile:
 			config.write(configFile)
+
+	def get_icon(self, name):
+		if self._dataPath is None:
+			for path in self._DATA_PATHS:
+				if os.path.exists(os.path.join(path, name)):
+					self._dataPath = path
+					break
+		if self._dataPath is not None:
+			icon = QtGui.QIcon(os.path.join(self._dataPath, name))
+			return icon
+		else:
+			return None
 
 	@property
 	def fsContactsPath(self):
@@ -341,23 +354,17 @@ class MainWindow(object):
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
 		else:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
-		_dataPath = None
 		for tabIndex, (tabTitle, tabIcon) in enumerate(
 			zip(self._TAB_TITLES, self._TAB_ICONS)
 		):
-			if _dataPath is None:
-				for path in self._app._DATA_PATHS:
-					if os.path.exists(os.path.join(path, tabIcon)):
-						_dataPath = path
-						break
 			if IS_MAEMO:
-				if _dataPath is None:
+				icon = self._app.get_icon(tabIcon)
+				if icon is None:
 					self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, tabTitle)
 				else:
-					icon = QtGui.QIcon(os.path.join(_dataPath, tabIcon))
 					self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, icon, "")
 			else:
-				icon = QtGui.QIcon(os.path.join(_dataPath, tabIcon))
+				icon = self._app.get_icon(tabIcon)
 				self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, icon, tabTitle)
 		self._tabWidget.currentChanged.connect(self._on_tab_changed)
 		self._tabWidget.setContentsMargins(0, 0, 0, 0)
