@@ -70,7 +70,7 @@ class CsvAddressBook(object):
 			return
 
 		header = csvReader.next()
-		nameColumn, phoneColumns = self._guess_columns(header)
+		nameColumns, nameFallbacks, phoneColumns = self._guess_columns(header)
 
 		yieldCount = 0
 		for row in csvReader:
@@ -86,30 +86,54 @@ class CsvAddressBook(object):
 				except IndexError:
 					pass
 			if 0 < len(contactDetails):
+				nameParts = (row[i].strip() for i in nameColumns)
+				nameParts = (part for part in nameParts if part)
+				fullName = " ".join(nameParts).strip()
+				if not fullName:
+					for fallbackColumn in nameFallbacks:
+						if row[fallbackColumn].strip():
+							fullName = row[fallbackColumn].strip()
+							break
+					else:
+						fullName = "Unknown"
 				yield str(yieldCount), {
 					"contactId": "%s-%d" % (self._name, yieldCount),
-					"name": row[nameColumn],
+					"name": fullName,
 					"numbers": contactDetails,
 				}
 				yieldCount += 1
 
 	@classmethod
 	def _guess_columns(cls, row):
+		firstMiddleLast = [-1, -1, -1]
 		names = []
+		nameFallbacks = []
 		phones = []
 		for i, item in enumerate(row):
 			if 0 <= item.lower().find("name"):
 				names.append((item, i))
+				if 0 <= item.lower().find("first") or 0 <= item.lower().find("given"):
+					firstMiddleLast[0] = i
+				elif 0 <= item.lower().find("middle"):
+					firstMiddleLast[1] = i
+				elif 0 <= item.lower().find("last") or 0 <= item.lower().find("family"):
+					firstMiddleLast[2] = i
 			elif 0 <= item.lower().find("phone"):
 				phones.append((item, i))
 			elif 0 <= item.lower().find("mobile"):
 				phones.append((item, i))
+			elif 0 <= item.lower().find("email") or 0 <= item.lower().find("e-mail"):
+				nameFallbacks.append(i)
 		if len(names) == 0:
 			names.append(("Name", 0))
 		if len(phones) == 0:
 			phones.append(("Phone", 1))
 
-		return names[0][1], phones
+		nameColumns = [i for i in firstMiddleLast if 0 <= i]
+		if not nameColumns:
+			nameColumns.append(names[0][1])
+
+		return nameColumns, nameFallbacks, phones
 
 
 class FilesystemAddressBookFactory(object):
