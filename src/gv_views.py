@@ -217,7 +217,7 @@ class History(object):
 
 	def get_settings(self):
 		return {
-			"filter": str(self._typeSelection.currentText()),
+			"filter": self._selectedFilter,
 		}
 
 	def set_settings(self, settings):
@@ -386,8 +386,8 @@ class Messages(object):
 
 	def get_settings(self):
 		return {
-			"type": str(self._typeSelection.currentText()),
-			"status": str(self._statusSelection.currentText()),
+			"type": self._selectedTypeFilter,
+			"status": self._selectedStatusFilter,
 		}
 
 	def set_settings(self, settings):
@@ -527,6 +527,7 @@ class Contacts(object):
 		self._listSelection = QtGui.QComboBox()
 		self._listSelection.addItems([])
 		self._listSelection.currentIndexChanged[str].connect(self._on_filter_changed)
+		self._activeList = "None"
 
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(["Contacts"])
@@ -564,7 +565,7 @@ class Contacts(object):
 
 	def get_settings(self):
 		return {
-			"selectedAddressbook": str(self._listSelection.currentText()),
+			"selectedAddressbook": self._activeList,
 		}
 
 	def set_settings(self, settings):
@@ -576,6 +577,7 @@ class Contacts(object):
 			# Switch over to None for the user
 			newIndex = 0
 		self._listSelection.setCurrentIndex(newIndex)
+		self._activeList = currentItem
 
 	def clear(self):
 		self._itemView.clear()
@@ -601,6 +603,7 @@ class Contacts(object):
 		)
 
 		currentItem = str(self._listSelection.currentText())
+		self._activeList = currentItem
 		if currentItem == "":
 			# Not loaded yet
 			currentItem = "None"
@@ -660,6 +663,7 @@ class Contacts(object):
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
+		self._activeList = str(newItem)
 		self.refresh(force=False)
 		self._populate_items()
 
