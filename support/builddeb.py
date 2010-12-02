@@ -127,6 +127,14 @@ def build_package(distribution):
 			"|".join((oldName, newName))
 			for (oldName, newName) in files
 		)
+	for relPath, files in unflatten_files(find_files("data", ".")).iteritems():
+		fullPath = "/opt/%s/share" % __appname__
+		if relPath:
+			fullPath += os.sep+relPath
+		p[fullPath] = list(
+			"|".join((oldName, newName))
+			for (oldName, newName) in files
+		)
 	p["/usr/share/applications/hildon"] = ["dialcentral.desktop"]
 	p["/usr/share/icons/hicolor/26x26/hildon"] = ["26x26-dialcentral.png|dialcentral.png"]
 	p["/usr/share/icons/hicolor/64x64/hildon"] = ["64x64-dialcentral.png|dialcentral.png"]

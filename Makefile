@@ -2,8 +2,9 @@ PROJECT_NAME=dialcentral
 SOURCE_PATH=src
 SOURCE=$(shell find $(SOURCE_PATH) -iname "*.py")
 PROGRAM=$(SOURCE_PATH)/$(PROJECT_NAME).py
+DATA_PATH=data
 DATA_TYPES=*.ini *.map *.glade *.png
-DATA=$(foreach type, $(DATA_TYPES), $(shell find $(SOURCE_PATH) -iname "$(type)"))
+DATA=$(foreach type, $(DATA_TYPES), $(shell find $(DATA_PATH) -iname "$(type)"))
 OBJ=$(SOURCE:.py=.pyc)
 BUILD_PATH=./build
 TAG_FILE=~/.ctags/$(PROJECT_NAME).tags

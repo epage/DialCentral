@@ -473,6 +473,9 @@ class Py2deb(object):
 
         self.__files[path]=nfiles
 
+    def __getitem__(self, k):
+        return self.__files[k]
+
     def __delitem__(self, k):
         del self.__files[k]
 
