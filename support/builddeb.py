@@ -30,7 +30,12 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-*  Fix for <string> bug
+* First Qt Release (BETA)
+* Access to call cancel
+* Divider on contacts
+* Condensed history
+* Changed SMS Entry letter count style from GV to Nokia
+* Tabs are cached between launches
 """.strip()
 
 
