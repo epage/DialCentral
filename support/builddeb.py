@@ -89,15 +89,12 @@ def build_package(distribution):
 	p.license = "lgpl"
 	p.depends = ", ".join([
 		"python2.6 | python2.5",
-		"python-gtk2 | python2.5-gtk2",
-		"python-xml | python2.5-xml",
-		"python-dbus | python2.5-dbus",
+		"python-simplejson",
 	])
-	maemoSpecificDepends = ", python-osso | python2.5-osso, python-hildon | python2.5-hildon"
 	p.depends += {
-		"debian": ", python-glade2",
-		"diablo": maemoSpecificDepends + ", python2.5-conic",
-		"fremantle": maemoSpecificDepends + ", python-glade2, python-alarm",
+		"debian": ", python-qt4",
+		"diablo": ", python2.5-qt4-core, python2.5-qt4-gui",
+		"fremantle": ", python2.5-qt4-core, python2.5-qt4-gui, python2.5-qt4-maemo5",
 	}[distribution]
 	p.recommends = ", ".join([
 	])
