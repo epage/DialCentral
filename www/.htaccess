@@ -1,7 +1,7 @@
-Redirect permanent /index.html http://wiki.maemo.org/Dialcentral
-Redirect 301 /index.html http://wiki.maemo.org/Dialcentral
-Redirect permanent /download.html http://wiki.maemo.org/Dialcentral
-Redirect 301 /download.html http://wiki.maemo.org/Dialcentral
-Redirect permanent /screenshots.html http://wiki.maemo.org/Dialcentral
-Redirect 301 /screenshots.html http://wiki.maemo.org/Dialcentral
+Redirect permanent /index.html http://wiki.maemo.org/DialCentral
+Redirect 301 /index.html http://wiki.maemo.org/DialCentral
+Redirect permanent /download.html http://wiki.maemo.org/DialCentral
+Redirect 301 /download.html http://wiki.maemo.org/DialCentral
+Redirect permanent /screenshots.html http://wiki.maemo.org/DialCentral
+Redirect 301 /screenshots.html http://wiki.maemo.org/DialCentral
 
