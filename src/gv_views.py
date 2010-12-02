@@ -3,6 +3,7 @@
 from __future__ import with_statement
 from __future__ import division
 
+import datetime
 import string
 import itertools
 import logging
@@ -161,6 +162,63 @@ class Dialpad(object):
 		self._session.draft.call()
 
 
+class TimeCategories(object):
+
+	_NOW_SECTION = 0
+	_TODAY_SECTION = 1
+	_WEEK_SECTION = 2
+	_MONTH_SECTION = 3
+	_REST_SECTION = 4
+	_MAX_SECTIONS = 5
+
+	_WEEK_ELAPSED = datetime.timedelta(weeks=1)
+	_MONTH_ELAPSED = datetime.timedelta(days=30)
+
+	def __init__(self, parentItem):
+		self._timeItems = [
+			QtGui.QStandardItem(description)
+			for (i, description) in zip(
+				xrange(self._MAX_SECTIONS),
+				["Now", "Today", "Week", "Month", "Past"],
+			)
+		]
+		for item in self._timeItems:
+			item.setEditable(False)
+			item.setCheckable(False)
+			itemFont = item.font()
+			itemFont.setPointSize(max(itemFont.pointSize() - 3, 5))
+			item.setFont(itemFont)
+			row = (item, )
+			parentItem.appendRow(row)
+
+		self._today = datetime.datetime(1900, 1, 1)
+
+		self.prepare_for_update(self._today)
+
+	def prepare_for_update(self, newToday):
+		self._today = newToday
+		for item in self._timeItems:
+			item.removeRows(0, item.rowCount())
+		self._timeItems[self._NOW_SECTION].setText(self._today.strftime("%X"))
+		self._timeItems[self._TODAY_SECTION].setText(self._today.strftime("%x"))
+
+	def add_row(self, rowDate, row):
+		elapsedTime = self._today - rowDate
+		todayTuple = self._today.timetuple()
+		rowTuple = rowDate.timetuple()
+		if todayTuple[0:4] == rowTuple[0:4]:
+			section = self._NOW_SECTION
+		if todayTuple[0:3] == rowTuple[0:3]:
+			section = self._TODAY_SECTION
+		elif elapsedTime < self._WEEK_ELAPSED:
+			section = self._WEEK_SECTION
+		elif elapsedTime < self._MONTH_ELAPSED:
+			section = self._MONTH_SECTION
+		else:
+			section = self._REST_SECTION
+		self._timeItems[section].appendRow(row)
+
+
 class History(object):
 
 	DETAILS_IDX = 0
@@ -187,6 +245,7 @@ class History(object):
 
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(self.HISTORY_COLUMNS)
+		self._categoryManager = TimeCategories(self._itemStore)
 
 		self._itemView = QtGui.QTreeView()
 		self._itemView.setModel(self._itemStore)
@@ -237,40 +296,39 @@ class History(object):
 		self._session.update_history(force)
 
 	def _populate_items(self):
-		self._itemStore.clear()
+		self._categoryManager.prepare_for_update(self._session.get_when_history_updated())
 
 		history = self._session.get_history()
 		history.sort(key=lambda item: item["time"], reverse=True)
 		for event in history:
-			if self._selectedFilter in [self.HISTORY_ITEM_TYPES[-1], event["action"]]:
-				relTime = misc_utils.abbrev_relative_date(event["relTime"])
-				action = event["action"]
-				number = event["number"]
-				prettyNumber = misc_utils.make_pretty(number)
-				name = event["name"]
-				if not name or name == number:
-					name = event["location"]
-				if not name:
-					name = "Unknown"
+			if self._selectedFilter not in [self.HISTORY_ITEM_TYPES[-1], event["action"]]:
+				continue
 
-				detailsItem = QtGui.QStandardItem("%s - %s\n%s" % (relTime, action, prettyNumber))
-				detailsFont = detailsItem.font()
-				detailsFont.setPointSize(detailsFont.pointSize() - 4)
-				detailsItem.setFont(detailsFont)
-				nameItem = QtGui.QStandardItem(name)
-				nameFont = nameItem.font()
-				nameFont.setPointSize(nameFont.pointSize() + 4)
-				nameItem.setFont(nameFont)
-				row = detailsItem, nameItem
-				for item in row:
-					item.setEditable(False)
-					item.setCheckable(False)
-					if item is not nameItem:
-						itemFont = item.font()
-						itemFont.setPointSize(max(itemFont.pointSize() - 3, 5))
-						item.setFont(itemFont)
-				row[0].setData(event)
-				self._itemStore.appendRow(row)
+			relTime = misc_utils.abbrev_relative_date(event["relTime"])
+			action = event["action"]
+			number = event["number"]
+			prettyNumber = misc_utils.make_pretty(number)
+			name = event["name"]
+			if not name or name == number:
+				name = event["location"]
+			if not name:
+				name = "Unknown"
+
+			detailsItem = QtGui.QStandardItem("%s - %s\n%s" % (relTime, action, prettyNumber))
+			detailsFont = detailsItem.font()
+			detailsFont.setPointSize(max(detailsFont.pointSize() - 3, 5))
+			detailsItem.setFont(detailsFont)
+			nameItem = QtGui.QStandardItem(name)
+			nameFont = nameItem.font()
+			nameFont.setPointSize(nameFont.pointSize() + 3)
+			nameItem.setFont(nameFont)
+			row = detailsItem, nameItem
+			for item in row:
+				item.setEditable(False)
+				item.setCheckable(False)
+			row[0].setData(event)
+			self._categoryManager.add_row(event["time"], row)
+		self._itemView.expandAll()
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
@@ -355,6 +413,7 @@ class Messages(object):
 
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(["Messages"])
+		self._categoryManager = TimeCategories(self._itemStore)
 
 		self._htmlDelegate = qui_utils.QHtmlDelegate()
 		self._itemView = QtGui.QTreeView()
@@ -414,7 +473,8 @@ class Messages(object):
 		self._session.update_messages(force)
 
 	def _populate_items(self):
-		self._itemStore.clear()
+		self._categoryManager.prepare_for_update(self._session.get_when_messages_updated())
+
 		rawMessages = self._session.get_messages()
 		rawMessages.sort(key=lambda item: item["time"], reverse=True)
 		for item in rawMessages:
@@ -425,53 +485,55 @@ class Messages(object):
 				self.UNARCHIVED_STATUS: isUnarchived,
 				self.ALL_STATUS: True,
 			}[self._selectedStatusFilter]
-
 			visibleType = self._selectedTypeFilter in [item["type"], self.ALL_TYPES]
-			if visibleType and visibleStatus:
-				relTime = misc_utils.abbrev_relative_date(item["relTime"])
-				number = item["number"]
-				prettyNumber = misc_utils.make_pretty(number)
-				name = item["name"]
-				if not name or name == number:
-					name = item["location"]
-				if not name:
-					name = "Unknown"
+			if not (visibleType and visibleStatus):
+				continue
 
-				messageParts = list(item["messageParts"])
-				if len(messageParts) == 0:
+			relTime = misc_utils.abbrev_relative_date(item["relTime"])
+			number = item["number"]
+			prettyNumber = misc_utils.make_pretty(number)
+			name = item["name"]
+			if not name or name == number:
+				name = item["location"]
+			if not name:
+				name = "Unknown"
+
+			messageParts = list(item["messageParts"])
+			if len(messageParts) == 0:
+				messages = ("No Transcription", )
+			elif len(messageParts) == 1:
+				if messageParts[0][1]:
+					messages = (messageParts[0][1], )
+				else:
 					messages = ("No Transcription", )
-				elif len(messageParts) == 1:
-					if messageParts[0][1]:
-						messages = (messageParts[0][1], )
-					else:
-						messages = ("No Transcription", )
-				else:
-					messages = [
-						"<b>%s</b>: %s" % (messagePart[0], messagePart[1])
-						for messagePart in messageParts
-					]
+			else:
+				messages = [
+					"<b>%s</b>: %s" % (messagePart[0], messagePart[1])
+					for messagePart in messageParts
+				]
 
-				firstMessage = "<b>%s - %s</b> <i>(%s)</i>" % (name, prettyNumber, relTime)
+			firstMessage = "<b>%s - %s</b> <i>(%s)</i>" % (name, prettyNumber, relTime)
 
-				expandedMessages = [firstMessage]
-				expandedMessages.extend(messages)
-				if (self._MIN_MESSAGES_SHOWN + 1) < len(messages):
-					secondMessage = "<i>%d Messages Hidden...</i>" % (len(messages) - self._MIN_MESSAGES_SHOWN, )
-					collapsedMessages = [firstMessage, secondMessage]
-					collapsedMessages.extend(messages[-(self._MIN_MESSAGES_SHOWN+0):])
-				else:
-					collapsedMessages = expandedMessages
+			expandedMessages = [firstMessage]
+			expandedMessages.extend(messages)
+			if (self._MIN_MESSAGES_SHOWN + 1) < len(messages):
+				secondMessage = "<i>%d Messages Hidden...</i>" % (len(messages) - self._MIN_MESSAGES_SHOWN, )
+				collapsedMessages = [firstMessage, secondMessage]
+				collapsedMessages.extend(messages[-(self._MIN_MESSAGES_SHOWN+0):])
+			else:
+				collapsedMessages = expandedMessages
 
-				item = dict(item.iteritems())
-				item["collapsedMessages"] = "<br/>\n".join(collapsedMessages)
-				item["expandedMessages"] = "<br/>\n".join(expandedMessages)
+			item = dict(item.iteritems())
+			item["collapsedMessages"] = "<br/>\n".join(collapsedMessages)
+			item["expandedMessages"] = "<br/>\n".join(expandedMessages)
 
-				messageItem = QtGui.QStandardItem(item["collapsedMessages"])
-				messageItem.setData(item)
-				messageItem.setEditable(False)
-				messageItem.setCheckable(False)
-				row = (messageItem, )
-				self._itemStore.appendRow(row)
+			messageItem = QtGui.QStandardItem(item["collapsedMessages"])
+			messageItem.setData(item)
+			messageItem.setEditable(False)
+			messageItem.setCheckable(False)
+			row = (messageItem, )
+			self._categoryManager.add_row(item["time"], row)
+		self._itemView.expandAll()
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
@@ -631,6 +693,9 @@ class Contacts(object):
 			item = self._alphaItem[letter]
 			item.setEditable(False)
 			item.setCheckable(False)
+			itemFont = item.font()
+			itemFont.setPointSize(max(itemFont.pointSize() - 3, 5))
+			item.setFont(itemFont)
 			row = (item, )
 			self._itemStore.appendRow(row)
 
@@ -639,10 +704,15 @@ class Contacts(object):
 			if not name:
 				name = "Unknown"
 			numbers = item["numbers"]
+
 			nameItem = QtGui.QStandardItem(name)
 			nameItem.setEditable(False)
 			nameItem.setCheckable(False)
 			nameItem.setData(item)
+			nameItemFont = nameItem.font()
+			nameItemFont.setPointSize(max(nameItemFont.pointSize() + 3, 5))
+			nameItem.setFont(nameItemFont)
+
 			row = (nameItem, )
 			rowKey = name[0].upper()
 			rowKey = rowKey if rowKey in self._alphaItem else "#"
