@@ -185,9 +185,6 @@ class TimeCategories(object):
 		for item in self._timeItems:
 			item.setEditable(False)
 			item.setCheckable(False)
-			itemFont = item.font()
-			itemFont.setPointSize(max(itemFont.pointSize() - 3, 5))
-			item.setFont(itemFont)
 			row = (item, )
 			parentItem.appendRow(row)
 
@@ -316,11 +313,11 @@ class History(object):
 
 			detailsItem = QtGui.QStandardItem("%s - %s\n%s" % (relTime, action, prettyNumber))
 			detailsFont = detailsItem.font()
-			detailsFont.setPointSize(max(detailsFont.pointSize() - 3, 5))
+			detailsFont.setPointSize(max(detailsFont.pointSize() - 7, 5))
 			detailsItem.setFont(detailsFont)
 			nameItem = QtGui.QStandardItem(name)
 			nameFont = nameItem.font()
-			nameFont.setPointSize(nameFont.pointSize() + 3)
+			nameFont.setPointSize(nameFont.pointSize() + 4)
 			nameItem.setFont(nameFont)
 			row = detailsItem, nameItem
 			for item in row:
@@ -693,9 +690,6 @@ class Contacts(object):
 			item = self._alphaItem[letter]
 			item.setEditable(False)
 			item.setCheckable(False)
-			itemFont = item.font()
-			itemFont.setPointSize(max(itemFont.pointSize() - 3, 5))
-			item.setFont(itemFont)
 			row = (item, )
 			self._itemStore.appendRow(row)
 
@@ -710,7 +704,7 @@ class Contacts(object):
 			nameItem.setCheckable(False)
 			nameItem.setData(item)
 			nameItemFont = nameItem.font()
-			nameItemFont.setPointSize(max(nameItemFont.pointSize() + 3, 5))
+			nameItemFont.setPointSize(max(nameItemFont.pointSize() + 4, 5))
 			nameItem.setFont(nameItemFont)
 
 			row = (nameItem, )
