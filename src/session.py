@@ -170,7 +170,7 @@ class Session(QtCore.QObject):
 	LOGGINGIN_STATE = "logging in"
 	LOGGEDIN_STATE = "logged in"
 
-	_OLDEST_COMPATIBLE_FORMAT_VERSION = misc_utils.parse_version("1.2.0")
+	_OLDEST_COMPATIBLE_FORMAT_VERSION = misc_utils.parse_version("1.1.90")
 
 	_LOGGEDOUT_TIME = -1
 	_LOGGINGIN_TIME = 0
