@@ -216,6 +216,11 @@ class TimeCategories(object):
 			section = self._REST_SECTION
 		self._timeItems[section].appendRow(row)
 
+	def get_item(self, timeIndex, rowIndex, column):
+		timeItem = self._timeItems[timeIndex]
+		item = timeItem.child(rowIndex, column)
+		return item
+
 
 class History(object):
 
@@ -342,27 +347,33 @@ class History(object):
 	@QtCore.pyqtSlot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
-		rowIndex = index.row()
-		item = self._itemStore.item(rowIndex, 0)
-		contactDetails = item.data().toPyObject()
+		timeIndex = index.parent()
+		assert timeIndex.isValid()
+		timeRow = timeIndex.row()
+		row = index.row()
+		detailsItem = self._categoryManager.get_item(timeRow, row, self.DETAILS_IDX)
+		fromItem = self._categoryManager.get_item(timeRow, row, self.FROM_IDX)
+		contactDetails = detailsItem.data().toPyObject()
 
-		title = str(self._itemStore.item(rowIndex, self.FROM_IDX).text())
+		title = str(fromItem.text())
 		number = str(contactDetails[QtCore.QString("number")])
 		contactId = number # ids don't seem too unique so using numbers
 
 		descriptionRows = []
-		for i in xrange(self._itemStore.rowCount()):
-			iItem = self._itemStore.item(i, 0)
-			iContactDetails = iItem.data().toPyObject()
-			iNumber = str(iContactDetails[QtCore.QString("number")])
-			if number != iNumber:
-				continue
-			relTime = misc_utils.abbrev_relative_date(iContactDetails[QtCore.QString("relTime")])
-			action = str(iContactDetails[QtCore.QString("action")])
-			number = str(iContactDetails[QtCore.QString("number")])
-			prettyNumber = misc_utils.make_pretty(number)
-			rowItems = relTime, action, prettyNumber
-			descriptionRows.append("<tr><td>%s</td></tr>" % "</td><td>".join(rowItems))
+		for t in xrange(self._itemStore.rowCount()):
+			randomTimeItem = self._itemStore.item(t, 0)
+			for i in xrange(randomTimeItem.rowCount()):
+				iItem = randomTimeItem.child(i, 0)
+				iContactDetails = iItem.data().toPyObject()
+				iNumber = str(iContactDetails[QtCore.QString("number")])
+				if number != iNumber:
+					continue
+				relTime = misc_utils.abbrev_relative_date(iContactDetails[QtCore.QString("relTime")])
+				action = str(iContactDetails[QtCore.QString("action")])
+				number = str(iContactDetails[QtCore.QString("number")])
+				prettyNumber = misc_utils.make_pretty(number)
+				rowItems = relTime, action, prettyNumber
+				descriptionRows.append("<tr><td>%s</td></tr>" % "</td><td>".join(rowItems))
 		description = "<table>%s</table>" % "".join(descriptionRows)
 		numbersWithDescriptions = [(str(contactDetails[QtCore.QString("number")]), "")]
 		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
@@ -553,8 +564,11 @@ class Messages(object):
 	@QtCore.pyqtSlot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
-		rowIndex = index.row()
-		item = self._itemStore.item(rowIndex, 0)
+		timeIndex = index.parent()
+		assert timeIndex.isValid()
+		timeRow = timeIndex.row()
+		row = index.row()
+		item = self._categoryManager.get_item(timeRow, row, 0)
 		contactDetails = item.data().toPyObject()
 
 		name = str(contactDetails[QtCore.QString("name")])
