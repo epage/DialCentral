@@ -171,6 +171,7 @@ class TimeCategories(object):
 	_REST_SECTION = 4
 	_MAX_SECTIONS = 5
 
+	_NO_ELAPSED = datetime.timedelta(hours=1)
 	_WEEK_ELAPSED = datetime.timedelta(weeks=1)
 	_MONTH_ELAPSED = datetime.timedelta(days=30)
 
@@ -203,9 +204,9 @@ class TimeCategories(object):
 		elapsedTime = self._today - rowDate
 		todayTuple = self._today.timetuple()
 		rowTuple = rowDate.timetuple()
-		if todayTuple[0:4] == rowTuple[0:4]:
+		if elapsedTime < self._NO_ELAPSED:
 			section = self._NOW_SECTION
-		if todayTuple[0:3] == rowTuple[0:3]:
+		elif todayTuple[0:3] == rowTuple[0:3]:
 			section = self._TODAY_SECTION
 		elif elapsedTime < self._WEEK_ELAPSED:
 			section = self._WEEK_SECTION
