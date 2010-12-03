@@ -30,7 +30,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing deps
+* Fixing a bug with selecting a history or message item
+* Adjusted the categories for history and messages
 """.strip()
 
 
