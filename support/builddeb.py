@@ -30,8 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing a bug with selecting a history or message item
-* Adjusted the categories for history and messages
+* Fixing a bug where a user could collapse the Messages and History section heads
 """.strip()
 
 
