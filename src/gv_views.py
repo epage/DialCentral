@@ -258,6 +258,7 @@ class History(object):
 		self._itemView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
 		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
 		self._itemView.setHeaderHidden(True)
+		self._itemView.setItemsExpandable(False)
 		self._itemView.header().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 		self._itemView.activated.connect(self._on_row_activated)
 
@@ -433,6 +434,7 @@ class Messages(object):
 		self._itemView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
 		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
 		self._itemView.setHeaderHidden(True)
+		self._itemView.setItemsExpandable(False)
 		self._itemView.setItemDelegate(self._htmlDelegate)
 		self._itemView.activated.connect(self._on_row_activated)
 
