@@ -52,7 +52,7 @@ class Draft(QtCore.QObject):
 
 	def send(self, text):
 		assert 0 < len(self._contacts)
-		numbers = [contact.selectedNumber for contact in self._contacts.itervalues()]
+		numbers = [misc_utils.make_ugly(contact.selectedNumber) for contact in self._contacts.itervalues()]
 		le = concurrent.AsyncLinearExecution(self._pool, self._send)
 		le.start(numbers, text)
 
