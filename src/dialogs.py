@@ -111,7 +111,7 @@ class AccountDialog(object):
 		self._layout.addWidget(self._buttonLayout)
 
 		self._dialog = QtGui.QDialog()
-		self._dialog.setWindowTitle("Login")
+		self._dialog.setWindowTitle("Account")
 		self._dialog.setLayout(self._layout)
 		qui_utils.set_autorient(self._dialog, True)
 		self._buttonLayout.accepted.connect(self._dialog.accept)
