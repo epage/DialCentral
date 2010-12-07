@@ -30,7 +30,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing a bug where a user could collapse the Messages and History section heads
+* Fixing a window title
+* Fixing a bug where non-normalized numbers were used, leading to problems
 """.strip()
 
 
