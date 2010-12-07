@@ -189,6 +189,7 @@ class GVoiceBackend(object):
 		# HACK really this redirects to the main pge and we are grabbing some javascript
 		self._XML_CONTACTS_URL = "http://www.google.com/voice/inbox/search/contact"
 		self._CSV_CONTACTS_URL = "http://mail.google.com/mail/contacts/data/export"
+		self._JSON_CONTACTS_URL = SECURE_URL_BASE + "b/0/request/user"
 		self._XML_RECENT_URL = SECURE_URL_BASE + "inbox/recent/"
 
 		self.XML_FEEDS = (
@@ -212,7 +213,6 @@ class GVoiceBackend(object):
 		self._accountNumRe = re.compile(r"""<b class="ms\d">(.{14})</b></div>""")
 		self._callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
 
-		self._contactsBodyRe = re.compile(r"""gcData\s*=\s*({.*?});""", re.MULTILINE | re.DOTALL)
 		self._seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class=".*?gc-message.*?">""", re.MULTILINE | re.DOTALL)
 		self._exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
 		self._relativeVoicemailTimeRegex = re.compile(r"""<span class="gc-message-relative">(.*?)</span>""", re.MULTILINE)
@@ -498,7 +498,7 @@ class GVoiceBackend(object):
 		@returns Iterable of (contact id, contact name)
 		@blocks
 		"""
-		page = self._get_page(self._XML_CONTACTS_URL)
+		page = self._get_page(self._JSON_CONTACTS_URL)
 		return self._process_contacts(page)
 
 	def get_csv_contacts(self):
@@ -607,10 +607,7 @@ class GVoiceBackend(object):
 				yield recentCallData
 
 	def _process_contacts(self, page):
-		contactsBody = self._contactsBodyRe.search(page)
-		if contactsBody is None:
-			raise RuntimeError("Could not extract contact information")
-		accountData = _fake_parse_json(contactsBody.group(1))
+		accountData = parse_json(page)
 		for contactId, contactDetails in accountData["contacts"].iteritems():
 			# A zero contact id is the catch all for unknown contacts
 			if contactId != "0":
