@@ -203,6 +203,8 @@ class GVoiceBackend(object):
 		self._XML_TRASH_URL = SECURE_URL_BASE + "inbox/recent/trash"
 		self._XML_VOICEMAIL_URL = SECURE_URL_BASE + "inbox/recent/voicemail/"
 		self._XML_SMS_URL = SECURE_URL_BASE + "inbox/recent/sms/"
+		self._JSON_SMS_URL = SECURE_URL_BASE + "b/0/request/messages/"
+		self._JSON_SMS_COUNT_URL = SECURE_URL_BASE + "b/0/request/unread"
 		self._XML_RECORDED_URL = SECURE_URL_BASE + "inbox/recent/recorded/"
 		self._XML_PLACED_URL = SECURE_URL_BASE + "inbox/recent/placed/"
 		self._XML_RECEIVED_URL = SECURE_URL_BASE + "inbox/recent/received/"
@@ -536,6 +538,12 @@ class GVoiceBackend(object):
 		parsedSms = self._parse_sms(smsHtml)
 		smss = self._merge_conversation_sources(parsedSms, smsJson)
 		return smss
+
+	def get_unread_counts(self):
+		countPage = self._get_page(self._JSON_SMS_COUNT_URL)
+		counts = parse_json(countPage)
+		counts = counts["unreadCounts"]
+		return counts
 
 	def mark_message(self, messageId, asRead):
 		"""
@@ -975,11 +983,14 @@ def grab_debug_info(username, password):
 		("login", backend._loginURL),
 		("isdnd", backend._isDndURL),
 		("account", backend._XML_ACCOUNT_URL),
-		("contacts", backend._XML_CONTACTS_URL),
+		("html_contacts", backend._XML_CONTACTS_URL),
+		("contacts", backend._JSON_CONTACTS_URL),
 		("csv", backend._CSV_CONTACTS_URL),
 
 		("voicemail", backend._XML_VOICEMAIL_URL),
-		("sms", backend._XML_SMS_URL),
+		("html_sms", backend._XML_SMS_URL),
+		("sms", backend._JSON_SMS_URL),
+		("count", backend._JSON_SMS_COUNT_URL),
 
 		("recent", backend._XML_RECENT_URL),
 		("placed", backend._XML_PLACED_URL),
