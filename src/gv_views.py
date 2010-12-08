@@ -123,43 +123,48 @@ class Dialpad(object):
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_keypress(self, key):
-		self._entry.insert(key)
+		with qui_utils.notify_error(self._errorLog):
+			self._entry.insert(key)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_backspace(self, toggled = False):
-		self._entry.backspace()
+		with qui_utils.notify_error(self._errorLog):
+			self._entry.backspace()
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_clear_text(self, toggled = False):
-		self._entry.clear()
+		with qui_utils.notify_error(self._errorLog):
+			self._entry.clear()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_sms_clicked(self, checked = False):
-		number = misc_utils.make_ugly(str(self._entry.text()))
-		self._entry.clear()
+		with qui_utils.notify_error(self._errorLog):
+			number = misc_utils.make_ugly(str(self._entry.text()))
+			self._entry.clear()
 
-		contactId = number
-		title = misc_utils.make_pretty(number)
-		description = misc_utils.make_pretty(number)
-		numbersWithDescriptions = [(number, "")]
-		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			contactId = number
+			title = misc_utils.make_pretty(number)
+			description = misc_utils.make_pretty(number)
+			numbersWithDescriptions = [(number, "")]
+			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_call_clicked(self, checked = False):
-		number = misc_utils.make_ugly(str(self._entry.text()))
-		self._entry.clear()
+		with qui_utils.notify_error(self._errorLog):
+			number = misc_utils.make_ugly(str(self._entry.text()))
+			self._entry.clear()
 
-		contactId = number
-		title = misc_utils.make_pretty(number)
-		description = misc_utils.make_pretty(number)
-		numbersWithDescriptions = [(number, "")]
-		self._session.draft.clear()
-		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
-		self._session.draft.call()
+			contactId = number
+			title = misc_utils.make_pretty(number)
+			description = misc_utils.make_pretty(number)
+			numbersWithDescriptions = [(number, "")]
+			self._session.draft.clear()
+			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			self._session.draft.call()
 
 
 class TimeCategories(object):
@@ -337,47 +342,50 @@ class History(object):
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
-		self._selectedFilter = str(newItem)
-		self._populate_items()
+		with qui_utils.notify_error(self._errorLog):
+			self._selectedFilter = str(newItem)
+			self._populate_items()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_history_updated(self):
-		self._populate_items()
+		with qui_utils.notify_error(self._errorLog):
+			self._populate_items()
 
 	@QtCore.pyqtSlot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
-		timeIndex = index.parent()
-		assert timeIndex.isValid()
-		timeRow = timeIndex.row()
-		row = index.row()
-		detailsItem = self._categoryManager.get_item(timeRow, row, self.DETAILS_IDX)
-		fromItem = self._categoryManager.get_item(timeRow, row, self.FROM_IDX)
-		contactDetails = detailsItem.data().toPyObject()
+		with qui_utils.notify_error(self._errorLog):
+			timeIndex = index.parent()
+			assert timeIndex.isValid()
+			timeRow = timeIndex.row()
+			row = index.row()
+			detailsItem = self._categoryManager.get_item(timeRow, row, self.DETAILS_IDX)
+			fromItem = self._categoryManager.get_item(timeRow, row, self.FROM_IDX)
+			contactDetails = detailsItem.data().toPyObject()
 
-		title = str(fromItem.text())
-		number = str(contactDetails[QtCore.QString("number")])
-		contactId = number # ids don't seem too unique so using numbers
+			title = str(fromItem.text())
+			number = str(contactDetails[QtCore.QString("number")])
+			contactId = number # ids don't seem too unique so using numbers
 
-		descriptionRows = []
-		for t in xrange(self._itemStore.rowCount()):
-			randomTimeItem = self._itemStore.item(t, 0)
-			for i in xrange(randomTimeItem.rowCount()):
-				iItem = randomTimeItem.child(i, 0)
-				iContactDetails = iItem.data().toPyObject()
-				iNumber = str(iContactDetails[QtCore.QString("number")])
-				if number != iNumber:
-					continue
-				relTime = misc_utils.abbrev_relative_date(iContactDetails[QtCore.QString("relTime")])
-				action = str(iContactDetails[QtCore.QString("action")])
-				number = str(iContactDetails[QtCore.QString("number")])
-				prettyNumber = misc_utils.make_pretty(number)
-				rowItems = relTime, action, prettyNumber
-				descriptionRows.append("<tr><td>%s</td></tr>" % "</td><td>".join(rowItems))
-		description = "<table>%s</table>" % "".join(descriptionRows)
-		numbersWithDescriptions = [(str(contactDetails[QtCore.QString("number")]), "")]
-		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			descriptionRows = []
+			for t in xrange(self._itemStore.rowCount()):
+				randomTimeItem = self._itemStore.item(t, 0)
+				for i in xrange(randomTimeItem.rowCount()):
+					iItem = randomTimeItem.child(i, 0)
+					iContactDetails = iItem.data().toPyObject()
+					iNumber = str(iContactDetails[QtCore.QString("number")])
+					if number != iNumber:
+						continue
+					relTime = misc_utils.abbrev_relative_date(iContactDetails[QtCore.QString("relTime")])
+					action = str(iContactDetails[QtCore.QString("action")])
+					number = str(iContactDetails[QtCore.QString("number")])
+					prettyNumber = misc_utils.make_pretty(number)
+					rowItems = relTime, action, prettyNumber
+					descriptionRows.append("<tr><td>%s</td></tr>" % "</td><td>".join(rowItems))
+			description = "<table>%s</table>" % "".join(descriptionRows)
+			numbersWithDescriptions = [(str(contactDetails[QtCore.QString("number")]), "")]
+			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
 
 
 class Messages(object):
@@ -549,42 +557,46 @@ class Messages(object):
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_type_filter_changed(self, newItem):
-		self._selectedTypeFilter = str(newItem)
-		self._populate_items()
+		with qui_utils.notify_error(self._errorLog):
+			self._selectedTypeFilter = str(newItem)
+			self._populate_items()
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_status_filter_changed(self, newItem):
-		self._selectedStatusFilter = str(newItem)
-		self._populate_items()
+		with qui_utils.notify_error(self._errorLog):
+			self._selectedStatusFilter = str(newItem)
+			self._populate_items()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_messages_updated(self):
-		self._populate_items()
+		with qui_utils.notify_error(self._errorLog):
+			self._populate_items()
 
 	@QtCore.pyqtSlot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
-		timeIndex = index.parent()
-		assert timeIndex.isValid()
-		timeRow = timeIndex.row()
-		row = index.row()
-		item = self._categoryManager.get_item(timeRow, row, 0)
-		contactDetails = item.data().toPyObject()
+		with qui_utils.notify_error(self._errorLog):
+			timeIndex = index.parent()
+			assert timeIndex.isValid()
+			timeRow = timeIndex.row()
+			row = index.row()
+			item = self._categoryManager.get_item(timeRow, row, 0)
+			contactDetails = item.data().toPyObject()
 
-		name = str(contactDetails[QtCore.QString("name")])
-		number = str(contactDetails[QtCore.QString("number")])
-		if not name or name == number:
-			name = str(contactDetails[QtCore.QString("location")])
-		if not name:
-			name = "Unknown"
+			name = str(contactDetails[QtCore.QString("name")])
+			number = str(contactDetails[QtCore.QString("number")])
+			if not name or name == number:
+				name = str(contactDetails[QtCore.QString("location")])
+			if not name:
+				name = "Unknown"
 
-		contactId = str(contactDetails[QtCore.QString("id")])
-		title = name
-		description = str(contactDetails[QtCore.QString("expandedMessages")])
-		numbersWithDescriptions = [(number, "")]
-		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			contactId = str(contactDetails[QtCore.QString("id")])
+			title = name
+			description = str(contactDetails[QtCore.QString("expandedMessages")])
+			numbersWithDescriptions = [(number, "")]
+			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
 
 
 class Contacts(object):
@@ -748,52 +760,55 @@ class Contacts(object):
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
-		self._activeList = str(newItem)
-		self.refresh(force=False)
-		self._populate_items()
+		with qui_utils.notify_error(self._errorLog):
+			self._activeList = str(newItem)
+			self.refresh(force=False)
+			self._populate_items()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_contacts_updated(self):
-		self._populate_items()
+		with qui_utils.notify_error(self._errorLog):
+			self._populate_items()
 
 	@QtCore.pyqtSlot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
-		letterIndex = index.parent()
-		assert letterIndex.isValid()
-		letterRow = letterIndex.row()
-		letter = list(self._prefixes())[letterRow]
-		letterItem = self._alphaItem[letter]
-		rowIndex = index.row()
-		item = letterItem.child(rowIndex, 0)
-		contactDetails = item.data().toPyObject()
+		with qui_utils.notify_error(self._errorLog):
+			letterIndex = index.parent()
+			assert letterIndex.isValid()
+			letterRow = letterIndex.row()
+			letter = list(self._prefixes())[letterRow]
+			letterItem = self._alphaItem[letter]
+			rowIndex = index.row()
+			item = letterItem.child(rowIndex, 0)
+			contactDetails = item.data().toPyObject()
 
-		name = str(contactDetails[QtCore.QString("name")])
-		if not name:
-			name = str(contactDetails[QtCore.QString("location")])
-		if not name:
-			name = "Unknown"
+			name = str(contactDetails[QtCore.QString("name")])
+			if not name:
+				name = str(contactDetails[QtCore.QString("location")])
+			if not name:
+				name = "Unknown"
 
-		contactId = str(contactDetails[QtCore.QString("contactId")])
-		numbers = contactDetails[QtCore.QString("numbers")]
-		numbers = [
-			dict(
-				(str(k), str(v))
-				for (k, v) in number.iteritems()
-			)
-			for number in numbers
-		]
-		numbersWithDescriptions = [
-			(
-				number["phoneNumber"],
-				self._choose_phonetype(number),
-			)
-			for number in numbers
-		]
-		title = name
-		description = name
-		self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			contactId = str(contactDetails[QtCore.QString("contactId")])
+			numbers = contactDetails[QtCore.QString("numbers")]
+			numbers = [
+				dict(
+					(str(k), str(v))
+					for (k, v) in number.iteritems()
+				)
+				for number in numbers
+			]
+			numbersWithDescriptions = [
+				(
+					number["phoneNumber"],
+					self._choose_phonetype(number),
+				)
+				for number in numbers
+			]
+			title = name
+			description = name
+			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
 
 	@staticmethod
 	def _choose_phonetype(numberDetails):

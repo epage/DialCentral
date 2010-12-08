@@ -326,7 +326,11 @@ class MainWindow(object):
 
 	def __init__(self, parent, app):
 		self._app = app
-		self._session = session.Session(constants._data_path_)
+
+		self._errorLog = qui_utils.QErrorLog()
+		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
+
+		self._session = session.Session(self._errorLog, constants._data_path_)
 		self._session.error.connect(self._on_session_error)
 		self._session.loggedIn.connect(self._on_login)
 		self._session.loggedOut.connect(self._on_logout)
@@ -339,9 +343,6 @@ class MainWindow(object):
 		self._smsEntryDialog = None
 		self._accountDialog = None
 		self._aboutDialog = None
-
-		self._errorLog = qui_utils.QErrorLog()
-		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
 
 		self._tabsContents = [
 			DelayedWidget(self._app, self._TAB_SETTINGS_NAMES[i])
@@ -586,76 +587,85 @@ class MainWindow(object):
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_session_error(self, message):
-		self._errorLog.push_message(message)
+		with qui_utils.notify_error(self._errorLog):
+			self._errorLog.push_error(message)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_login(self):
-		if self._defaultCredentials != self._curentCredentials:
-			self._show_account_dialog()
-		self._defaultCredentials = self._curentCredentials
-		for tab in self._tabsContents:
-			tab.enable()
+		with qui_utils.notify_error(self._errorLog):
+			if self._defaultCredentials != self._curentCredentials:
+				self._show_account_dialog()
+			self._defaultCredentials = self._curentCredentials
+			for tab in self._tabsContents:
+				tab.enable()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_logout(self):
-		for tab in self._tabsContents:
-			tab.disable()
+		with qui_utils.notify_error(self._errorLog):
+			for tab in self._tabsContents:
+				tab.disable()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_recipients_changed(self):
-		if self._session.draft.get_num_contacts() == 0:
-			return
+		with qui_utils.notify_error(self._errorLog):
+			if self._session.draft.get_num_contacts() == 0:
+				return
 
-		if self._smsEntryDialog is None:
-			import dialogs
-			self._smsEntryDialog = dialogs.SMSEntryWindow(self.window, self._app, self._session, self._errorLog)
-		pass
+			if self._smsEntryDialog is None:
+				import dialogs
+				self._smsEntryDialog = dialogs.SMSEntryWindow(self.window, self._app, self._session, self._errorLog)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_login_requested(self, checked = True):
-		self._prompt_for_login()
+		with qui_utils.notify_error(self._errorLog):
+			self._prompt_for_login()
 
 	@QtCore.pyqtSlot(int)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_tab_changed(self, index):
-		self._currentTab = index
-		self._initialize_tab(index)
+		with qui_utils.notify_error(self._errorLog):
+			self._currentTab = index
+			self._initialize_tab(index)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh(self, checked = True):
-		self._tabsContents[self._currentTab].refresh(force=True)
+		with qui_utils.notify_error(self._errorLog):
+			self._tabsContents[self._currentTab].refresh(force=True)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_import(self, checked = True):
-		csvName = QtGui.QFileDialog.getOpenFileName(self._window, caption="Import", filter="CSV Files (*.csv)")
-		if not csvName:
-			return
-		import shutil
-		shutil.copy2(csvName, self._app.fsContactsPath)
-		self._tabsContents[self.CONTACTS_TAB].update_addressbooks()
+		with qui_utils.notify_error(self._errorLog):
+			csvName = QtGui.QFileDialog.getOpenFileName(self._window, caption="Import", filter="CSV Files (*.csv)")
+			if not csvName:
+				return
+			import shutil
+			shutil.copy2(csvName, self._app.fsContactsPath)
+			self._tabsContents[self.CONTACTS_TAB].update_addressbooks()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_account(self, checked = True):
-		self._show_account_dialog()
+		with qui_utils.notify_error(self._errorLog):
+			self._show_account_dialog()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	def _on_about(self, checked = True):
-		if self._aboutDialog is None:
-			import dialogs
-			self._aboutDialog = dialogs.AboutDialog(self._app)
-		response = self._aboutDialog.run()
+		with qui_utils.notify_error(self._errorLog):
+			if self._aboutDialog is None:
+				import dialogs
+				self._aboutDialog = dialogs.AboutDialog(self._app)
+			response = self._aboutDialog.run()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)

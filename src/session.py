@@ -3,6 +3,7 @@ from __future__ import with_statement
 import os
 import time
 import datetime
+import contextlib
 import logging
 
 try:
@@ -21,6 +22,15 @@ import constants
 
 
 _moduleLogger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def notify_busy(log, message):
+	log.push_busy(message)
+	try:
+		yield
+	finally:
+		log.pop(message)
 
 
 class _DraftContact(object):
@@ -44,8 +54,9 @@ class Draft(QtCore.QObject):
 
 	recipientsChanged = QtCore.pyqtSignal()
 
-	def __init__(self, pool, backend):
+	def __init__(self, pool, backend, errorLog):
 		QtCore.QObject.__init__(self)
+		self._errorLog = errorLog
 		self._contacts = {}
 		self._pool = pool
 		self._backend = backend
@@ -114,11 +125,12 @@ class Draft(QtCore.QObject):
 	def _send(self, numbers, text):
 		self.sendingMessage.emit()
 		try:
-			yield (
-				self._backend[0].send_sms,
-				(numbers, text),
-				{},
-			)
+			with notify_busy(self._errorLog, "Sending Text"):
+				yield (
+					self._backend[0].send_sms,
+					(numbers, text),
+					{},
+				)
 			self.sentMessage.emit()
 			self.clear()
 		except Exception, e:
@@ -127,11 +139,12 @@ class Draft(QtCore.QObject):
 	def _call(self, number):
 		self.calling.emit()
 		try:
-			yield (
-				self._backend[0].call,
-				(number, ),
-				{},
-			)
+			with notify_busy(self._errorLog, "Calling"):
+				yield (
+					self._backend[0].call,
+					(number, ),
+					{},
+				)
 			self.called.emit()
 			self.clear()
 		except Exception, e:
@@ -140,11 +153,12 @@ class Draft(QtCore.QObject):
 	def _cancel(self):
 		self.cancelling.emit()
 		try:
-			yield (
-				self._backend[0].cancel,
-				(),
-				{},
-			)
+			with notify_busy(self._errorLog, "Cancelling"):
+				yield (
+					self._backend[0].cancel,
+					(),
+					{},
+				)
 			self.cancelled.emit()
 		except Exception, e:
 			self.error.emit(str(e))
@@ -175,15 +189,16 @@ class Session(QtCore.QObject):
 	_LOGGEDOUT_TIME = -1
 	_LOGGINGIN_TIME = 0
 
-	def __init__(self, cachePath = None):
+	def __init__(self, errorLog, cachePath = None):
 		QtCore.QObject.__init__(self)
+		self._errorLog = errorLog
 		self._pool = qore_utils.AsyncPool()
 		self._backend = []
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._loginOps = []
 		self._cachePath = cachePath
 		self._username = None
-		self._draft = Draft(self._pool, self._backend)
+		self._draft = Draft(self._pool, self._backend, self._errorLog)
 
 		self._contacts = {}
 		self._contactUpdateTime = datetime.datetime(1971, 1, 1)
@@ -292,11 +307,12 @@ class Session(QtCore.QObject):
 		assert self.state == self.LOGGEDIN_STATE
 		oldDnd = self._dnd
 		try:
-			yield (
-				self._backend[0].set_dnd,
-				(dnd, ),
-				{},
-			)
+			with notify_busy(self._errorLog, "Setting DND Status"):
+				yield (
+					self._backend[0].set_dnd,
+					(dnd, ),
+					{},
+				)
 		except Exception, e:
 			self.error.emit(str(e))
 			return
@@ -327,11 +343,12 @@ class Session(QtCore.QObject):
 		assert self.state == self.LOGGEDIN_STATE
 		oldCallback = self._callback
 		try:
-			yield (
-				self._backend[0].set_callback_number,
-				(callback, ),
-				{},
-			)
+			with notify_busy(self._errorLog, "Setting Callback"):
+				yield (
+					self._backend[0].set_callback_number,
+					(callback, ),
+					{},
+				)
 		except Exception, e:
 			self.error.emit(str(e))
 			return
@@ -340,58 +357,59 @@ class Session(QtCore.QObject):
 			self.callbackNumberChanged.emit(self._callback)
 
 	def _login(self, username, password):
-		self._loggedInTime = self._LOGGINGIN_TIME
-		self.stateChange.emit(self.LOGGINGIN_STATE)
-		finalState = self.LOGGEDOUT_STATE
-		try:
-			isLoggedIn = False
+		with notify_busy(self._errorLog, "Logging In"):
+			self._loggedInTime = self._LOGGINGIN_TIME
+			self.stateChange.emit(self.LOGGINGIN_STATE)
+			finalState = self.LOGGEDOUT_STATE
+			try:
+				isLoggedIn = False
 
-			if not isLoggedIn and self._backend[0].is_quick_login_possible():
-				isLoggedIn = yield (
-					self._backend[0].is_authed,
-					(),
-					{},
-				)
-				if isLoggedIn:
-					_moduleLogger.info("Logged in through cookies")
-				else:
-					# Force a clearing of the cookies
-					yield (
-						self._backend[0].logout,
+				if not isLoggedIn and self._backend[0].is_quick_login_possible():
+					isLoggedIn = yield (
+						self._backend[0].is_authed,
 						(),
 						{},
 					)
+					if isLoggedIn:
+						_moduleLogger.info("Logged in through cookies")
+					else:
+						# Force a clearing of the cookies
+						yield (
+							self._backend[0].logout,
+							(),
+							{},
+						)
 
-			if not isLoggedIn:
-				isLoggedIn = yield (
-					self._backend[0].login,
-					(username, password),
-					{},
-				)
+				if not isLoggedIn:
+					isLoggedIn = yield (
+						self._backend[0].login,
+						(username, password),
+						{},
+					)
+					if isLoggedIn:
+						_moduleLogger.info("Logged in through credentials")
+
 				if isLoggedIn:
-					_moduleLogger.info("Logged in through credentials")
-
-			if isLoggedIn:
-				self._loggedInTime = int(time.time())
-				oldUsername = self._username
-				self._username = username
-				finalState = self.LOGGEDIN_STATE
-				self.loggedIn.emit()
-				if oldUsername != self._username:
-					needOps = not self._load()
-				else:
-					needOps = True
-				if needOps:
-					loginOps = self._loginOps[:]
-				else:
-					loginOps = []
-				del self._loginOps[:]
-				for asyncOp in loginOps:
-					asyncOp.start()
-		except Exception, e:
-			self.error.emit(str(e))
-		finally:
-			self.stateChange.emit(finalState)
+					self._loggedInTime = int(time.time())
+					oldUsername = self._username
+					self._username = username
+					finalState = self.LOGGEDIN_STATE
+					self.loggedIn.emit()
+					if oldUsername != self._username:
+						needOps = not self._load()
+					else:
+						needOps = True
+					if needOps:
+						loginOps = self._loginOps[:]
+					else:
+						loginOps = []
+					del self._loginOps[:]
+					for asyncOp in loginOps:
+						asyncOp.start()
+			except Exception, e:
+				self.error.emit(str(e))
+			finally:
+				self.stateChange.emit(finalState)
 
 	def _load(self):
 		updateContacts = len(self._contacts) != 0
@@ -521,11 +539,12 @@ class Session(QtCore.QObject):
 
 	def _update_contacts(self):
 		try:
-			self._contacts = yield (
-				self._backend[0].get_contacts,
-				(),
-				{},
-			)
+			with notify_busy(self._errorLog, "Updating Contacts"):
+				self._contacts = yield (
+					self._backend[0].get_contacts,
+					(),
+					{},
+				)
 		except Exception, e:
 			self.error.emit(str(e))
 			return
@@ -534,11 +553,12 @@ class Session(QtCore.QObject):
 
 	def _update_messages(self):
 		try:
-			self._messages = yield (
-				self._backend[0].get_messages,
-				(),
-				{},
-			)
+			with notify_busy(self._errorLog, "Updating Messages"):
+				self._messages = yield (
+					self._backend[0].get_messages,
+					(),
+					{},
+				)
 		except Exception, e:
 			self.error.emit(str(e))
 			return
@@ -547,11 +567,12 @@ class Session(QtCore.QObject):
 
 	def _update_history(self):
 		try:
-			self._history = yield (
-				self._backend[0].get_recent,
-				(),
-				{},
-			)
+			with notify_busy(self._errorLog, "Updating History"):
+				self._history = yield (
+					self._backend[0].get_recent,
+					(),
+					{},
+				)
 		except Exception, e:
 			self.error.emit(str(e))
 			return

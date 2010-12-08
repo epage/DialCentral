@@ -331,7 +331,8 @@ class SMSEntryWindow(object):
 		self._update_recipients()
 
 	def close(self):
-		self._dialog.reject()
+		self._window.destroy()
+		self._window = None
 
 	def _update_letter_count(self):
 		count = self._smsEntry.toPlainText().size()
@@ -516,7 +517,7 @@ class SMSEntryWindow(object):
 		self._smsButton.setVisible(True)
 		self._dialButton.setVisible(True)
 
-		self._errorLog.push_message(message)
+		self._errorLog.push_error(message)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
