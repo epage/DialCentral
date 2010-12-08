@@ -30,8 +30,9 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing a window title
-* Fixing a bug where non-normalized numbers were used, leading to problems
+* Sped up contacts download
+* Added an About dialog for copyright information
+* Added busy notifications
 """.strip()
 
 
