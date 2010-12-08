@@ -338,6 +338,7 @@ class MainWindow(object):
 		self._credentialsDialog = None
 		self._smsEntryDialog = None
 		self._accountDialog = None
+		self._aboutDialog = None
 
 		self._errorLog = qui_utils.QErrorLog()
 		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
@@ -402,6 +403,10 @@ class MainWindow(object):
 		self._refreshTabAction.setShortcut(QtGui.QKeySequence("CTRL+r"))
 		self._refreshTabAction.triggered.connect(self._on_refresh)
 
+		self._aboutAction = QtGui.QAction(None)
+		self._aboutAction.setText("About")
+		self._aboutAction.triggered.connect(self._on_about)
+
 		self._closeWindowAction = QtGui.QAction(None)
 		self._closeWindowAction.setText("Close")
 		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
@@ -415,6 +420,7 @@ class MainWindow(object):
 			toolsMenu = self._window.menuBar().addMenu("&Tools")
 			toolsMenu.addAction(self._accountTabAction)
 			toolsMenu.addAction(self._importTabAction)
+			toolsMenu.addAction(self._aboutAction)
 
 			self._window.addAction(self._closeWindowAction)
 			self._window.addAction(self._app.quitAction)
@@ -432,6 +438,7 @@ class MainWindow(object):
 			toolsMenu = self._window.menuBar().addMenu("&Tools")
 			toolsMenu.addAction(self._accountTabAction)
 			toolsMenu.addAction(self._importTabAction)
+			toolsMenu.addAction(self._aboutAction)
 
 		self._window.addAction(self._app.logAction)
 
@@ -449,7 +456,14 @@ class MainWindow(object):
 		return self._defaultCredentials
 
 	def walk_children(self):
-		return ()
+		return (diag for diag in (
+			self._credentialsDialog,
+			self._smsEntryDialog,
+			self._accountDialog,
+			self._aboutDialog,
+			)
+			if diag is not None
+		)
 
 	def start(self):
 		assert self._session.state == self._session.LOGGEDOUT_STATE
@@ -462,7 +476,6 @@ class MainWindow(object):
 
 	def close(self):
 		for child in self.walk_children():
-			child.window.destroyed.disconnect(self._on_child_close)
 			child.close()
 		self._window.close()
 
@@ -635,6 +648,14 @@ class MainWindow(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_account(self, checked = True):
 		self._show_account_dialog()
+
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
+	def _on_about(self, checked = True):
+		if self._aboutDialog is None:
+			import dialogs
+			self._aboutDialog = dialogs.AboutDialog(self._app)
+		response = self._aboutDialog.run()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)

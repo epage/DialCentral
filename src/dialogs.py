@@ -10,6 +10,7 @@ import logging
 from PyQt4 import QtGui
 from PyQt4 import QtCore
 
+import constants
 from util import qui_utils
 from util import misc as misc_utils
 
@@ -70,6 +71,62 @@ class CredentialsDialog(object):
 				raise RuntimeError("Unknown Response")
 		finally:
 			self._dialog.setParent(None, QtCore.Qt.Dialog)
+
+	def close(self):
+		self._dialog.reject()
+
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_close_window(self, checked = True):
+		self._dialog.reject()
+
+
+class AboutDialog(object):
+
+	def __init__(self, app):
+		self._title = QtGui.QLabel(
+			"<h1>%s</h1><h3>Version: %s</h3>" % (
+				constants.__pretty_app_name__, constants.__version__
+			)
+		)
+		self._title.setTextFormat(QtCore.Qt.RichText)
+		self._title.setAlignment(QtCore.Qt.AlignCenter)
+		self._copyright = QtGui.QLabel("<h6>Developed by Ed Page<h6><h6>Icons: See website</h6>")
+		self._copyright.setTextFormat(QtCore.Qt.RichText)
+		self._copyright.setAlignment(QtCore.Qt.AlignCenter)
+		self._link = QtGui.QLabel('<a href="http://gc-dialer.garage.maemo.org">DialCentral Website</a>')
+		self._link.setTextFormat(QtCore.Qt.RichText)
+		self._link.setAlignment(QtCore.Qt.AlignCenter)
+		self._link.setOpenExternalLinks(True)
+
+		self._layout = QtGui.QVBoxLayout()
+		self._layout.addWidget(self._title)
+		self._layout.addWidget(self._copyright)
+		self._layout.addWidget(self._link)
+
+		self._dialog = QtGui.QDialog()
+		self._dialog.setWindowTitle("About")
+		self._dialog.setLayout(self._layout)
+		qui_utils.set_autorient(self._dialog, True)
+
+		self._closeWindowAction = QtGui.QAction(None)
+		self._closeWindowAction.setText("Close")
+		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
+		self._closeWindowAction.triggered.connect(self._on_close_window)
+
+		self._dialog.addAction(self._closeWindowAction)
+		self._dialog.addAction(app.quitAction)
+		self._dialog.addAction(app.fullscreenAction)
+
+	def run(self, parent=None):
+		self._dialog.setParent(parent)
+
+		response = self._dialog.exec_()
+		return response
+
+	def close(self):
+		self._dialog.reject()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
@@ -162,6 +219,9 @@ class AccountDialog(object):
 
 		response = self._dialog.exec_()
 		return response
+
+	def close(self):
+		self._dialog.reject()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
@@ -269,6 +329,9 @@ class SMSEntryWindow(object):
 
 		self._window.show()
 		self._update_recipients()
+
+	def close(self):
+		self._dialog.reject()
 
 	def _update_letter_count(self):
 		count = self._smsEntry.toPlainText().size()
