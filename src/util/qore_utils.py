@@ -102,6 +102,6 @@ class AsyncPool(QtCore.QObject):
 		self._stopPool.emit()
 
 	def add_task(self, func, args, kwds, on_success, on_error):
-		assert self._isRunning
+		assert self._isRunning, "Task queue not started"
 		task = func, args, kwds, on_success, on_error
 		self._addTask.emit(task)

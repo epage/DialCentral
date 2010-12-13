@@ -467,7 +467,7 @@ class MainWindow(object):
 		)
 
 	def start(self):
-		assert self._session.state == self._session.LOGGEDOUT_STATE
+		assert self._session.state == self._session.LOGGEDOUT_STATE, "Initialization messed up"
 		if self._defaultCredentials != ("", ""):
 			username, password = self._defaultCredentials[0], self._defaultCredentials[1]
 			self._curentCredentials = username, password
@@ -548,7 +548,7 @@ class MainWindow(object):
 			child.set_fullscreen(isFullscreen)
 
 	def _initialize_tab(self, index):
-		assert index < self.MAX_TABS
+		assert index < self.MAX_TABS, "Invalid tab"
 		if not self._tabsContents[index].has_child():
 			tab = self._TAB_CLASS[index](self._app, self._session, self._errorLog)
 			self._tabsContents[index].set_child(tab)

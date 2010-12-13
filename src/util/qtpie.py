@@ -600,7 +600,7 @@ class QPieButton(QtGui.QWidget):
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_delayed_popup(self):
-		assert self._popupLocation is not None
+		assert self._popupLocation is not None, "Widget location abuse"
 		self._popup_child(self._popupLocation)
 
 	@misc_utils.log_exception(_moduleLogger)

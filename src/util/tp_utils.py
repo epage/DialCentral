@@ -61,13 +61,13 @@ class WasMissedCall(object):
 				self._report_error("closed too early")
 
 	def _report_success(self):
-		assert not self._didReport
+		assert not self._didReport, "Double reporting a missed call"
 		self._didReport = True
 		self._onTimeout.cancel()
 		self.__on_success(self)
 
 	def _report_error(self, reason):
-		assert not self._didReport
+		assert not self._didReport, "Double reporting a missed call"
 		self._didReport = True
 		self._onTimeout.cancel()
 		self.__on_error(self, reason)

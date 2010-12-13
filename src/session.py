@@ -62,13 +62,13 @@ class Draft(QtCore.QObject):
 		self._backend = backend
 
 	def send(self, text):
-		assert 0 < len(self._contacts)
+		assert 0 < len(self._contacts), "No contacts selected"
 		numbers = [misc_utils.make_ugly(contact.selectedNumber) for contact in self._contacts.itervalues()]
 		le = concurrent.AsyncLinearExecution(self._pool, self._send)
 		le.start(numbers, text)
 
 	def call(self):
-		assert len(self._contacts) == 1
+		assert len(self._contacts) == 1, "Must select 1 and only 1 contact"
 		(contact, ) = self._contacts.itervalues()
 		number = misc_utils.make_ugly(contact.selectedNumber)
 		le = concurrent.AsyncLinearExecution(self._pool, self._call)
@@ -89,7 +89,7 @@ class Draft(QtCore.QObject):
 		self.recipientsChanged.emit()
 
 	def remove_contact(self, contactId):
-		assert contactId in self._contacts
+		assert contactId in self._contacts, "Contact missing"
 		del self._contacts[contactId]
 		self.recipientsChanged.emit()
 
@@ -114,7 +114,7 @@ class Draft(QtCore.QObject):
 	def set_selected_number(self, cid, number):
 		# @note I'm lazy, this isn't firing any kind of signal since only one
 		# controller right now and that is the viewer
-		assert number in (nWD[0] for nWD in self._contacts[cid].numbers)
+		assert number in (nWD[0] for nWD in self._contacts[cid].numbers), "Number not selectable"
 		self._contacts[cid].selectedNumber = number
 
 	def clear(self):
@@ -222,8 +222,8 @@ class Session(QtCore.QObject):
 		return self._draft
 
 	def login(self, username, password):
-		assert self.state == self.LOGGEDOUT_STATE
-		assert username != ""
+		assert self.state == self.LOGGEDOUT_STATE, "Can only log-in when logged out"
+		assert username != "", "No username specified"
 		if self._cachePath is not None:
 			cookiePath = os.path.join(self._cachePath, "%s.cookies" % username)
 		else:
@@ -239,21 +239,21 @@ class Session(QtCore.QObject):
 		le.start(username, password)
 
 	def logout(self):
-		assert self.state != self.LOGGEDOUT_STATE
+		assert self.state != self.LOGGEDOUT_STATE, "Can only logout if logged in"
 		self._pool.stop()
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._backend[0].persist()
 		self._save_to_cache()
 
 	def clear(self):
-		assert self.state == self.LOGGEDOUT_STATE
+		assert self.state == self.LOGGEDOUT_STATE, "Can only clear when logged out"
 		self._backend[0].logout()
 		del self._backend[0]
 		self._clear_cache()
 		self._draft.clear()
 
 	def logout_and_clear(self):
-		assert self.state != self.LOGGEDOUT_STATE
+		assert self.state != self.LOGGEDOUT_STATE, "Can only logout if logged in"
 		self._pool.stop()
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self.clear()
@@ -305,7 +305,7 @@ class Session(QtCore.QObject):
 	def _set_dnd(self, dnd):
 		# I'm paranoid about our state geting out of sync so we set no matter
 		# what but act as if we have the cannonical state
-		assert self.state == self.LOGGEDIN_STATE
+		assert self.state == self.LOGGEDIN_STATE, "DND requires being logged in"
 		oldDnd = self._dnd
 		try:
 			with notify_busy(self._errorLog, "Setting DND Status"):
@@ -341,7 +341,7 @@ class Session(QtCore.QObject):
 	def _set_callback_number(self, callback):
 		# I'm paranoid about our state geting out of sync so we set no matter
 		# what but act as if we have the cannonical state
-		assert self.state == self.LOGGEDIN_STATE
+		assert self.state == self.LOGGEDIN_STATE, "Callbacks configurable only when logged in"
 		oldCallback = self._callback
 		try:
 			with notify_busy(self._errorLog, "Setting Callback"):
@@ -601,7 +601,7 @@ class Session(QtCore.QObject):
 			self._push_login_op(op)
 
 	def _push_login_op(self, asyncOp):
-		assert self.state != self.LOGGEDIN_STATE
+		assert self.state != self.LOGGEDIN_STATE, "Can only queue work when logged out"
 		if asyncOp in self._loginOps:
 			_moduleLogger.info("Skipping queueing duplicate op: %r" % asyncOp)
 			return

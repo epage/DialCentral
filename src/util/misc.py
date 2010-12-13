@@ -700,7 +700,7 @@ def normalize_number(prettynumber):
 	elif uglynumber.startswith("1"):
 		uglynumber = "+"+uglynumber
 	elif 10 <= len(uglynumber):
-		assert uglynumber[0] not in ("+", "1")
+		assert uglynumber[0] not in ("+", "1"), "Number format confusing"
 		uglynumber = "+1"+uglynumber
 	else:
 		pass

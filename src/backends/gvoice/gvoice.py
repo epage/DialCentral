@@ -896,9 +896,9 @@ def validate_response(response):
 	Validates that the JSON response is A-OK
 	"""
 	try:
-		assert response is not None
-		assert 'ok' in response
-		assert response['ok']
+		assert response is not None, "Response not provided"
+		assert 'ok' in response, "Response lacks status"
+		assert response['ok'], "Response not good"
 	except AssertionError:
 		raise RuntimeError('There was a problem with GV: %s' % response)
 

@@ -23,7 +23,7 @@ class AsyncLinearExecution(object):
 		self._run = None
 
 	def start(self, *args, **kwds):
-		assert self._run is None
+		assert self._run is None, "Task already started"
 		self._run = self._func(*args, **kwds)
 		trampoline, args, kwds = self._run.send(None) # priming the function
 		self._pool.add_task(
