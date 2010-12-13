@@ -70,8 +70,9 @@ class Draft(QtCore.QObject):
 	def call(self):
 		assert len(self._contacts) == 1
 		(contact, ) = self._contacts.itervalues()
+		number = misc_utils.make_ugly(contact.selectedNumber)
 		le = concurrent.AsyncLinearExecution(self._pool, self._call)
-		le.start(contact.selectedNumber)
+		le.start(number)
 
 	def cancel(self):
 		le = concurrent.AsyncLinearExecution(self._pool, self._cancel)
