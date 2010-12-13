@@ -202,8 +202,15 @@ class TimeCategories(object):
 		self._today = newToday
 		for item in self._timeItems:
 			item.removeRows(0, item.rowCount())
-		self._timeItems[self._NOW_SECTION].setText(self._today.strftime("%X"))
-		self._timeItems[self._TODAY_SECTION].setText(self._today.strftime("%x"))
+		try:
+			hour = self._today.strftime("%X")
+			day = self._today.strftime("%x")
+		except ValueError:
+			_moduleLogger.exception("Can't format times")
+			hour = "Now"
+			day = "Today"
+		self._timeItems[self._NOW_SECTION].setText(hour)
+		self._timeItems[self._TODAY_SECTION].setText(day)
 
 	def add_row(self, rowDate, row):
 		elapsedTime = self._today - rowDate

@@ -697,7 +697,11 @@ class GVoiceBackend(object):
 			message = Message()
 			message.body = messageParts
 			message.whoFrom = conv.name
-			message.when = conv.time.strftime("%I:%M %p")
+			try:
+				message.when = conv.time.strftime("%I:%M %p")
+			except ValueError:
+				_moduleLogger.exception("Confusing time provided: %r" % conv.time)
+				message.when = "Unknown"
 			conv.messages = (message, )
 
 			yield conv
