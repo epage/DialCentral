@@ -30,9 +30,10 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Sped up contacts download
-* Added an About dialog for copyright information
-* Added busy notifications
+* Fixing a call-out bug
+* Adding error messages to cases that in theory should never be hit but are
+* Protecting some code paths that should never have needed it but do
+* Fixing a bug about not properly recovering from a failed login
 """.strip()
 
 
