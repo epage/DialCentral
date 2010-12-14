@@ -201,6 +201,8 @@ class AccountDialog(object):
 	def set_callbacks(self, choices, default):
 		self._callbackSelector.clear()
 
+		self._callbackSelector.addItem("Not Set", "")
+
 		uglyDefault = misc_utils.make_ugly(default)
 		for i, (number, description) in enumerate(choices.iteritems()):
 			prettyNumber = misc_utils.make_pretty(number)
