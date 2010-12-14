@@ -60,9 +60,19 @@ class Dialpad(object):
 		smsIcon = self._app.get_icon("messages.png")
 		self._smsButton = QtGui.QPushButton(smsIcon, "SMS")
 		self._smsButton.clicked.connect(self._on_sms_clicked)
+		self._smsButton.setSizePolicy(QtGui.QSizePolicy(
+			QtGui.QSizePolicy.MinimumExpanding,
+			QtGui.QSizePolicy.MinimumExpanding,
+			QtGui.QSizePolicy.PushButton,
+		))
 		callIcon = self._app.get_icon("dialpad.png")
 		self._callButton = QtGui.QPushButton(callIcon, "Call")
 		self._callButton.clicked.connect(self._on_call_clicked)
+		self._callButton.setSizePolicy(QtGui.QSizePolicy(
+			QtGui.QSizePolicy.MinimumExpanding,
+			QtGui.QSizePolicy.MinimumExpanding,
+			QtGui.QSizePolicy.PushButton,
+		))
 
 		self._padLayout = QtGui.QGridLayout()
 		rows = [0, 0, 0, 1, 1, 1, 2, 2, 2]
@@ -82,13 +92,18 @@ class Dialpad(object):
 			self._padLayout.addWidget(self._generate_key_button(num, letters), row, column)
 		self._zerothButton = QtGui.QPushButton("0")
 		self._zerothButton.clicked.connect(lambda: self._on_keypress("0"))
+		self._zerothButton.setSizePolicy(QtGui.QSizePolicy(
+			QtGui.QSizePolicy.MinimumExpanding,
+			QtGui.QSizePolicy.MinimumExpanding,
+			QtGui.QSizePolicy.PushButton,
+		))
 		self._padLayout.addWidget(self._smsButton, 3, 0)
 		self._padLayout.addWidget(self._zerothButton)
 		self._padLayout.addWidget(self._callButton, 3, 2)
 
 		self._layout = QtGui.QVBoxLayout()
-		self._layout.addLayout(self._entryLayout)
-		self._layout.addLayout(self._padLayout)
+		self._layout.addLayout(self._entryLayout, 0)
+		self._layout.addLayout(self._padLayout, 1000000)
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
 
@@ -118,6 +133,11 @@ class Dialpad(object):
 
 	def _generate_key_button(self, center, letters):
 		button = QtGui.QPushButton("%s\n%s" % (center, letters))
+		button.setSizePolicy(QtGui.QSizePolicy(
+			QtGui.QSizePolicy.MinimumExpanding,
+			QtGui.QSizePolicy.MinimumExpanding,
+			QtGui.QSizePolicy.PushButton,
+		))
 		button.clicked.connect(lambda: self._on_keypress(center))
 		return button
 
