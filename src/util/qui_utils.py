@@ -88,6 +88,8 @@ class QErrorLog(QtCore.QObject):
 
 class ErrorDisplay(object):
 
+	_SENTINEL_ICON = QtGui.QIcon()
+
 	def __init__(self, errorLog):
 		self._errorLog = errorLog
 		self._errorLog.messagePushed.connect(self._on_message_pushed)
@@ -115,8 +117,11 @@ class ErrorDisplay(object):
 		self._message.setText("Boo")
 		self._message.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 
-		closeIcon = get_theme_icon(("window-close", "general_close", "gtk-close"))
-		self._closeLabel = QtGui.QPushButton(closeIcon, "")
+		closeIcon = get_theme_icon(("window-close", "general_close", "gtk-close"), self._SENTINEL_ICON)
+		if closeIcon is not self._SENTINEL_ICON:
+			self._closeLabel = QtGui.QPushButton(closeIcon, "")
+		else:
+			self._closeLabel = QtGui.QPushButton("X")
 		self._closeLabel.clicked.connect(self._on_close)
 
 		self._controlLayout = QtGui.QHBoxLayout()
