@@ -594,9 +594,13 @@ class MainWindow(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_login(self):
 		with qui_utils.notify_error(self._errorLog):
-			if self._defaultCredentials != self._curentCredentials:
+			changedAccounts = self._defaultCredentials != self._curentCredentials
+			noCallback = not self._session.get_callback_number()
+			if changedAccounts or noCallback:
 				self._show_account_dialog()
+
 			self._defaultCredentials = self._curentCredentials
+
 			for tab in self._tabsContents:
 				tab.enable()
 

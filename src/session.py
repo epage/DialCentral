@@ -395,11 +395,13 @@ class Session(QtCore.QObject):
 					oldUsername = self._username
 					self._username = username
 					finalState = self.LOGGEDIN_STATE
-					self.loggedIn.emit()
 					if oldUsername != self._username:
 						needOps = not self._load()
 					else:
 						needOps = True
+
+					self.loggedIn.emit()
+
 					if needOps:
 						loginOps = self._loginOps[:]
 					else:
