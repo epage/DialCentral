@@ -362,9 +362,8 @@ class Session(QtCore.QObject):
 			self._loggedInTime = self._LOGGINGIN_TIME
 			self.stateChange.emit(self.LOGGINGIN_STATE)
 			finalState = self.LOGGEDOUT_STATE
+			isLoggedIn = False
 			try:
-				isLoggedIn = False
-
 				if not isLoggedIn and self._backend[0].is_quick_login_possible():
 					isLoggedIn = yield (
 						self._backend[0].is_authed,
@@ -414,6 +413,8 @@ class Session(QtCore.QObject):
 				self.error.emit(str(e))
 			finally:
 				self.stateChange.emit(finalState)
+			if isLoggedIn and self._callback:
+				self.set_callback_number(self._callback)
 
 	def _load(self):
 		updateContacts = len(self._contacts) != 0
