@@ -32,6 +32,7 @@ __build__ = constants.__build__
 __changelog__ = """
 * Fixed a failed call issue on restart
 * Trying to improve support for foreign languages
+* Providing more helpful error on failed call
 """.strip()
 
 
