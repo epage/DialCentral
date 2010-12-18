@@ -30,10 +30,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Improved dialpad on n8x0
-* Popup Account dialog when callback is not configured
-* Added a blank entry to the account dialog so people can tell when their callback is not configured
-* Fixing the close icon issue on n8x0
+* Fixed a failed call issue on restart
+* Trying to improve support for foreign languages
 """.strip()
 
 
