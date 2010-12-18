@@ -791,8 +791,26 @@ class GVoiceBackend(object):
 
 	def _parse_with_validation(self, page):
 		json = parse_json(page)
-		validate_response(json)
+		self._validate_response(json)
 		return json
+
+	def _validate_response(self, response):
+		"""
+		Validates that the JSON response is A-OK
+		"""
+		try:
+			assert response is not None, "Response not provided"
+			assert 'ok' in response, "Response lacks status"
+			assert response['ok'], "Response not good"
+		except AssertionError:
+			try:
+				if response["data"]["code"] == 20:
+					raise RuntimeError(
+"""Ambiguous error 20 returned by Google Voice.
+Please verify you have configured your callback number (currently "%s").  If it is configured some other suspected causes are: non-verified callback numbers, and Gizmo5 callback numbers.""" % self._callbackNumber)
+			except KeyError:
+				pass
+			raise RuntimeError('There was a problem with GV: %s' % response)
 
 
 _UNESCAPE_ENTITIES = {
@@ -893,18 +911,6 @@ def extract_payload(flatXml):
 	flatHtml = htmlElement.text
 
 	return jsonTree, flatHtml
-
-
-def validate_response(response):
-	"""
-	Validates that the JSON response is A-OK
-	"""
-	try:
-		assert response is not None, "Response not provided"
-		assert 'ok' in response, "Response lacks status"
-		assert response['ok'], "Response not good"
-	except AssertionError:
-		raise RuntimeError('There was a problem with GV: %s' % response)
 
 
 def guess_phone_type(number):

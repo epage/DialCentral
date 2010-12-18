@@ -116,6 +116,7 @@ class ErrorDisplay(object):
 		self._message = QtGui.QLabel()
 		self._message.setText("Boo")
 		self._message.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+		self._message.setWordWrap(True)
 
 		closeIcon = get_theme_icon(("window-close", "general_close", "gtk-close"), self._SENTINEL_ICON)
 		if closeIcon is not self._SENTINEL_ICON:
