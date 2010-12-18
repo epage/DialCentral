@@ -458,7 +458,7 @@ class SMSEntryWindow(object):
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_sms_clicked(self, arg):
-		message = str(self._smsEntry.toPlainText())
+		message = unicode(self._smsEntry.toPlainText())
 		self._session.draft.send(message)
 		self._smsEntry.setPlainText("")
 
