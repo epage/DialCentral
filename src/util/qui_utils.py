@@ -48,6 +48,7 @@ class QErrorLog(QtCore.QObject):
 		self._messages = []
 
 	def push_busy(self, message):
+		_moduleLogger.info("Entering state: %s" % message)
 		self._push_message(message, ErrorMessage.LEVEL_BUSY)
 
 	def push_message(self, message):
@@ -65,6 +66,7 @@ class QErrorLog(QtCore.QObject):
 		if message is None:
 			del self._messages[0]
 		else:
+			_moduleLogger.info("Exiting state: %s" % message)
 			messageIndex = [
 				i
 				for (i, error) in enumerate(self._messages)
