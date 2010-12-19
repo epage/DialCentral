@@ -222,7 +222,7 @@ class Session(QtCore.QObject):
 		return self._draft
 
 	def login(self, username, password):
-		assert self.state == self.LOGGEDOUT_STATE, "Can only log-in when logged out"
+		assert self.state == self.LOGGEDOUT_STATE, "Can only log-in when logged out (currently %s" % self.state
 		assert username != "", "No username specified"
 		if self._cachePath is not None:
 			cookiePath = os.path.join(self._cachePath, "%s.cookies" % username)
@@ -239,21 +239,21 @@ class Session(QtCore.QObject):
 		le.start(username, password)
 
 	def logout(self):
-		assert self.state != self.LOGGEDOUT_STATE, "Can only logout if logged in"
+		assert self.state != self.LOGGEDOUT_STATE, "Can only logout if logged in (currently %s" % self.state
 		self._pool.stop()
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._backend[0].persist()
 		self._save_to_cache()
 
 	def clear(self):
-		assert self.state == self.LOGGEDOUT_STATE, "Can only clear when logged out"
+		assert self.state == self.LOGGEDOUT_STATE, "Can only clear when logged out (currently %s" % self.state
 		self._backend[0].logout()
 		del self._backend[0]
 		self._clear_cache()
 		self._draft.clear()
 
 	def logout_and_clear(self):
-		assert self.state != self.LOGGEDOUT_STATE, "Can only logout if logged in"
+		assert self.state != self.LOGGEDOUT_STATE, "Can only logout if logged in (currently %s" % self.state
 		self._pool.stop()
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self.clear()
@@ -305,7 +305,7 @@ class Session(QtCore.QObject):
 	def _set_dnd(self, dnd):
 		# I'm paranoid about our state geting out of sync so we set no matter
 		# what but act as if we have the cannonical state
-		assert self.state == self.LOGGEDIN_STATE, "DND requires being logged in"
+		assert self.state == self.LOGGEDIN_STATE, "DND requires being logged in (currently %s" % self.state
 		oldDnd = self._dnd
 		try:
 			with notify_busy(self._errorLog, "Setting DND Status"):
@@ -341,7 +341,7 @@ class Session(QtCore.QObject):
 	def _set_callback_number(self, callback):
 		# I'm paranoid about our state geting out of sync so we set no matter
 		# what but act as if we have the cannonical state
-		assert self.state == self.LOGGEDIN_STATE, "Callbacks configurable only when logged in"
+		assert self.state == self.LOGGEDIN_STATE, "Callbacks configurable only when logged in (currently %s" % self.state
 		oldCallback = self._callback
 		try:
 			with notify_busy(self._errorLog, "Setting Callback"):
