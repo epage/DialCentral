@@ -408,6 +408,9 @@ class Session(QtCore.QObject):
 					del self._loginOps[:]
 					for asyncOp in loginOps:
 						asyncOp.start()
+				else:
+					self._loggedInTime = self._LOGGEDOUT_TIME
+					self.error.emit("Error logging in")
 			except Exception, e:
 				self._loggedInTime = self._LOGGEDOUT_TIME
 				self.error.emit(str(e))
