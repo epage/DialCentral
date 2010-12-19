@@ -30,9 +30,9 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixed a failed call issue on restart
-* Trying to improve support for foreign languages
-* Providing more helpful error on failed call
+* Fixing a bug where a failed login would cause problems
+* Fixing a bug preventing failed logins to be reported to the user
+* Adding some more detail to the log
 """.strip()
 
 
