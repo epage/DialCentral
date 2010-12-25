@@ -344,12 +344,11 @@ class Session(QtCore.QObject):
 		assert self.state == self.LOGGEDIN_STATE, "Callbacks configurable only when logged in (currently %s" % self.state
 		oldCallback = self._callback
 		try:
-			with notify_busy(self._errorLog, "Setting Callback"):
-				yield (
-					self._backend[0].set_callback_number,
-					(callback, ),
-					{},
-				)
+			yield (
+				self._backend[0].set_callback_number,
+				(callback, ),
+				{},
+			)
 		except Exception, e:
 			self.error.emit(str(e))
 			return
