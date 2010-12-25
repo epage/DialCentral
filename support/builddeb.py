@@ -30,9 +30,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing a bug where a failed login would cause problems
-* Fixing a bug preventing failed logins to be reported to the user
-* Adding some more detail to the log
+* Removing a small UI annoyance
+* Fixing a bug where a contact doesn't have a phone type specified
 """.strip()
 
 
