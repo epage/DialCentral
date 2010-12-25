@@ -543,7 +543,7 @@ def _get_contact_numbers(session, contactId, numberDescription):
 		except KeyError:
 			contactPhoneNumbers = []
 		contactPhoneNumbers = [
-			(contactPhoneNumber["phoneNumber"], contactPhoneNumber["phoneType"])
+			(contactPhoneNumber["phoneNumber"], contactPhoneNumber.get("phoneType", "Unknown"))
 			for contactPhoneNumber in contactPhoneNumbers
 		]
 		if contactPhoneNumbers:
