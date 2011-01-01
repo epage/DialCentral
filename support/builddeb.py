@@ -132,8 +132,8 @@ def build_package(distribution):
 	p["/usr/share/icons/hicolor/64x64/hildon"] = ["64x64-dialcentral.png|dialcentral.png"]
 	p["/usr/share/icons/hicolor/scalable/hildon"] = ["scale-dialcentral.png|dialcentral.png"]
 
+	print p
 	if distribution == "debian":
-		print p
 		print p.generate(
 			version="%s-%s" % (__version__, __build__),
 			changelog=__changelog__,
@@ -142,9 +142,7 @@ def build_package(distribution):
 			changes=False,
 			dsc=False,
 		)
-		print "Building for %s finished" % distribution
 	else:
-		print p
 		print p.generate(
 			version="%s-%s" % (__version__, __build__),
 			changelog=__changelog__,
@@ -153,20 +151,12 @@ def build_package(distribution):
 			changes=True,
 			dsc=True,
 		)
-		print "Building for %s finished" % distribution
+	print "Building for %s finished" % distribution
 
 
 if __name__ == "__main__":
-	if len(sys.argv) > 1:
-		try:
-			import optparse
-		except ImportError:
-			optparse = None
-
-		if optparse is not None:
-			parser = optparse.OptionParser()
-			(commandOptions, commandArgs) = parser.parse_args()
+	if len(sys.argv) == 1:
+		distribution = "fremantle"
 	else:
-		commandArgs = None
-		commandArgs = ["diablo"]
-	build_package(commandArgs[0])
+		distribution = sys.argv[1]
+	build_package(distribution)

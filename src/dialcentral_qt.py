@@ -21,7 +21,6 @@ import session
 
 
 _moduleLogger = logging.getLogger(__name__)
-IS_MAEMO = True
 
 
 class Dialcentral(object):
@@ -359,7 +358,7 @@ class MainWindow(object):
 		for tabIndex, (tabTitle, tabIcon) in enumerate(
 			zip(self._TAB_TITLES, self._TAB_ICONS)
 		):
-			if IS_MAEMO:
+			if constants.IS_MAEMO:
 				icon = self._app.get_icon(tabIcon)
 				if icon is None:
 					self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, tabTitle)
@@ -413,7 +412,7 @@ class MainWindow(object):
 		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
 		self._closeWindowAction.triggered.connect(self._on_close_window)
 
-		if IS_MAEMO:
+		if constants.IS_MAEMO:
 			fileMenu = self._window.menuBar().addMenu("&File")
 			fileMenu.addAction(self._loginTabAction)
 			fileMenu.addAction(self._refreshTabAction)
@@ -477,6 +476,7 @@ class MainWindow(object):
 
 	def close(self):
 		for child in self.walk_children():
+			child.window.destroyed.disconnect(self._on_child_close)
 			child.close()
 		self._window.close()
 

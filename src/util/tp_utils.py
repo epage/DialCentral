@@ -25,7 +25,7 @@ class WasMissedCall(object):
 		self._didReport = False
 
 		self._onTimeout = gobject_utils.Timeout(self._on_timeout)
-		self._onTimeout.start(seconds=10)
+		self._onTimeout.start(seconds=60)
 
 		chan[telepathy.interfaces.CHANNEL_INTERFACE_GROUP].connect_to_signal(
 			"MembersChanged",
