@@ -30,8 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Removing a small UI annoyance
-* Fixing a bug where a contact doesn't have a phone type specified
+* Prepping Qt version of DialCentral for extras
 """.strip()
 
 
