@@ -167,6 +167,12 @@ class Dialcentral(object):
 	def quitAction(self):
 		return self._quitAction
 
+	def _walk_children(self):
+		if self._mainWindow is not None:
+			return (self._mainWindow, )
+		else:
+			return ()
+
 	def _close_windows(self):
 		if self._mainWindow is not None:
 			self.save_settings()
@@ -664,6 +670,7 @@ class MainWindow(object):
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_about(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
 			if self._aboutDialog is None:
