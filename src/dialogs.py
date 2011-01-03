@@ -139,24 +139,61 @@ class AccountDialog(object):
 
 	# @bug Can't enter custom callback numbers
 
+
+	_RECURRENCE_CHOICES = [
+		(1, "1 minute"),
+		(2, "2 minutes"),
+		(3, "3 minutes"),
+		(5, "5 minutes"),
+		(8, "8 minutes"),
+		(10, "10 minutes"),
+		(15, "15 minutes"),
+		(30, "30 minutes"),
+		(45, "45 minutes"),
+		(60, "1 hour"),
+		(3*60, "3 hours"),
+		(6*60, "6 hours"),
+		(12*60, "12 hours"),
+	]
+
 	def __init__(self, app):
 		self._doClear = False
 
 		self._accountNumberLabel = QtGui.QLabel("NUMBER NOT SET")
+		self._notificationButton = QtGui.QCheckBox("Notifications")
+		self._notificationButton.stateChanged.connect(self._on_notification_change)
+		self._notificationTimeSelector = QtGui.QComboBox()
+		#self._notificationTimeSelector.setEditable(True)
+		self._notificationTimeSelector.setInsertPolicy(QtGui.QComboBox.InsertAtTop)
+		for _, label in self._RECURRENCE_CHOICES:
+			self._notificationTimeSelector.addItem(label)
+		self._missedCallsNotificationButton = QtGui.QCheckBox("Missed Calls")
+		self._voicemailNotificationButton = QtGui.QCheckBox("Voicemail")
+		self._smsNotificationButton = QtGui.QCheckBox("SMS")
 		self._clearButton = QtGui.QPushButton("Clear Account")
 		self._clearButton.clicked.connect(self._on_clear)
-
 		self._callbackSelector = QtGui.QComboBox()
 		#self._callbackSelector.setEditable(True)
 		self._callbackSelector.setInsertPolicy(QtGui.QComboBox.InsertAtTop)
+
+		self._update_notification_state()
 
 		self._credLayout = QtGui.QGridLayout()
 		self._credLayout.addWidget(QtGui.QLabel("Account"), 0, 0)
 		self._credLayout.addWidget(self._accountNumberLabel, 0, 1)
 		self._credLayout.addWidget(QtGui.QLabel("Callback"), 1, 0)
 		self._credLayout.addWidget(self._callbackSelector, 1, 1)
-		self._credLayout.addWidget(QtGui.QLabel(""), 2, 0)
-		self._credLayout.addWidget(self._clearButton, 2, 1)
+		self._credLayout.addWidget(self._notificationButton, 2, 0)
+		self._credLayout.addWidget(self._notificationTimeSelector, 2, 1)
+		self._credLayout.addWidget(QtGui.QLabel(""), 3, 0)
+		self._credLayout.addWidget(self._missedCallsNotificationButton, 3, 1)
+		self._credLayout.addWidget(QtGui.QLabel(""), 4, 0)
+		self._credLayout.addWidget(self._voicemailNotificationButton, 4, 1)
+		self._credLayout.addWidget(QtGui.QLabel(""), 5, 0)
+		self._credLayout.addWidget(self._smsNotificationButton, 5, 1)
+
+		self._credLayout.addWidget(QtGui.QLabel(""), 6, 0)
+		self._credLayout.addWidget(self._clearButton, 6, 1)
 		self._credLayout.addWidget(QtGui.QLabel(""), 3, 0)
 
 		self._loginButton = QtGui.QPushButton("&Apply")
@@ -187,10 +224,59 @@ class AccountDialog(object):
 	def doClear(self):
 		return self._doClear
 
+	def setIfNotificationsSupported(self, isSupported):
+		if isSupported:
+			self._notificationButton.setVisible(True)
+			self._notificationTimeSelector.setVisible(True)
+			self._missedCallsNotificationButton.setVisible(True)
+			self._voicemailNotificationButton.setVisible(True)
+			self._smsNotificationButton.setVisible(True)
+		else:
+			self._notificationButton.setVisible(False)
+			self._notificationTimeSelector.setVisible(False)
+			self._missedCallsNotificationButton.setVisible(False)
+			self._voicemailNotificationButton.setVisible(False)
+			self._smsNotificationButton.setVisible(False)
+
 	accountNumber = property(
 		lambda self: str(self._accountNumberLabel.text()),
 		lambda self, num: self._accountNumberLabel.setText(num),
 	)
+
+	notifications = property(
+		lambda self: self._notificationButton.isChecked(),
+		lambda self, enabled: self._notificationButton.setChecked(enabled),
+	)
+
+	notifyOnMissed = property(
+		lambda self: self._missedCallsNotificationButton.isChecked(),
+		lambda self, enabled: self._missedCallsNotificationButton.setChecked(enabled),
+	)
+
+	notifyOnVoicemail = property(
+		lambda self: self._voicemailNotificationButton.isChecked(),
+		lambda self, enabled: self._voicemailNotificationButton.setChecked(enabled),
+	)
+
+	notifyOnSms = property(
+		lambda self: self._smsNotificationButton.isChecked(),
+		lambda self, enabled: self._smsNotificationButton.setChecked(enabled),
+	)
+
+	def _get_notification_time(self):
+		index = self._notificationTimeSelector.currentIndex()
+		minutes = self._RECURRENCE_CHOICES[index][0]
+		return minutes
+
+	def _set_notification_time(self, minutes):
+		for i, (time, _) in enumerate(self._RECURRENCE_CHOICES):
+			if time == minutes:
+				self._callbackSelector.setCurrentIndex(i)
+				break
+		else:
+				self._callbackSelector.setCurrentIndex(0)
+
+	notificationTime = property(_get_notification_time, _set_notification_time)
 
 	@property
 	def selectedCallback(self):
@@ -214,7 +300,6 @@ class AccountDialog(object):
 			if uglyNumber == uglyDefault:
 				self._callbackSelector.setCurrentIndex(i)
 
-
 	def run(self, parent=None):
 		self._doClear = False
 		self._dialog.setParent(parent)
@@ -224,6 +309,22 @@ class AccountDialog(object):
 
 	def close(self):
 		self._dialog.reject()
+
+	def _update_notification_state(self):
+		if self._notificationButton.isChecked():
+			self._notificationTimeSelector.setEnabled(True)
+			self._missedCallsNotificationButton.setEnabled(True)
+			self._voicemailNotificationButton.setEnabled(True)
+			self._smsNotificationButton.setEnabled(True)
+		else:
+			self._notificationTimeSelector.setEnabled(False)
+			self._missedCallsNotificationButton.setEnabled(False)
+			self._voicemailNotificationButton.setEnabled(False)
+			self._smsNotificationButton.setEnabled(False)
+
+	@QtCore.pyqtSlot(int)
+	def _on_notification_change(self, state):
+		self._update_notification_state()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)

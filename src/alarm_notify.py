@@ -7,7 +7,7 @@ import pprint
 import logging
 
 import constants
-from backends import gvoice
+from backends.gvoice import gvoice
 
 
 def get_missed(backend):

@@ -37,6 +37,9 @@ class Dialcentral(object):
 		self._hiddenUnits = {}
 		self._clipboard = QtGui.QApplication.clipboard()
 		self._dataPath = None
+		self.notifyOnMissed = False
+		self.notifyOnVoicemail = False
+		self.notifyOnSms = False
 
 		self._mainWindow = None
 
@@ -59,6 +62,20 @@ class Dialcentral(object):
 		self._app.lastWindowClosed.connect(self._on_app_quit)
 		self._mainWindow = MainWindow(None, self)
 		self._mainWindow.window.destroyed.connect(self._on_child_close)
+
+		try:
+			import alarm_handler
+			if alarm_handler.AlarmHandler is not alarm_handler._NoneAlarmHandler:
+				self._alarmHandler = alarm_handler.AlarmHandler()
+			else:
+				self._alarmHandler = None
+		except (ImportError, OSError):
+			self._alarmHandler = None
+		except Exception:
+			_moduleLogger.exception("Notification failure")
+			self._alarmHandler = None
+		if self._alarmHandler is None:
+			_moduleLogger.info("No notification support")
 
 		self.load_settings()
 
@@ -114,6 +131,31 @@ class Dialcentral(object):
 			_moduleLogger.exception("Unknown loading error")
 			return
 
+		if self._alarmHandler is not None:
+			try:
+				self._alarmHandler.load_settings(config, "alarm")
+				self.notifyOnMissed = config.getboolean("2 - Account Info", "notifyOnMissed")
+				self.notifyOnVoicemail = config.getboolean("2 - Account Info", "notifyOnVoicemail")
+				self.notifyOnSms = config.getboolean("2 - Account Info", "notifyOnSms")
+			except ConfigParser.NoOptionError, e:
+				_moduleLogger.info(
+					"Settings file %s is missing option %s" % (
+						constants._user_settings_,
+						e.option,
+					),
+				)
+			except ConfigParser.NoSectionError, e:
+				_moduleLogger.info(
+					"Settings file %s is missing section %s" % (
+						constants._user_settings_,
+						e.section,
+					),
+				)
+				return
+			except Exception:
+				_moduleLogger.exception("Unknown loading error")
+				return
+
 		creds = (
 			base64.b64decode(blob)
 			for blob in blobs
@@ -133,6 +175,13 @@ class Dialcentral(object):
 		for i, value in enumerate(self._mainWindow.get_default_credentials()):
 			blob = base64.b64encode(value)
 			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
+
+		if self._alarmHandler is not None:
+			self._alarmHandler.save_settings(config, "alarm")
+		config.add_section("2 - Account Info")
+		config.set("2 - Account Info", "notifyOnMissed", repr(self.notifyOnMissed))
+		config.set("2 - Account Info", "notifyOnVoicemail", repr(self.notifyOnVoicemail))
+		config.set("2 - Account Info", "notifyOnSms", repr(self.notifyOnSms))
 
 		self._mainWindow.save_settings(config)
 
@@ -462,14 +511,7 @@ class MainWindow(object):
 		return self._defaultCredentials
 
 	def walk_children(self):
-		return (diag for diag in (
-			self._credentialsDialog,
-			self._smsEntryDialog,
-			self._accountDialog,
-			self._aboutDialog,
-			)
-			if diag is not None
-		)
+		return ()
 
 	def start(self):
 		assert self._session.state == self._session.LOGGEDOUT_STATE, "Initialization messed up"
@@ -484,6 +526,14 @@ class MainWindow(object):
 		for child in self.walk_children():
 			child.window.destroyed.disconnect(self._on_child_close)
 			child.close()
+		for diag in (
+			self._credentialsDialog,
+			self._smsEntryDialog,
+			self._accountDialog,
+			self._aboutDialog,
+		):
+			if diag is not None:
+				diag.close()
 		self._window.close()
 
 	def destroy(self):
@@ -574,6 +624,14 @@ class MainWindow(object):
 		if self._accountDialog is None:
 			import dialogs
 			self._accountDialog = dialogs.AccountDialog(self._app)
+			if self._alarmHandler is None:
+				self._accountDialog.setIfNotificationsSupported(False)
+		if self._alarmHandler is not None:
+			self._accountDialog.notifications = self._alarmHandler.isEnabled
+			self._accountDialog.notificationTime = self._alarmHandler.recurrence
+			self._accountDialog.notifyOnMissed = self._app.notifyOnMissed
+			self._accountDialog.notifyOnVoicemail = self._app.notifyOnVoicemail
+			self._accountDialog.notifyOnSms = self._app.notifyOnSms
 		self._accountDialog.set_callbacks(
 			self._session.get_callback_numbers(), self._session.get_callback_number()
 		)
@@ -585,6 +643,11 @@ class MainWindow(object):
 			else:
 				callbackNumber = self._accountDialog.selectedCallback
 				self._session.set_callback_number(callbackNumber)
+			if self._alarmHandler is not None:
+				self._alarmHandler.apply_settings(self._accountDialog.notifications, self._accountDialog.notificationTime)
+				self._app.notifyOnMissed = self._accountDialog.notifyOnMissed
+				self._app.notifyOnVoicemail = self._accountDialog.notifyOnVoicemail
+				self._app.notifyOnSms = self._accountDialog.notifyOnSms
 		elif response == QtGui.QDialog.Rejected:
 			_moduleLogger.info("Cancelled")
 		else:
