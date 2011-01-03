@@ -30,7 +30,9 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Prepping Qt version of DialCentral for extras
+* Fixing full screen support
+* Adding back in notification support
+* Fixing a dialog closing bug
 """.strip()
 
 
