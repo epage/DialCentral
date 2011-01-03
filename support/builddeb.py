@@ -30,9 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing full screen support
-* Adding back in notification support
-* Fixing a dialog closing bug
+* Properly making the Qt verson mainstream
 """.strip()
 
 
