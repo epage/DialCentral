@@ -216,6 +216,10 @@ class Dialcentral(object):
 	def quitAction(self):
 		return self._quitAction
 
+	@property
+	def alarmHandler(self):
+		return self._alarmHandler
+
 	def _walk_children(self):
 		if self._mainWindow is not None:
 			return (self._mainWindow, )
@@ -624,11 +628,11 @@ class MainWindow(object):
 		if self._accountDialog is None:
 			import dialogs
 			self._accountDialog = dialogs.AccountDialog(self._app)
-			if self._alarmHandler is None:
+			if self._app.alarmHandler is None:
 				self._accountDialog.setIfNotificationsSupported(False)
-		if self._alarmHandler is not None:
-			self._accountDialog.notifications = self._alarmHandler.isEnabled
-			self._accountDialog.notificationTime = self._alarmHandler.recurrence
+		if self._app.alarmHandler is not None:
+			self._accountDialog.notifications = self._app.alarmHandler.isEnabled
+			self._accountDialog.notificationTime = self._app.alarmHandler.recurrence
 			self._accountDialog.notifyOnMissed = self._app.notifyOnMissed
 			self._accountDialog.notifyOnVoicemail = self._app.notifyOnVoicemail
 			self._accountDialog.notifyOnSms = self._app.notifyOnSms
@@ -643,8 +647,8 @@ class MainWindow(object):
 			else:
 				callbackNumber = self._accountDialog.selectedCallback
 				self._session.set_callback_number(callbackNumber)
-			if self._alarmHandler is not None:
-				self._alarmHandler.apply_settings(self._accountDialog.notifications, self._accountDialog.notificationTime)
+			if self._app.alarmHandler is not None:
+				self._app.alarmHandler.apply_settings(self._accountDialog.notifications, self._accountDialog.notificationTime)
 				self._app.notifyOnMissed = self._accountDialog.notifyOnMissed
 				self._app.notifyOnVoicemail = self._accountDialog.notifyOnVoicemail
 				self._app.notifyOnSms = self._accountDialog.notifyOnSms
