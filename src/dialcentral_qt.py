@@ -415,18 +415,25 @@ class MainWindow(object):
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
 		else:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
+		defaultTabIconSize = self._tabWidget.iconSize()
+		defaultTabIconWidth, defaultTabIconHeight = defaultTabIconSize.width(), defaultTabIconSize.height()
 		for tabIndex, (tabTitle, tabIcon) in enumerate(
 			zip(self._TAB_TITLES, self._TAB_ICONS)
 		):
-			if constants.IS_MAEMO:
-				icon = self._app.get_icon(tabIcon)
-				if icon is None:
-					self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, tabTitle)
-				else:
-					self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, icon, "")
+			icon = self._app.get_icon(tabIcon)
+			if constants.IS_MAEMO and icon is not None:
+				tabTitle = ""
+
+			if icon is None:
+				self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, tabTitle)
 			else:
-				icon = self._app.get_icon(tabIcon)
+				iconSize = icon.availableSizes()[0]
+				defaultTabIconWidth = max(defaultTabIconWidth, iconSize.width())
+				defaultTabIconHeight = max(defaultTabIconHeight, iconSize.height())
 				self._tabWidget.addTab(self._tabsContents[tabIndex].toplevel, icon, tabTitle)
+		defaultTabIconWidth = max(defaultTabIconWidth, 32)
+		defaultTabIconHeight = max(defaultTabIconHeight, 32)
+		self._tabWidget.setIconSize(QtCore.QSize(defaultTabIconWidth, defaultTabIconHeight))
 		self._tabWidget.currentChanged.connect(self._on_tab_changed)
 		self._tabWidget.setContentsMargins(0, 0, 0, 0)
 
