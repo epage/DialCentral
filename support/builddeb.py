@@ -30,7 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Properly making the Qt verson mainstream
+* Fixing a notification bug
 """.strip()
 
 
