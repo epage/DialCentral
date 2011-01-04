@@ -126,10 +126,8 @@ class Dialcentral(object):
 					e.section,
 				),
 			)
-			return
 		except Exception:
 			_moduleLogger.exception("Unknown loading error")
-			return
 
 		if self._alarmHandler is not None:
 			try:
@@ -151,10 +149,8 @@ class Dialcentral(object):
 						e.section,
 					),
 				)
-				return
 			except Exception:
 				_moduleLogger.exception("Unknown loading error")
-				return
 
 		creds = (
 			base64.b64decode(blob)
