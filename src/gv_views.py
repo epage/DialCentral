@@ -278,7 +278,7 @@ class History(object):
 		)
 		self._typeSelection.currentIndexChanged[str].connect(self._on_filter_changed)
 		refreshIcon = qui_utils.get_theme_icon(
-			("view-refresh", "gtk-refresh", )
+			("view-refresh", "general_refresh", "gtk-refresh", )
 		)
 		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
 		self._refreshButton.clicked.connect(self._on_refresh_clicked)
@@ -472,7 +472,7 @@ class Messages(object):
 		self._statusSelection.currentIndexChanged[str].connect(self._on_status_filter_changed)
 
 		refreshIcon = qui_utils.get_theme_icon(
-			("view-refresh", "gtk-refresh", )
+			("view-refresh", "general_refresh", "gtk-refresh", )
 		)
 		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
 		self._refreshButton.clicked.connect(self._on_refresh_clicked)
@@ -683,7 +683,7 @@ class Contacts(object):
 		self._listSelection.currentIndexChanged[str].connect(self._on_filter_changed)
 		self._activeList = "None"
 		refreshIcon = qui_utils.get_theme_icon(
-			("view-refresh", "gtk-refresh", )
+			("view-refresh", "general_refresh", "gtk-refresh", )
 		)
 		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
 		self._refreshButton.clicked.connect(self._on_refresh_clicked)
