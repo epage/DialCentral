@@ -12,7 +12,7 @@ import constants
 
 
 __appname__ = constants.__app_name__
-__description__ = """Touch screen enhanced interface to the GoogleVoice phone service"
+__description__ = """Touch screen enhanced interface to the GoogleVoice phone service
 Features:
 .
 * Dialpad for quick call
