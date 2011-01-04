@@ -277,6 +277,19 @@ class History(object):
 			self.HISTORY_ITEM_TYPES.index(self._selectedFilter)
 		)
 		self._typeSelection.currentIndexChanged[str].connect(self._on_filter_changed)
+		refreshIcon = qui_utils.get_theme_icon(
+			("view-refresh", "gtk-refresh", )
+		)
+		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		self._refreshButton.clicked.connect(self._on_refresh_clicked)
+		self._refreshButton.setSizePolicy(QtGui.QSizePolicy(
+			QtGui.QSizePolicy.Minimum,
+			QtGui.QSizePolicy.Minimum,
+			QtGui.QSizePolicy.PushButton,
+		))
+		self._managerLayout = QtGui.QHBoxLayout()
+		self._managerLayout.addWidget(self._typeSelection, 1000)
+		self._managerLayout.addWidget(self._refreshButton, 0)
 
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(self.HISTORY_COLUMNS)
@@ -295,7 +308,7 @@ class History(object):
 		self._itemView.activated.connect(self._on_row_activated)
 
 		self._layout = QtGui.QVBoxLayout()
-		self._layout.addWidget(self._typeSelection)
+		self._layout.addLayout(self._managerLayout)
 		self._layout.addWidget(self._itemView)
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
@@ -379,6 +392,12 @@ class History(object):
 		with qui_utils.notify_error(self._errorLog):
 			self._populate_items()
 
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_refresh_clicked(self, arg = None):
+		with qui_utils.notify_error(self._errorLog):
+			self.refresh(force=True)
+
 	@QtCore.pyqtSlot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
@@ -452,9 +471,21 @@ class Messages(object):
 		)
 		self._statusSelection.currentIndexChanged[str].connect(self._on_status_filter_changed)
 
+		refreshIcon = qui_utils.get_theme_icon(
+			("view-refresh", "gtk-refresh", )
+		)
+		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		self._refreshButton.clicked.connect(self._on_refresh_clicked)
+		self._refreshButton.setSizePolicy(QtGui.QSizePolicy(
+			QtGui.QSizePolicy.Minimum,
+			QtGui.QSizePolicy.Minimum,
+			QtGui.QSizePolicy.PushButton,
+		))
+
 		self._selectionLayout = QtGui.QHBoxLayout()
-		self._selectionLayout.addWidget(self._typeSelection)
-		self._selectionLayout.addWidget(self._statusSelection)
+		self._selectionLayout.addWidget(self._typeSelection, 1000)
+		self._selectionLayout.addWidget(self._statusSelection, 1000)
+		self._selectionLayout.addWidget(self._refreshButton, 0)
 
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(["Messages"])
@@ -597,6 +628,12 @@ class Messages(object):
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
+	def _on_refresh_clicked(self, arg = None):
+		with qui_utils.notify_error(self._errorLog):
+			self.refresh(force=True)
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_messages_updated(self):
 		with qui_utils.notify_error(self._errorLog):
 			self._populate_items()
@@ -645,6 +682,19 @@ class Contacts(object):
 		self._listSelection.addItems([])
 		self._listSelection.currentIndexChanged[str].connect(self._on_filter_changed)
 		self._activeList = "None"
+		refreshIcon = qui_utils.get_theme_icon(
+			("view-refresh", "gtk-refresh", )
+		)
+		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		self._refreshButton.clicked.connect(self._on_refresh_clicked)
+		self._refreshButton.setSizePolicy(QtGui.QSizePolicy(
+			QtGui.QSizePolicy.Minimum,
+			QtGui.QSizePolicy.Minimum,
+			QtGui.QSizePolicy.PushButton,
+		))
+		self._managerLayout = QtGui.QHBoxLayout()
+		self._managerLayout.addWidget(self._listSelection, 1000)
+		self._managerLayout.addWidget(self._refreshButton, 0)
 
 		self._itemStore = QtGui.QStandardItemModel()
 		self._itemStore.setHorizontalHeaderLabels(["Contacts"])
@@ -662,7 +712,7 @@ class Contacts(object):
 		self._itemView.activated.connect(self._on_row_activated)
 
 		self._layout = QtGui.QVBoxLayout()
-		self._layout.addWidget(self._listSelection)
+		self._layout.addLayout(self._managerLayout)
 		self._layout.addWidget(self._itemView)
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
@@ -791,6 +841,12 @@ class Contacts(object):
 			self._activeList = str(newItem)
 			self.refresh(force=False)
 			self._populate_items()
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_refresh_clicked(self, arg = None):
+		with qui_utils.notify_error(self._errorLog):
+			self.refresh(force=True)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)

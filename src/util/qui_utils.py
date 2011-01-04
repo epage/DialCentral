@@ -100,8 +100,8 @@ class ErrorDisplay(object):
 		self._icons = {
 			ErrorMessage.LEVEL_BUSY:
 				get_theme_icon(
-					#("process-working", "gtk-refresh")
-					("gtk-refresh", )
+					#("process-working", "view-refresh", "gtk-refresh")
+					("view-refresh", "gtk-refresh", )
 				).pixmap(32, 32),
 			ErrorMessage.LEVEL_INFO:
 				get_theme_icon(
