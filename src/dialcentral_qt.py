@@ -177,6 +177,7 @@ class Dialcentral(object):
 			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
 
 		if self._alarmHandler is not None:
+			config.add_section("alarm")
 			self._alarmHandler.save_settings(config, "alarm")
 		config.add_section("2 - Account Info")
 		config.set("2 - Account Info", "notifyOnMissed", repr(self.notifyOnMissed))
