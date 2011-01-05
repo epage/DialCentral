@@ -644,7 +644,7 @@ class MainWindow(object):
 			self._session.get_callback_numbers(), self._session.get_callback_number()
 		)
 		self._accountDialog.accountNumber = self._session.get_account_number()
-		response = self._accountDialog.run()
+		response = self._accountDialog.run(self.window)
 		if response == QtGui.QDialog.Accepted:
 			if self._accountDialog.doClear:
 				self._session.logout_and_clear()
@@ -747,7 +747,7 @@ class MainWindow(object):
 			if self._aboutDialog is None:
 				import dialogs
 				self._aboutDialog = dialogs.AboutDialog(self._app)
-			response = self._aboutDialog.run()
+			response = self._aboutDialog.run(self.window)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)

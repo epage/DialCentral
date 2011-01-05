@@ -100,15 +100,19 @@ class AboutDialog(object):
 		self._link.setAlignment(QtCore.Qt.AlignCenter)
 		self._link.setOpenExternalLinks(True)
 
+		self._buttonLayout = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Cancel)
+
 		self._layout = QtGui.QVBoxLayout()
 		self._layout.addWidget(self._title)
 		self._layout.addWidget(self._copyright)
 		self._layout.addWidget(self._link)
+		self._layout.addWidget(self._buttonLayout)
 
 		self._dialog = QtGui.QDialog()
 		self._dialog.setWindowTitle("About")
 		self._dialog.setLayout(self._layout)
 		qui_utils.set_autorient(self._dialog, True)
+		self._buttonLayout.rejected.connect(self._dialog.reject)
 
 		self._closeWindowAction = QtGui.QAction(None)
 		self._closeWindowAction.setText("Close")
@@ -120,7 +124,7 @@ class AboutDialog(object):
 		self._dialog.addAction(app.fullscreenAction)
 
 	def run(self, parent=None):
-		self._dialog.setParent(parent)
+		self._dialog.setParent(parent, QtCore.Qt.Dialog)
 
 		response = self._dialog.exec_()
 		return response
@@ -138,7 +142,6 @@ class AboutDialog(object):
 class AccountDialog(object):
 
 	# @bug Can't enter custom callback numbers
-
 
 	_RECURRENCE_CHOICES = [
 		(1, "1 minute"),
@@ -302,7 +305,7 @@ class AccountDialog(object):
 
 	def run(self, parent=None):
 		self._doClear = False
-		self._dialog.setParent(parent)
+		self._dialog.setParent(parent, QtCore.Qt.Dialog)
 
 		response = self._dialog.exec_()
 		return response
