@@ -30,7 +30,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing the refresh icon for Maemo 5 PR1.2
+* Fixing modality for dialogs
+* Adding a cancel button to the about dialog
 """.strip()
 
 
