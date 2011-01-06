@@ -505,7 +505,7 @@ class SMSEntryWindow(object):
 					self._on_remove_contact,
 					cid
 				)
-				callback.__name__ = "b"
+				callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
 				deleteButton.clicked.connect(callback)
 
 				rowLayout = QtGui.QHBoxLayout()
@@ -583,7 +583,11 @@ class SMSEntryWindow(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_change_number(self, cid, index):
 		# Exception thrown when the first item is removed
-		numbers = self._session.draft.get_numbers(cid)
+		try:
+			numbers = self._session.draft.get_numbers(cid)
+		except KeyError:
+			_moduleLogger.error("Contact no longer available (or bizarre error): %r" % cid)
+			return
 		number = numbers[index][0]
 		self._session.draft.set_selected_number(cid, number)
 
@@ -608,12 +612,11 @@ class SMSEntryWindow(object):
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_finished(self):
-		self._window.hide()
-
 		self._smsEntry.setReadOnly(False)
 		self._cancelButton.setVisible(False)
 		self._smsButton.setVisible(True)
 		self._dialButton.setVisible(True)
+		self._window.hide()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
