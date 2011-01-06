@@ -343,6 +343,8 @@ class History(object):
 
 	def refresh(self, force=True):
 		self._session.update_history(force)
+		if self._app.notifyOnMissed:
+			self._app.ledHandler.off()
 
 	def _populate_items(self):
 		self._categoryManager.prepare_for_update(self._session.get_when_history_updated())
@@ -548,6 +550,8 @@ class Messages(object):
 
 	def refresh(self, force=True):
 		self._session.update_messages(force)
+		if self._app.notifyOnSms or self._app.notifyOnVoicemail:
+			self._app.ledHandler.off()
 
 	def _populate_items(self):
 		self._categoryManager.prepare_for_update(self._session.get_when_messages_updated())

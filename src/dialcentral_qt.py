@@ -23,6 +23,30 @@ import session
 _moduleLogger = logging.getLogger(__name__)
 
 
+class LedWrapper(object):
+
+	def __init__(self):
+		self._ledHandler = None
+		self._init = False
+
+	def off(self):
+		self._lazy_init()
+		if self._ledHandler is not None:
+			self._ledHandler.off()
+
+	def _lazy_init(self):
+		if self._init:
+			return
+		self._init = True
+		try:
+			import led_handler
+			self._ledHandler = led_handler.LedHandler()
+		except Exception, e:
+			_moduleLogger.exception('Unable to initialize LED Handling: "%s"' % str(e))
+			self._ledHandler = None
+
+
+
 class Dialcentral(object):
 
 	_DATA_PATHS = [
@@ -37,6 +61,7 @@ class Dialcentral(object):
 		self._hiddenUnits = {}
 		self._clipboard = QtGui.QApplication.clipboard()
 		self._dataPath = None
+		self._ledHandler = LedWrapper()
 		self.notifyOnMissed = False
 		self.notifyOnVoicemail = False
 		self.notifyOnSms = False
@@ -216,6 +241,10 @@ class Dialcentral(object):
 	@property
 	def alarmHandler(self):
 		return self._alarmHandler
+
+	@property
+	def ledHandler(self):
+		return self._ledHandler
 
 	def _walk_children(self):
 		if self._mainWindow is not None:
