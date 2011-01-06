@@ -30,8 +30,10 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing modality for dialogs
-* Adding a cancel button to the about dialog
+* Fixing selected callback in Accounts Dialog bug
+* Fixing first start bug
+* Enabled turning off of the LED on refresh on Maemo 4.1
+* Small cleanup
 """.strip()
 
 
