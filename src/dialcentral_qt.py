@@ -106,10 +106,10 @@ class Dialcentral(object):
 		isFullscreen = False
 		tabIndex = 0
 		try:
-			blobs = (
+			blobs = [
 				config.get(constants.__pretty_app_name__, "bin_blob_%i" % i)
 				for i in xrange(len(self._mainWindow.get_default_credentials()))
-			)
+			]
 			isFullscreen = config.getboolean(constants.__pretty_app_name__, "fullscreen")
 			tabIndex = config.getint(constants.__pretty_app_name__, "tab")
 		except ConfigParser.NoOptionError, e:
