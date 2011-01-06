@@ -293,7 +293,7 @@ class AccountDialog(object):
 		self._callbackSelector.addItem("Not Set", "")
 
 		uglyDefault = misc_utils.make_ugly(default)
-		for i, (number, description) in enumerate(choices.iteritems()):
+		for number, description in choices.iteritems():
 			prettyNumber = misc_utils.make_pretty(number)
 			uglyNumber = misc_utils.make_ugly(number)
 			if not uglyNumber:
@@ -301,7 +301,7 @@ class AccountDialog(object):
 
 			self._callbackSelector.addItem("%s - %s" % (prettyNumber, description), uglyNumber)
 			if uglyNumber == uglyDefault:
-				self._callbackSelector.setCurrentIndex(i)
+				self._callbackSelector.setCurrentIndex(self._callbackSelector.count() - 1)
 
 	def run(self, parent=None):
 		self._doClear = False
