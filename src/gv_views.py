@@ -342,6 +342,7 @@ class History(object):
 		self._itemView.clear()
 
 	def refresh(self, force=True):
+		self._itemView.setFocus(QtCore.Qt.OtherFocusReason)
 		self._session.update_history(force)
 		if self._app.notifyOnMissed:
 			self._app.ledHandler.off()
@@ -549,6 +550,7 @@ class Messages(object):
 		self._itemView.clear()
 
 	def refresh(self, force=True):
+		self._itemView.setFocus(QtCore.Qt.OtherFocusReason)
 		self._session.update_messages(force)
 		if self._app.notifyOnSms or self._app.notifyOnVoicemail:
 			self._app.ledHandler.off()
@@ -754,6 +756,7 @@ class Contacts(object):
 		self._itemView.clear()
 
 	def refresh(self, force=True):
+		self._itemView.setFocus(QtCore.Qt.OtherFocusReason)
 		self._backend.update_contacts(force)
 
 	@property
