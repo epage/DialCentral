@@ -387,6 +387,8 @@ class SMSEntryWindow(object):
 
 		self._characterCountLabel = QtGui.QLabel("0 (0)")
 		self._singleNumberSelector = QtGui.QComboBox()
+		self._singleNumbersCID = None
+		self._singleNumberSelector.activated.connect(self._on_single_change_number)
 		self._smsButton = QtGui.QPushButton("SMS")
 		self._smsButton.clicked.connect(self._on_sms_clicked)
 		self._smsButton.setEnabled(False)
@@ -448,6 +450,7 @@ class SMSEntryWindow(object):
 		self._characterCountLabel.setText("%d (%d)" % (numCharsLeftInText, numTexts))
 
 	def _update_button_state(self):
+		self._cancelButton.setEnabled(True)
 		if self._session.draft.get_num_contacts() == 0:
 			self._dialButton.setEnabled(False)
 			self._smsButton.setEnabled(False)
@@ -467,7 +470,10 @@ class SMSEntryWindow(object):
 		draftContactsCount = self._session.draft.get_num_contacts()
 		if draftContactsCount == 0:
 			self._window.hide()
+			self._singleNumbersCID = None
 		elif draftContactsCount == 1:
+			self._clear_target_list()
+
 			(cid, ) = self._session.draft.get_contacts()
 			title = self._session.draft.get_title(cid)
 			description = self._session.draft.get_description(cid)
@@ -488,10 +494,7 @@ class SMSEntryWindow(object):
 			self._smsEntry.setFocus(QtCore.Qt.OtherFocusReason)
 		else:
 			self._targetList.setVisible(True)
-			while self._targetLayout.count():
-				removedLayoutItem = self._targetLayout.takeAt(self._targetLayout.count()-1)
-				removedWidget = removedLayoutItem.widget()
-				removedWidget.close()
+			self._clear_target_list()
 			for cid in self._session.draft.get_contacts():
 				title = self._session.draft.get_title(cid)
 				description = self._session.draft.get_description(cid)
@@ -518,11 +521,20 @@ class SMSEntryWindow(object):
 			self._history.setText("")
 			self._history.setVisible(False)
 			self._singleNumberSelector.setVisible(False)
+			self._singleNumbersCID = None
 
 			self._scroll_to_bottom()
 			self._window.setWindowTitle("Contacts")
 			self._window.show()
 			self._smsEntry.setFocus(QtCore.Qt.OtherFocusReason)
+
+	def _clear_target_list(self):
+		while self._targetLayout.count():
+			removedLayoutItem = self._targetLayout.takeAt(self._targetLayout.count()-1)
+			removedWidget = removedLayoutItem.widget()
+			removedWidget.hide()
+			removedWidget.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+			removedWidget.close()
 
 	def _populate_number_selector(self, selector, cid, numbers):
 		selector.clear()
@@ -544,14 +556,18 @@ class SMSEntryWindow(object):
 			selector.setCurrentIndex(defaultIndex)
 		else:
 			selector.setEnabled(False)
-		callback = functools.partial(
-			self._on_change_number,
-			cid
-		)
-		callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
-		selector.currentIndexChanged.connect(
-			QtCore.pyqtSlot(int)(callback)
-		)
+
+		if selector is not self._singleNumberSelector:
+			callback = functools.partial(
+				self._on_change_number,
+				cid
+			)
+			callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
+			selector.activated.connect(
+				QtCore.pyqtSlot(int)(callback)
+			)
+		else:
+			self._singleNumbersCID = None
 
 	def _scroll_to_bottom(self):
 		self._scrollTimer.start()
@@ -581,12 +597,27 @@ class SMSEntryWindow(object):
 		self._session.draft.remove_contact(cid)
 
 	@misc_utils.log_exception(_moduleLogger)
+	def _on_single_change_number(self, index):
+		# Exception thrown when the first item is removed
+		cid = self._singleNumbersCID
+		if cid is None:
+			_moduleLogger.error("Number change occurred on the single selector when in multi-selector mode (%r)" % index)
+			return
+		try:
+			numbers = self._session.draft.get_numbers(cid)
+		except KeyError:
+			_moduleLogger.error("Contact no longer available (or bizarre error): %r (%r)" % (cid, index))
+			return
+		number = numbers[index][0]
+		self._session.draft.set_selected_number(cid, number)
+
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_change_number(self, cid, index):
 		# Exception thrown when the first item is removed
 		try:
 			numbers = self._session.draft.get_numbers(cid)
 		except KeyError:
-			_moduleLogger.error("Contact no longer available (or bizarre error): %r" % cid)
+			_moduleLogger.error("Contact no longer available (or bizarre error): %r (%r)" % (cid, index))
 			return
 		number = numbers[index][0]
 		self._session.draft.set_selected_number(cid, number)
