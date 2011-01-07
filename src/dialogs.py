@@ -349,12 +349,14 @@ class SMSEntryWindow(object):
 	def __init__(self, parent, app, session, errorLog):
 		self._session = session
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
+
 		self._session.draft.sendingMessage.connect(self._on_op_started)
 		self._session.draft.calling.connect(self._on_op_started)
-		self._session.draft.cancelling.connect(self._on_op_started)
 		self._session.draft.calling.connect(self._on_calling_started)
-		self._session.draft.called.connect(self._on_op_finished)
+		self._session.draft.cancelling.connect(self._on_op_started)
+
 		self._session.draft.sentMessage.connect(self._on_op_finished)
+		self._session.draft.called.connect(self._on_op_finished)
 		self._session.draft.cancelled.connect(self._on_op_finished)
 		self._session.draft.error.connect(self._on_op_error)
 		self._errorLog = errorLog
@@ -578,12 +580,10 @@ class SMSEntryWindow(object):
 	def _on_sms_clicked(self, arg):
 		message = unicode(self._smsEntry.toPlainText())
 		self._session.draft.send(message)
-		self._smsEntry.setPlainText("")
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_call_clicked(self, arg):
 		self._session.draft.call()
-		self._smsEntry.setPlainText("")
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -641,6 +641,7 @@ class SMSEntryWindow(object):
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_finished(self):
+		self._smsEntry.setPlainText("")
 		self._smsEntry.setReadOnly(False)
 		self._cancelButton.setVisible(False)
 		self._smsButton.setVisible(True)
