@@ -472,14 +472,13 @@ class SMSEntryWindow(object):
 			self._window.hide()
 			self._singleNumbersCID = None
 		elif draftContactsCount == 1:
-			self._clear_target_list()
-
 			(cid, ) = self._session.draft.get_contacts()
 			title = self._session.draft.get_title(cid)
 			description = self._session.draft.get_description(cid)
 			numbers = self._session.draft.get_numbers(cid)
 
 			self._targetList.setVisible(False)
+			self._clear_target_list()
 			if description:
 				self._history.setText(description)
 				self._history.setVisible(True)
@@ -487,6 +486,7 @@ class SMSEntryWindow(object):
 				self._history.setText("")
 				self._history.setVisible(False)
 			self._populate_number_selector(self._singleNumberSelector, cid, numbers)
+			self._singleNumbersCID = None
 
 			self._scroll_to_bottom()
 			self._window.setWindowTitle(title)
@@ -566,8 +566,6 @@ class SMSEntryWindow(object):
 			selector.activated.connect(
 				QtCore.pyqtSlot(int)(callback)
 			)
-		else:
-			self._singleNumbersCID = None
 
 	def _scroll_to_bottom(self):
 		self._scrollTimer.start()
