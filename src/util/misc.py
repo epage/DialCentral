@@ -16,6 +16,11 @@ import warnings
 import string
 
 
+class AnyData(object):
+
+	pass
+
+
 _indentationLevel = [0]
 
 
