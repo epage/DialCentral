@@ -326,11 +326,13 @@ class AccountDialog(object):
 			self._smsNotificationButton.setEnabled(False)
 
 	@QtCore.pyqtSlot(int)
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_notification_change(self, state):
 		self._update_notification_state()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_clear(self, checked = False):
 		self._doClear = True
 		self._dialog.accept()
