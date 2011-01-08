@@ -466,7 +466,10 @@ class SMSEntryWindow(object):
 				self._smsButton.setEnabled(True)
 		else:
 			self._dialButton.setEnabled(False)
-			self._smsButton.setEnabled(True)
+			if count == 0:
+				self._smsButton.setEnabled(False)
+			else:
+				self._smsButton.setEnabled(True)
 
 	def _update_recipients(self):
 		draftContactsCount = self._session.draft.get_num_contacts()
