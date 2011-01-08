@@ -30,9 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixed a bug with entering in a text
-* Fixed some timing issues of the user trying to start the next text while the current is sending
-* Prioritized error messages in the display over busy messages
+* Stricter hiding of password on entry
 """.strip()
 
 
