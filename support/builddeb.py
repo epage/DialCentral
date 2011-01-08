@@ -30,10 +30,11 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing selected callback in Accounts Dialog bug
-* Fixing first start bug
-* Enabled turning off of the LED on refresh on Maemo 4.1
-* Small cleanup
+* Contacts: Providing default focus to contact list for faster searching
+* Contacts: Expanded support for CSV schemas for contacts
+* SMS: Reduced log noise / wasted cycles when switching SMS window between single and broadcast mode
+* SMS: Only clearing SMS window on success so it doesn't get lost
+* SMS: Was not enabling buttons at all the right times in SMS Window, fixed it
 """.strip()
 
 
