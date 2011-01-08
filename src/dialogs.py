@@ -438,7 +438,7 @@ class SMSEntryWindow(object):
 		self._scrollTimer.timeout.connect(self._on_delayed_scroll_to_bottom)
 
 		self._window.show()
-		self._update_recipients()
+		self._update_target_fields()
 
 	def close(self):
 		self._window.destroy()
@@ -471,9 +471,10 @@ class SMSEntryWindow(object):
 			else:
 				self._smsButton.setEnabled(True)
 
-	def _update_recipients(self):
+	def _update_target_fields(self):
 		draftContactsCount = self._session.draft.get_num_contacts()
 		if draftContactsCount == 0:
+			self._clear_target_list()
 			self._window.hide()
 			self._singleNumbersCID = None
 		elif draftContactsCount == 1:
@@ -626,7 +627,8 @@ class SMSEntryWindow(object):
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_recipients_changed(self):
-		self._update_recipients()
+		self._update_target_fields()
+		self._update_button_state()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
