@@ -23,7 +23,7 @@ class CredentialsDialog(object):
 	def __init__(self, app):
 		self._usernameField = QtGui.QLineEdit()
 		self._passwordField = QtGui.QLineEdit()
-		self._passwordField.setEchoMode(QtGui.QLineEdit.PasswordEchoOnEdit)
+		self._passwordField.setEchoMode(QtGui.QLineEdit.Password)
 
 		self._credLayout = QtGui.QGridLayout()
 		self._credLayout.addWidget(QtGui.QLabel("Username"), 0, 0)
