@@ -110,19 +110,24 @@ class CsvAddressBook(object):
 		nameFallbacks = []
 		phones = []
 		for i, item in enumerate(row):
-			if 0 <= item.lower().find("name"):
+			lowerItem = item.lower()
+			if 0 <= lowerItem.find("name"):
 				names.append((item, i))
-				if 0 <= item.lower().find("first") or 0 <= item.lower().find("given"):
+
+				if 0 <= lowerItem.find("couple"):
+					names.insert(0, (item, i))
+
+				if 0 <= lowerItem.find("first") or 0 <= lowerItem.find("given"):
 					firstMiddleLast[0] = i
-				elif 0 <= item.lower().find("middle"):
+				elif 0 <= lowerItem.find("middle"):
 					firstMiddleLast[1] = i
-				elif 0 <= item.lower().find("last") or 0 <= item.lower().find("family"):
+				elif 0 <= lowerItem.find("last") or 0 <= lowerItem.find("family"):
 					firstMiddleLast[2] = i
-			elif 0 <= item.lower().find("phone"):
+			elif 0 <= lowerItem.find("phone"):
 				phones.append((item, i))
-			elif 0 <= item.lower().find("mobile"):
+			elif 0 <= lowerItem.find("mobile"):
 				phones.append((item, i))
-			elif 0 <= item.lower().find("email") or 0 <= item.lower().find("e-mail"):
+			elif 0 <= lowerItem.find("email") or 0 <= lowerItem.find("e-mail"):
 				nameFallbacks.append(i)
 		if len(names) == 0:
 			names.append(("Name", 0))
@@ -130,7 +135,8 @@ class CsvAddressBook(object):
 			phones.append(("Phone", 1))
 
 		nameColumns = [i for i in firstMiddleLast if 0 <= i]
-		if not nameColumns:
+		if len(nameColumns) < 2:
+			del nameColumns[:]
 			nameColumns.append(names[0][1])
 
 		return nameColumns, nameFallbacks, phones
