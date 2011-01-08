@@ -1,5 +1,6 @@
 import sys
 import contextlib
+import datetime
 import logging
 
 from PyQt4 import QtCore
@@ -19,15 +20,25 @@ def notify_error(log):
 		log.push_exception()
 
 
+@contextlib.contextmanager
+def notify_busy(log, message):
+	log.push_busy(message)
+	try:
+		yield
+	finally:
+		log.pop(message)
+
+
 class ErrorMessage(object):
 
-	LEVEL_BUSY = "busy"
-	LEVEL_INFO = "info"
-	LEVEL_ERROR = "error"
+	LEVEL_ERROR = 0
+	LEVEL_BUSY = 1
+	LEVEL_INFO = 2
 
 	def __init__(self, message, level):
 		self._message = message
 		self._level = level
+		self._time = datetime.datetime.now()
 
 	@property
 	def level(self):
@@ -36,6 +47,9 @@ class ErrorMessage(object):
 	@property
 	def message(self):
 		return self._message
+
+	def __repr__(self):
+		return "%s.%s(%r, %r)" % (__name__, self.__class__.__name__, self._message, self._level)
 
 
 class QErrorLog(QtCore.QObject):
@@ -82,6 +96,8 @@ class QErrorLog(QtCore.QObject):
 
 	def _push_message(self, message, level):
 		self._messages.append(ErrorMessage(message, level))
+		# Sort is defined as stable, so this should be fine
+		self._messages.sort(key=lambda x: x.level)
 		self.messagePushed.emit()
 
 	def __len__(self):
@@ -142,6 +158,12 @@ class ErrorDisplay(object):
 	def toplevel(self):
 		return self._widget
 
+	def _show_error(self):
+		error = self._errorLog.peek_message()
+		self._message.setText(error.message)
+		self._severityLabel.setPixmap(self._icons[error.level])
+		self._widget.show()
+
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc.log_exception(_moduleLogger)
@@ -151,11 +173,7 @@ class ErrorDisplay(object):
 	@QtCore.pyqtSlot()
 	@misc.log_exception(_moduleLogger)
 	def _on_message_pushed(self):
-		if 1 <= len(self._errorLog) and self._widget.isHidden():
-			error = self._errorLog.peek_message()
-			self._message.setText(error.message)
-			self._severityLabel.setPixmap(self._icons[error.level])
-			self._widget.show()
+		self._show_error()
 
 	@QtCore.pyqtSlot()
 	@misc.log_exception(_moduleLogger)
@@ -164,9 +182,7 @@ class ErrorDisplay(object):
 			self._message.setText("")
 			self._widget.hide()
 		else:
-			error = self._errorLog.peek_message()
-			self._message.setText(error.message)
-			self._severityLabel.setPixmap(self._icons[error.level])
+			self._show_error()
 
 
 class QHtmlDelegate(QtGui.QStyledItemDelegate):

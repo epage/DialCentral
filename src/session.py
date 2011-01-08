@@ -15,6 +15,7 @@ except ImportError:
 from PyQt4 import QtCore
 
 from util import qore_utils
+from util import qui_utils
 from util import concurrent
 from util import misc as misc_utils
 
@@ -22,15 +23,6 @@ import constants
 
 
 _moduleLogger = logging.getLogger(__name__)
-
-
-@contextlib.contextmanager
-def notify_busy(log, message):
-	log.push_busy(message)
-	try:
-		yield
-	finally:
-		log.pop(message)
 
 
 class _DraftContact(object):
@@ -147,7 +139,7 @@ class Draft(QtCore.QObject):
 		self.sendingMessage.emit()
 		try:
 			with self._busy("Sending Text"):
-				with notify_busy(self._errorLog, "Sending Text"):
+				with qui_utils.notify_busy(self._errorLog, "Sending Text"):
 					yield (
 						self._backend[0].send_sms,
 						(numbers, text),
@@ -162,7 +154,7 @@ class Draft(QtCore.QObject):
 		self.calling.emit()
 		try:
 			with self._busy("Calling"):
-				with notify_busy(self._errorLog, "Calling"):
+				with qui_utils.notify_busy(self._errorLog, "Calling"):
 					yield (
 						self._backend[0].call,
 						(number, ),
@@ -176,7 +168,7 @@ class Draft(QtCore.QObject):
 	def _cancel(self):
 		self.cancelling.emit()
 		try:
-			with notify_busy(self._errorLog, "Cancelling"):
+			with qui_utils.notify_busy(self._errorLog, "Cancelling"):
 				yield (
 					self._backend[0].cancel,
 					(),
@@ -330,7 +322,7 @@ class Session(QtCore.QObject):
 		assert self.state == self.LOGGEDIN_STATE, "DND requires being logged in (currently %s" % self.state
 		oldDnd = self._dnd
 		try:
-			with notify_busy(self._errorLog, "Setting DND Status"):
+			with qui_utils.notify_busy(self._errorLog, "Setting DND Status"):
 				yield (
 					self._backend[0].set_dnd,
 					(dnd, ),
@@ -379,7 +371,7 @@ class Session(QtCore.QObject):
 			self.callbackNumberChanged.emit(self._callback)
 
 	def _login(self, username, password):
-		with notify_busy(self._errorLog, "Logging In"):
+		with qui_utils.notify_busy(self._errorLog, "Logging In"):
 			self._loggedInTime = self._LOGGINGIN_TIME
 			self.stateChange.emit(self.LOGGINGIN_STATE)
 			finalState = self.LOGGEDOUT_STATE
@@ -568,7 +560,7 @@ class Session(QtCore.QObject):
 
 	def _update_contacts(self):
 		try:
-			with notify_busy(self._errorLog, "Updating Contacts"):
+			with qui_utils.notify_busy(self._errorLog, "Updating Contacts"):
 				self._contacts = yield (
 					self._backend[0].get_contacts,
 					(),
@@ -582,7 +574,7 @@ class Session(QtCore.QObject):
 
 	def _update_messages(self):
 		try:
-			with notify_busy(self._errorLog, "Updating Messages"):
+			with qui_utils.notify_busy(self._errorLog, "Updating Messages"):
 				self._messages = yield (
 					self._backend[0].get_messages,
 					(),
@@ -596,7 +588,7 @@ class Session(QtCore.QObject):
 
 	def _update_history(self):
 		try:
-			with notify_busy(self._errorLog, "Updating History"):
+			with qui_utils.notify_busy(self._errorLog, "Updating History"):
 				self._history = yield (
 					self._backend[0].get_recent,
 					(),
