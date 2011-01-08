@@ -60,6 +60,7 @@ class Draft(QtCore.QObject):
 		self._contacts = {}
 		self._pool = pool
 		self._backend = backend
+		self._busyReason = None
 
 	def send(self, text):
 		assert 0 < len(self._contacts), "No contacts selected"
@@ -79,6 +80,8 @@ class Draft(QtCore.QObject):
 		le.start()
 
 	def add_contact(self, contactId, title, description, numbersWithDescriptions):
+		if self._busyReason is not None:
+			raise RuntimeError("Please wait for %r" % self._busyReason)
 		if contactId in self._contacts:
 			_moduleLogger.info("Adding duplicate contact %r" % contactId)
 			# @todo Remove this evil hack to re-popup the dialog
@@ -89,6 +92,8 @@ class Draft(QtCore.QObject):
 		self.recipientsChanged.emit()
 
 	def remove_contact(self, contactId):
+		if self._busyReason is not None:
+			raise RuntimeError("Please wait for %r" % self._busyReason)
 		assert contactId in self._contacts, "Contact missing"
 		del self._contacts[contactId]
 		self.recipientsChanged.emit()
@@ -118,36 +123,53 @@ class Draft(QtCore.QObject):
 		self._contacts[cid].selectedNumber = number
 
 	def clear(self):
+		if self._busyReason is not None:
+			raise RuntimeError("Please wait for %r" % self._busyReason)
+		self._clear()
+
+	def _clear(self):
 		oldContacts = self._contacts
 		self._contacts = {}
 		if oldContacts:
 			self.recipientsChanged.emit()
 
+	@contextlib.contextmanager
+	def _busy(self, message):
+		if self._busyReason is not None:
+			raise RuntimeError("Already busy doing %r" % self._busyReason)
+		try:
+			self._busyReason = message
+			yield
+		finally:
+			self._busyReason = None
+
 	def _send(self, numbers, text):
 		self.sendingMessage.emit()
 		try:
-			with notify_busy(self._errorLog, "Sending Text"):
-				yield (
-					self._backend[0].send_sms,
-					(numbers, text),
-					{},
-				)
-			self.sentMessage.emit()
-			self.clear()
+			with self._busy("Sending Text"):
+				with notify_busy(self._errorLog, "Sending Text"):
+					yield (
+						self._backend[0].send_sms,
+						(numbers, text),
+						{},
+					)
+				self.sentMessage.emit()
+				self._clear()
 		except Exception, e:
 			self.error.emit(str(e))
 
 	def _call(self, number):
 		self.calling.emit()
 		try:
-			with notify_busy(self._errorLog, "Calling"):
-				yield (
-					self._backend[0].call,
-					(number, ),
-					{},
-				)
-			self.called.emit()
-			self.clear()
+			with self._busy("Calling"):
+				with notify_busy(self._errorLog, "Calling"):
+					yield (
+						self._backend[0].call,
+						(number, ),
+						{},
+					)
+				self.called.emit()
+				self._clear()
 		except Exception, e:
 			self.error.emit(str(e))
 
