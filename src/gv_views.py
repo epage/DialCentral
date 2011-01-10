@@ -450,7 +450,7 @@ class Messages(object):
 	ALL_STATUS = "Any"
 	MESSAGE_STATUSES = [UNREAD_STATUS, UNARCHIVED_STATUS, ALL_STATUS]
 
-	_MIN_MESSAGES_SHOWN = 4
+	_MIN_MESSAGES_SHOWN = 1
 
 	def __init__(self, app, session, errorLog):
 		self._selectedTypeFilter = self.ALL_TYPES
@@ -595,11 +595,11 @@ class Messages(object):
 					for messagePart in messageParts
 				]
 
-			firstMessage = "<b>%s - %s</b> <i>(%s)</i>" % (name, prettyNumber, relTime)
+			firstMessage = "<b>%s<br/>%s</b> <i>(%s)</i>" % (name, prettyNumber, relTime)
 
 			expandedMessages = [firstMessage]
 			expandedMessages.extend(messages)
-			if (self._MIN_MESSAGES_SHOWN + 1) < len(messages):
+			if self._MIN_MESSAGES_SHOWN < len(messages):
 				secondMessage = "<i>%d Messages Hidden...</i>" % (len(messages) - self._MIN_MESSAGES_SHOWN, )
 				collapsedMessages = [firstMessage, secondMessage]
 				collapsedMessages.extend(messages[-(self._MIN_MESSAGES_SHOWN+0):])
