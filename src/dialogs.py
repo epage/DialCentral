@@ -415,7 +415,7 @@ class SMSEntryWindow(object):
 		centralWidget.setLayout(self._layout)
 
 		self._window = QtGui.QMainWindow(parent)
-		qui_utils.set_window_orientation(QtCore.Qt.Horizontal)
+		qui_utils.set_window_orientation(self._window, QtCore.Qt.Horizontal)
 		qui_utils.set_stackable(self._window, True)
 		self._window.setWindowTitle("Contact")
 		self._window.setCentralWidget(centralWidget)
