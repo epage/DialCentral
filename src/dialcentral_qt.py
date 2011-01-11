@@ -667,10 +667,10 @@ class MainWindow(object):
 	def set_orientation(self, isPortrait):
 		if isPortrait:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
-			qui_utils.set_window_orientation(QtCore.Qt.Vertical)
+			qui_utils.set_window_orientation(self.window, QtCore.Qt.Vertical)
 		else:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
-			qui_utils.set_window_orientation(QtCore.Qt.Horizontal)
+			qui_utils.set_window_orientation(self.window, QtCore.Qt.Horizontal)
 		for child in self.walk_children():
 			child.set_orientation(isPortrait)
 
