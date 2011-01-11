@@ -30,7 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing cut off text in the Messages tab
+* Startup bug
 """.strip()
 
 
