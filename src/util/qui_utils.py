@@ -187,7 +187,11 @@ class ErrorDisplay(object):
 
 class QHtmlDelegate(QtGui.QStyledItemDelegate):
 
-	# @bug Not showing all of a message
+	UNDEFINED_SIZE = -1
+
+	def __init__(self, *args, **kwd):
+		QtGui.QStyledItemDelegate.__init__(*((self, ) + args), **kwd)
+		self._width = self.UNDEFINED_SIZE
 
 	def paint(self, painter, option, index):
 		newOption = QtGui.QStyleOptionViewItemV4(option)
@@ -229,13 +233,21 @@ class QHtmlDelegate(QtGui.QStyledItemDelegate):
 		doc.documentLayout().draw(painter, ctx)
 		painter.restore()
 
+	def setWidth(self, width):
+		# @bug we need to be emitting sizeHintChanged but it requires an index
+		self._width = width
+
 	def sizeHint(self, option, index):
 		newOption = QtGui.QStyleOptionViewItemV4(option)
 		self.initStyleOption(newOption, index)
 
 		doc = QtGui.QTextDocument()
 		doc.setHtml(newOption.text)
-		doc.setTextWidth(newOption.rect.width())
+		if self._width != self.UNDEFINED_SIZE:
+			width = self._width
+		else:
+			width = newOption.rect.width()
+		doc.setTextWidth(width)
 		size = QtCore.QSize(doc.idealWidth(), doc.size().height())
 		return size
 

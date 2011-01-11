@@ -450,7 +450,7 @@ class Messages(object):
 	ALL_STATUS = "Any"
 	MESSAGE_STATUSES = [UNREAD_STATUS, UNARCHIVED_STATUS, ALL_STATUS]
 
-	_MIN_MESSAGES_SHOWN = 1
+	_MIN_MESSAGES_SHOWN = 4
 
 	def __init__(self, app, session, errorLog):
 		self._selectedTypeFilter = self.ALL_TYPES
@@ -506,6 +506,7 @@ class Messages(object):
 		self._itemView.setItemsExpandable(False)
 		self._itemView.setItemDelegate(self._htmlDelegate)
 		self._itemView.activated.connect(self._on_row_activated)
+		self._itemView.header().sectionResized.connect(self._on_column_resized)
 
 		self._layout = QtGui.QVBoxLayout()
 		self._layout.addLayout(self._selectionLayout)
@@ -667,6 +668,11 @@ class Messages(object):
 			description = unicode(contactDetails[QtCore.QString("expandedMessages")])
 			numbersWithDescriptions = [(number, "")]
 			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+
+	@QtCore.pyqtSlot(QtCore.QModelIndex)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_column_resized(self, index, oldSize, newSize):
+		self._htmlDelegate.setWidth(newSize)
 
 
 class Contacts(object):
