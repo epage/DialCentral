@@ -43,7 +43,6 @@ class CredentialsDialog(object):
 		self._dialog.setWindowTitle("Login")
 		self._dialog.setLayout(self._layout)
 		self._dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
-		qui_utils.set_autorient(self._dialog, True)
 		self._buttonLayout.accepted.connect(self._dialog.accept)
 		self._buttonLayout.rejected.connect(self._dialog.reject)
 
@@ -111,7 +110,6 @@ class AboutDialog(object):
 		self._dialog = QtGui.QDialog()
 		self._dialog.setWindowTitle("About")
 		self._dialog.setLayout(self._layout)
-		qui_utils.set_autorient(self._dialog, True)
 		self._buttonLayout.rejected.connect(self._dialog.reject)
 
 		self._closeWindowAction = QtGui.QAction(None)
@@ -210,7 +208,6 @@ class AccountDialog(object):
 		self._dialog = QtGui.QDialog()
 		self._dialog.setWindowTitle("Account")
 		self._dialog.setLayout(self._layout)
-		qui_utils.set_autorient(self._dialog, True)
 		self._buttonLayout.accepted.connect(self._dialog.accept)
 		self._buttonLayout.rejected.connect(self._dialog.reject)
 
@@ -418,7 +415,7 @@ class SMSEntryWindow(object):
 		centralWidget.setLayout(self._layout)
 
 		self._window = QtGui.QMainWindow(parent)
-		qui_utils.set_autorient(self._window, True)
+		qui_utils.set_window_orientation(QtCore.Qt.Horizontal)
 		qui_utils.set_stackable(self._window, True)
 		self._window.setWindowTitle("Contact")
 		self._window.setCentralWidget(centralWidget)

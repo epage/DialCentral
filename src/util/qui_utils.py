@@ -272,7 +272,7 @@ def _null_set_autorient(window, isStackable):
 
 
 def _maemo_set_autorient(window, isStackable):
-	window.setAttribute(QtCore.Qt.WA_Maemo5StackedWindow, isStackable)
+	window.setAttribute(QtCore.Qt.WA_Maemo5AutoOrientation, isStackable)
 
 
 try:
@@ -282,34 +282,35 @@ except AttributeError:
 	set_autorient = _null_set_autorient
 
 
-def _null_set_landscape(window, isStackable):
+def screen_orientation():
+	geom = QtGui.QApplication.desktop().screenGeometry()
+	if geom.width() <= geom.height():
+		return QtCore.Qt.Vertical
+	else:
+		return QtCore.Qt.Horizontal
+
+
+def _null_set_window_orientation(window, orientation):
 	pass
 
 
-def _maemo_set_landscape(window, isStackable):
-	window.setAttribute(QtCore.Qt.WA_Maemo5StackedWindow, isStackable)
+def _maemo_set_window_orientation(window, orientation):
+	if orientation == QtCore.Qt.Vertical:
+		newHint = QtCore.Qt.WA_Maemo5LandscapeOrientation
+		oldHint = QtCore.Qt.WA_Maemo5PortraitOrientation
+	elif orientation == QtCore.Qt.Horizontal:
+		oldHint = QtCore.Qt.WA_Maemo5LandscapeOrientation
+		newHint = QtCore.Qt.WA_Maemo5PortraitOrientation
+	window.setAttribute(oldHint, False)
+	window.setAttribute(newHint, True)
 
 
 try:
 	QtCore.Qt.WA_Maemo5LandscapeOrientation
-	set_landscape = _maemo_set_landscape
-except AttributeError:
-	set_landscape = _null_set_landscape
-
-
-def _null_set_portrait(window, isStackable):
-	pass
-
-
-def _maemo_set_portrait(window, isStackable):
-	window.setAttribute(QtCore.Qt.WA_Maemo5StackedWindow, isStackable)
-
-
-try:
 	QtCore.Qt.WA_Maemo5PortraitOrientation
-	set_portrait = _maemo_set_portrait
+	set_window_orientation = _maemo_set_window_orientation
 except AttributeError:
-	set_portrait = _null_set_portrait
+	set_window_orientation = _null_set_window_orientation
 
 
 def _null_show_progress_indicator(window, isStackable):
@@ -317,7 +318,7 @@ def _null_show_progress_indicator(window, isStackable):
 
 
 def _maemo_show_progress_indicator(window, isStackable):
-	window.setAttribute(QtCore.Qt.WA_Maemo5StackedWindow, isStackable)
+	window.setAttribute(QtCore.Qt.WA_Maemo5ShowProgressIndicator, isStackable)
 
 
 try:
@@ -340,14 +341,6 @@ try:
 	mark_numbers_preferred = _newqt_mark_numbers_preferred
 except AttributeError:
 	mark_numbers_preferred = _null_mark_numbers_preferred
-
-
-def screen_orientation():
-	geom = QtGui.QApplication.desktop().screenGeometry()
-	if geom.width() <= geom.height():
-		return QtCore.Qt.Vertical
-	else:
-		return QtCore.Qt.Horizontal
 
 
 def _null_get_theme_icon(iconNames, fallback = None):

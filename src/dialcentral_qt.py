@@ -74,6 +74,12 @@ class Dialcentral(object):
 		self._fullscreenAction.setShortcut(QtGui.QKeySequence("CTRL+Enter"))
 		self._fullscreenAction.toggled.connect(self._on_toggle_fullscreen)
 
+		self._orientationAction = QtGui.QAction(None)
+		self._orientationAction.setText("Orientation")
+		self._orientationAction.setCheckable(True)
+		self._orientationAction.setShortcut(QtGui.QKeySequence("CTRL+o"))
+		self._orientationAction.toggled.connect(self._on_toggle_orientation)
+
 		self._logAction = QtGui.QAction(None)
 		self._logAction.setText("Log")
 		self._logAction.setShortcut(QtGui.QKeySequence("CTRL+l"))
@@ -129,6 +135,7 @@ class Dialcentral(object):
 
 		blobs = "", ""
 		isFullscreen = False
+		isPortrait = qui_utils.screen_orientation() == QtCore.Qt.Vertical
 		tabIndex = 0
 		try:
 			blobs = [
@@ -137,6 +144,7 @@ class Dialcentral(object):
 			]
 			isFullscreen = config.getboolean(constants.__pretty_app_name__, "fullscreen")
 			tabIndex = config.getint(constants.__pretty_app_name__, "tab")
+			isPortrait = config.getboolean(constants.__pretty_app_name__, "portrait")
 		except ConfigParser.NoOptionError, e:
 			_moduleLogger.info(
 				"Settings file %s is missing option %s" % (
@@ -183,6 +191,7 @@ class Dialcentral(object):
 		)
 		self._mainWindow.set_default_credentials(*creds)
 		self._fullscreenAction.setChecked(isFullscreen)
+		self._orientationAction.setChecked(isPortrait)
 		self._mainWindow.set_current_tab(tabIndex)
 		self._mainWindow.load_settings(config)
 
@@ -193,6 +202,7 @@ class Dialcentral(object):
 		config.add_section(constants.__pretty_app_name__)
 		config.set(constants.__pretty_app_name__, "tab", str(self._mainWindow.get_current_tab()))
 		config.set(constants.__pretty_app_name__, "fullscreen", str(self._fullscreenAction.isChecked()))
+		config.set(constants.__pretty_app_name__, "portrait", str(self._orientationAction.isChecked()))
 		for i, value in enumerate(self._mainWindow.get_default_credentials()):
 			blob = base64.b64encode(value)
 			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
@@ -229,6 +239,10 @@ class Dialcentral(object):
 	@property
 	def fullscreenAction(self):
 		return self._fullscreenAction
+
+	@property
+	def orientationAction(self):
+		return self._orientationAction
 
 	@property
 	def logAction(self):
@@ -280,6 +294,13 @@ class Dialcentral(object):
 	def _on_toggle_fullscreen(self, checked = False):
 		for window in self._walk_children():
 			window.set_fullscreen(checked)
+
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_toggle_orientation(self, checked = False):
+		for window in self._walk_children():
+			window.set_orientation(checked)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
@@ -473,7 +494,6 @@ class MainWindow(object):
 
 		self._window = QtGui.QMainWindow(parent)
 		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-		qui_utils.set_autorient(self._window, True)
 		qui_utils.set_stackable(self._window, True)
 		self._window.setWindowTitle("%s" % constants.__pretty_app_name__)
 		self._window.setCentralWidget(centralWidget)
@@ -517,6 +537,7 @@ class MainWindow(object):
 			self._window.addAction(self._closeWindowAction)
 			self._window.addAction(self._app.quitAction)
 			self._window.addAction(self._app.fullscreenAction)
+			self._window.addAction(self._app.orientationAction)
 		else:
 			fileMenu = self._window.menuBar().addMenu("&File")
 			fileMenu.addAction(self._loginTabAction)
@@ -532,10 +553,13 @@ class MainWindow(object):
 			toolsMenu.addAction(self._importTabAction)
 			toolsMenu.addAction(self._aboutAction)
 
+			self._window.addAction(self._app.orientationAction)
+
 		self._window.addAction(self._app.logAction)
 
 		self._initialize_tab(self._tabWidget.currentIndex())
 		self.set_fullscreen(self._app.fullscreenAction.isChecked())
+		self.set_orientation(self._app.orientationAction.isChecked())
 
 	@property
 	def window(self):
@@ -639,6 +663,16 @@ class MainWindow(object):
 			self._window.showNormal()
 		for child in self.walk_children():
 			child.set_fullscreen(isFullscreen)
+
+	def set_orientation(self, isPortrait):
+		if isPortrait:
+			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
+			qui_utils.set_window_orientation(QtCore.Qt.Vertical)
+		else:
+			self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
+			qui_utils.set_window_orientation(QtCore.Qt.Horizontal)
+		for child in self.walk_children():
+			child.set_orientation(isPortrait)
 
 	def _initialize_tab(self, index):
 		assert index < self.MAX_TABS, "Invalid tab"
