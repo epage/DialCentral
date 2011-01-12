@@ -30,7 +30,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing orientation issues
+* Fixing the SMS Entry letter count
+* Adding and optimizing rotation to the SMS Entry window
 """.strip()
 
 
