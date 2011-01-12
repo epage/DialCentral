@@ -30,7 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Startup bug
+* Fixing orientation issues
 """.strip()
 
 
