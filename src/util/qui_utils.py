@@ -148,10 +148,8 @@ class ErrorDisplay(object):
 		self._controlLayout.addWidget(self._message, 1000)
 		self._controlLayout.addWidget(self._closeLabel, 1, QtCore.Qt.AlignCenter)
 
-		self._topLevelLayout = QtGui.QHBoxLayout()
-		self._topLevelLayout.addLayout(self._controlLayout)
 		self._widget = QtGui.QWidget()
-		self._widget.setLayout(self._topLevelLayout)
+		self._widget.setLayout(self._controlLayout)
 		self._widget.hide()
 
 	@property
