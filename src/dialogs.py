@@ -346,6 +346,7 @@ class SMSEntryWindow(object):
 	MAX_CHAR = 160
 
 	def __init__(self, parent, app, session, errorLog):
+		self._app = app
 		self._session = session
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
 
@@ -419,6 +420,7 @@ class SMSEntryWindow(object):
 		qui_utils.set_stackable(self._window, True)
 		self._window.setWindowTitle("Contact")
 		self._window.setCentralWidget(centralWidget)
+		self._window.addAction(self._app.orientationAction)
 
 		self._closeWindowAction = QtGui.QAction(None)
 		self._closeWindowAction.setText("Close")
@@ -443,6 +445,12 @@ class SMSEntryWindow(object):
 	def close(self):
 		self._window.destroy()
 		self._window = None
+
+	def set_orientation(self, isPortrait):
+		if isPortrait:
+			qui_utils.set_window_orientation(self._window, QtCore.Qt.Vertical)
+		else:
+			qui_utils.set_window_orientation(self._window, QtCore.Qt.Horizontal)
 
 	def _update_letter_count(self):
 		count = self._smsEntry.toPlainText().size()

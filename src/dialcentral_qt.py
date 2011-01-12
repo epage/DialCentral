@@ -537,7 +537,6 @@ class MainWindow(object):
 			self._window.addAction(self._closeWindowAction)
 			self._window.addAction(self._app.quitAction)
 			self._window.addAction(self._app.fullscreenAction)
-			self._window.addAction(self._app.orientationAction)
 		else:
 			fileMenu = self._window.menuBar().addMenu("&File")
 			fileMenu.addAction(self._loginTabAction)
@@ -553,8 +552,7 @@ class MainWindow(object):
 			toolsMenu.addAction(self._importTabAction)
 			toolsMenu.addAction(self._aboutAction)
 
-			self._window.addAction(self._app.orientationAction)
-
+		self._window.addAction(self._app.orientationAction)
 		self._window.addAction(self._app.logAction)
 
 		self._initialize_tab(self._tabWidget.currentIndex())
@@ -671,6 +669,9 @@ class MainWindow(object):
 		else:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
 			qui_utils.set_window_orientation(self.window, QtCore.Qt.Horizontal)
+		for child in (self._smsEntryDialog, ):
+			if child is not None:
+				child.set_orientation(isPortrait)
 		for child in self.walk_children():
 			child.set_orientation(isPortrait)
 
