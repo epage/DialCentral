@@ -344,6 +344,7 @@ class AccountDialog(object):
 class SMSEntryWindow(object):
 
 	MAX_CHAR = 160
+	_SENTINEL_ICON = QtGui.QIcon()
 
 	def __init__(self, parent, app, session, errorLog):
 		self._app = app
@@ -366,6 +367,7 @@ class SMSEntryWindow(object):
 		self._targetLayout = QtGui.QVBoxLayout()
 		self._targetList = QtGui.QWidget()
 		self._targetList.setLayout(self._targetLayout)
+		self._closeIcon = qui_utils.get_theme_icon(("window-close", "general_close", "gtk-close"), self._SENTINEL_ICON)
 		self._history = QtGui.QLabel()
 		self._history.setTextFormat(QtCore.Qt.RichText)
 		self._history.setWordWrap(True)
@@ -451,6 +453,7 @@ class SMSEntryWindow(object):
 			qui_utils.set_window_orientation(self._window, QtCore.Qt.Vertical)
 		else:
 			qui_utils.set_window_orientation(self._window, QtCore.Qt.Horizontal)
+		self._scrollTimer.start()
 
 	def _update_letter_count(self):
 		count = self._smsEntry.toPlainText().size()
@@ -516,9 +519,18 @@ class SMSEntryWindow(object):
 				numbers = self._session.draft.get_numbers(cid)
 
 				titleLabel = QtGui.QLabel(title)
+				titleLabel.setWordWrap(True)
 				numberSelector = QtGui.QComboBox()
 				self._populate_number_selector(numberSelector, cid, numbers)
-				deleteButton = QtGui.QPushButton("Delete")
+				if self._closeIcon is self._SENTINEL_ICON:
+					deleteButton = QtGui.QPushButton("Delete")
+				else:
+					deleteButton = QtGui.QPushButton(self._closeIcon, "")
+				deleteButton.setSizePolicy(QtGui.QSizePolicy(
+					QtGui.QSizePolicy.Minimum,
+					QtGui.QSizePolicy.Minimum,
+					QtGui.QSizePolicy.PushButton,
+				))
 				callback = functools.partial(
 					self._on_remove_contact,
 					cid
@@ -527,9 +539,9 @@ class SMSEntryWindow(object):
 				deleteButton.clicked.connect(callback)
 
 				rowLayout = QtGui.QHBoxLayout()
-				rowLayout.addWidget(titleLabel)
-				rowLayout.addWidget(numberSelector)
-				rowLayout.addWidget(deleteButton)
+				rowLayout.addWidget(titleLabel, 1000)
+				rowLayout.addWidget(numberSelector, 0)
+				rowLayout.addWidget(deleteButton, 0)
 				rowWidget = QtGui.QWidget()
 				rowWidget.setLayout(rowLayout)
 				self._targetLayout.addWidget(rowWidget)
