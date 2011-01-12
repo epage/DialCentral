@@ -296,11 +296,11 @@ def _null_set_window_orientation(window, orientation):
 
 def _maemo_set_window_orientation(window, orientation):
 	if orientation == QtCore.Qt.Vertical:
-		newHint = QtCore.Qt.WA_Maemo5LandscapeOrientation
-		oldHint = QtCore.Qt.WA_Maemo5PortraitOrientation
-	elif orientation == QtCore.Qt.Horizontal:
 		oldHint = QtCore.Qt.WA_Maemo5LandscapeOrientation
 		newHint = QtCore.Qt.WA_Maemo5PortraitOrientation
+	elif orientation == QtCore.Qt.Horizontal:
+		oldHint = QtCore.Qt.WA_Maemo5PortraitOrientation
+		newHint = QtCore.Qt.WA_Maemo5LandscapeOrientation
 	window.setAttribute(oldHint, False)
 	window.setAttribute(newHint, True)
 
