@@ -386,7 +386,7 @@ class SMSEntryWindow(object):
 		self._scrollEntry.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
 		self._scrollEntry.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-		self._characterCountLabel = QtGui.QLabel("0 (0)")
+		self._characterCountLabel = QtGui.QLabel("")
 		self._singleNumberSelector = QtGui.QComboBox()
 		self._singleNumbersCID = None
 		self._singleNumberSelector.activated.connect(self._on_single_change_number)
@@ -437,6 +437,7 @@ class SMSEntryWindow(object):
 		self._scrollTimer.timeout.connect(self._on_delayed_scroll_to_bottom)
 
 		self._window.show()
+		self._update_letter_count()
 		self._update_target_fields()
 
 	def close(self):
