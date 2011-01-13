@@ -161,10 +161,14 @@ class WindowWrapper(object):
 
 		self._layout = QtGui.QBoxLayout(QtGui.QBoxLayout.LeftToRight)
 		self._layout.setContentsMargins(0, 0, 0, 0)
-		self._layout.addWidget(self._errorDisplay.toplevel)
+
+		self._superLayout = QtGui.QVBoxLayout()
+		self._superLayout.addWidget(self._errorDisplay.toplevel)
+		self._superLayout.setContentsMargins(0, 0, 0, 0)
+		self._superLayout.addLayout(self._layout)
 
 		centralWidget = QtGui.QWidget()
-		centralWidget.setLayout(self._layout)
+		centralWidget.setLayout(self._superLayout)
 		centralWidget.setContentsMargins(0, 0, 0, 0)
 
 		self._window = QtGui.QMainWindow(parent)
