@@ -30,8 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Reduced redraws on spurious rotations
-* Improving error notification
+* Temporarilly removing the spurious redraw change until bugs get fixed
 """.strip()
 
 

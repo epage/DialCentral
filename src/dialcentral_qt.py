@@ -338,7 +338,7 @@ class MainWindow(qwrappers.WindowWrapper):
 	def __init__(self, parent, app):
 		qwrappers.WindowWrapper.__init__(self, parent, app)
 		self._window.setWindowTitle("%s" % constants.__pretty_app_name__)
-		self._freezer = qwrappers.AutoFreezeWindowFeature(self._app, self._window)
+		#self._freezer = qwrappers.AutoFreezeWindowFeature(self._app, self._window)
 		self._errorLog = self._app.errorLog
 
 		self._session = session.Session(self._errorLog, constants._data_path_)
