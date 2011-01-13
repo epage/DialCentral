@@ -30,7 +30,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Improving the look and behavior of the pie menu back button
+* Reduced redraws on spurious rotations
+* Improving error notification
 """.strip()
 
 
