@@ -74,6 +74,10 @@ class ApplicationWrapper(object):
 		raise NotImplementedError("Booh")
 
 	@property
+	def qapp(self):
+		return self._qapp
+
+	@property
 	def constants(self):
 		return self._constants
 
@@ -122,11 +126,13 @@ class ApplicationWrapper(object):
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_toggle_fullscreen(self, checked = False):
-		self._mainWindow.set_fullscreen(checked)
+		with qui_utils.notify_error(self._errorLog):
+			self._mainWindow.set_fullscreen(checked)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_toggle_orientation(self, checked = False):
-		self._mainWindow.set_orientation(checked)
+		with qui_utils.notify_error(self._errorLog):
+			self._mainWindow.set_orientation(checked)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_about(self, checked = True):
@@ -134,14 +140,16 @@ class ApplicationWrapper(object):
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_log(self, checked = False):
-		with open(self._constants._user_logpath_, "r") as f:
-			logLines = f.xreadlines()
-			log = "".join(logLines)
-			self._clipboard.setText(log)
+		with qui_utils.notify_error(self._errorLog):
+			with open(self._constants._user_logpath_, "r") as f:
+				logLines = f.xreadlines()
+				log = "".join(logLines)
+				self._clipboard.setText(log)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_quit(self, checked = False):
-		self._close_windows()
+		with qui_utils.notify_error(self._errorLog):
+			self._close_windows()
 
 
 class WindowWrapper(object):
@@ -227,4 +235,29 @@ class WindowWrapper(object):
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
-		self.close()
+		with qui_utils.notify_error(self._errorLog):
+			self.close()
+
+
+class AutoFreezeWindowFeature(object):
+
+	def __init__(self, app, window):
+		self._app = app
+		self._window = window
+		self._app.qapp.focusChanged.connect(self._on_focus_changed)
+		if self._app.qapp.focusWidget() is not None:
+			self._window.setUpdatesEnabled(True)
+		else:
+			self._window.setUpdatesEnabled(False)
+
+	def close(self):
+		self._app.qapp.focusChanged.disconnect(self._on_focus_changed)
+		self._window.setUpdatesEnabled(True)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_focus_changed(self, oldWindow, newWindow):
+		with qui_utils.notify_error(self._app.errorLog):
+			if oldWindow is None and newWindow is not None:
+				self._window.setUpdatesEnabled(True)
+			elif oldWindow is not None and newWindow is None:
+				self._window.setUpdatesEnabled(False)
