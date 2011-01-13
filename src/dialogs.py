@@ -65,20 +65,25 @@ class CredentialsDialog(object):
 			if response == QtGui.QDialog.Accepted:
 				return str(self._usernameField.text()), str(self._passwordField.text())
 			elif response == QtGui.QDialog.Rejected:
-				raise RuntimeError("Login Cancelled")
+				return None
 			else:
-				raise RuntimeError("Unknown Response")
+				_moduleLogger.error("Unknown response")
+				return None
 		finally:
 			self._dialog.setParent(None, QtCore.Qt.Dialog)
 
 	def close(self):
-		self._dialog.reject()
+		try:
+			self._dialog.reject()
+		except RuntimeError:
+			_moduleLogger.exception("Oh well")
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
-		self._dialog.reject()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._dialog.reject()
 
 
 class AboutDialog(object):
@@ -128,13 +133,17 @@ class AboutDialog(object):
 		return response
 
 	def close(self):
-		self._dialog.reject()
+		try:
+			self._dialog.reject()
+		except RuntimeError:
+			_moduleLogger.exception("Oh well")
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
-		self._dialog.reject()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._dialog.reject()
 
 
 class AccountDialog(object):
@@ -308,7 +317,10 @@ class AccountDialog(object):
 		return response
 
 	def close(self):
-		self._dialog.reject()
+		try:
+			self._dialog.reject()
+		except RuntimeError:
+			_moduleLogger.exception("Oh well")
 
 	def _update_notification_state(self):
 		if self._notificationButton.isChecked():
@@ -325,20 +337,23 @@ class AccountDialog(object):
 	@QtCore.pyqtSlot(int)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_notification_change(self, state):
-		self._update_notification_state()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._update_notification_state()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_clear(self, checked = False):
-		self._doClear = True
-		self._dialog.accept()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._doClear = True
+			self._dialog.accept()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
-		self._dialog.reject()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._dialog.reject()
 
 
 class SMSEntryWindow(object):
@@ -445,7 +460,10 @@ class SMSEntryWindow(object):
 		self._update_target_fields()
 
 	def close(self):
-		self._window.destroy()
+		try:
+			self._window.destroy()
+		except RuntimeError:
+			_moduleLogger.exception("Oh well")
 		self._window = None
 
 	def set_orientation(self, isPortrait):
@@ -599,102 +617,116 @@ class SMSEntryWindow(object):
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_delayed_scroll_to_bottom(self):
-		self._scrollEntry.ensureWidgetVisible(self._smsEntry)
+		with qui_utils.notify_error(self._app.errorLog):
+			self._scrollEntry.ensureWidgetVisible(self._smsEntry)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_sms_clicked(self, arg):
-		message = unicode(self._smsEntry.toPlainText())
-		self._session.draft.send(message)
+		with qui_utils.notify_error(self._app.errorLog):
+			message = unicode(self._smsEntry.toPlainText())
+			self._session.draft.send(message)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_call_clicked(self, arg):
-		self._session.draft.call()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._session.draft.call()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_cancel_clicked(self, message):
-		self._session.draft.cancel()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._session.draft.cancel()
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_remove_contact(self, cid, toggled):
-		self._session.draft.remove_contact(cid)
+		with qui_utils.notify_error(self._app.errorLog):
+			self._session.draft.remove_contact(cid)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_single_change_number(self, index):
-		# Exception thrown when the first item is removed
-		cid = self._singleNumbersCID
-		if cid is None:
-			_moduleLogger.error("Number change occurred on the single selector when in multi-selector mode (%r)" % index)
-			return
-		try:
-			numbers = self._session.draft.get_numbers(cid)
-		except KeyError:
-			_moduleLogger.error("Contact no longer available (or bizarre error): %r (%r)" % (cid, index))
-			return
-		number = numbers[index][0]
-		self._session.draft.set_selected_number(cid, number)
+		with qui_utils.notify_error(self._app.errorLog):
+			# Exception thrown when the first item is removed
+			cid = self._singleNumbersCID
+			if cid is None:
+				_moduleLogger.error("Number change occurred on the single selector when in multi-selector mode (%r)" % index)
+				return
+			try:
+				numbers = self._session.draft.get_numbers(cid)
+			except KeyError:
+				_moduleLogger.error("Contact no longer available (or bizarre error): %r (%r)" % (cid, index))
+				return
+			number = numbers[index][0]
+			self._session.draft.set_selected_number(cid, number)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_change_number(self, cid, index):
-		# Exception thrown when the first item is removed
-		try:
-			numbers = self._session.draft.get_numbers(cid)
-		except KeyError:
-			_moduleLogger.error("Contact no longer available (or bizarre error): %r (%r)" % (cid, index))
-			return
-		number = numbers[index][0]
-		self._session.draft.set_selected_number(cid, number)
+		with qui_utils.notify_error(self._app.errorLog):
+			# Exception thrown when the first item is removed
+			try:
+				numbers = self._session.draft.get_numbers(cid)
+			except KeyError:
+				_moduleLogger.error("Contact no longer available (or bizarre error): %r (%r)" % (cid, index))
+				return
+			number = numbers[index][0]
+			self._session.draft.set_selected_number(cid, number)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_recipients_changed(self):
-		self._update_target_fields()
-		self._update_button_state()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._update_target_fields()
+			self._update_button_state()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_started(self):
-		self._smsEntry.setReadOnly(True)
-		self._smsButton.setVisible(False)
-		self._dialButton.setVisible(False)
-		self._window.show()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._smsEntry.setReadOnly(True)
+			self._smsButton.setVisible(False)
+			self._dialButton.setVisible(False)
+			self._window.show()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_calling_started(self):
-		self._cancelButton.setVisible(True)
+		with qui_utils.notify_error(self._app.errorLog):
+			self._cancelButton.setVisible(True)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_finished(self):
-		self._smsEntry.setPlainText("")
-		self._smsEntry.setReadOnly(False)
-		self._cancelButton.setVisible(False)
-		self._smsButton.setVisible(True)
-		self._dialButton.setVisible(True)
-		self._window.hide()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._smsEntry.setPlainText("")
+			self._smsEntry.setReadOnly(False)
+			self._cancelButton.setVisible(False)
+			self._smsButton.setVisible(True)
+			self._dialButton.setVisible(True)
+			self._window.hide()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_error(self, message):
-		self._smsEntry.setReadOnly(False)
-		self._cancelButton.setVisible(False)
-		self._smsButton.setVisible(True)
-		self._dialButton.setVisible(True)
+		with qui_utils.notify_error(self._app.errorLog):
+			self._smsEntry.setReadOnly(False)
+			self._cancelButton.setVisible(False)
+			self._smsButton.setVisible(True)
+			self._dialButton.setVisible(True)
 
-		self._errorLog.push_error(message)
+			self._errorLog.push_error(message)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_letter_count_changed(self):
-		self._update_letter_count()
-		self._update_button_state()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._update_letter_count()
+			self._update_button_state()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
-		self._window.hide()
+		with qui_utils.notify_error(self._app.errorLog):
+			self._window.hide()
 
 
 def _get_contact_numbers(session, contactId, numberDescription):

@@ -520,9 +520,12 @@ class MainWindow(qwrappers.WindowWrapper):
 		if self._credentialsDialog is None:
 			import dialogs
 			self._credentialsDialog = dialogs.CredentialsDialog(self._app)
-		username, password = self._credentialsDialog.run(
+		credentials = self._credentialsDialog.run(
 			self._defaultCredentials[0], self._defaultCredentials[1], self.window
 		)
+		if credentials is None:
+			return
+		username, password = credentials
 		self._curentCredentials = username, password
 		self._session.login(username, password)
 
