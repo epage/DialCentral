@@ -14,6 +14,7 @@ from PyQt4 import QtCore
 
 import constants
 from util import qtpie
+from util import qwrappers
 from util import qui_utils
 from util import misc as misc_utils
 
@@ -46,8 +47,7 @@ class LedWrapper(object):
 			self._ledHandler = None
 
 
-
-class Dialcentral(object):
+class Dialcentral(qwrappers.ApplicationWrapper):
 
 	_DATA_PATHS = [
 		os.path.join(os.path.dirname(__file__), "../share"),
@@ -55,44 +55,12 @@ class Dialcentral(object):
 	]
 
 	def __init__(self, app):
-		self._app = app
-		self._recent = []
-		self._hiddenCategories = set()
-		self._hiddenUnits = {}
-		self._clipboard = QtGui.QApplication.clipboard()
 		self._dataPath = None
+		self._aboutDialog = None
 		self._ledHandler = LedWrapper()
 		self.notifyOnMissed = False
 		self.notifyOnVoicemail = False
 		self.notifyOnSms = False
-
-		self._mainWindow = None
-
-		self._fullscreenAction = QtGui.QAction(None)
-		self._fullscreenAction.setText("Fullscreen")
-		self._fullscreenAction.setCheckable(True)
-		self._fullscreenAction.setShortcut(QtGui.QKeySequence("CTRL+Enter"))
-		self._fullscreenAction.toggled.connect(self._on_toggle_fullscreen)
-
-		self._orientationAction = QtGui.QAction(None)
-		self._orientationAction.setText("Orientation")
-		self._orientationAction.setCheckable(True)
-		self._orientationAction.setShortcut(QtGui.QKeySequence("CTRL+o"))
-		self._orientationAction.toggled.connect(self._on_toggle_orientation)
-
-		self._logAction = QtGui.QAction(None)
-		self._logAction.setText("Log")
-		self._logAction.setShortcut(QtGui.QKeySequence("CTRL+l"))
-		self._logAction.triggered.connect(self._on_log)
-
-		self._quitAction = QtGui.QAction(None)
-		self._quitAction.setText("Quit")
-		self._quitAction.setShortcut(QtGui.QKeySequence("CTRL+q"))
-		self._quitAction.triggered.connect(self._on_quit)
-
-		self._app.lastWindowClosed.connect(self._on_app_quit)
-		self._mainWindow = MainWindow(None, self)
-		self._mainWindow.window.destroyed.connect(self._on_child_close)
 
 		try:
 			import alarm_handler
@@ -108,14 +76,7 @@ class Dialcentral(object):
 		if self._alarmHandler is None:
 			_moduleLogger.info("No notification support")
 
-		self.load_settings()
-
-		self._mainWindow.show()
-		self._idleDelay = QtCore.QTimer()
-		self._idleDelay.setSingleShot(True)
-		self._idleDelay.setInterval(0)
-		self._idleDelay.timeout.connect(lambda: self._mainWindow.start())
-		self._idleDelay.start()
+		qwrappers.ApplicationWrapper.__init__(self, app, constants)
 
 	def load_settings(self):
 		try:
@@ -232,25 +193,14 @@ class Dialcentral(object):
 		else:
 			return None
 
+	def _close_windows(self):
+		qwrappers.ApplicationWrapper._close_windows(self)
+		if self._aboutDialog  is not None:
+			self._aboutDialog.close()
+
 	@property
 	def fsContactsPath(self):
 		return os.path.join(constants._data_path_, "contacts")
-
-	@property
-	def fullscreenAction(self):
-		return self._fullscreenAction
-
-	@property
-	def orientationAction(self):
-		return self._orientationAction
-
-	@property
-	def logAction(self):
-		return self._logAction
-
-	@property
-	def quitAction(self):
-		return self._quitAction
 
 	@property
 	def alarmHandler(self):
@@ -260,62 +210,18 @@ class Dialcentral(object):
 	def ledHandler(self):
 		return self._ledHandler
 
-	def _walk_children(self):
-		if self._mainWindow is not None:
-			return (self._mainWindow, )
-		else:
-			return ()
-
-	def _close_windows(self):
-		if self._mainWindow is not None:
-			self.save_settings()
-			self._mainWindow.window.destroyed.disconnect(self._on_child_close)
-			self._mainWindow.close()
-			self._mainWindow = None
+	def _new_main_window(self):
+		return MainWindow(None, self)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_app_quit(self, checked = False):
-		if self._mainWindow is not None:
-			self.save_settings()
-			self._mainWindow.destroy()
-
-	@QtCore.pyqtSlot(QtCore.QObject)
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_child_close(self, obj = None):
-		if self._mainWindow is not None:
-			self.save_settings()
-			self._mainWindow = None
-
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_toggle_fullscreen(self, checked = False):
-		for window in self._walk_children():
-			window.set_fullscreen(checked)
-
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_toggle_orientation(self, checked = False):
-		for window in self._walk_children():
-			window.set_orientation(checked)
-
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_log(self, checked = False):
-		with open(constants._user_logpath_, "r") as f:
-			logLines = f.xreadlines()
-			log = "".join(logLines)
-			self._clipboard.setText(log)
-
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_quit(self, checked = False):
-		self._close_windows()
+	def _on_about(self, checked = True):
+		with qui_utils.notify_error(self._errorLog):
+			if self._aboutDialog is None:
+				import dialogs
+				self._aboutDialog = dialogs.AboutDialog(self)
+			response = self._aboutDialog.run(self._mainWindow.window)
 
 
 class DelayedWidget(object):
@@ -447,7 +353,6 @@ class MainWindow(object):
 		self._credentialsDialog = None
 		self._smsEntryDialog = None
 		self._accountDialog = None
-		self._aboutDialog = None
 
 		self._tabsContents = [
 			DelayedWidget(self._app, self._TAB_SETTINGS_NAMES[i])
@@ -515,10 +420,6 @@ class MainWindow(object):
 		self._refreshTabAction.setShortcut(QtGui.QKeySequence("CTRL+r"))
 		self._refreshTabAction.triggered.connect(self._on_refresh)
 
-		self._aboutAction = QtGui.QAction(None)
-		self._aboutAction.setText("About")
-		self._aboutAction.triggered.connect(self._on_about)
-
 		self._closeWindowAction = QtGui.QAction(None)
 		self._closeWindowAction.setText("Close")
 		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
@@ -532,7 +433,7 @@ class MainWindow(object):
 			toolsMenu = self._window.menuBar().addMenu("&Tools")
 			toolsMenu.addAction(self._accountTabAction)
 			toolsMenu.addAction(self._importTabAction)
-			toolsMenu.addAction(self._aboutAction)
+			toolsMenu.addAction(self._app.aboutAction)
 
 			self._window.addAction(self._closeWindowAction)
 			self._window.addAction(self._app.quitAction)
@@ -550,7 +451,7 @@ class MainWindow(object):
 			toolsMenu = self._window.menuBar().addMenu("&Tools")
 			toolsMenu.addAction(self._accountTabAction)
 			toolsMenu.addAction(self._importTabAction)
-			toolsMenu.addAction(self._aboutAction)
+			toolsMenu.addAction(self._app.aboutAction)
 
 		self._window.addAction(self._app.orientationAction)
 		self._window.addAction(self._app.logAction)
@@ -589,7 +490,6 @@ class MainWindow(object):
 			self._credentialsDialog,
 			self._smsEntryDialog,
 			self._accountDialog,
-			self._aboutDialog,
 		):
 			if diag is not None:
 				diag.close()
@@ -802,16 +702,6 @@ class MainWindow(object):
 	def _on_account(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
 			self._show_account_dialog()
-
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_about(self, checked = True):
-		with qui_utils.notify_error(self._errorLog):
-			if self._aboutDialog is None:
-				import dialogs
-				self._aboutDialog = dialogs.AboutDialog(self._app)
-			response = self._aboutDialog.run(self.window)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
