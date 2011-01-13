@@ -294,7 +294,7 @@ def _tab_factory(tab, app, session, errorLog):
 	return gv_views.__dict__[tab](app, session, errorLog)
 
 
-class MainWindow(object):
+class MainWindow(qwrappers.WindowWrapper):
 
 	KEYPAD_TAB = 0
 	RECENT_TAB = 1
@@ -336,10 +336,10 @@ class MainWindow(object):
 	assert len(_TAB_SETTINGS_NAMES) == MAX_TABS
 
 	def __init__(self, parent, app):
-		self._app = app
-
-		self._errorLog = qui_utils.QErrorLog()
-		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
+		qwrappers.WindowWrapper.__init__(self, parent, app)
+		self._window.setWindowTitle("%s" % constants.__pretty_app_name__)
+		self._freezer = qwrappers.AutoFreezeWindowFeature(self._app, self._window)
+		self._errorLog = self._app.errorLog
 
 		self._session = session.Session(self._errorLog, constants._data_path_)
 		self._session.error.connect(self._on_session_error)
@@ -388,20 +388,7 @@ class MainWindow(object):
 		self._tabWidget.currentChanged.connect(self._on_tab_changed)
 		self._tabWidget.setContentsMargins(0, 0, 0, 0)
 
-		self._layout = QtGui.QVBoxLayout()
-		self._layout.setContentsMargins(0, 0, 0, 0)
-		self._layout.addWidget(self._errorDisplay.toplevel)
 		self._layout.addWidget(self._tabWidget)
-
-		centralWidget = QtGui.QWidget()
-		centralWidget.setLayout(self._layout)
-		centralWidget.setContentsMargins(0, 0, 0, 0)
-
-		self._window = QtGui.QMainWindow(parent)
-		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-		qui_utils.set_stackable(self._window, True)
-		self._window.setWindowTitle("%s" % constants.__pretty_app_name__)
-		self._window.setCentralWidget(centralWidget)
 
 		self._loginTabAction = QtGui.QAction(None)
 		self._loginTabAction.setText("Login")
@@ -420,49 +407,18 @@ class MainWindow(object):
 		self._refreshTabAction.setShortcut(QtGui.QKeySequence("CTRL+r"))
 		self._refreshTabAction.triggered.connect(self._on_refresh)
 
-		self._closeWindowAction = QtGui.QAction(None)
-		self._closeWindowAction.setText("Close")
-		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
-		self._closeWindowAction.triggered.connect(self._on_close_window)
+		fileMenu = self._window.menuBar().addMenu("&File")
+		fileMenu.addAction(self._loginTabAction)
+		fileMenu.addAction(self._refreshTabAction)
 
-		if constants.IS_MAEMO:
-			fileMenu = self._window.menuBar().addMenu("&File")
-			fileMenu.addAction(self._loginTabAction)
-			fileMenu.addAction(self._refreshTabAction)
-
-			toolsMenu = self._window.menuBar().addMenu("&Tools")
-			toolsMenu.addAction(self._accountTabAction)
-			toolsMenu.addAction(self._importTabAction)
-			toolsMenu.addAction(self._app.aboutAction)
-
-			self._window.addAction(self._closeWindowAction)
-			self._window.addAction(self._app.quitAction)
-			self._window.addAction(self._app.fullscreenAction)
-		else:
-			fileMenu = self._window.menuBar().addMenu("&File")
-			fileMenu.addAction(self._loginTabAction)
-			fileMenu.addAction(self._refreshTabAction)
-			fileMenu.addAction(self._closeWindowAction)
-			fileMenu.addAction(self._app.quitAction)
-
-			viewMenu = self._window.menuBar().addMenu("&View")
-			viewMenu.addAction(self._app.fullscreenAction)
-
-			toolsMenu = self._window.menuBar().addMenu("&Tools")
-			toolsMenu.addAction(self._accountTabAction)
-			toolsMenu.addAction(self._importTabAction)
-			toolsMenu.addAction(self._app.aboutAction)
-
-		self._window.addAction(self._app.orientationAction)
-		self._window.addAction(self._app.logAction)
+		toolsMenu = self._window.menuBar().addMenu("&Tools")
+		toolsMenu.addAction(self._accountTabAction)
+		toolsMenu.addAction(self._importTabAction)
+		toolsMenu.addAction(self._app.aboutAction)
 
 		self._initialize_tab(self._tabWidget.currentIndex())
 		self.set_fullscreen(self._app.fullscreenAction.isChecked())
 		self.set_orientation(self._app.orientationAction.isChecked())
-
-	@property
-	def window(self):
-		return self._window
 
 	def set_default_credentials(self, username, password):
 		self._defaultCredentials = username, password
@@ -474,6 +430,7 @@ class MainWindow(object):
 		return ()
 
 	def start(self):
+		qwrappers.WindowWrapper.start(self)
 		assert self._session.state == self._session.LOGGEDOUT_STATE, "Initialization messed up"
 		if self._defaultCredentials != ("", ""):
 			username, password = self._defaultCredentials[0], self._defaultCredentials[1]
@@ -483,9 +440,6 @@ class MainWindow(object):
 			self._prompt_for_login()
 
 	def close(self):
-		for child in self.walk_children():
-			child.window.destroyed.disconnect(self._on_child_close)
-			child.close()
 		for diag in (
 			self._credentialsDialog,
 			self._smsEntryDialog,
@@ -493,9 +447,10 @@ class MainWindow(object):
 		):
 			if diag is not None:
 				diag.close()
-		self._window.close()
+		qwrappers.WindowWrapper.close(self)
 
 	def destroy(self):
+		qwrappers.WindowWrapper.destroy(self)
 		if self._session.state != self._session.LOGGEDOUT_STATE:
 			self._session.logout()
 
@@ -544,36 +499,15 @@ class MainWindow(object):
 			for settingName, settingValue in tabSettings.iteritems():
 				config.set(sectionName, settingName, settingValue)
 
-	def show(self):
-		self._window.show()
-		for child in self.walk_children():
-			child.show()
-
-	def hide(self):
-		for child in self.walk_children():
-			child.hide()
-		self._window.hide()
-
-	def set_fullscreen(self, isFullscreen):
-		if isFullscreen:
-			self._window.showFullScreen()
-		else:
-			self._window.showNormal()
-		for child in self.walk_children():
-			child.set_fullscreen(isFullscreen)
-
 	def set_orientation(self, isPortrait):
+		qwrappers.WindowWrapper.set_orientation(self, isPortrait)
 		if isPortrait:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
-			qui_utils.set_window_orientation(self.window, QtCore.Qt.Vertical)
 		else:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
-			qui_utils.set_window_orientation(self.window, QtCore.Qt.Horizontal)
 		for child in (self._smsEntryDialog, ):
 			if child is not None:
 				child.set_orientation(isPortrait)
-		for child in self.walk_children():
-			child.set_orientation(isPortrait)
 
 	def _initialize_tab(self, index):
 		assert index < self.MAX_TABS, "Invalid tab"
@@ -702,12 +636,6 @@ class MainWindow(object):
 	def _on_account(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
 			self._show_account_dialog()
-
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_close_window(self, checked = True):
-		self.close()
 
 
 def run():
