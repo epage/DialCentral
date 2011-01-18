@@ -30,7 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Temporarilly removing the spurious redraw change until bugs get fixed
+* Doing something I dislike, stop caching the SMS window, to work around Maemo 5 Qt redraw issues with hidden stacked windows
 """.strip()
 
 
