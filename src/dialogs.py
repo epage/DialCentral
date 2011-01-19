@@ -456,13 +456,11 @@ class SMSEntryWindow(object):
 		self._scrollTimer.timeout.connect(self._on_delayed_scroll_to_bottom)
 
 		self._window.show()
-		self._smsEntry.setPlainText(self._session.draft.message)
 		self._update_letter_count()
 		self._update_target_fields()
 
 	def close(self):
 		try:
-			self._session.draft = unicode(self._smsEntry.toPlainText())
 			self._window.destroy()
 		except RuntimeError:
 			_moduleLogger.exception("Oh well")
@@ -626,14 +624,11 @@ class SMSEntryWindow(object):
 	def _on_sms_clicked(self, arg):
 		with qui_utils.notify_error(self._app.errorLog):
 			message = unicode(self._smsEntry.toPlainText())
-			self._session.draft = message
-			self._session.draft.send()
+			self._session.draft.send(message)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_call_clicked(self, arg):
 		with qui_utils.notify_error(self._app.errorLog):
-			message = unicode(self._smsEntry.toPlainText())
-			self._session.draft = message
 			self._session.draft.call()
 
 	@QtCore.pyqtSlot()
@@ -731,7 +726,7 @@ class SMSEntryWindow(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
 		with qui_utils.notify_error(self._app.errorLog):
-			self._window.close()
+			self._window.hide()
 
 
 def _get_contact_numbers(session, contactId, numberDescription):

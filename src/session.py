@@ -53,18 +53,15 @@ class Draft(QtCore.QObject):
 		self._pool = pool
 		self._backend = backend
 		self._busyReason = None
-		self._message = ""
 
-	def send(self):
+	def send(self, text):
 		assert 0 < len(self._contacts), "No contacts selected"
-		assert 0 < len(self._message), "No message to send"
 		numbers = [misc_utils.make_ugly(contact.selectedNumber) for contact in self._contacts.itervalues()]
 		le = concurrent.AsyncLinearExecution(self._pool, self._send)
-		le.start(numbers, self._message)
+		le.start(numbers, text)
 
 	def call(self):
 		assert len(self._contacts) == 1, "Must select 1 and only 1 contact"
-		assert len(self._message) == 0, "Cannot send message with call"
 		(contact, ) = self._contacts.itervalues()
 		number = misc_utils.make_ugly(contact.selectedNumber)
 		le = concurrent.AsyncLinearExecution(self._pool, self._call)
@@ -73,16 +70,6 @@ class Draft(QtCore.QObject):
 	def cancel(self):
 		le = concurrent.AsyncLinearExecution(self._pool, self._cancel)
 		le.start()
-
-	def _get_message(self):
-		return self._message
-
-	def _set_message(self, message):
-		if self._busyReason is not None:
-			raise RuntimeError("Please wait for %r" % self._busyReason)
-		self._message = message
-
-	message = property(_get_message, _set_message)
 
 	def add_contact(self, contactId, title, description, numbersWithDescriptions):
 		if self._busyReason is not None:
@@ -135,7 +122,6 @@ class Draft(QtCore.QObject):
 	def _clear(self):
 		oldContacts = self._contacts
 		self._contacts = {}
-		self._message = ""
 		if oldContacts:
 			self.recipientsChanged.emit()
 
