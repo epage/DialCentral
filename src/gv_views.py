@@ -406,7 +406,8 @@ class History(object):
 	def _on_row_activated(self, index):
 		with qui_utils.notify_error(self._errorLog):
 			timeIndex = index.parent()
-			assert timeIndex.isValid(), "Invalid row"
+			if not timeIndex.isValid():
+				return
 			timeRow = timeIndex.row()
 			row = index.row()
 			detailsItem = self._categoryManager.get_item(timeRow, row, self.DETAILS_IDX)
@@ -650,7 +651,8 @@ class Messages(object):
 	def _on_row_activated(self, index):
 		with qui_utils.notify_error(self._errorLog):
 			timeIndex = index.parent()
-			assert timeIndex.isValid(), "Invalid row"
+			if not timeIndex.isValid():
+				return
 			timeRow = timeIndex.row()
 			row = index.row()
 			item = self._categoryManager.get_item(timeRow, row, 0)
@@ -872,7 +874,8 @@ class Contacts(object):
 	def _on_row_activated(self, index):
 		with qui_utils.notify_error(self._errorLog):
 			letterIndex = index.parent()
-			assert letterIndex.isValid(), "Invalid row"
+			if not letterIndex.isValid():
+				return
 			letterRow = letterIndex.row()
 			letter = list(self._prefixes())[letterRow]
 			letterItem = self._alphaItem[letter]
