@@ -171,7 +171,7 @@ class WindowWrapper(object):
 		centralWidget.setLayout(self._superLayout)
 		centralWidget.setContentsMargins(0, 0, 0, 0)
 
-		self._window = QtGui.QMainWindow(parent)
+		self._window = qui_utils.QSignalingMainWindow(parent)
 		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 		qui_utils.set_stackable(self._window, True)
 		self._window.setCentralWidget(centralWidget)
@@ -234,7 +234,7 @@ class WindowWrapper(object):
 			child.set_orientation(isPortrait)
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_child_close(self):
+	def _on_child_close(self, obj = None):
 		raise NotImplementedError("Booh")
 
 	@misc_utils.log_exception(_moduleLogger)

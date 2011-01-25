@@ -427,7 +427,10 @@ class MainWindow(qwrappers.WindowWrapper):
 		return self._defaultCredentials
 
 	def walk_children(self):
-		return ()
+		if self._smsEntryDialog is not None:
+			return (self._smsEntryDialog, )
+		else:
+			return ()
 
 	def start(self):
 		qwrappers.WindowWrapper.start(self)
@@ -442,12 +445,15 @@ class MainWindow(qwrappers.WindowWrapper):
 	def close(self):
 		for diag in (
 			self._credentialsDialog,
-			self._smsEntryDialog,
 			self._accountDialog,
 		):
 			if diag is not None:
 				diag.close()
-		qwrappers.WindowWrapper.close(self)
+		for child in self.walk_children():
+			child.window.destroyed.disconnect(self._on_child_close)
+			child.window.closed.disconnect(self._on_child_close)
+			child.close()
+		self._window.close()
 
 	def destroy(self):
 		qwrappers.WindowWrapper.destroy(self)
@@ -505,9 +511,6 @@ class MainWindow(qwrappers.WindowWrapper):
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
 		else:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
-		for child in (self._smsEntryDialog, ):
-			if child is not None:
-				child.set_orientation(isPortrait)
 
 	def _initialize_tab(self, index):
 		assert index < self.MAX_TABS, "Invalid tab"
@@ -599,6 +602,12 @@ class MainWindow(qwrappers.WindowWrapper):
 			if self._smsEntryDialog is None:
 				import dialogs
 				self._smsEntryDialog = dialogs.SMSEntryWindow(self.window, self._app, self._session, self._errorLog)
+				self._smsEntryDialog.window.destroyed.connect(self._on_child_close)
+				self._smsEntryDialog.window.closed.connect(self._on_child_close)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_child_close(self, obj = None):
+		self._smsEntryDialog = None
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)

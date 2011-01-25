@@ -432,12 +432,14 @@ class SMSEntryWindow(object):
 		centralWidget = QtGui.QWidget()
 		centralWidget.setLayout(self._layout)
 
-		self._window = QtGui.QMainWindow(parent)
+		self._window = qui_utils.QSignalingMainWindow(parent)
 		qui_utils.set_window_orientation(self._window, QtCore.Qt.Horizontal)
 		qui_utils.set_stackable(self._window, True)
 		self._window.setWindowTitle("Contact")
 		self._window.setCentralWidget(centralWidget)
 		self._window.addAction(self._app.orientationAction)
+		self._window.closed.connect(self._on_close_window)
+		self._window.hidden.connect(self._on_close_window)
 
 		self._closeWindowAction = QtGui.QAction(None)
 		self._closeWindowAction.setText("Close")
@@ -456,22 +458,46 @@ class SMSEntryWindow(object):
 		self._scrollTimer.timeout.connect(self._on_delayed_scroll_to_bottom)
 
 		self._window.show()
+		self._smsEntry.setPlainText(self._session.draft.message)
 		self._update_letter_count()
 		self._update_target_fields()
 
+	@property
+	def window(self):
+		return self._window
+
 	def close(self):
+		if self._window is None:
+			# Already closed
+			return
+		self._session.draft.recipientsChanged.disconnect(self._on_recipients_changed)
+		self._session.draft.sendingMessage.disconnect(self._on_op_started)
+		self._session.draft.calling.disconnect(self._on_op_started)
+		self._session.draft.calling.disconnect(self._on_calling_started)
+		self._session.draft.cancelling.disconnect(self._on_op_started)
+		self._session.draft.sentMessage.disconnect(self._on_op_finished)
+		self._session.draft.called.disconnect(self._on_op_finished)
+		self._session.draft.cancelled.disconnect(self._on_op_finished)
+		self._session.draft.error.disconnect(self._on_op_error)
+		window = self._window
+		self._window = None
 		try:
-			self._window.destroy()
+			message = unicode(self._smsEntry.toPlainText())
+			self._session.draft.message = message
+			window.hide()
+			window.close()
+			window.destroy()
+		except AttributeError:
+			_moduleLogger.exception("Oh well")
 		except RuntimeError:
 			_moduleLogger.exception("Oh well")
-		self._window = None
 
 	def set_orientation(self, isPortrait):
 		if isPortrait:
 			qui_utils.set_window_orientation(self._window, QtCore.Qt.Vertical)
 		else:
 			qui_utils.set_window_orientation(self._window, QtCore.Qt.Horizontal)
-		self._scrollTimer.start()
+		self._scroll_to_bottom()
 
 	def _update_letter_count(self):
 		count = self._smsEntry.toPlainText().size()
@@ -624,11 +650,14 @@ class SMSEntryWindow(object):
 	def _on_sms_clicked(self, arg):
 		with qui_utils.notify_error(self._app.errorLog):
 			message = unicode(self._smsEntry.toPlainText())
-			self._session.draft.send(message)
+			self._session.draft.message = message
+			self._session.draft.send()
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_call_clicked(self, arg):
 		with qui_utils.notify_error(self._app.errorLog):
+			message = unicode(self._smsEntry.toPlainText())
+			self._session.draft.message = message
 			self._session.draft.call()
 
 	@QtCore.pyqtSlot()
@@ -726,7 +755,7 @@ class SMSEntryWindow(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
 		with qui_utils.notify_error(self._app.errorLog):
-			self._window.hide()
+			self.close()
 
 
 def _get_contact_numbers(session, contactId, numberDescription):

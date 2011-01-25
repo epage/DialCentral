@@ -250,6 +250,28 @@ class QHtmlDelegate(QtGui.QStyledItemDelegate):
 		return size
 
 
+class QSignalingMainWindow(QtGui.QMainWindow):
+
+	closed = QtCore.pyqtSignal()
+	hidden = QtCore.pyqtSignal()
+	shown = QtCore.pyqtSignal()
+
+	def __init__(self, *args, **kwd):
+		QtGui.QMainWindow.__init__(*((self, )+args), **kwd)
+
+	def closeEvent(self, event):
+		QtGui.QMainWindow.closeEvent(self, event)
+		self.closed.emit()
+
+	def hideEvent(self, event):
+		QtGui.QMainWindow.hideEvent(self, event)
+		self.hidden.emit()
+
+	def showEvent(self, event):
+		QtGui.QMainWindow.showEvent(self, event)
+		self.shown.emit()
+
+
 def _null_set_stackable(window, isStackable):
 	pass
 
