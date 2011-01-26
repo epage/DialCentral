@@ -356,10 +356,154 @@ class AccountDialog(object):
 			self._dialog.reject()
 
 
+class ContactList(object):
+
+	_SENTINEL_ICON = QtGui.QIcon()
+
+	def __init__(self, app, session):
+		self._app = app
+		self._session = session
+		self._targetLayout = QtGui.QVBoxLayout()
+		self._targetList = QtGui.QWidget()
+		self._targetList.setLayout(self._targetLayout)
+		self._uiItems = []
+		self._closeIcon = qui_utils.get_theme_icon(("window-close", "general_close", "gtk-close"), self._SENTINEL_ICON)
+
+	@property
+	def toplevel(self):
+		return self._targetList
+
+	def setVisible(self, isVisible):
+		self._targetList.setVisible(isVisible)
+
+	def update(self):
+		cids = list(self._session.draft.get_contacts())
+		amountCommon = min(len(cids), len(self._uiItems))
+
+		# Run through everything in common
+		for i in xrange(0, amountCommon):
+			cid = cids[i]
+			uiItem = self._uiItems[i]
+			title = self._session.draft.get_title(cid)
+			description = self._session.draft.get_description(cid)
+			numbers = self._session.draft.get_numbers(cid)
+			uiItem["cid"] = cid
+			uiItem["title"] = title
+			uiItem["description"] = description
+			uiItem["numbers"] = numbers
+			uiItem["label"].setText(title)
+			self._populate_number_selector(uiItem["selector"], cid, i, numbers)
+			uiItem["rowWidget"].setVisible(True)
+
+		# More contacts than ui items
+		for i in xrange(amountCommon, len(cids)):
+			cid = cids[i]
+			title = self._session.draft.get_title(cid)
+			description = self._session.draft.get_description(cid)
+			numbers = self._session.draft.get_numbers(cid)
+
+			titleLabel = QtGui.QLabel(title)
+			titleLabel.setWordWrap(True)
+			numberSelector = QtGui.QComboBox()
+			self._populate_number_selector(numberSelector, cid, i, numbers)
+			if self._closeIcon is self._SENTINEL_ICON:
+				deleteButton = QtGui.QPushButton("Delete")
+			else:
+				deleteButton = QtGui.QPushButton(self._closeIcon, "")
+			deleteButton.setSizePolicy(QtGui.QSizePolicy(
+				QtGui.QSizePolicy.Minimum,
+				QtGui.QSizePolicy.Minimum,
+				QtGui.QSizePolicy.PushButton,
+			))
+			callback = functools.partial(
+				self._on_remove_contact,
+				i
+			)
+			callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
+			deleteButton.clicked.connect(callback)
+
+			rowLayout = QtGui.QHBoxLayout()
+			rowLayout.addWidget(titleLabel, 1000)
+			rowLayout.addWidget(numberSelector, 0)
+			rowLayout.addWidget(deleteButton, 0)
+			rowWidget = QtGui.QWidget()
+			rowWidget.setLayout(rowLayout)
+			self._targetLayout.addWidget(rowWidget)
+
+			uiItem = {}
+			uiItem["cid"] = cid
+			uiItem["title"] = title
+			uiItem["description"] = description
+			uiItem["numbers"] = numbers
+			uiItem["label"] = titleLabel
+			uiItem["selector"] = numberSelector
+			uiItem["rowWidget"] = rowWidget
+			self._uiItems.append(uiItem)
+			amountCommon = i+1
+
+		# More UI items than contacts
+		for i in xrange(amountCommon, len(self._uiItems)):
+			uiItem = self._uiItems[i]
+			uiItem["rowWidget"].setVisible(False)
+			amountCommon = i+1
+
+	def _populate_number_selector(self, selector, cid, cidIndex, numbers):
+		selector.clear()
+
+		selectedNumber = self._session.draft.get_selected_number(cid)
+		if len(numbers) == 1:
+			# If no alt numbers available, check the address book
+			numbers, defaultIndex = _get_contact_numbers(self._session, cid, selectedNumber)
+		else:
+			defaultIndex = _index_number(numbers, selectedNumber)
+
+		for number, description in numbers:
+			if description:
+				label = "%s - %s" % (number, description)
+			else:
+				label = number
+			selector.addItem(label)
+		selector.setVisible(True)
+		if 1 < len(numbers):
+			selector.setEnabled(True)
+			selector.setCurrentIndex(defaultIndex)
+		else:
+			selector.setEnabled(False)
+
+		callback = functools.partial(
+			self._on_change_number,
+			cidIndex
+		)
+		callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
+		selector.activated.connect(
+			QtCore.pyqtSlot(int)(callback)
+		)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_change_number(self, cidIndex, index):
+		with qui_utils.notify_error(self._app.errorLog):
+			# Exception thrown when the first item is removed
+			try:
+				cid = self._uiItems[cidIndex]["cid"]
+				numbers = self._session.draft.get_numbers(cid)
+			except IndexError:
+				_moduleLogger.error("Contact no longer available (or bizarre error): %r (%r)" % (cid, index))
+				return
+			except KeyError:
+				_moduleLogger.error("Contact no longer available (or bizarre error): %r (%r)" % (cid, index))
+				return
+			number = numbers[index][0]
+			self._session.draft.set_selected_number(cid, number)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_remove_contact(self, index, toggled):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._session.draft.remove_contact(self._uiItems[index]["cid"])
+
+
 class SMSEntryWindow(object):
 
 	MAX_CHAR = 160
-	_SENTINEL_ICON = QtGui.QIcon()
 
 	def __init__(self, parent, app, session, errorLog):
 		self._app = app
@@ -379,10 +523,7 @@ class SMSEntryWindow(object):
 
 		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
 
-		self._targetLayout = QtGui.QVBoxLayout()
-		self._targetList = QtGui.QWidget()
-		self._targetList.setLayout(self._targetLayout)
-		self._closeIcon = qui_utils.get_theme_icon(("window-close", "general_close", "gtk-close"), self._SENTINEL_ICON)
+		self._targetList = ContactList(self._app, self._session)
 		self._history = QtGui.QLabel()
 		self._history.setTextFormat(QtCore.Qt.RichText)
 		self._history.setWordWrap(True)
@@ -390,7 +531,7 @@ class SMSEntryWindow(object):
 		self._smsEntry.textChanged.connect(self._on_letter_count_changed)
 
 		self._entryLayout = QtGui.QVBoxLayout()
-		self._entryLayout.addWidget(self._targetList)
+		self._entryLayout.addWidget(self._targetList.toplevel)
 		self._entryLayout.addWidget(self._history)
 		self._entryLayout.addWidget(self._smsEntry)
 		self._entryLayout.setContentsMargins(0, 0, 0, 0)
@@ -406,7 +547,7 @@ class SMSEntryWindow(object):
 
 		self._characterCountLabel = QtGui.QLabel("")
 		self._singleNumberSelector = QtGui.QComboBox()
-		self._singleNumbersCID = None
+		self._cids = []
 		self._singleNumberSelector.activated.connect(self._on_single_change_number)
 		self._smsButton = QtGui.QPushButton("SMS")
 		self._smsButton.clicked.connect(self._on_sms_clicked)
@@ -530,9 +671,8 @@ class SMSEntryWindow(object):
 	def _update_target_fields(self):
 		draftContactsCount = self._session.draft.get_num_contacts()
 		if draftContactsCount == 0:
-			self._clear_target_list()
 			self._window.hide()
-			self._singleNumbersCID = None
+			del self._cids[:]
 		elif draftContactsCount == 1:
 			(cid, ) = self._session.draft.get_contacts()
 			title = self._session.draft.get_title(cid)
@@ -540,15 +680,14 @@ class SMSEntryWindow(object):
 			numbers = self._session.draft.get_numbers(cid)
 
 			self._targetList.setVisible(False)
-			self._clear_target_list()
 			if description:
 				self._history.setText(description)
 				self._history.setVisible(True)
 			else:
 				self._history.setText("")
 				self._history.setVisible(False)
-			self._populate_number_selector(self._singleNumberSelector, cid, numbers)
-			self._singleNumbersCID = None
+			self._populate_number_selector(self._singleNumberSelector, cid, 0, numbers)
+			self._cids = [cid]
 
 			self._scroll_to_bottom()
 			self._window.setWindowTitle(title)
@@ -556,64 +695,25 @@ class SMSEntryWindow(object):
 			self._smsEntry.setFocus(QtCore.Qt.OtherFocusReason)
 		else:
 			self._targetList.setVisible(True)
-			self._clear_target_list()
-			for cid in self._session.draft.get_contacts():
-				title = self._session.draft.get_title(cid)
-				description = self._session.draft.get_description(cid)
-				numbers = self._session.draft.get_numbers(cid)
-
-				titleLabel = QtGui.QLabel(title)
-				titleLabel.setWordWrap(True)
-				numberSelector = QtGui.QComboBox()
-				self._populate_number_selector(numberSelector, cid, numbers)
-				if self._closeIcon is self._SENTINEL_ICON:
-					deleteButton = QtGui.QPushButton("Delete")
-				else:
-					deleteButton = QtGui.QPushButton(self._closeIcon, "")
-				deleteButton.setSizePolicy(QtGui.QSizePolicy(
-					QtGui.QSizePolicy.Minimum,
-					QtGui.QSizePolicy.Minimum,
-					QtGui.QSizePolicy.PushButton,
-				))
-				callback = functools.partial(
-					self._on_remove_contact,
-					cid
-				)
-				callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
-				deleteButton.clicked.connect(callback)
-
-				rowLayout = QtGui.QHBoxLayout()
-				rowLayout.addWidget(titleLabel, 1000)
-				rowLayout.addWidget(numberSelector, 0)
-				rowLayout.addWidget(deleteButton, 0)
-				rowWidget = QtGui.QWidget()
-				rowWidget.setLayout(rowLayout)
-				self._targetLayout.addWidget(rowWidget)
+			self._targetList.update()
 			self._history.setText("")
 			self._history.setVisible(False)
 			self._singleNumberSelector.setVisible(False)
-			self._singleNumbersCID = None
 
 			self._scroll_to_bottom()
 			self._window.setWindowTitle("Contacts")
 			self._window.show()
 			self._smsEntry.setFocus(QtCore.Qt.OtherFocusReason)
 
-	def _clear_target_list(self):
-		while self._targetLayout.count():
-			removedLayoutItem = self._targetLayout.takeAt(self._targetLayout.count()-1)
-			removedWidget = removedLayoutItem.widget()
-			removedWidget.hide()
-			removedWidget.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-			removedWidget.close()
-
-	def _populate_number_selector(self, selector, cid, numbers):
+	def _populate_number_selector(self, selector, cid, cidIndex, numbers):
 		selector.clear()
 
+		selectedNumber = self._session.draft.get_selected_number(cid)
 		if len(numbers) == 1:
-			numbers, defaultIndex = _get_contact_numbers(self._session, cid, numbers[0])
+			# If no alt numbers available, check the address book
+			numbers, defaultIndex = _get_contact_numbers(self._session, cid, selectedNumber)
 		else:
-			defaultIndex = 0
+			defaultIndex = _index_number(numbers, selectedNumber)
 
 		for number, description in numbers:
 			if description:
@@ -627,16 +727,6 @@ class SMSEntryWindow(object):
 			selector.setCurrentIndex(defaultIndex)
 		else:
 			selector.setEnabled(False)
-
-		if selector is not self._singleNumberSelector:
-			callback = functools.partial(
-				self._on_change_number,
-				cid
-			)
-			callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
-			selector.activated.connect(
-				QtCore.pyqtSlot(int)(callback)
-			)
 
 	def _scroll_to_bottom(self):
 		self._scrollTimer.start()
@@ -667,30 +757,10 @@ class SMSEntryWindow(object):
 			self._session.draft.cancel()
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_remove_contact(self, cid, toggled):
-		with qui_utils.notify_error(self._app.errorLog):
-			self._session.draft.remove_contact(cid)
-
-	@misc_utils.log_exception(_moduleLogger)
 	def _on_single_change_number(self, index):
 		with qui_utils.notify_error(self._app.errorLog):
 			# Exception thrown when the first item is removed
-			cid = self._singleNumbersCID
-			if cid is None:
-				_moduleLogger.error("Number change occurred on the single selector when in multi-selector mode (%r)" % index)
-				return
-			try:
-				numbers = self._session.draft.get_numbers(cid)
-			except KeyError:
-				_moduleLogger.error("Contact no longer available (or bizarre error): %r (%r)" % (cid, index))
-				return
-			number = numbers[index][0]
-			self._session.draft.set_selected_number(cid, number)
-
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_change_number(self, cid, index):
-		with qui_utils.notify_error(self._app.errorLog):
-			# Exception thrown when the first item is removed
+			cid = self._cids[0]
 			try:
 				numbers = self._session.draft.get_numbers(cid)
 			except KeyError:
@@ -758,7 +828,28 @@ class SMSEntryWindow(object):
 			self.close()
 
 
-def _get_contact_numbers(session, contactId, numberDescription):
+def _index_number(numbers, default):
+	uglyContactNumbers = (
+		misc_utils.make_ugly(contactNumber)
+		for (contactNumber, _) in numbers
+	)
+	defaultMatches = [
+		misc_utils.similar_ugly_numbers(default, contactNumber)
+		for contactNumber in uglyContactNumbers
+	]
+	try:
+		defaultIndex = defaultMatches.index(True)
+	except ValueError:
+		defaultIndex = 0
+		_moduleLogger.warn(
+			"Could not find contact number %s among %r" % (
+				default, numbers
+			)
+		)
+	return defaultIndex
+
+
+def _get_contact_numbers(session, contactId, number):
 	contactPhoneNumbers = []
 	if contactId and contactId != "0":
 		try:
@@ -770,28 +861,10 @@ def _get_contact_numbers(session, contactId, numberDescription):
 			(contactPhoneNumber["phoneNumber"], contactPhoneNumber.get("phoneType", "Unknown"))
 			for contactPhoneNumber in contactPhoneNumbers
 		]
-		if contactPhoneNumbers:
-			uglyContactNumbers = (
-				misc_utils.make_ugly(contactNumber)
-				for (contactNumber, _) in contactPhoneNumbers
-			)
-			defaultMatches = [
-				misc_utils.similar_ugly_numbers(numberDescription[0], contactNumber)
-				for contactNumber in uglyContactNumbers
-			]
-			try:
-				defaultIndex = defaultMatches.index(True)
-			except ValueError:
-				contactPhoneNumbers.append(numberDescription)
-				defaultIndex = len(contactPhoneNumbers)-1
-				_moduleLogger.warn(
-					"Could not find contact %r's number %s among %r" % (
-						contactId, numberDescription, contactPhoneNumbers
-					)
-				)
+		defaultIndex = _index_number(contactPhoneNumbers, number)
 
 	if not contactPhoneNumbers:
-		contactPhoneNumbers = [numberDescription]
-		defaultIndex = -1
+		contactPhoneNumbers = [(number, "Unknown")]
+		defaultIndex = 0
 
 	return contactPhoneNumbers, defaultIndex
