@@ -594,7 +594,7 @@ class SMSEntryWindow(object):
 		viewMenu.addAction(app.fullscreenAction)
 
 		self._scrollTimer = QtCore.QTimer()
-		self._scrollTimer.setInterval(0)
+		self._scrollTimer.setInterval(100)
 		self._scrollTimer.setSingleShot(True)
 		self._scrollTimer.timeout.connect(self._on_delayed_scroll_to_bottom)
 
