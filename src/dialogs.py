@@ -841,18 +841,19 @@ class SMSEntryWindow(object):
 
 
 def _index_number(numbers, default):
-	uglyContactNumbers = (
+	uglyDefault = misc_utils.make_ugly(default)
+	uglyContactNumbers = list(
 		misc_utils.make_ugly(contactNumber)
 		for (contactNumber, _) in numbers
 	)
 	defaultMatches = [
-		misc_utils.similar_ugly_numbers(default, contactNumber)
+		misc_utils.similar_ugly_numbers(uglyDefault, contactNumber)
 		for contactNumber in uglyContactNumbers
 	]
 	try:
 		defaultIndex = defaultMatches.index(True)
 	except ValueError:
-		defaultIndex = 0
+		defaultIndex = -1
 		_moduleLogger.warn(
 			"Could not find contact number %s among %r" % (
 				default, numbers
@@ -875,8 +876,8 @@ def _get_contact_numbers(session, contactId, number):
 		]
 		defaultIndex = _index_number(contactPhoneNumbers, number)
 
-	if not contactPhoneNumbers:
-		contactPhoneNumbers = [(number, "Unknown")]
+	if not contactPhoneNumbers or defaultIndex == -1:
+		contactPhoneNumbers += [(number, "Unknown")]
 		defaultIndex = 0
 
 	return contactPhoneNumbers, defaultIndex
