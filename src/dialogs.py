@@ -406,6 +406,16 @@ class ContactList(object):
 			titleLabel.setWordWrap(True)
 			numberSelector = QtGui.QComboBox()
 			self._populate_number_selector(numberSelector, cid, i, numbers)
+
+			callback = functools.partial(
+				self._on_change_number,
+				i
+			)
+			callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
+			numberSelector.activated.connect(
+				QtCore.pyqtSlot(int)(callback)
+			)
+
 			if self._closeIcon is self._SENTINEL_ICON:
 				deleteButton = QtGui.QPushButton("Delete")
 			else:
@@ -469,15 +479,6 @@ class ContactList(object):
 			selector.setCurrentIndex(defaultIndex)
 		else:
 			selector.setEnabled(False)
-
-		callback = functools.partial(
-			self._on_change_number,
-			cidIndex
-		)
-		callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
-		selector.activated.connect(
-			QtCore.pyqtSlot(int)(callback)
-		)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_change_number(self, cidIndex, index):
