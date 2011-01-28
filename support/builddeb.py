@@ -30,7 +30,12 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Doing something I dislike, stop caching the SMS window, to work around Maemo 5 Qt redraw issues with hidden stacked windows
+* Fixing erroneous error report
+* Fixed visual glitches on Maemo 5 when adding contacts
+* Hopefully fixed auto-scroll on loading of SMS window
+* Improved performance of adding/removing contacts from SMS window
+* Fixed bugs with contact alternate number selector
+* Fixed bugs with SMS window closing
 """.strip()
 
 
