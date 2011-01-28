@@ -505,6 +505,7 @@ class ContactList(object):
 class SMSEntryWindow(object):
 
 	MAX_CHAR = 160
+	# @bug Somehow a window is being destroyed on object creation which causes glitches on Maemo 5
 
 	def __init__(self, parent, app, session, errorLog):
 		self._app = app
