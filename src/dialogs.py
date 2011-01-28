@@ -600,10 +600,10 @@ class SMSEntryWindow(object):
 		self._scrollTimer.setSingleShot(True)
 		self._scrollTimer.timeout.connect(self._on_delayed_scroll_to_bottom)
 
-		self._window.show()
 		self._smsEntry.setPlainText(self._session.draft.message)
 		self._update_letter_count()
 		self._update_target_fields()
+		self._window.show()
 
 	@property
 	def window(self):
@@ -613,6 +613,17 @@ class SMSEntryWindow(object):
 		if self._window is None:
 			# Already closed
 			return
+		window = self._window
+		try:
+			message = unicode(self._smsEntry.toPlainText())
+			self._session.draft.message = message
+			window.hide()
+		except AttributeError:
+			_moduleLogger.exception("Oh well")
+		except RuntimeError:
+			_moduleLogger.exception("Oh well")
+
+	def destroy(self):
 		self._session.draft.recipientsChanged.disconnect(self._on_recipients_changed)
 		self._session.draft.sendingMessage.disconnect(self._on_op_started)
 		self._session.draft.calling.disconnect(self._on_op_started)
@@ -625,9 +636,6 @@ class SMSEntryWindow(object):
 		window = self._window
 		self._window = None
 		try:
-			message = unicode(self._smsEntry.toPlainText())
-			self._session.draft.message = message
-			window.hide()
 			window.close()
 			window.destroy()
 		except AttributeError:
@@ -693,8 +701,9 @@ class SMSEntryWindow(object):
 
 			self._scroll_to_bottom()
 			self._window.setWindowTitle(title)
-			self._window.show()
 			self._smsEntry.setFocus(QtCore.Qt.OtherFocusReason)
+			self._window.show()
+			self._window.raise_()
 		else:
 			self._targetList.setVisible(True)
 			self._targetList.update()
@@ -704,8 +713,9 @@ class SMSEntryWindow(object):
 
 			self._scroll_to_bottom()
 			self._window.setWindowTitle("Contacts")
-			self._window.show()
 			self._smsEntry.setFocus(QtCore.Qt.OtherFocusReason)
+			self._window.show()
+			self._window.raise_()
 
 	def _populate_number_selector(self, selector, cid, cidIndex, numbers):
 		selector.clear()
