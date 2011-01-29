@@ -258,6 +258,10 @@ class DelayedWidget(object):
 		else:
 			self._child.disable()
 
+	@property
+	def child(self):
+		return self._child
+
 	def enable(self):
 		self._isEnabled = True
 		if self._child is not None:
@@ -636,11 +640,13 @@ class MainWindow(qwrappers.WindowWrapper):
 	def _on_import(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
 			csvName = QtGui.QFileDialog.getOpenFileName(self._window, caption="Import", filter="CSV Files (*.csv)")
+			csvName = unicode(csvName)
 			if not csvName:
 				return
 			import shutil
 			shutil.copy2(csvName, self._app.fsContactsPath)
-			self._tabsContents[self.CONTACTS_TAB].update_addressbooks()
+			if self._tabsContents[self.CONTACTS_TAB].has_child:
+				self._tabsContents[self.CONTACTS_TAB].child.update_addressbooks()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
