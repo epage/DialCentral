@@ -463,7 +463,7 @@ class ContactList(object):
 		selectedNumber = self._session.draft.get_selected_number(cid)
 		if len(numbers) == 1:
 			# If no alt numbers available, check the address book
-			numbers, defaultIndex = _get_contact_numbers(self._session, cid, selectedNumber)
+			numbers, defaultIndex = _get_contact_numbers(self._session, cid, selectedNumber, numbers[0][1])
 		else:
 			defaultIndex = _index_number(numbers, selectedNumber)
 
@@ -723,7 +723,7 @@ class SMSEntryWindow(object):
 		selectedNumber = self._session.draft.get_selected_number(cid)
 		if len(numbers) == 1:
 			# If no alt numbers available, check the address book
-			numbers, defaultIndex = _get_contact_numbers(self._session, cid, selectedNumber)
+			numbers, defaultIndex = _get_contact_numbers(self._session, cid, selectedNumber, numbers[0][1])
 		else:
 			defaultIndex = _index_number(numbers, selectedNumber)
 
@@ -862,7 +862,7 @@ def _index_number(numbers, default):
 	return defaultIndex
 
 
-def _get_contact_numbers(session, contactId, number):
+def _get_contact_numbers(session, contactId, number, description):
 	contactPhoneNumbers = []
 	if contactId and contactId != "0":
 		try:
@@ -877,7 +877,7 @@ def _get_contact_numbers(session, contactId, number):
 		defaultIndex = _index_number(contactPhoneNumbers, number)
 
 	if not contactPhoneNumbers or defaultIndex == -1:
-		contactPhoneNumbers += [(number, "Unknown")]
+		contactPhoneNumbers += [(number, description)]
 		defaultIndex = 0
 
 	return contactPhoneNumbers, defaultIndex
