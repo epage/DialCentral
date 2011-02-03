@@ -85,7 +85,7 @@ class AsyncPool(QtCore.QObject):
 	def __init__(self):
 		QtCore.QObject.__init__(self)
 		self._thread = QThread44()
-		self._isRunning = True
+		self._isRunning = False
 		self._parent = _ParentThread(self)
 		self._worker = _WorkerThread(self)
 		self._worker.moveToThread(self._thread)
@@ -96,6 +96,7 @@ class AsyncPool(QtCore.QObject):
 
 	def start(self):
 		self._thread.start()
+		self._isRunning = True
 
 	def stop(self):
 		self._isRunning = False

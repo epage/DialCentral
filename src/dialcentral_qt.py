@@ -556,6 +556,10 @@ class MainWindow(qwrappers.WindowWrapper):
 		if response == QtGui.QDialog.Accepted:
 			if self._accountDialog.doClear:
 				self._session.logout_and_clear()
+				self._defaultCredentials = "", ""
+				self._curentCredentials = "", ""
+				for tab in self._tabsContents:
+					tab.disable()
 			else:
 				callbackNumber = self._accountDialog.selectedCallback
 				self._session.set_callback_number(callbackNumber)

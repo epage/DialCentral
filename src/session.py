@@ -549,11 +549,11 @@ class Session(QtCore.QObject):
 		oldCallback = self._callback
 
 		self._contacts = {}
-		self._contactUpdateTime = datetime.datetime(1, 1, 1)
+		self._contactUpdateTime = datetime.datetime(1971, 1, 1)
 		self._messages = []
-		self._messageUpdateTime = datetime.datetime(1, 1, 1)
+		self._messageUpdateTime = datetime.datetime(1971, 1, 1)
 		self._history = []
-		self._historyUpdateTime = datetime.datetime(1, 1, 1)
+		self._historyUpdateTime = datetime.datetime(1971, 1, 1)
 		self._dnd = False
 		self._callback = ""
 

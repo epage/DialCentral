@@ -21,6 +21,7 @@ _moduleLogger = logging.getLogger(__name__)
 class CredentialsDialog(object):
 
 	def __init__(self, app):
+		self._app = app
 		self._usernameField = QtGui.QLineEdit()
 		self._passwordField = QtGui.QLineEdit()
 		self._passwordField.setEchoMode(QtGui.QLineEdit.Password)
@@ -89,6 +90,7 @@ class CredentialsDialog(object):
 class AboutDialog(object):
 
 	def __init__(self, app):
+		self._app = app
 		self._title = QtGui.QLabel(
 			"<h1>%s</h1><h3>Version: %s</h3>" % (
 				constants.__pretty_app_name__, constants.__version__
@@ -167,6 +169,7 @@ class AccountDialog(object):
 	]
 
 	def __init__(self, app):
+		self._app = app
 		self._doClear = False
 
 		self._accountNumberLabel = QtGui.QLabel("NUMBER NOT SET")
