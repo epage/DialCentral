@@ -815,7 +815,7 @@ class SMSEntryWindow(object):
 			self._cancelButton.setVisible(False)
 			self._smsButton.setVisible(True)
 			self._dialButton.setVisible(True)
-			self._window.hide()
+			self.close()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
