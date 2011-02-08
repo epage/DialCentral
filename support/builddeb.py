@@ -30,8 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing notifications on Maemo 4.1 (put in error reporting mechanism half-way)
-* Fixing up various issues with clearing one's account information
+* More graphical glitch removal work (Maemo 5)
 """.strip()
 
 
