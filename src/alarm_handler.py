@@ -4,6 +4,7 @@ import os
 import time
 import datetime
 import ConfigParser
+import logging
 
 import dbus
 
@@ -22,6 +23,9 @@ except (ImportError, OSError):
 		ALARM_TYPE = _DIABLO_ALARM
 	except (ImportError, OSError):
 		ALARM_TYPE = _NO_ALARM
+
+
+_moduleLogger = logging.getLogger(__name__)
 
 
 def _get_start_time(recurrence):
@@ -253,25 +257,45 @@ class _DiabloAlarmHandler(object):
 
 class _NoneAlarmHandler(object):
 
+	_INVALID_COOKIE = -1
+	_REPEAT_FOREVER = -1
+	_LAUNCHER = os.path.abspath(os.path.join(os.path.dirname(__file__), "alarm_notify.py"))
+
 	def __init__(self):
 		self._alarmCookie = 0
+		self._recurrence = 5
+		self._alarmCookie = self._INVALID_COOKIE
+		self._launcher = self._LAUNCHER
 
 	def load_settings(self, config, sectionName):
-		pass
+		try:
+			self._recurrence = config.getint(sectionName, "recurrence")
+			self._alarmCookie = config.getint(sectionName, "alarmCookie")
+			launcher = config.get(sectionName, "notifier")
+			if launcher:
+				self._launcher = launcher
+		except ConfigParser.NoOptionError:
+			pass
+		except ConfigParser.NoSectionError:
+			pass
 
 	def save_settings(self, config, sectionName):
-		pass
+		config.set(sectionName, "recurrence", str(self._recurrence))
+		config.set(sectionName, "alarmCookie", str(self._alarmCookie))
+		launcher = self._launcher if self._launcher != self._LAUNCHER else ""
+		config.set(sectionName, "notifier", launcher)
 
 	def apply_settings(self, enabled, recurrence):
-		pass
+		self._alarmCookie = 0 if enabled else self._INVALID_COOKIE
+		self._recurrence = recurrence
 
 	@property
 	def recurrence(self):
-		return 0
+		return self._recurrence
 
 	@property
 	def isEnabled(self):
-		return False
+		return self._alarmCookie != self._INVALID_COOKIE
 
 
 AlarmHandler = {
@@ -282,6 +306,8 @@ AlarmHandler = {
 
 
 def main():
+	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
+	logging.basicConfig(level=logging.DEBUG, format=logFormat)
 	import constants
 	try:
 		import optparse
