@@ -568,6 +568,7 @@ class MainWindow(qwrappers.WindowWrapper):
 				self._app.notifyOnMissed = self._accountDialog.notifyOnMissed
 				self._app.notifyOnVoicemail = self._accountDialog.notifyOnVoicemail
 				self._app.notifyOnSms = self._accountDialog.notifyOnSms
+				self._app.save_settings()
 		elif response == QtGui.QDialog.Rejected:
 			_moduleLogger.info("Cancelled")
 		else:
