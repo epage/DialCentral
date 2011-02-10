@@ -283,10 +283,10 @@ class AccountDialog(object):
 	def _set_notification_time(self, minutes):
 		for i, (time, _) in enumerate(self._RECURRENCE_CHOICES):
 			if time == minutes:
-				self._callbackSelector.setCurrentIndex(i)
+				self._notificationTimeSelector.setCurrentIndex(i)
 				break
 		else:
-				self._callbackSelector.setCurrentIndex(0)
+				self._notificationTimeSelector.setCurrentIndex(0)
 
 	notificationTime = property(_get_notification_time, _set_notification_time)
 
