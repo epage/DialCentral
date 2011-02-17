@@ -613,6 +613,7 @@ class MainWindow(qwrappers.WindowWrapper):
 				self._smsEntryDialog = dialogs.SMSEntryWindow(self.window, self._app, self._session, self._errorLog)
 				self._smsEntryDialog.window.destroyed.connect(self._on_child_close)
 				self._smsEntryDialog.window.closed.connect(self._on_child_close)
+				self._smsEntryDialog.window.show()
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_child_close(self, obj = None):

@@ -11,6 +11,7 @@ from PyQt4 import QtGui
 from PyQt4 import QtCore
 
 import constants
+from util import qwrappers
 from util import qui_utils
 from util import misc as misc_utils
 
@@ -505,13 +506,13 @@ class ContactList(object):
 			self._session.draft.remove_contact(self._uiItems[index]["cid"])
 
 
-class SMSEntryWindow(object):
+class SMSEntryWindow(qwrappers.WindowWrapper):
 
 	MAX_CHAR = 160
 	# @bug Somehow a window is being destroyed on object creation which causes glitches on Maemo 5
 
 	def __init__(self, parent, app, session, errorLog):
-		self._app = app
+		qwrappers.WindowWrapper.__init__(self, parent, app)
 		self._session = session
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
 
@@ -570,33 +571,14 @@ class SMSEntryWindow(object):
 		self._buttonLayout.addWidget(self._dialButton)
 		self._buttonLayout.addWidget(self._cancelButton)
 
-		self._layout = QtGui.QVBoxLayout()
 		self._layout.addWidget(self._errorDisplay.toplevel)
 		self._layout.addWidget(self._scrollEntry)
 		self._layout.addLayout(self._buttonLayout)
+		self._layout.setDirection(QtGui.QBoxLayout.TopToBottom)
 
-		centralWidget = QtGui.QWidget()
-		centralWidget.setLayout(self._layout)
-
-		self._window = qui_utils.QSignalingMainWindow(parent)
-		qui_utils.set_window_orientation(self._window, QtCore.Qt.Horizontal)
-		qui_utils.set_stackable(self._window, True)
 		self._window.setWindowTitle("Contact")
-		self._window.setCentralWidget(centralWidget)
-		self._window.addAction(self._app.orientationAction)
 		self._window.closed.connect(self._on_close_window)
 		self._window.hidden.connect(self._on_close_window)
-
-		self._closeWindowAction = QtGui.QAction(None)
-		self._closeWindowAction.setText("Close")
-		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
-		self._closeWindowAction.triggered.connect(self._on_close_window)
-
-		fileMenu = self._window.menuBar().addMenu("&File")
-		fileMenu.addAction(self._closeWindowAction)
-		fileMenu.addAction(app.quitAction)
-		viewMenu = self._window.menuBar().addMenu("&View")
-		viewMenu.addAction(app.fullscreenAction)
 
 		self._scrollTimer = QtCore.QTimer()
 		self._scrollTimer.setInterval(100)
@@ -606,11 +588,8 @@ class SMSEntryWindow(object):
 		self._smsEntry.setPlainText(self._session.draft.message)
 		self._update_letter_count()
 		self._update_target_fields()
-		self._window.show()
-
-	@property
-	def window(self):
-		return self._window
+		self.set_fullscreen(self._app.fullscreenAction.isChecked())
+		self.set_orientation(self._app.orientationAction.isChecked())
 
 	def close(self):
 		if self._window is None:
@@ -620,7 +599,7 @@ class SMSEntryWindow(object):
 		try:
 			message = unicode(self._smsEntry.toPlainText())
 			self._session.draft.message = message
-			window.hide()
+			self.hide()
 		except AttributeError:
 			_moduleLogger.exception("Oh well")
 		except RuntimeError:
@@ -647,10 +626,7 @@ class SMSEntryWindow(object):
 			_moduleLogger.exception("Oh well")
 
 	def set_orientation(self, isPortrait):
-		if isPortrait:
-			qui_utils.set_window_orientation(self._window, QtCore.Qt.Vertical)
-		else:
-			qui_utils.set_window_orientation(self._window, QtCore.Qt.Horizontal)
+		qwrappers.WindowWrapper.set_orientation(self, isPortrait)
 		self._scroll_to_bottom()
 
 	def _update_letter_count(self):
@@ -684,7 +660,7 @@ class SMSEntryWindow(object):
 	def _update_target_fields(self):
 		draftContactsCount = self._session.draft.get_num_contacts()
 		if draftContactsCount == 0:
-			self._window.hide()
+			self.hide()
 			del self._cids[:]
 		elif draftContactsCount == 1:
 			(cid, ) = self._session.draft.get_contacts()
@@ -705,7 +681,7 @@ class SMSEntryWindow(object):
 			self._scroll_to_bottom()
 			self._window.setWindowTitle(title)
 			self._smsEntry.setFocus(QtCore.Qt.OtherFocusReason)
-			self._window.show()
+			self.show()
 			self._window.raise_()
 		else:
 			self._targetList.setVisible(True)
@@ -717,7 +693,7 @@ class SMSEntryWindow(object):
 			self._scroll_to_bottom()
 			self._window.setWindowTitle("Contacts")
 			self._smsEntry.setFocus(QtCore.Qt.OtherFocusReason)
-			self._window.show()
+			self.show()
 			self._window.raise_()
 
 	def _populate_number_selector(self, selector, cid, cidIndex, numbers):
@@ -798,7 +774,7 @@ class SMSEntryWindow(object):
 			self._smsEntry.setReadOnly(True)
 			self._smsButton.setVisible(False)
 			self._dialButton.setVisible(False)
-			self._window.show()
+			self.show()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)

@@ -207,10 +207,10 @@ class WindowWrapper(object):
 		pass
 
 	def show(self):
-		self.set_fullscreen(self._app.fullscreenAction.isChecked())
 		self._window.show()
 		for child in self.walk_children():
 			child.show()
+		self.set_fullscreen(self._app.fullscreenAction.isChecked())
 
 	def hide(self):
 		for child in self.walk_children():
@@ -218,10 +218,11 @@ class WindowWrapper(object):
 		self._window.hide()
 
 	def set_fullscreen(self, isFullscreen):
-		if isFullscreen:
-			self._window.showFullScreen()
-		else:
-			self._window.showNormal()
+		if self._window.isVisible():
+			if isFullscreen:
+				self._window.showFullScreen()
+			else:
+				self._window.showNormal()
 		for child in self.walk_children():
 			child.set_fullscreen(isFullscreen)
 
