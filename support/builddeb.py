@@ -30,8 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixed the alarm recurrence display in the settings dialog (Maemo 4.1)
-* Forgot to flush alarm notifier settings on apply (Maemo 4.1)
+* Fixing some issues propogating full screen settings to the SMS Entry window
 """.strip()
 
 
