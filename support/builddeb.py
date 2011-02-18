@@ -30,7 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing some issues propogating full screen settings to the SMS Entry window
+* Updating SMS window's history view on main window refreshes
 """.strip()
 
 
