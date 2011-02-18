@@ -514,6 +514,8 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 	def __init__(self, parent, app, session, errorLog):
 		qwrappers.WindowWrapper.__init__(self, parent, app)
 		self._session = session
+		self._session.messagesUpdated.connect(self._on_refresh_history)
+		self._session.historyUpdated.connect(self._on_refresh_history)
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
 
 		self._session.draft.sendingMessage.connect(self._on_op_started)
@@ -606,6 +608,8 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			_moduleLogger.exception("Oh well")
 
 	def destroy(self):
+		self._session.messagesUpdated.disconnect(self._on_refresh_history)
+		self._session.historyUpdated.disconnect(self._on_refresh_history)
 		self._session.draft.recipientsChanged.disconnect(self._on_recipients_changed)
 		self._session.draft.sendingMessage.disconnect(self._on_op_started)
 		self._session.draft.calling.disconnect(self._on_op_started)
@@ -657,16 +661,12 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			else:
 				self._smsButton.setEnabled(True)
 
-	def _update_target_fields(self):
+	def _update_history(self, cid):
 		draftContactsCount = self._session.draft.get_num_contacts()
-		if draftContactsCount == 0:
-			self.hide()
-			del self._cids[:]
-		elif draftContactsCount == 1:
-			(cid, ) = self._session.draft.get_contacts()
-			title = self._session.draft.get_title(cid)
+		if draftContactsCount != 1:
+			self._history.setVisible(False)
+		else:
 			description = self._session.draft.get_description(cid)
-			numbers = self._session.draft.get_numbers(cid)
 
 			self._targetList.setVisible(False)
 			if description:
@@ -675,6 +675,19 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			else:
 				self._history.setText("")
 				self._history.setVisible(False)
+
+	def _update_target_fields(self):
+		draftContactsCount = self._session.draft.get_num_contacts()
+		if draftContactsCount == 0:
+			self.hide()
+			del self._cids[:]
+		elif draftContactsCount == 1:
+			(cid, ) = self._session.draft.get_contacts()
+			title = self._session.draft.get_title(cid)
+			numbers = self._session.draft.get_numbers(cid)
+
+			self._targetList.setVisible(False)
+			self._update_history(cid)
 			self._populate_number_selector(self._singleNumberSelector, cid, 0, numbers)
 			self._cids = [cid]
 
@@ -759,6 +772,16 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 				return
 			number = numbers[index][0]
 			self._session.draft.set_selected_number(cid, number)
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_refresh_history(self):
+		draftContactsCount = self._session.draft.get_num_contacts()
+		if draftContactsCount != 1:
+			# Changing contact count will automatically refresh it
+			return
+		(cid, ) = self._session.draft.get_contacts()
+		self._update_history(cid)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
