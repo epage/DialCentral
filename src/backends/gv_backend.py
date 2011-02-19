@@ -32,6 +32,8 @@ import logging
 
 from gvoice import gvoice
 
+from util import io as io_utils
+
 
 _moduleLogger = logging.getLogger(__name__)
 
@@ -213,7 +215,7 @@ class GVDialer(object):
 			"high": "<b>%s</b>",
 		}
 		return " ".join(
-			messagePartFormat[text.accuracy] % text.text
+			messagePartFormat[text.accuracy] % io_utils.escape(text.text)
 			for text in message.body
 		)
 

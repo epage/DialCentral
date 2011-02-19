@@ -8,6 +8,7 @@ import pickle
 import contextlib
 import itertools
 import codecs
+from xml.sax import saxutils
 import csv
 try:
 	import cStringIO as StringIO
@@ -207,3 +208,23 @@ def unicode_csv_reader(unicode_csv_data, dialect=csv.excel, **kwargs):
 def utf_8_encoder(unicode_csv_data):
 	for line in unicode_csv_data:
 		yield line.encode('utf-8')
+
+
+_UNESCAPE_ENTITIES = {
+ "&quot;": '"',
+ "&nbsp;": " ",
+ "&#39;": "'",
+}
+
+
+_ESCAPE_ENTITIES = dict((v, k) for (v, k) in zip(_UNESCAPE_ENTITIES.itervalues(), _UNESCAPE_ENTITIES.iterkeys()))
+
+
+def unescape(text):
+	plain = saxutils.unescape(text, _UNESCAPE_ENTITIES)
+	return plain
+
+
+def escape(text):
+	fancy = saxutils.escape(text, _ESCAPE_ENTITIES)
+	return fancy
