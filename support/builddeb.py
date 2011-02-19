@@ -30,7 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Updating SMS window's history view on main window refreshes
+* Escaping text messages so as to format correctly as html (stuff like <3 will appear correctly)
 """.strip()
 
 
