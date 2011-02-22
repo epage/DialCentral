@@ -495,7 +495,7 @@ class Messages(object):
 		self._itemStore.setHorizontalHeaderLabels(["Messages"])
 		self._categoryManager = TimeCategories(self._itemStore)
 
-		self._htmlDelegate = qui_utils.QHtmlDelegate()
+		#self._htmlDelegate = qui_utils.QHtmlDelegate()
 		self._itemView = QtGui.QTreeView()
 		self._itemView.setModel(self._itemStore)
 		self._itemView.setUniformRowHeights(False)
@@ -505,9 +505,9 @@ class Messages(object):
 		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
 		self._itemView.setHeaderHidden(True)
 		self._itemView.setItemsExpandable(False)
-		self._itemView.setItemDelegate(self._htmlDelegate)
+		#self._itemView.setItemDelegate(self._htmlDelegate)
 		self._itemView.activated.connect(self._on_row_activated)
-		self._itemView.header().sectionResized.connect(self._on_column_resized)
+		#self._itemView.header().sectionResized.connect(self._on_column_resized)
 
 		self._layout = QtGui.QVBoxLayout()
 		self._layout.addLayout(self._selectionLayout)
@@ -618,6 +618,15 @@ class Messages(object):
 			messageItem.setCheckable(False)
 			row = (messageItem, )
 			self._categoryManager.add_row(item["time"], row)
+		for c in xrange(self._itemStore.rowCount()):
+			catItem = self._itemStore.item(c, 0)
+			for r in xrange(catItem.rowCount()):
+				rowItem = catItem.child(r, 0)
+				rowIndex = self._itemStore.indexFromItem(rowItem)
+				itemWidget = QtGui.QLabel(rowItem.text())
+				itemWidget.setTextFormat(QtCore.Qt.RichText)
+				itemWidget.setAutoFillBackground(True)
+				self._itemView.setIndexWidget(rowIndex, itemWidget)
 		self._itemView.expandAll()
 
 	@QtCore.pyqtSlot(str)
