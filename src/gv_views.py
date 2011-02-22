@@ -451,7 +451,7 @@ class Messages(object):
 	ALL_STATUS = "Any"
 	MESSAGE_STATUSES = [UNREAD_STATUS, UNARCHIVED_STATUS, ALL_STATUS]
 
-	_MIN_MESSAGES_SHOWN = 4
+	_MIN_MESSAGES_SHOWN = 1
 
 	def __init__(self, app, session, errorLog):
 		self._selectedTypeFilter = self.ALL_TYPES
