@@ -495,7 +495,6 @@ class Messages(object):
 		self._itemStore.setHorizontalHeaderLabels(["Messages"])
 		self._categoryManager = TimeCategories(self._itemStore)
 
-		#self._htmlDelegate = qui_utils.QHtmlDelegate()
 		self._itemView = QtGui.QTreeView()
 		self._itemView.setModel(self._itemStore)
 		self._itemView.setUniformRowHeights(False)
@@ -505,9 +504,7 @@ class Messages(object):
 		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
 		self._itemView.setHeaderHidden(True)
 		self._itemView.setItemsExpandable(False)
-		#self._itemView.setItemDelegate(self._htmlDelegate)
 		self._itemView.activated.connect(self._on_row_activated)
-		#self._itemView.header().sectionResized.connect(self._on_column_resized)
 
 		self._layout = QtGui.QVBoxLayout()
 		self._layout.addLayout(self._selectionLayout)
@@ -626,6 +623,7 @@ class Messages(object):
 				itemWidget = QtGui.QLabel(rowItem.text())
 				itemWidget.setTextFormat(QtCore.Qt.RichText)
 				itemWidget.setAutoFillBackground(True)
+				itemWidget.setWordWrap(True)
 				self._itemView.setIndexWidget(rowIndex, itemWidget)
 		self._itemView.expandAll()
 
@@ -679,11 +677,6 @@ class Messages(object):
 			description = unicode(contactDetails[QtCore.QString("expandedMessages")])
 			numbersWithDescriptions = [(number, "")]
 			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
-
-	@QtCore.pyqtSlot(QtCore.QModelIndex)
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_column_resized(self, index, oldSize, newSize):
-		self._htmlDelegate.setWidth(newSize)
 
 
 class Contacts(object):
