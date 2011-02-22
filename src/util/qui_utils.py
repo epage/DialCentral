@@ -231,9 +231,17 @@ class QHtmlDelegate(QtGui.QStyledItemDelegate):
 		doc.documentLayout().draw(painter, ctx)
 		painter.restore()
 
-	def setWidth(self, width):
-		# @bug we need to be emitting sizeHintChanged but it requires an index
+	def setWidth(self, width, model):
+		if self._width == width:
+			return
 		self._width = width
+		for c in xrange(model.rowCount()):
+			cItem = model.item(c, 0)
+			for r in xrange(model.rowCount()):
+				rItem = cItem.child(r, 0)
+				rIndex = model.indexFromItem(rItem)
+				self.sizeHintChanged.emit(rIndex)
+				return
 
 	def sizeHint(self, option, index):
 		newOption = QtGui.QStyleOptionViewItemV4(option)
