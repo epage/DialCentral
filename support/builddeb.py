@@ -83,6 +83,8 @@ def build_package(distribution):
 	p.license = "lgpl"
 	p.depends = ", ".join([
 		"python2.6 | python2.5",
+		"python-xml | python2.5-xml",
+		"python-dbus | python2.5-dbus",
 		"python-simplejson",
 	])
 	p.depends += {
