@@ -30,7 +30,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Escaping text messages so as to format correctly as html (stuff like <3 will appear correctly)
+* Fixing some package dependencies
+* Collapsing down to fewer messages on the Messages Tab due to word-wrap issues, Thanks Qt!
 """.strip()
 
 
