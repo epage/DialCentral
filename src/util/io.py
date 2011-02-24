@@ -218,6 +218,7 @@ _UNESCAPE_ENTITIES = {
 
 
 _ESCAPE_ENTITIES = dict((v, k) for (v, k) in zip(_UNESCAPE_ENTITIES.itervalues(), _UNESCAPE_ENTITIES.iterkeys()))
+del _ESCAPE_ENTITIES[" "]
 
 
 def unescape(text):
