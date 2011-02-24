@@ -5,3 +5,4 @@ Type=Application
 Name=DialCentral
 Exec=/usr/bin/run-standalone.sh /opt/dialcentral/bin/dialcentral.py
 Icon=dialcentral
+Categories=Network;InstantMessaging;Qt;
