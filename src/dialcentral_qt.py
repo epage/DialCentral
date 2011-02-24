@@ -11,8 +11,11 @@ import logging
 
 from PyQt4 import QtGui
 from PyQt4 import QtCore
+import dbus
+import dbus.mainloop.glib
 
 import constants
+import call_handler
 from util import qtpie
 from util import qwrappers
 from util import qui_utils
@@ -350,6 +353,12 @@ class MainWindow(qwrappers.WindowWrapper):
 		self._session.loggedIn.connect(self._on_login)
 		self._session.loggedOut.connect(self._on_logout)
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
+		self._voicemailRefreshDelay = QtCore.QTimer()
+		self._voicemailRefreshDelay.setInterval(30 * 1000)
+		self._voicemailRefreshDelay.timeout.connect(self._on_call_missed)
+		self._voicemailRefreshDelay.setSingleShot(True)
+		self._callHandler = call_handler.MissedCallWatcher()
+		self._callHandler.callMissed.connect(self._voicemailRefreshDelay.start)
 		self._defaultCredentials = "", ""
 		self._curentCredentials = "", ""
 		self._currentTab = 0
@@ -577,6 +586,12 @@ class MainWindow(qwrappers.WindowWrapper):
 		else:
 			_moduleLogger.info("Unknown response")
 
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_call_missed(self):
+		with qui_utils.notify_error(self._errorLog):
+			self._session.update_messages(True)
+
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_session_error(self, message):
@@ -597,6 +612,7 @@ class MainWindow(qwrappers.WindowWrapper):
 			for tab in self._tabsContents:
 				tab.enable()
 			self._initialize_tab(self._currentTab)
+			self._callHandler.start()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -604,6 +620,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		with qui_utils.notify_error(self._errorLog):
 			for tab in self._tabsContents:
 				tab.disable()
+			self._callHandler.stop()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -669,6 +686,7 @@ class MainWindow(qwrappers.WindowWrapper):
 
 def run():
 	app = QtGui.QApplication([])
+	l = dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 	handle = Dialcentral(app)
 	qtpie.init_pies()
 	return app.exec_()
