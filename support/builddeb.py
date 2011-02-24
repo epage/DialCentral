@@ -30,8 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing some package dependencies
-* Collapsing down to fewer messages on the Messages Tab due to word-wrap issues, Thanks Qt!
+* Fixing another line wrap bug due to over-zealous escaping (spaces as non-break whitespace, whoops)
 """.strip()
 
 
