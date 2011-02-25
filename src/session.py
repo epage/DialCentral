@@ -201,6 +201,7 @@ class Session(QtCore.QObject):
 
 	contactsUpdated = QtCore.pyqtSignal()
 	messagesUpdated = QtCore.pyqtSignal()
+	newMessages = QtCore.pyqtSignal()
 	historyUpdated = QtCore.pyqtSignal()
 	dndStateChange = QtCore.pyqtSignal(bool)
 
@@ -229,6 +230,7 @@ class Session(QtCore.QObject):
 		self._contacts = {}
 		self._contactUpdateTime = datetime.datetime(1971, 1, 1)
 		self._messages = []
+		self._cleanMessages = []
 		self._messageUpdateTime = datetime.datetime(1971, 1, 1)
 		self._history = []
 		self._historyUpdateTime = datetime.datetime(1971, 1, 1)
@@ -445,6 +447,7 @@ class Session(QtCore.QObject):
 					self._loggedInTime = self._LOGGEDOUT_TIME
 					self.error.emit("Error logging in")
 			except Exception, e:
+				_moduleLogger.exception("Booh")
 				self._loggedInTime = self._LOGGEDOUT_TIME
 				_moduleLogger.exception("Reporting error to user")
 				self.error.emit(str(e))
@@ -463,6 +466,7 @@ class Session(QtCore.QObject):
 
 		self._contacts = {}
 		self._messages = []
+		self._cleanMessages = []
 		self._history = []
 		self._dnd = False
 		self._callback = ""
@@ -494,7 +498,7 @@ class Session(QtCore.QObject):
 		try:
 			with open(cachePath, "rb") as f:
 				dumpedData = pickle.load(f)
-		except (pickle.PickleError, IOError, EOFError, ValueError):
+		except (pickle.PickleError, IOError, EOFError, ValueError, ImportError):
 			_moduleLogger.exception("Pickle fun loading")
 			return False
 		except:
@@ -523,6 +527,7 @@ class Session(QtCore.QObject):
 			self._contacts = contacts
 			self._contactUpdateTime = contactUpdateTime
 			self._messages = messages
+			self._alert_on_messages(self._messages)
 			self._messageUpdateTime = messageUpdateTime
 			self._history = history
 			self._historyUpdateTime = historyUpdateTime
@@ -617,6 +622,7 @@ class Session(QtCore.QObject):
 			return
 		self._messageUpdateTime = datetime.datetime.now()
 		self.messagesUpdated.emit()
+		self._alert_on_messages(self._messages)
 
 	def _update_history(self):
 		try:
@@ -662,3 +668,22 @@ class Session(QtCore.QObject):
 			_moduleLogger.info("Skipping queueing duplicate op: %r" % asyncOp)
 			return
 		self._loginOps.append(asyncOp)
+
+	def _alert_on_messages(self, messages):
+		cleanNewMessages = list(self._clean_messages(messages))
+		if self._cleanMessages:
+			if self._cleanMessages != cleanNewMessages:
+				self.newMessages.emit()
+		self._cleanMessages = cleanNewMessages
+
+	def _clean_messages(self, messages):
+		for message in messages:
+			cleaned = dict(message)
+			del cleaned["relTime"]
+			del cleaned["time"]
+			del cleaned["isArchived"]
+			del cleaned["isRead"]
+			del cleaned["isSpam"]
+			del cleaned["isTrash"]
+			cleaned["messageParts"] = [tuple(part[0:-1]) for part in cleaned["messageParts"] if part[0] != "Me:"]
+			yield cleaned

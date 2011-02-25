@@ -196,6 +196,17 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 		else:
 			return None
 
+	def get_resource(self, name):
+		if self._dataPath is None:
+			for path in self._DATA_PATHS:
+				if os.path.exists(os.path.join(path, name)):
+					self._dataPath = path
+					break
+		if self._dataPath is not None:
+			return os.path.join(self._dataPath, name)
+		else:
+			return None
+
 	def _close_windows(self):
 		qwrappers.ApplicationWrapper._close_windows(self)
 		if self._aboutDialog  is not None:
@@ -345,7 +356,6 @@ class MainWindow(qwrappers.WindowWrapper):
 	def __init__(self, parent, app):
 		qwrappers.WindowWrapper.__init__(self, parent, app)
 		self._window.setWindowTitle("%s" % constants.__pretty_app_name__)
-		#self._freezer = qwrappers.AutoFreezeWindowFeature(self._app, self._window)
 		self._errorLog = self._app.errorLog
 
 		self._session = session.Session(self._errorLog, constants._data_path_)
@@ -359,6 +369,11 @@ class MainWindow(qwrappers.WindowWrapper):
 		self._voicemailRefreshDelay.setSingleShot(True)
 		self._callHandler = call_handler.MissedCallWatcher()
 		self._callHandler.callMissed.connect(self._voicemailRefreshDelay.start)
+		self._alertSoundPath = self._app.get_resource("bell.wav")
+		if QtGui.QSound.isAvailable():
+			self._session.newMessages.connect(self._on_new_message_alert)
+		else:
+			_moduleLogger.info("No sound support available")
 		self._defaultCredentials = "", ""
 		self._curentCredentials = "", ""
 		self._currentTab = 0
@@ -591,6 +606,15 @@ class MainWindow(qwrappers.WindowWrapper):
 	def _on_call_missed(self):
 		with qui_utils.notify_error(self._errorLog):
 			self._session.update_messages(True)
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_new_message_alert(self):
+		with qui_utils.notify_error(self._errorLog):
+			if self._alertSoundPath is not None:
+				QtGui.QSound.play(self._alertSoundPath)
+			else:
+				_moduleLogger.info("Alert but alas I am missing my voice")
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
