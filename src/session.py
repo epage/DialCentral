@@ -678,12 +678,25 @@ class Session(QtCore.QObject):
 
 	def _clean_messages(self, messages):
 		for message in messages:
-			cleaned = dict(message)
-			del cleaned["relTime"]
-			del cleaned["time"]
-			del cleaned["isArchived"]
-			del cleaned["isRead"]
-			del cleaned["isSpam"]
-			del cleaned["isTrash"]
-			cleaned["messageParts"] = [tuple(part[0:-1]) for part in cleaned["messageParts"] if part[0] != "Me:"]
+			cleaned = dict(
+				kv
+				for kv in message.iteritems()
+				if kv[0] not in
+				[
+					"relTime",
+					"time",
+					"isArchived",
+					"isRead",
+					"isSpam",
+					"isTrash",
+				]
+			)
+
+			# Don't let outbound messages cause alerts, especially if the package has only outbound
+			cleaned["messageParts"] = [
+				tuple(part[0:-1]) for part in cleaned["messageParts"] if part[0] != "Me:"
+			]
+			if not cleaned["messageParts"]:
+				continue
+
 			yield cleaned
