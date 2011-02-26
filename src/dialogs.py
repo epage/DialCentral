@@ -169,13 +169,17 @@ class AccountDialog(object):
 		(12*60, "12 hours"),
 	]
 
+	ALARM_NONE = "No Alert"
+	ALARM_BACKGROUND = "Background Alert"
+	ALARM_APPLICATION = "Application Alert"
+
 	def __init__(self, app):
 		self._app = app
 		self._doClear = False
 
 		self._accountNumberLabel = QtGui.QLabel("NUMBER NOT SET")
-		self._notificationButton = QtGui.QCheckBox("Notifications")
-		self._notificationButton.stateChanged.connect(self._on_notification_change)
+		self._notificationSelecter = QtGui.QComboBox()
+		self._notificationSelecter.currentIndexChanged.connect(self._on_notification_change)
 		self._notificationTimeSelector = QtGui.QComboBox()
 		#self._notificationTimeSelector.setEditable(True)
 		self._notificationTimeSelector.setInsertPolicy(QtGui.QComboBox.InsertAtTop)
@@ -197,7 +201,7 @@ class AccountDialog(object):
 		self._credLayout.addWidget(self._accountNumberLabel, 0, 1)
 		self._credLayout.addWidget(QtGui.QLabel("Callback"), 1, 0)
 		self._credLayout.addWidget(self._callbackSelector, 1, 1)
-		self._credLayout.addWidget(self._notificationButton, 2, 0)
+		self._credLayout.addWidget(self._notificationSelecter, 2, 0)
 		self._credLayout.addWidget(self._notificationTimeSelector, 2, 1)
 		self._credLayout.addWidget(QtGui.QLabel(""), 3, 0)
 		self._credLayout.addWidget(self._missedCallsNotificationButton, 3, 1)
@@ -239,24 +243,34 @@ class AccountDialog(object):
 
 	def setIfNotificationsSupported(self, isSupported):
 		if isSupported:
-			self._notificationButton.setVisible(True)
-			self._notificationTimeSelector.setVisible(True)
-			self._missedCallsNotificationButton.setVisible(True)
-			self._voicemailNotificationButton.setVisible(True)
-			self._smsNotificationButton.setVisible(True)
+			self._notificationSelecter.clear()
+			self._notificationSelecter.addItems([self.ALARM_NONE, self.ALARM_APPLICATION, self.ALARM_BACKGROUND])
+			self._notificationTimeSelector.setEnabled(False)
+			self._missedCallsNotificationButton.setEnabled(False)
+			self._voicemailNotificationButton.setEnabled(False)
+			self._smsNotificationButton.setEnabled(False)
 		else:
-			self._notificationButton.setVisible(False)
-			self._notificationTimeSelector.setVisible(False)
-			self._missedCallsNotificationButton.setVisible(False)
-			self._voicemailNotificationButton.setVisible(False)
-			self._smsNotificationButton.setVisible(False)
+			self._notificationSelecter.clear()
+			self._notificationSelecter.addItems([self.ALARM_NONE, self.ALARM_APPLICATION])
+			self._notificationTimeSelector.setEnabled(False)
+			self._missedCallsNotificationButton.setEnabled(False)
+			self._voicemailNotificationButton.setEnabled(False)
+			self._smsNotificationButton.setEnabled(False)
 
 	def set_account_number(self, num):
 		self._accountNumberLabel.setText(num)
 
+	def _set_notifications(self, enabled):
+		for i in xrange(self._notificationSelecter.count()):
+			if self._notificationSelecter.itemText(i) == enabled:
+				self._notificationSelecter.setCurrentIndex(i)
+				break
+		else:
+			self._notificationSelecter.setCurrentIndex(0)
+
 	notifications = property(
-		lambda self: self._notificationButton.isChecked(),
-		lambda self, enabled: self._notificationButton.setChecked(enabled),
+		lambda self: str(self._notificationSelecter.currentText()),
+		_set_notifications,
 	)
 
 	notifyOnMissed = property(
@@ -325,20 +339,37 @@ class AccountDialog(object):
 			_moduleLogger.exception("Oh well")
 
 	def _update_notification_state(self):
-		if self._notificationButton.isChecked():
+		currentText = str(self._notificationSelecter.currentText())
+		if currentText == self.ALARM_BACKGROUND:
 			self._notificationTimeSelector.setEnabled(True)
+
 			self._missedCallsNotificationButton.setEnabled(True)
 			self._voicemailNotificationButton.setEnabled(True)
 			self._smsNotificationButton.setEnabled(True)
+		elif currentText == self.ALARM_APPLICATION:
+			self._notificationTimeSelector.setEnabled(True)
+
+			self._missedCallsNotificationButton.setEnabled(False)
+			self._voicemailNotificationButton.setEnabled(False)
+			self._smsNotificationButton.setEnabled(False)
+
+			self._missedCallsNotificationButton.setChecked(False)
+			self._voicemailNotificationButton.setChecked(True)
+			self._smsNotificationButton.setChecked(True)
 		else:
+
 			self._notificationTimeSelector.setEnabled(False)
 			self._missedCallsNotificationButton.setEnabled(False)
 			self._voicemailNotificationButton.setEnabled(False)
 			self._smsNotificationButton.setEnabled(False)
 
+			self._missedCallsNotificationButton.setChecked(False)
+			self._voicemailNotificationButton.setChecked(False)
+			self._smsNotificationButton.setChecked(False)
+
 	@QtCore.pyqtSlot(int)
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_notification_change(self, state):
+	def _on_notification_change(self, index):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._update_notification_state()
 

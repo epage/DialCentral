@@ -671,6 +671,7 @@ class Session(QtCore.QObject):
 
 	def _alert_on_messages(self, messages):
 		cleanNewMessages = list(self._clean_messages(messages))
+		cleanNewMessages.sort(key=lambda m: m["contactId"])
 		if self._cleanMessages:
 			if self._cleanMessages != cleanNewMessages:
 				self.newMessages.emit()

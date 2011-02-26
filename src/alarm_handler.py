@@ -6,6 +6,7 @@ import datetime
 import ConfigParser
 import logging
 
+from PyQt4 import QtCore
 import dbus
 
 
@@ -113,10 +114,15 @@ class _FremantleAlarmHandler(object):
 			pass
 
 	def save_settings(self, config, sectionName):
-		config.set(sectionName, "recurrence", str(self._recurrence))
-		config.set(sectionName, "alarmCookie", str(self._alarmCookie))
-		launcher = self._launcher if self._launcher != self._LAUNCHER else ""
-		config.set(sectionName, "notifier", launcher)
+		try:
+			config.set(sectionName, "recurrence", str(self._recurrence))
+			config.set(sectionName, "alarmCookie", str(self._alarmCookie))
+			launcher = self._launcher if self._launcher != self._LAUNCHER else ""
+			config.set(sectionName, "notifier", launcher)
+		except ConfigParser.NoOptionError:
+			pass
+		except ConfigParser.NoSectionError:
+			pass
 
 	def apply_settings(self, enabled, recurrence):
 		if recurrence != self._recurrence or enabled != self.isEnabled:
@@ -255,39 +261,67 @@ class _DiabloAlarmHandler(object):
 		assert deleteResult != -1, "Deleting of alarm event failed"
 
 
-class _NoneAlarmHandler(object):
+class _ApplicationAlarmHandler(object):
 
-	_INVALID_COOKIE = -1
 	_REPEAT_FOREVER = -1
-	_LAUNCHER = os.path.abspath(os.path.join(os.path.dirname(__file__), "alarm_notify.py"))
+	_MIN_TO_MS_FACTORY = 1000 * 60
 
 	def __init__(self):
-		self._alarmCookie = 0
+		self._timer = QtCore.QTimer()
+		self._timer.setSingleShot(False)
+		self._timer.setInterval(5 * self._MIN_TO_MS_FACTORY)
+
+	def load_settings(self, config, sectionName):
+		try:
+			self._timer.setInterval(config.getint(sectionName, "recurrence") * self._MIN_TO_MS_FACTORY)
+		except ConfigParser.NoOptionError:
+			pass
+		except ConfigParser.NoSectionError:
+			pass
+		self._timer.start()
+
+	def save_settings(self, config, sectionName):
+		config.set(sectionName, "recurrence", str(self.recurrence))
+
+	def apply_settings(self, enabled, recurrence):
+		self._timer.setInterval(recurrence * self._MIN_TO_MS_FACTORY)
+		if enabled:
+			self._timer.start()
+		else:
+			self._timer.stop()
+
+	@property
+	def notifySignal(self):
+		return self._timer.timeout
+
+	@property
+	def recurrence(self):
+		return int(self._timer.interval() / self._MIN_TO_MS_FACTORY)
+
+	@property
+	def isEnabled(self):
+		return self._timer.isActive()
+
+
+class _NoneAlarmHandler(object):
+
+	def __init__(self):
+		self._enabled = False
 		self._recurrence = 5
-		self._alarmCookie = self._INVALID_COOKIE
-		self._launcher = self._LAUNCHER
 
 	def load_settings(self, config, sectionName):
 		try:
 			self._recurrence = config.getint(sectionName, "recurrence")
-			self._alarmCookie = config.getint(sectionName, "alarmCookie")
-			launcher = config.get(sectionName, "notifier")
-			if launcher:
-				self._launcher = launcher
 		except ConfigParser.NoOptionError:
 			pass
 		except ConfigParser.NoSectionError:
 			pass
 
 	def save_settings(self, config, sectionName):
-		config.set(sectionName, "recurrence", str(self._recurrence))
-		config.set(sectionName, "alarmCookie", str(self._alarmCookie))
-		launcher = self._launcher if self._launcher != self._LAUNCHER else ""
-		config.set(sectionName, "notifier", launcher)
+		config.set(sectionName, "recurrence", str(self.recurrence))
 
 	def apply_settings(self, enabled, recurrence):
-		self._alarmCookie = 0 if enabled else self._INVALID_COOKIE
-		self._recurrence = recurrence
+		self._enabled = enabled
 
 	@property
 	def recurrence(self):
@@ -295,14 +329,89 @@ class _NoneAlarmHandler(object):
 
 	@property
 	def isEnabled(self):
-		return self._alarmCookie != self._INVALID_COOKIE
+		return self._enabled
 
 
-AlarmHandler = {
+_BACKGROUND_ALARM_FACTORY = {
 	_FREMANTLE_ALARM: _FremantleAlarmHandler,
 	_DIABLO_ALARM: _DiabloAlarmHandler,
-	_NO_ALARM: _NoneAlarmHandler,
+	_NO_ALARM: None,
 }[ALARM_TYPE]
+
+
+class AlarmHandler(object):
+
+	ALARM_NONE = "No Alert"
+	ALARM_BACKGROUND = "Background Alert"
+	ALARM_APPLICATION = "Application Alert"
+	ALARM_TYPES = [ALARM_NONE, ALARM_BACKGROUND, ALARM_APPLICATION]
+
+	ALARM_FACTORY = {
+		ALARM_NONE: _NoneAlarmHandler,
+		ALARM_BACKGROUND: _BACKGROUND_ALARM_FACTORY,
+		ALARM_APPLICATION: _ApplicationAlarmHandler,
+	}
+
+	def __init__(self):
+		self._alarms = {self.ALARM_NONE: _NoneAlarmHandler()}
+		self._currentAlarmType = self.ALARM_NONE
+
+	def load_settings(self, config, sectionName):
+		try:
+			self._currentAlarmType = config.get(sectionName, "alarm")
+		except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+			_moduleLogger.exception("Falling back to old style")
+			self._currentAlarmType = self.ALARM_BACKGROUND
+		if self._currentAlarmType not in self.ALARM_TYPES:
+			self._currentAlarmType = self.ALARM_NONE
+
+		self._init_alarm(self._currentAlarmType)
+		if self._currentAlarmType in self._alarms:
+			self._alarms[self._currentAlarmType].load_settings(config, sectionName)
+			if not self._alarms[self._currentAlarmType].isEnabled:
+				_moduleLogger.info("Config file lied, not actually enabled")
+				self._currentAlarmType = self.ALARM_NONE
+		else:
+			_moduleLogger.info("Background alerts not supported")
+			self._currentAlarmType = self.ALARM_NONE
+
+	def save_settings(self, config, sectionName):
+		config.set(sectionName, "alarm", self._currentAlarmType)
+		self._alarms[self._currentAlarmType].save_settings(config, sectionName)
+
+	def apply_settings(self, t, recurrence):
+		self._init_alarm(t)
+		newHandler = self._alarms[t]
+		oldHandler = self._alarms[self._currentAlarmType]
+		if newHandler != oldHandler:
+			oldHandler.apply_settings(False, 0)
+		newHandler.apply_settings(True, recurrence)
+		self._currentAlarmType = t
+
+	@property
+	def alarmType(self):
+		return self._currentAlarmType
+
+	@property
+	def backgroundNotificationsSupported(self):
+		return self.ALARM_FACTORY[self.ALARM_BACKGROUND] is not None
+
+	@property
+	def applicationNotifySignal(self):
+		self._init_alarm(self.ALARM_APPLICATION)
+		return self._alarms[self.ALARM_APPLICATION].notifySignal
+
+	@property
+	def recurrence(self):
+		return self._alarms[self._currentAlarmType].recurrence
+
+	@property
+	def isEnabled(self):
+		return self._currentAlarmType != self.ALARM_NONE
+
+	def _init_alarm(self, t):
+		if t not in self._alarms and self.ALARM_FACTORY[t] is not None:
+			self._alarms[t] = self.ALARM_FACTORY[t]()
 
 
 def main():

@@ -344,7 +344,7 @@ class History(object):
 	def refresh(self, force=True):
 		self._itemView.setFocus(QtCore.Qt.OtherFocusReason)
 		self._session.update_history(force)
-		if self._app.notifyOnMissed:
+		if self._app.notifyOnMissed and self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_BACKGROUND:
 			self._app.ledHandler.off()
 
 	def _populate_items(self):
@@ -554,7 +554,7 @@ class Messages(object):
 	def refresh(self, force=True):
 		self._itemView.setFocus(QtCore.Qt.OtherFocusReason)
 		self._session.update_messages(force)
-		if self._app.notifyOnSms or self._app.notifyOnVoicemail:
+		if self._app.notifyOnSms or self._app.notifyOnVoicemail and self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_BACKGROUND:
 			self._app.ledHandler.off()
 
 	def _populate_items(self):

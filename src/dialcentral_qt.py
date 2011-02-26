@@ -13,6 +13,8 @@ from PyQt4 import QtGui
 from PyQt4 import QtCore
 
 import constants
+import alarm_handler
+import led_handler
 from util import qtpie
 from util import qwrappers
 from util import qui_utils
@@ -22,29 +24,6 @@ import session
 
 
 _moduleLogger = logging.getLogger(__name__)
-
-
-class LedWrapper(object):
-
-	def __init__(self):
-		self._ledHandler = None
-		self._init = False
-
-	def off(self):
-		self._lazy_init()
-		if self._ledHandler is not None:
-			self._ledHandler.off()
-
-	def _lazy_init(self):
-		if self._init:
-			return
-		self._init = True
-		try:
-			import led_handler
-			self._ledHandler = led_handler.LedHandler()
-		except Exception, e:
-			_moduleLogger.exception('Unable to initialize LED Handling: "%s"' % str(e))
-			self._ledHandler = None
 
 
 class Dialcentral(qwrappers.ApplicationWrapper):
@@ -57,24 +36,12 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 	def __init__(self, app):
 		self._dataPath = None
 		self._aboutDialog = None
-		self._ledHandler = LedWrapper()
 		self.notifyOnMissed = False
 		self.notifyOnVoicemail = False
 		self.notifyOnSms = False
 
-		try:
-			import alarm_handler
-			if alarm_handler.AlarmHandler is not alarm_handler._NoneAlarmHandler:
-				self._alarmHandler = alarm_handler.AlarmHandler()
-			else:
-				self._alarmHandler = None
-		except (ImportError, OSError):
-			self._alarmHandler = None
-		except Exception:
-			_moduleLogger.exception("Notification failure")
-			self._alarmHandler = None
-		if self._alarmHandler is None:
-			_moduleLogger.info("No notification support")
+		self._ledHandler = led_handler.LedHandler()
+		self._alarmHandler = alarm_handler.AlarmHandler()
 
 		qwrappers.ApplicationWrapper.__init__(self, app, constants)
 
@@ -123,28 +90,27 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 		except Exception:
 			_moduleLogger.exception("Unknown loading error")
 
-		if self._alarmHandler is not None:
-			try:
-				self._alarmHandler.load_settings(config, "alarm")
-				self.notifyOnMissed = config.getboolean("2 - Account Info", "notifyOnMissed")
-				self.notifyOnVoicemail = config.getboolean("2 - Account Info", "notifyOnVoicemail")
-				self.notifyOnSms = config.getboolean("2 - Account Info", "notifyOnSms")
-			except ConfigParser.NoOptionError, e:
-				_moduleLogger.info(
-					"Settings file %s is missing option %s" % (
-						constants._user_settings_,
-						e.option,
-					),
-				)
-			except ConfigParser.NoSectionError, e:
-				_moduleLogger.info(
-					"Settings file %s is missing section %s" % (
-						constants._user_settings_,
-						e.section,
-					),
-				)
-			except Exception:
-				_moduleLogger.exception("Unknown loading error")
+		try:
+			self._alarmHandler.load_settings(config, "alarm")
+			self.notifyOnMissed = config.getboolean("2 - Account Info", "notifyOnMissed")
+			self.notifyOnVoicemail = config.getboolean("2 - Account Info", "notifyOnVoicemail")
+			self.notifyOnSms = config.getboolean("2 - Account Info", "notifyOnSms")
+		except ConfigParser.NoOptionError, e:
+			_moduleLogger.info(
+				"Settings file %s is missing option %s" % (
+					constants._user_settings_,
+					e.option,
+				),
+			)
+		except ConfigParser.NoSectionError, e:
+			_moduleLogger.info(
+				"Settings file %s is missing section %s" % (
+					constants._user_settings_,
+					e.section,
+				),
+			)
+		except Exception:
+			_moduleLogger.exception("Unknown loading error")
 
 		creds = (
 			base64.b64decode(blob)
@@ -168,9 +134,8 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 			blob = base64.b64encode(value)
 			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
 
-		if self._alarmHandler is not None:
-			config.add_section("alarm")
-			self._alarmHandler.save_settings(config, "alarm")
+		config.add_section("alarm")
+		self._alarmHandler.save_settings(config, "alarm")
 		config.add_section("2 - Account Info")
 		config.set("2 - Account Info", "notifyOnMissed", repr(self.notifyOnMissed))
 		config.set("2 - Account Info", "notifyOnVoicemail", repr(self.notifyOnVoicemail))
@@ -361,6 +326,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		self._session.loggedOut.connect(self._on_logout)
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
 		self._session.newMessages.connect(self._on_new_message_alert)
+		self._app.alarmHandler.applicationNotifySignal.connect(self._on_app_alert)
 		self._defaultCredentials = "", ""
 		self._curentCredentials = "", ""
 		self._currentTab = 0
@@ -551,14 +517,12 @@ class MainWindow(qwrappers.WindowWrapper):
 		if self._accountDialog is None:
 			import dialogs
 			self._accountDialog = dialogs.AccountDialog(self._app)
-			if self._app.alarmHandler is None:
-				self._accountDialog.setIfNotificationsSupported(False)
-		if self._app.alarmHandler is not None:
-			self._accountDialog.notifications = self._app.alarmHandler.isEnabled
-			self._accountDialog.notificationTime = self._app.alarmHandler.recurrence
-			self._accountDialog.notifyOnMissed = self._app.notifyOnMissed
-			self._accountDialog.notifyOnVoicemail = self._app.notifyOnVoicemail
-			self._accountDialog.notifyOnSms = self._app.notifyOnSms
+			self._accountDialog.setIfNotificationsSupported(self._app.alarmHandler.backgroundNotificationsSupported)
+		self._accountDialog.notifications = self._app.alarmHandler.alarmType
+		self._accountDialog.notificationTime = self._app.alarmHandler.recurrence
+		self._accountDialog.notifyOnMissed = self._app.notifyOnMissed
+		self._accountDialog.notifyOnVoicemail = self._app.notifyOnVoicemail
+		self._accountDialog.notifyOnSms = self._app.notifyOnSms
 		self._accountDialog.set_callbacks(
 			self._session.get_callback_numbers(), self._session.get_callback_number()
 		)
@@ -577,12 +541,11 @@ class MainWindow(qwrappers.WindowWrapper):
 			else:
 				callbackNumber = self._accountDialog.selectedCallback
 				self._session.set_callback_number(callbackNumber)
-			if self._app.alarmHandler is not None:
-				self._app.alarmHandler.apply_settings(self._accountDialog.notifications, self._accountDialog.notificationTime)
-				self._app.notifyOnMissed = self._accountDialog.notifyOnMissed
-				self._app.notifyOnVoicemail = self._accountDialog.notifyOnVoicemail
-				self._app.notifyOnSms = self._accountDialog.notifyOnSms
-				self._app.save_settings()
+			self._app.alarmHandler.apply_settings(self._accountDialog.notifications, self._accountDialog.notificationTime)
+			self._app.notifyOnMissed = self._accountDialog.notifyOnMissed
+			self._app.notifyOnVoicemail = self._accountDialog.notifyOnVoicemail
+			self._app.notifyOnSms = self._accountDialog.notifyOnSms
+			self._app.save_settings()
 		elif response == QtGui.QDialog.Rejected:
 			_moduleLogger.info("Cancelled")
 		else:
@@ -592,7 +555,11 @@ class MainWindow(qwrappers.WindowWrapper):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_new_message_alert(self):
 		with qui_utils.notify_error(self._errorLog):
-			self._errorLog.push_message("New messages available")
+			if self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_APPLICATION:
+				if self._currentTab == self.MESSAGES_TAB or not self._app.ledHandler.isReal:
+					self._errorLog.push_message("New messages available")
+				else:
+					self._app.ledHandler.on()
 
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
@@ -621,6 +588,13 @@ class MainWindow(qwrappers.WindowWrapper):
 		with qui_utils.notify_error(self._errorLog):
 			for tab in self._tabsContents:
 				tab.disable()
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_app_alert(self):
+		with qui_utils.notify_error(self._errorLog):
+			if self._session.state == self._session.LOGGEDIN_STATE:
+				self._session.update_messages(force=True)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -653,6 +627,8 @@ class MainWindow(qwrappers.WindowWrapper):
 		with qui_utils.notify_error(self._errorLog):
 			self._currentTab = index
 			self._initialize_tab(index)
+			if self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_APPLICATION:
+				self._app.ledHandler.off()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
