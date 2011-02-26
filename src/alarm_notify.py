@@ -30,12 +30,22 @@ def get_sms(backend):
 
 def remove_reltime(data):
 	for messageData in data["messages"].itervalues():
-		del messageData["relativeStartTime"]
-		del messageData["labels"]
-		del messageData["isRead"]
-		del messageData["isSpam"]
-		del messageData["isTrash"]
-		del messageData["star"]
+		for badPart in [
+			"relTime",
+			"relativeStartTime",
+			"time",
+			"star",
+			"isArchived",
+			"isRead",
+			"isSpam",
+			"isTrash",
+			"labels",
+		]:
+			if badPart in messageData:
+				del messageData[badPart]
+	for globalBad in ["unreadCounts", "totalSize", "resultsPerPage"]:
+		if globalBad in data:
+			del data[globalBad]
 
 
 def is_type_changed(backend, type, get_material):
@@ -154,7 +164,7 @@ def notify_on_change():
 
 
 if __name__ == "__main__":
-	logging.basicConfig(level=logging.WARNING, filename=constants._notifier_logpath_)
+	logging.basicConfig(level=logging.DEBUG, filename=constants._notifier_logpath_)
 	logging.info("Notifier %s-%s" % (constants.__version__, constants.__build__))
 	logging.info("OS: %s" % (os.uname()[0], ))
 	logging.info("Kernel: %s (%s) for %s" % os.uname()[2:])
