@@ -146,7 +146,9 @@ class GVDialer(object):
 		return list(self._gvoice.get_recent())
 
 	def get_messages(self):
-		return list(self._get_messages())
+		messages = list(self._get_messages())
+		messages.sort(key=lambda message: message["time"])
+		return messages
 
 	def _get_messages(self):
 		voicemails = self._gvoice.get_voicemails()
