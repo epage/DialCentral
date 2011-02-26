@@ -92,7 +92,7 @@ def create_backend(config):
 	loggedIn = False
 
 	if not loggedIn:
-		loggedIn = backend.is_authed()
+		loggedIn = backend.refresh_account_info() is not None
 
 	if not loggedIn:
 		import base64
@@ -106,7 +106,7 @@ def create_backend(config):
 				for blob in blobs
 			)
 			username, password = tuple(creds)
-			loggedIn = backend.login(username, password)
+			loggedIn = backend.login(username, password) is not None
 		except ConfigParser.NoOptionError, e:
 			pass
 		except ConfigParser.NoSectionError, e:

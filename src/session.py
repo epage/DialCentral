@@ -395,15 +395,15 @@ class Session(QtCore.QObject):
 			self._loggedInTime = self._LOGGINGIN_TIME
 			self.stateChange.emit(self.LOGGINGIN_STATE)
 			finalState = self.LOGGEDOUT_STATE
-			isLoggedIn = False
+			accountData = None
 			try:
-				if not isLoggedIn and self._backend[0].is_quick_login_possible():
-					isLoggedIn = yield (
-						self._backend[0].is_authed,
+				if accountData is None and self._backend[0].is_quick_login_possible():
+					accountData = yield (
+						self._backend[0].refresh_account_info,
 						(),
 						{},
 					)
-					if isLoggedIn:
+					if accountData is not None:
 						_moduleLogger.info("Logged in through cookies")
 					else:
 						# Force a clearing of the cookies
@@ -413,16 +413,16 @@ class Session(QtCore.QObject):
 							{},
 						)
 
-				if not isLoggedIn:
-					isLoggedIn = yield (
+				if accountData is None:
+					accountData = yield (
 						self._backend[0].login,
 						(username, password),
 						{},
 					)
-					if isLoggedIn:
+					if accountData is not None:
 						_moduleLogger.info("Logged in through credentials")
 
-				if isLoggedIn:
+				if accountData is not None:
 					self._loggedInTime = int(time.time())
 					oldUsername = self._username
 					self._username = username
@@ -454,7 +454,7 @@ class Session(QtCore.QObject):
 			finally:
 				if finalState is not None:
 					self.stateChange.emit(finalState)
-			if isLoggedIn and self._callback:
+			if accountData is not None and self._callback:
 				self.set_callback_number(self._callback)
 
 	def _load(self):

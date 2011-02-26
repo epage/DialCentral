@@ -45,17 +45,12 @@ class GVDialer(object):
 
 	def is_quick_login_possible(self):
 		"""
-		@returns True then is_authed might be enough to login, else full login is required
+		@returns True then refresh_account_info might be enough to login, else full login is required
 		"""
 		return self._gvoice.is_quick_login_possible()
 
-	def is_authed(self, force = False):
-		"""
-		Attempts to detect a current session
-		@note Once logged in try not to reauth more than once a minute.
-		@returns If authenticated
-		"""
-		return self._gvoice.is_authed(force)
+	def refresh_account_info(self):
+		return self._gvoice.refresh_account_info()
 
 	def login(self, username, password):
 		"""
