@@ -145,12 +145,6 @@ class GVDialer(object):
 		"""
 		return list(self._gvoice.get_recent())
 
-	def get_contacts(self):
-		"""
-		@returns Fresh dictionary of items
-		"""
-		return dict(self._gvoice.get_contacts())
-
 	def get_messages(self):
 		return list(self._get_messages())
 

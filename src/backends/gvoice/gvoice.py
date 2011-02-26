@@ -478,14 +478,6 @@ class GVoiceBackend(object):
 		]
 		return self._parse_recent(recentPages)
 
-	def get_contacts(self):
-		"""
-		@returns Iterable of (contact id, contact name)
-		@blocks
-		"""
-		page = self._get_page(self._JSON_CONTACTS_URL)
-		return self._process_contacts(page)
-
 	def get_csv_contacts(self):
 		data = {
 			"groupToExport": "mine",
@@ -584,13 +576,6 @@ class GVoiceBackend(object):
 			for recentCallData in allRecentData:
 				recentCallData["action"] = action
 				yield recentCallData
-
-	def _process_contacts(self, page):
-		accountData = parse_json(page)
-		for contactId, contactDetails in accountData["contacts"].iteritems():
-			# A zero contact id is the catch all for unknown contacts
-			if contactId != "0":
-				yield contactId, contactDetails
 
 	def _parse_history(self, historyHtml):
 		splitVoicemail = self._seperateVoicemailsRegex.split(historyHtml)

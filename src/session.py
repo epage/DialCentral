@@ -199,7 +199,7 @@ class Session(QtCore.QObject):
 	loggedIn = QtCore.pyqtSignal()
 	callbackNumberChanged = QtCore.pyqtSignal(str)
 
-	contactsUpdated = QtCore.pyqtSignal()
+	accountUpdated = QtCore.pyqtSignal()
 	messagesUpdated = QtCore.pyqtSignal()
 	newMessages = QtCore.pyqtSignal()
 	historyUpdated = QtCore.pyqtSignal()
@@ -211,7 +211,7 @@ class Session(QtCore.QObject):
 	LOGGINGIN_STATE = "logging in"
 	LOGGEDIN_STATE = "logged in"
 
-	_OLDEST_COMPATIBLE_FORMAT_VERSION = misc_utils.parse_version("1.1.90")
+	_OLDEST_COMPATIBLE_FORMAT_VERSION = misc_utils.parse_version("1.3.0")
 
 	_LOGGEDOUT_TIME = -1
 	_LOGGINGIN_TIME = 0
@@ -228,7 +228,7 @@ class Session(QtCore.QObject):
 		self._draft = Draft(self._pool, self._backend, self._errorLog)
 
 		self._contacts = {}
-		self._contactUpdateTime = datetime.datetime(1971, 1, 1)
+		self._accountUpdateTime = datetime.datetime(1971, 1, 1)
 		self._messages = []
 		self._cleanMessages = []
 		self._messageUpdateTime = datetime.datetime(1971, 1, 1)
@@ -291,17 +291,17 @@ class Session(QtCore.QObject):
 		self.stateChange.emit(self.LOGGEDOUT_STATE)
 		self.loggedOut.emit()
 
-	def update_contacts(self, force = True):
+	def update_account(self, force = True):
 		if not force and self._contacts:
 			return
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_contacts)
+		le = concurrent.AsyncLinearExecution(self._pool, self._update_account)
 		self._perform_op_while_loggedin(le)
 
 	def get_contacts(self):
 		return self._contacts
 
 	def get_when_contacts_updated(self):
-		return self._contactUpdateTime
+		return self._accountUpdateTime
 
 	def update_messages(self, force = True):
 		if not force and self._messages:
@@ -435,6 +435,7 @@ class Session(QtCore.QObject):
 					self.loggedIn.emit()
 					self.stateChange.emit(finalState)
 					finalState = None # Mark it as already set
+					self._process_account_data(accountData)
 
 					if needOps:
 						loginOps = self._loginOps[:]
@@ -458,13 +459,11 @@ class Session(QtCore.QObject):
 				self.set_callback_number(self._callback)
 
 	def _load(self):
-		updateContacts = len(self._contacts) != 0
 		updateMessages = len(self._messages) != 0
 		updateHistory = len(self._history) != 0
 		oldDnd = self._dnd
 		oldCallback = self._callback
 
-		self._contacts = {}
 		self._messages = []
 		self._cleanMessages = []
 		self._history = []
@@ -473,12 +472,9 @@ class Session(QtCore.QObject):
 
 		loadedFromCache = self._load_from_cache()
 		if loadedFromCache:
-			updateContacts = True
 			updateMessages = True
 			updateHistory = True
 
-		if updateContacts:
-			self.contactsUpdated.emit()
 		if updateMessages:
 			self.messagesUpdated.emit()
 		if updateHistory:
@@ -506,26 +502,33 @@ class Session(QtCore.QObject):
 			return False
 
 		try:
-			(
-				version, build,
-				contacts, contactUpdateTime,
-				messages, messageUpdateTime,
-				history, historyUpdateTime,
-				dnd, callback
-			) = dumpedData
+			version, build = dumpedData[0:2]
 		except ValueError:
 			_moduleLogger.exception("Upgrade/downgrade fun")
 			return False
 		except:
 			_moduleLogger.exception("Weirdlings")
+			return False
 
 		if misc_utils.compare_versions(
 			self._OLDEST_COMPATIBLE_FORMAT_VERSION,
 			misc_utils.parse_version(version),
 		) <= 0:
+			try:
+				(
+					version, build,
+					messages, messageUpdateTime,
+					history, historyUpdateTime,
+					dnd, callback
+				) = dumpedData
+			except ValueError:
+				_moduleLogger.exception("Upgrade/downgrade fun")
+				return False
+			except:
+				_moduleLogger.exception("Weirdlings")
+				return False
+
 			_moduleLogger.info("Loaded cache")
-			self._contacts = contacts
-			self._contactUpdateTime = contactUpdateTime
 			self._messages = messages
 			self._alert_on_messages(self._messages)
 			self._messageUpdateTime = messageUpdateTime
@@ -551,7 +554,6 @@ class Session(QtCore.QObject):
 		try:
 			dataToDump = (
 				constants.__version__, constants.__build__,
-				self._contacts, self._contactUpdateTime,
 				self._messages, self._messageUpdateTime,
 				self._history, self._historyUpdateTime,
 				self._dnd, self._callback
@@ -563,14 +565,11 @@ class Session(QtCore.QObject):
 			_moduleLogger.exception("While saving")
 
 	def _clear_cache(self):
-		updateContacts = len(self._contacts) != 0
 		updateMessages = len(self._messages) != 0
 		updateHistory = len(self._history) != 0
 		oldDnd = self._dnd
 		oldCallback = self._callback
 
-		self._contacts = {}
-		self._contactUpdateTime = datetime.datetime(1971, 1, 1)
 		self._messages = []
 		self._messageUpdateTime = datetime.datetime(1971, 1, 1)
 		self._history = []
@@ -578,8 +577,6 @@ class Session(QtCore.QObject):
 		self._dnd = False
 		self._callback = ""
 
-		if updateContacts:
-			self.contactsUpdated.emit()
 		if updateMessages:
 			self.messagesUpdated.emit()
 		if updateHistory:
@@ -591,12 +588,12 @@ class Session(QtCore.QObject):
 
 		self._save_to_cache()
 
-	def _update_contacts(self):
+	def _update_account(self):
 		try:
-			assert self.state == self.LOGGEDIN_STATE, "Contacts requires being logged in (currently %s" % self.state
-			with qui_utils.notify_busy(self._errorLog, "Updating Contacts"):
-				self._contacts = yield (
-					self._backend[0].get_contacts,
+			assert self.state == self.LOGGEDIN_STATE, "Contacts requires being logged in (currently %s)" % self.state
+			with qui_utils.notify_busy(self._errorLog, "Updating Account"):
+				accountData = yield (
+					self._backend[0].refresh_account_info,
 					(),
 					{},
 				)
@@ -604,8 +601,7 @@ class Session(QtCore.QObject):
 			_moduleLogger.exception("Reporting error to user")
 			self.error.emit(str(e))
 			return
-		self._contactUpdateTime = datetime.datetime.now()
-		self.contactsUpdated.emit()
+		self._process_account_data(accountData)
 
 	def _update_messages(self):
 		try:
@@ -668,6 +664,17 @@ class Session(QtCore.QObject):
 			_moduleLogger.info("Skipping queueing duplicate op: %r" % asyncOp)
 			return
 		self._loginOps.append(asyncOp)
+
+	def _process_account_data(self, accountData):
+		self._contacts = dict(
+			(contactId, contactDetails)
+			for contactId, contactDetails in accountData["contacts"].iteritems()
+			# A zero contact id is the catch all for unknown contacts
+			if contactId != "0"
+		)
+
+		self._accountUpdateTime = datetime.datetime.now()
+		self.accountUpdated.emit()
 
 	def _alert_on_messages(self, messages):
 		cleanNewMessages = list(self._clean_messages(messages))

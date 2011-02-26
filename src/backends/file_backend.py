@@ -44,7 +44,7 @@ class CsvAddressBook(object):
 	def name(self):
 		return self._name
 
-	def update_contacts(self, force = True):
+	def update_account(self, force = True):
 		if not force or not self._contacts:
 			return
 		self._contacts = dict(

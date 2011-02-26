@@ -684,7 +684,7 @@ class Contacts(object):
 	def __init__(self, app, session, errorLog):
 		self._app = app
 		self._session = session
-		self._session.contactsUpdated.connect(self._on_contacts_updated)
+		self._session.accountUpdated.connect(self._on_contacts_updated)
 		self._errorLog = errorLog
 		self._addressBookFactories = [
 			null_backend.NullAddressBookFactory(),
@@ -765,7 +765,7 @@ class Contacts(object):
 
 	def refresh(self, force=True):
 		self._itemView.setFocus(QtCore.Qt.OtherFocusReason)
-		self._backend.update_contacts(force)
+		self._backend.update_account(force)
 
 	@property
 	def _backend(self):
