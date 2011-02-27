@@ -40,8 +40,14 @@ _moduleLogger = logging.getLogger(__name__)
 
 class GVDialer(object):
 
+	MESSAGE_TEXTS = "Text"
+	MESSAGE_VOICEMAILS = "Voicemail"
+	MESSAGE_ALL = "All"
+
 	def __init__(self, cookieFile = None):
 		self._gvoice = gvoice.GVoiceBackend(cookieFile)
+		self._texts = []
+		self._voicemails = []
 
 	def is_quick_login_possible(self):
 		"""
@@ -145,14 +151,19 @@ class GVDialer(object):
 		"""
 		return list(self._gvoice.get_recent())
 
-	def get_messages(self):
-		messages = list(self._get_messages())
+	def get_messages(self, messageType):
+		messages = list(self._get_messages(messageType))
 		messages.sort(key=lambda message: message["time"])
 		return messages
 
-	def _get_messages(self):
-		voicemails = self._gvoice.get_voicemails()
-		smss = self._gvoice.get_texts()
+	def _get_messages(self, messageType):
+		if messageType in [self.MESSAGE_VOICEMAILS, self.MESSAGE_ALL] or not self._voicemails:
+			self._voicemails = list(self._gvoice.get_voicemails())
+		voicemails = self._voicemails
+		if messageType in [self.MESSAGE_TEXTS, self.MESSAGE_ALL] or not self._texts:
+			self._texts = list(self._gvoice.get_texts())
+		smss = self._texts
+
 		conversations = itertools.chain(voicemails, smss)
 		for conversation in conversations:
 			messages = conversation.messages

@@ -609,7 +609,7 @@ class Session(QtCore.QObject):
 			with qui_utils.notify_busy(self._errorLog, "Updating Messages"):
 				self._messages = yield (
 					self._backend[0].get_messages,
-					(),
+					(self._backend[0].MESSAGE_ALL, ),
 					{},
 				)
 		except Exception, e:
