@@ -542,7 +542,17 @@ class MainWindow(qwrappers.WindowWrapper):
 			else:
 				callbackNumber = self._accountDialog.selectedCallback
 				self._session.set_callback_number(callbackNumber)
-			self._app.alarmHandler.apply_settings(self._accountDialog.notifications, self._accountDialog.notificationTime)
+
+			if (
+				self._accountDialog.notifyOnMissed or
+				self._accountDialog.notifyOnVoicemail or
+				self._accountDialog.notifyOnSms
+			):
+				notifications = self._accountDialog.notifications
+			else:
+				notifications = self._accountDialog.ALARM_NONE
+			self._app.alarmHandler.apply_settings(notifications, self._accountDialog.notificationTime)
+
 			self._app.notifyOnMissed = self._accountDialog.notifyOnMissed
 			self._app.notifyOnVoicemail = self._accountDialog.notifyOnVoicemail
 			self._app.notifyOnSms = self._accountDialog.notifyOnSms
