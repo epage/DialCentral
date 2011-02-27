@@ -595,7 +595,12 @@ class MainWindow(qwrappers.WindowWrapper):
 	def _on_app_alert(self):
 		with qui_utils.notify_error(self._errorLog):
 			if self._session.state == self._session.LOGGEDIN_STATE:
-				self._session.update_messages(force=True)
+				messageType = {
+					(True, True): self._session.MESSAGE_ALL,
+					(True, False): self._session.MESSAGE_TEXTS,
+					(False, True): self._session.MESSAGE_VOICEMAILS,
+				}[(self._app.notifyOnSms, self._app.notifyOnVoicemail)]
+				self._session.update_messages(messageType, force=True)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)

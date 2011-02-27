@@ -553,7 +553,18 @@ class Messages(object):
 
 	def refresh(self, force=True):
 		self._itemView.setFocus(QtCore.Qt.OtherFocusReason)
-		self._session.update_messages(force)
+
+		if self._selectedTypeFilter == self.NO_MESSAGES:
+			pass
+		elif self._selectedTypeFilter == self.TEXT_MESSAGES:
+			self._session.update_messages(self._session.MESSAGE_TEXTS, force)
+		elif self._selectedTypeFilter == self.VOICEMAIL_MESSAGES:
+			self._session.update_messages(self._session.MESSAGE_VOICEMAILS, force)
+		elif self._selectedTypeFilter == self.ALL_TYPES:
+			self._session.update_messages(self._session.MESSAGE_ALL, force)
+		else:
+			assert False, "How did we get here?"
+
 		if self._app.notifyOnSms or self._app.notifyOnVoicemail and self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_BACKGROUND:
 			self._app.ledHandler.off()
 

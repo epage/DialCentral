@@ -350,15 +350,13 @@ class AccountDialog(object):
 			self._notificationTimeSelector.setEnabled(True)
 
 			self._missedCallsNotificationButton.setEnabled(False)
-			self._voicemailNotificationButton.setEnabled(False)
-			self._smsNotificationButton.setEnabled(False)
+			self._voicemailNotificationButton.setEnabled(True)
+			self._smsNotificationButton.setEnabled(True)
 
 			self._missedCallsNotificationButton.setChecked(False)
-			self._voicemailNotificationButton.setChecked(True)
-			self._smsNotificationButton.setChecked(True)
 		else:
-
 			self._notificationTimeSelector.setEnabled(False)
+
 			self._missedCallsNotificationButton.setEnabled(False)
 			self._voicemailNotificationButton.setEnabled(False)
 			self._smsNotificationButton.setEnabled(False)

@@ -211,6 +211,10 @@ class Session(QtCore.QObject):
 	LOGGINGIN_STATE = "logging in"
 	LOGGEDIN_STATE = "logged in"
 
+	MESSAGE_TEXTS = "Text"
+	MESSAGE_VOICEMAILS = "Voicemail"
+	MESSAGE_ALL = "All"
+
 	_OLDEST_COMPATIBLE_FORMAT_VERSION = misc_utils.parse_version("1.3.0")
 
 	_LOGGEDOUT_TIME = -1
@@ -294,7 +298,7 @@ class Session(QtCore.QObject):
 	def update_account(self, force = True):
 		if not force and self._contacts:
 			return
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_account)
+		le = concurrent.AsyncLinearExecution(self._pool, self._update_account), (), {}
 		self._perform_op_while_loggedin(le)
 
 	def get_contacts(self):
@@ -303,10 +307,10 @@ class Session(QtCore.QObject):
 	def get_when_contacts_updated(self):
 		return self._accountUpdateTime
 
-	def update_messages(self, force = True):
+	def update_messages(self, messageType, force = True):
 		if not force and self._messages:
 			return
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_messages)
+		le = concurrent.AsyncLinearExecution(self._pool, self._update_messages), (messageType, ), {}
 		self._perform_op_while_loggedin(le)
 
 	def get_messages(self):
@@ -318,7 +322,7 @@ class Session(QtCore.QObject):
 	def update_history(self, force = True):
 		if not force and self._history:
 			return
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_history)
+		le = concurrent.AsyncLinearExecution(self._pool, self._update_history), (), {}
 		self._perform_op_while_loggedin(le)
 
 	def get_history(self):
@@ -328,7 +332,7 @@ class Session(QtCore.QObject):
 		return self._historyUpdateTime
 
 	def update_dnd(self):
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_dnd)
+		le = concurrent.AsyncLinearExecution(self._pool, self._update_dnd), (), {}
 		self._perform_op_while_loggedin(le)
 
 	def set_dnd(self, dnd):
@@ -442,8 +446,8 @@ class Session(QtCore.QObject):
 					else:
 						loginOps = []
 					del self._loginOps[:]
-					for asyncOp in loginOps:
-						asyncOp.start()
+					for asyncOp, args, kwds in loginOps:
+						asyncOp.start(*args, **kwds)
 				else:
 					self._loggedInTime = self._LOGGEDOUT_TIME
 					self.error.emit("Error logging in")
@@ -603,13 +607,13 @@ class Session(QtCore.QObject):
 			return
 		self._process_account_data(accountData)
 
-	def _update_messages(self):
+	def _update_messages(self, messageType):
 		try:
 			assert self.state == self.LOGGEDIN_STATE, "Messages requires being logged in (currently %s" % self.state
-			with qui_utils.notify_busy(self._errorLog, "Updating Messages"):
+			with qui_utils.notify_busy(self._errorLog, "Updating %s Messages" % messageType):
 				self._messages = yield (
 					self._backend[0].get_messages,
-					(self._backend[0].MESSAGE_ALL, ),
+					(messageType, ),
 					{},
 				)
 		except Exception, e:
@@ -654,7 +658,8 @@ class Session(QtCore.QObject):
 
 	def _perform_op_while_loggedin(self, op):
 		if self.state == self.LOGGEDIN_STATE:
-			op.start()
+			op, args, kwds = op
+			op.start(*args, **kwds)
 		else:
 			self._push_login_op(op)
 
