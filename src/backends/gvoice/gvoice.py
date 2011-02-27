@@ -414,6 +414,10 @@ class GVoiceBackend(object):
 
 		return json
 
+	def recording_url(self, messageId):
+		url = self._downloadVoicemailURL+messageId
+		return url
+
 	def download(self, messageId, adir):
 		"""
 		Download a voicemail or recorded call MP3 matching the given ``msg``
@@ -423,7 +427,7 @@ class GVoiceBackend(object):
 		@returns location of saved file.
 		@blocks
 		"""
-		page = self._get_page(self._downloadVoicemailURL, {"id": messageId})
+		page = self._get_page(self.recording_url(messageId))
 		fn = os.path.join(adir, '%s.mp3' % messageId)
 		with open(fn, 'wb') as fo:
 			fo.write(page)
@@ -1013,6 +1017,21 @@ def grab_debug_info(username, password):
 		)
 
 
+def grab_voicemails(username, password):
+	cookieFile = os.path.join(".", "raw_cookies.txt")
+	try:
+		os.remove(cookieFile)
+	except OSError:
+		pass
+
+	backend = GVoiceBackend(cookieFile)
+	backend.login(username, password)
+	voicemails = list(backend.get_voicemails())
+	for voicemail in voicemails:
+		print voicemail.id
+		backend.download(voicemail.id, ".")
+
+
 def main():
 	import sys
 	logging.basicConfig(level=logging.DEBUG)
@@ -1022,6 +1041,7 @@ def main():
 		password = args[2]
 
 	grab_debug_info(username, password)
+	grab_voicemails(username, password)
 
 
 if __name__ == "__main__":
