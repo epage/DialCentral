@@ -27,7 +27,8 @@ _moduleLogger = logging.getLogger(__name__)
 
 class _DraftContact(object):
 
-	def __init__(self, title, description, numbersWithDescriptions):
+	def __init__(self, messageId, title, description, numbersWithDescriptions):
+		self.messageId = messageId
 		self.title = title
 		self.description = description
 		self.numbers = numbersWithDescriptions
@@ -82,11 +83,11 @@ class Draft(QtCore.QObject):
 
 	message = property(_get_message, _set_message)
 
-	def add_contact(self, contactId, title, description, numbersWithDescriptions):
+	def add_contact(self, contactId, messageId, title, description, numbersWithDescriptions):
 		if self._busyReason is not None:
 			raise RuntimeError("Please wait for %r" % self._busyReason)
 		# Allow overwriting of contacts so that the message can be updated and the SMS dialog popped back up
-		contactDetails = _DraftContact(title, description, numbersWithDescriptions)
+		contactDetails = _DraftContact(messageId, title, description, numbersWithDescriptions)
 		self._contacts[contactId] = contactDetails
 		self.recipientsChanged.emit()
 
@@ -102,6 +103,9 @@ class Draft(QtCore.QObject):
 
 	def get_num_contacts(self):
 		return len(self._contacts)
+
+	def get_message_id(self, cid):
+		return self._contacts[cid].messageId
 
 	def get_title(self, cid):
 		return self._contacts[cid].title
@@ -204,6 +208,7 @@ class Session(QtCore.QObject):
 	newMessages = QtCore.pyqtSignal()
 	historyUpdated = QtCore.pyqtSignal()
 	dndStateChange = QtCore.pyqtSignal(bool)
+	voicemailAvailable = QtCore.pyqtSignal(str, str)
 
 	error = QtCore.pyqtSignal(str)
 
@@ -228,6 +233,7 @@ class Session(QtCore.QObject):
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._loginOps = []
 		self._cachePath = cachePath
+		self._voicemailCachePath = None
 		self._username = None
 		self._draft = Draft(self._pool, self._backend, self._errorLog)
 
@@ -276,6 +282,7 @@ class Session(QtCore.QObject):
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._backend[0].persist()
 		self._save_to_cache()
+		self._clear_voicemail_cache()
 		self.stateChange.emit(self.LOGGEDOUT_STATE)
 		self.loggedOut.emit()
 
@@ -338,6 +345,20 @@ class Session(QtCore.QObject):
 	def set_dnd(self, dnd):
 		le = concurrent.AsyncLinearExecution(self._pool, self._set_dnd)
 		le.start(dnd)
+
+	def is_available(self, messageId):
+		actualPath = os.path.join(self._voicemailCachePath, "%s.mp3" % messageId)
+		return os.path.exists(actualPath)
+
+	def voicemail_path(self, messageId):
+		actualPath = os.path.join(self._voicemailCachePath, "%s.mp3" % messageId)
+		if not os.path.exists(actualPath):
+			raise RuntimeError("Voicemail not available")
+		return actualPath
+
+	def download_voicemail(self, messageId):
+		le = concurrent.AsyncLinearExecution(self._pool, self._download_voicemail)
+		le.start(messageId)
 
 	def _set_dnd(self, dnd):
 		oldDnd = self._dnd
@@ -435,6 +456,13 @@ class Session(QtCore.QObject):
 						needOps = not self._load()
 					else:
 						needOps = True
+
+					self._voicemailCachePath = os.path.join(self._cachePath, "%s.voicemail.cache" % self._username)
+					try:
+						os.makedirs(self._voicemailCachePath)
+					except OSError, e:
+						if e.errno != 17:
+							raise
 
 					self.loggedIn.emit()
 					self.stateChange.emit(finalState)
@@ -591,6 +619,11 @@ class Session(QtCore.QObject):
 			self.callbackNumberChanged.emit(self._callback)
 
 		self._save_to_cache()
+		self._clear_voicemail_cache()
+
+	def _clear_voicemail_cache(self):
+		import shutil
+		shutil.rmtree(self._voicemailCachePath, True)
 
 	def _update_account(self):
 		try:
@@ -655,6 +688,34 @@ class Session(QtCore.QObject):
 			return
 		if oldDnd != self._dnd:
 			self.dndStateChange(self._dnd)
+
+	def _download_voicemail(self, messageId):
+		actualPath = os.path.join(self._voicemailCachePath, "%s.mp3" % messageId)
+		targetPath = "%s.%s.part" % (actualPath, time.time())
+		if os.path.exists(actualPath):
+			self.voicemailAvailable.emit(messageId, actualPath)
+			return
+		with qui_utils.notify_busy(self._errorLog, "Downloading Voicemail"):
+			try:
+				yield (
+					self._backend[0].download,
+					(messageId, targetPath),
+					{},
+				)
+			except Exception, e:
+				self.error.emit(str(e))
+				return
+
+		if os.path.exists(actualPath):
+			try:
+				os.remove(targetPath)
+			except:
+				_moduleLogger.exception("Ignoring file problems with cache")
+			self.voicemailAvailable.emit(messageId, actualPath)
+			return
+		else:
+			os.rename(targetPath, actualPath)
+			self.voicemailAvailable.emit(messageId, actualPath)
 
 	def _perform_op_while_loggedin(self, op):
 		if self.state == self.LOGGEDIN_STATE:

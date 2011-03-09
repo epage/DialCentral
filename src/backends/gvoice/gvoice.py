@@ -418,20 +418,17 @@ class GVoiceBackend(object):
 		url = self._downloadVoicemailURL+messageId
 		return url
 
-	def download(self, messageId, adir):
+	def download(self, messageId, targetPath):
 		"""
 		Download a voicemail or recorded call MP3 matching the given ``msg``
 		which can either be a ``Message`` instance, or a SHA1 identifier. 
-		Saves files to ``adir`` (defaults to current directory). 
 		Message hashes can be found in ``self.voicemail().messages`` for example. 
 		@returns location of saved file.
 		@blocks
 		"""
 		page = self._get_page(self.recording_url(messageId))
-		fn = os.path.join(adir, '%s.mp3' % messageId)
-		with open(fn, 'wb') as fo:
+		with open(targetPath, 'wb') as fo:
 			fo.write(page)
-		return fn
 
 	def is_valid_syntax(self, number):
 		"""

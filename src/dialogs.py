@@ -533,6 +533,120 @@ class ContactList(object):
 			self._session.draft.remove_contact(self._uiItems[index]["cid"])
 
 
+class VoicemailPlayer(object):
+
+	def __init__(self, app, session, errorLog):
+		self._app = app
+		self._session = session
+		self._errorLog = errorLog
+		self._session.voicemailAvailable.connect(self._on_voicemail_downloaded)
+		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
+
+		self._downloadButton = QtGui.QPushButton("Download Voicemail")
+		self._downloadButton.clicked.connect(self._on_voicemail_download)
+		self._downloadLayout = QtGui.QHBoxLayout()
+		self._downloadLayout.addWidget(self._downloadButton)
+		self._downloadWidget = QtGui.QWidget()
+		self._downloadWidget.setLayout(self._downloadLayout)
+
+		self._playLabel = QtGui.QLabel("Voicemail")
+		self._saveButton = QtGui.QPushButton("Save")
+		self._saveButton.clicked.connect(self._on_voicemail_save)
+		self._playerLayout = QtGui.QHBoxLayout()
+		self._playerLayout.addWidget(self._playLabel)
+		self._playerLayout.addWidget(self._saveButton)
+		self._playerWidget = QtGui.QWidget()
+		self._playerWidget.setLayout(self._playerLayout)
+
+		self._visibleWidget = None
+		self._layout = QtGui.QHBoxLayout()
+		self._layout.setContentsMargins(0, 0, 0, 0)
+		self._widget = QtGui.QWidget()
+		self._widget.setLayout(self._layout)
+		self._update_state()
+
+	@property
+	def toplevel(self):
+		return self._widget
+
+	def destroy(self):
+		self._session.voicemailAvailable.disconnect(self._on_voicemail_downloaded)
+		self._session.draft.recipientsChanged.disconnect(self._on_recipients_changed)
+
+	def _show_download(self, messageId):
+		if self._visibleWidget is self._downloadWidget:
+			return
+		self._hide()
+		self._layout.addWidget(self._downloadWidget)
+		self._visibleWidget = self._downloadWidget
+		self._visibleWidget.show()
+
+	def _show_player(self, messageId):
+		if self._visibleWidget is self._playerWidget:
+			return
+		self._hide()
+		self._layout.addWidget(self._playerWidget)
+		self._visibleWidget = self._playerWidget
+		self._visibleWidget.show()
+
+	def _hide(self):
+		if self._visibleWidget is None:
+			return
+		self._visibleWidget.hide()
+		self._layout.removeWidget(self._visibleWidget)
+		self._visibleWidget = None
+
+	def _update_state(self):
+		if self._session.draft.get_num_contacts() != 1:
+			self._hide()
+			return
+
+		(cid, ) = self._session.draft.get_contacts()
+		messageId = self._session.draft.get_message_id(cid)
+		if messageId is None:
+			self._hide()
+			return
+
+		if self._session.is_available(messageId):
+			self._show_player(messageId)
+		else:
+			self._show_download(messageId)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_save(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			targetPath = QtGui.QFileDialog.getSaveFileName(None, caption="Save Voicemail", filter="Audio File (*.mp3)")
+			targetPath = unicode(targetPath)
+			if not targetPath:
+				return
+
+			(cid, ) = self._session.draft.get_contacts()
+			messageId = self._session.draft.get_message_id(cid)
+			sourcePath = self._session.voicemail_path(messageId)
+			import shutil
+			shutil.copy2(sourcePath, targetPath)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_download(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			(cid, ) = self._session.draft.get_contacts()
+			messageId = self._session.draft.get_message_id(cid)
+			self._session.download_voicemail(messageId)
+			self._hide()
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_recipients_changed(self):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._update_state()
+
+	@QtCore.pyqtSlot(str, str)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_downloaded(self, messageId, filepath):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._update_state()
+
+
 class SMSEntryWindow(qwrappers.WindowWrapper):
 
 	MAX_CHAR = 160
@@ -562,12 +676,14 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		self._history = QtGui.QLabel()
 		self._history.setTextFormat(QtCore.Qt.RichText)
 		self._history.setWordWrap(True)
+		self._voicemailPlayer = VoicemailPlayer(self._app, self._session, self._errorLog)
 		self._smsEntry = QtGui.QTextEdit()
 		self._smsEntry.textChanged.connect(self._on_letter_count_changed)
 
 		self._entryLayout = QtGui.QVBoxLayout()
 		self._entryLayout.addWidget(self._targetList.toplevel)
 		self._entryLayout.addWidget(self._history)
+		self._entryLayout.addWidget(self._voicemailPlayer.toplevel, 0)
 		self._entryLayout.addWidget(self._smsEntry)
 		self._entryLayout.setContentsMargins(0, 0, 0, 0)
 		self._entryWidget = QtGui.QWidget()
@@ -646,6 +762,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		self._session.draft.called.disconnect(self._on_op_finished)
 		self._session.draft.cancelled.disconnect(self._on_op_finished)
 		self._session.draft.error.disconnect(self._on_op_error)
+		self._voicemailPlayer.destroy()
 		window = self._window
 		self._window = None
 		try:
@@ -803,12 +920,13 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh_history(self):
-		draftContactsCount = self._session.draft.get_num_contacts()
-		if draftContactsCount != 1:
-			# Changing contact count will automatically refresh it
-			return
-		(cid, ) = self._session.draft.get_contacts()
-		self._update_history(cid)
+		with qui_utils.notify_error(self._app.errorLog):
+			draftContactsCount = self._session.draft.get_num_contacts()
+			if draftContactsCount != 1:
+				# Changing contact count will automatically refresh it
+				return
+			(cid, ) = self._session.draft.get_contacts()
+			self._update_history(cid)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)

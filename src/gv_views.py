@@ -168,7 +168,7 @@ class Dialpad(object):
 			title = misc_utils.make_pretty(number)
 			description = misc_utils.make_pretty(number)
 			numbersWithDescriptions = [(number, "")]
-			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			self._session.draft.add_contact(contactId, None, title, description, numbersWithDescriptions)
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
@@ -183,7 +183,7 @@ class Dialpad(object):
 			description = misc_utils.make_pretty(number)
 			numbersWithDescriptions = [(number, "")]
 			self._session.draft.clear()
-			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			self._session.draft.add_contact(contactId, None, title, description, numbersWithDescriptions)
 			self._session.draft.call()
 
 
@@ -435,7 +435,7 @@ class History(object):
 					descriptionRows.append("<tr><td>%s</td></tr>" % "</td><td>".join(rowItems))
 			description = "<table>%s</table>" % "".join(descriptionRows)
 			numbersWithDescriptions = [(str(contactDetails[QtCore.QString("number")]), "")]
-			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			self._session.draft.add_contact(contactId, None, title, description, numbersWithDescriptions)
 
 
 class Messages(object):
@@ -676,11 +676,15 @@ class Messages(object):
 			if not name:
 				name = "Unknown"
 
-			contactId = str(contactDetails[QtCore.QString("id")])
+			if str(contactDetails[QtCore.QString("type")]) == "Voicemail":
+				messageId = str(contactDetails[QtCore.QString("id")])
+			else:
+				messageId = None
+			contactId = str(contactDetails[QtCore.QString("contactId")])
 			title = name
 			description = unicode(contactDetails[QtCore.QString("expandedMessages")])
 			numbersWithDescriptions = [(number, "")]
-			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			self._session.draft.add_contact(contactId, messageId, title, description, numbersWithDescriptions)
 
 	@QtCore.pyqtSlot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
@@ -918,7 +922,7 @@ class Contacts(object):
 			]
 			title = name
 			description = name
-			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			self._session.draft.add_contact(contactId, None, title, description, numbersWithDescriptions)
 
 	@staticmethod
 	def _choose_phonetype(numberDetails):

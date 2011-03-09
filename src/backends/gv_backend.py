@@ -103,15 +103,14 @@ class GVDialer(object):
 	def get_feed(self, feed):
 		return self._gvoice.get_feed(feed)
 
-	def download(self, messageId, adir):
+	def download(self, messageId, targetPath):
 		"""
 		Download a voicemail or recorded call MP3 matching the given ``msg``
 		which can either be a ``Message`` instance, or a SHA1 identifier. 
-		Saves files to ``adir`` (defaults to current directory). 
 		Message hashes can be found in ``self.voicemail().messages`` for example. 
 		Returns location of saved file.
 		"""
-		return self._gvoice.download(messageId, adir)
+		self._gvoice.download(messageId, targetPath)
 
 	def is_valid_syntax(self, number):
 		"""
