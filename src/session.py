@@ -235,7 +235,12 @@ class Session(QtCore.QObject):
 		self._cachePath = cachePath
 		self._voicemailCachePath = None
 		self._username = None
+		self._password = None
 		self._draft = Draft(self._pool, self._backend, self._errorLog)
+		self._delayedRelogin = QtCore.QTimer()
+		self._delayedRelogin.setInterval(0)
+		self._delayedRelogin.setSingleShot(True)
+		self._delayedRelogin.timeout.connect(self._on_delayed_relogin)
 
 		self._contacts = {}
 		self._accountUpdateTime = datetime.datetime(1971, 1, 1)
@@ -307,6 +312,10 @@ class Session(QtCore.QObject):
 			return
 		le = concurrent.AsyncLinearExecution(self._pool, self._update_account), (), {}
 		self._perform_op_while_loggedin(le)
+
+	def refresh_connection(self):
+		le = concurrent.AsyncLinearExecution(self._pool, self._refresh_authentication)
+		le.start()
 
 	def get_contacts(self):
 		return self._contacts
@@ -451,6 +460,7 @@ class Session(QtCore.QObject):
 					self._loggedInTime = int(time.time())
 					oldUsername = self._username
 					self._username = username
+					self._password = password
 					finalState = self.LOGGEDIN_STATE
 					if oldUsername != self._username:
 						needOps = not self._load()
@@ -489,6 +499,43 @@ class Session(QtCore.QObject):
 					self.stateChange.emit(finalState)
 			if accountData is not None and self._callback:
 				self.set_callback_number(self._callback)
+
+	def _update_account(self):
+		try:
+			with qui_utils.notify_busy(self._errorLog, "Updating Account"):
+				accountData = yield (
+					self._backend[0].refresh_account_info,
+					(),
+					{},
+				)
+		except Exception, e:
+			_moduleLogger.exception("Reporting error to user")
+			self.error.emit(str(e))
+			return
+		self._loggedInTime = int(time.time())
+		self._process_account_data(accountData)
+
+	def _refresh_authentication(self):
+		try:
+			with qui_utils.notify_busy(self._errorLog, "Updating Account"):
+				accountData = yield (
+					self._backend[0].refresh_account_info,
+					(),
+					{},
+				)
+				accountData = None
+		except Exception, e:
+			_moduleLogger.exception("Passing to user")
+			self.error.emit(str(e))
+			# refresh_account_info does not normally throw, so it is fine if we
+			# just quit early because something seriously wrong is going on
+			return
+
+		if accountData is not None:
+			self._loggedInTime = int(time.time())
+			self._process_account_data(accountData)
+		else:
+			self._delayedRelogin.start()
 
 	def _load(self):
 		updateMessages = len(self._messages) != 0
@@ -624,21 +671,6 @@ class Session(QtCore.QObject):
 	def _clear_voicemail_cache(self):
 		import shutil
 		shutil.rmtree(self._voicemailCachePath, True)
-
-	def _update_account(self):
-		try:
-			assert self.state == self.LOGGEDIN_STATE, "Contacts requires being logged in (currently %s)" % self.state
-			with qui_utils.notify_busy(self._errorLog, "Updating Account"):
-				accountData = yield (
-					self._backend[0].refresh_account_info,
-					(),
-					{},
-				)
-		except Exception, e:
-			_moduleLogger.exception("Reporting error to user")
-			self.error.emit(str(e))
-			return
-		self._process_account_data(accountData)
 
 	def _update_messages(self, messageType):
 		try:
@@ -776,3 +808,15 @@ class Session(QtCore.QObject):
 				continue
 
 			yield cleaned
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_delayed_relogin(self):
+		try:
+			username = self._username
+			password = self._password
+			self.logout()
+			self.login(username, password)
+		except Exception, e:
+			_moduleLogger.exception("Passing to user")
+			self.error.emit(str(e))
+			return
