@@ -674,20 +674,21 @@ class Session(QtCore.QObject):
 		self.historyUpdated.emit()
 
 	def _update_dnd(self):
-		oldDnd = self._dnd
-		try:
-			assert self.state == self.LOGGEDIN_STATE, "DND requires being logged in (currently %s" % self.state
-			self._dnd = yield (
-				self._backend[0].is_dnd,
-				(),
-				{},
-			)
-		except Exception, e:
-			_moduleLogger.exception("Reporting error to user")
-			self.error.emit(str(e))
-			return
-		if oldDnd != self._dnd:
-			self.dndStateChange(self._dnd)
+		with qui_utils.notify_busy(self._errorLog, "Updating Do-Not-Disturb Status"):
+			oldDnd = self._dnd
+			try:
+				assert self.state == self.LOGGEDIN_STATE, "DND requires being logged in (currently %s" % self.state
+				self._dnd = yield (
+					self._backend[0].is_dnd,
+					(),
+					{},
+				)
+			except Exception, e:
+				_moduleLogger.exception("Reporting error to user")
+				self.error.emit(str(e))
+				return
+			if oldDnd != self._dnd:
+				self.dndStateChange(self._dnd)
 
 	def _download_voicemail(self, messageId):
 		actualPath = os.path.join(self._voicemailCachePath, "%s.mp3" % messageId)
