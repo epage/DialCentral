@@ -372,30 +372,36 @@ class MainWindow(qwrappers.WindowWrapper):
 
 		self._layout.addWidget(self._tabWidget)
 
-		self._loginTabAction = QtGui.QAction(None)
-		self._loginTabAction.setText("Login")
-		self._loginTabAction.triggered.connect(self._on_login_requested)
+		self._loginAction = QtGui.QAction(None)
+		self._loginAction.setText("Login")
+		self._loginAction.triggered.connect(self._on_login_requested)
 
-		self._importTabAction = QtGui.QAction(None)
-		self._importTabAction.setText("Import")
-		self._importTabAction.triggered.connect(self._on_import)
+		self._importAction = QtGui.QAction(None)
+		self._importAction.setText("Import")
+		self._importAction.triggered.connect(self._on_import)
 
-		self._accountTabAction = QtGui.QAction(None)
-		self._accountTabAction.setText("Account")
-		self._accountTabAction.triggered.connect(self._on_account)
+		self._accountAction = QtGui.QAction(None)
+		self._accountAction.setText("Account")
+		self._accountAction.triggered.connect(self._on_account)
+
+		self._refreshConnectionAction = QtGui.QAction(None)
+		self._refreshConnectionAction.setText("Refresh Connection")
+		self._refreshConnectionAction.setShortcut(QtGui.QKeySequence("CTRL+a"))
+		self._refreshConnectionAction.triggered.connect(self._on_refresh_connection)
 
 		self._refreshTabAction = QtGui.QAction(None)
-		self._refreshTabAction.setText("Refresh")
+		self._refreshTabAction.setText("Refresh Tab")
 		self._refreshTabAction.setShortcut(QtGui.QKeySequence("CTRL+r"))
 		self._refreshTabAction.triggered.connect(self._on_refresh)
 
 		fileMenu = self._window.menuBar().addMenu("&File")
-		fileMenu.addAction(self._loginTabAction)
+		fileMenu.addAction(self._loginAction)
 		fileMenu.addAction(self._refreshTabAction)
+		fileMenu.addAction(self._refreshConnectionAction)
 
 		toolsMenu = self._window.menuBar().addMenu("&Tools")
-		toolsMenu.addAction(self._accountTabAction)
-		toolsMenu.addAction(self._importTabAction)
+		toolsMenu.addAction(self._accountAction)
+		toolsMenu.addAction(self._importAction)
 		toolsMenu.addAction(self._app.aboutAction)
 
 		self._initialize_tab(self._tabWidget.currentIndex())
@@ -652,6 +658,13 @@ class MainWindow(qwrappers.WindowWrapper):
 	def _on_refresh(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
 			self._tabsContents[self._currentTab].refresh(force=True)
+
+	@QtCore.pyqtSlot()
+	@QtCore.pyqtSlot(bool)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_refresh_connection(self, checked = True):
+		with qui_utils.notify_error(self._errorLog):
+			self._session.refresh_connection()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
