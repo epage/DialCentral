@@ -312,6 +312,7 @@ class _NoneAlarmHandler(object):
 	def load_settings(self, config, sectionName):
 		try:
 			self._recurrence = config.getint(sectionName, "recurrence")
+			self._enabled = True
 		except ConfigParser.NoOptionError:
 			pass
 		except ConfigParser.NoSectionError:
