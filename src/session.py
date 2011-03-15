@@ -703,6 +703,7 @@ class Session(QtCore.QObject):
 					{},
 				)
 			except Exception, e:
+				_moduleLogger.exception("Passing to user")
 				self.error.emit(str(e))
 				return
 
