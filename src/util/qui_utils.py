@@ -113,21 +113,7 @@ class ErrorDisplay(object):
 		self._errorLog.messagePushed.connect(self._on_message_pushed)
 		self._errorLog.messagePopped.connect(self._on_message_popped)
 
-		self._icons = {
-			ErrorMessage.LEVEL_BUSY:
-				get_theme_icon(
-					#("process-working", "view-refresh", "general_refresh", "gtk-refresh")
-					("view-refresh", "general_refresh", "gtk-refresh", )
-				).pixmap(32, 32),
-			ErrorMessage.LEVEL_INFO:
-				get_theme_icon(
-					("dialog-information", "general_notes", "gtk-info")
-				).pixmap(32, 32),
-			ErrorMessage.LEVEL_ERROR:
-				get_theme_icon(
-					("dialog-error", "app_install_error", "gtk-dialog-error")
-				).pixmap(32, 32),
-		}
+		self._icons = None
 		self._severityLabel = QtGui.QLabel()
 		self._severityLabel.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 
@@ -136,17 +122,11 @@ class ErrorDisplay(object):
 		self._message.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 		self._message.setWordWrap(True)
 
-		closeIcon = get_theme_icon(("window-close", "general_close", "gtk-close"), self._SENTINEL_ICON)
-		if closeIcon is not self._SENTINEL_ICON:
-			self._closeLabel = QtGui.QPushButton(closeIcon, "")
-		else:
-			self._closeLabel = QtGui.QPushButton("X")
-		self._closeLabel.clicked.connect(self._on_close)
+		self._closeLabel = None
 
 		self._controlLayout = QtGui.QHBoxLayout()
 		self._controlLayout.addWidget(self._severityLabel, 1, QtCore.Qt.AlignCenter)
 		self._controlLayout.addWidget(self._message, 1000)
-		self._controlLayout.addWidget(self._closeLabel, 1, QtCore.Qt.AlignCenter)
 
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._controlLayout)
@@ -157,6 +137,30 @@ class ErrorDisplay(object):
 		return self._widget
 
 	def _show_error(self):
+		if self._icons is None:
+			self._icons = {
+				ErrorMessage.LEVEL_BUSY:
+					get_theme_icon(
+						#("process-working", "view-refresh", "general_refresh", "gtk-refresh")
+						("view-refresh", "general_refresh", "gtk-refresh", )
+					).pixmap(32, 32),
+				ErrorMessage.LEVEL_INFO:
+					get_theme_icon(
+						("dialog-information", "general_notes", "gtk-info")
+					).pixmap(32, 32),
+				ErrorMessage.LEVEL_ERROR:
+					get_theme_icon(
+						("dialog-error", "app_install_error", "gtk-dialog-error")
+					).pixmap(32, 32),
+			}
+		if self._closeLabel is None:
+			closeIcon = get_theme_icon(("window-close", "general_close", "gtk-close"), self._SENTINEL_ICON)
+			if closeIcon is not self._SENTINEL_ICON:
+				self._closeLabel = QtGui.QPushButton(closeIcon, "")
+			else:
+				self._closeLabel = QtGui.QPushButton("X")
+			self._closeLabel.clicked.connect(self._on_close)
+			self._controlLayout.addWidget(self._closeLabel, 1, QtCore.Qt.AlignCenter)
 		error = self._errorLog.peek_message()
 		self._message.setText(error.message)
 		self._severityLabel.setPixmap(self._icons[error.level])

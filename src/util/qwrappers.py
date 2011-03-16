@@ -61,7 +61,7 @@ class ApplicationWrapper(object):
 		self._idleDelay = QtCore.QTimer()
 		self._idleDelay.setSingleShot(True)
 		self._idleDelay.setInterval(0)
-		self._idleDelay.timeout.connect(lambda: self._mainWindow.start())
+		self._idleDelay.timeout.connect(self._on_delayed_start)
 		self._idleDelay.start()
 
 	def load_settings(self):
@@ -111,6 +111,10 @@ class ApplicationWrapper(object):
 			self._mainWindow.window.destroyed.disconnect(self._on_child_close)
 			self._mainWindow.close()
 			self._mainWindow = None
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_delayed_start(self):
+		self._mainWindow.start()
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_app_quit(self, checked = False):

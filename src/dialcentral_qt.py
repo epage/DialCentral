@@ -15,7 +15,6 @@ from PyQt4 import QtCore
 
 import constants
 import alarm_handler
-import led_handler
 from util import qtpie
 from util import qwrappers
 from util import qui_utils
@@ -41,7 +40,7 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 		self.notifyOnVoicemail = False
 		self.notifyOnSms = False
 
-		self._ledHandler = led_handler.LedHandler()
+		self._ledHandler = None
 		self._alarmHandler = alarm_handler.AlarmHandler()
 
 		qwrappers.ApplicationWrapper.__init__(self, app, constants)
@@ -185,6 +184,9 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 
 	@property
 	def ledHandler(self):
+		if self._ledHandler is None:
+			import led_handler
+			self._ledHandler = led_handler.LedHandler()
 		return self._ledHandler
 
 	def _new_main_window(self):
