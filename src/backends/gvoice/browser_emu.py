@@ -33,7 +33,7 @@ import socket
 
 
 _moduleLogger = logging.getLogger(__name__)
-socket.setdefaulttimeout(45)
+socket.setdefaulttimeout(25)
 
 
 def add_proxy(protocol, url, port):
