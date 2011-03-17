@@ -30,7 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing another line wrap bug due to over-zealous escaping (spaces as non-break whitespace, whoops)
+* Fixing a bug with not being able to set the callback number
 """.strip()
 
 

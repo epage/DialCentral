@@ -461,8 +461,6 @@ class GVoiceBackend(object):
 		@returns a dictionary mapping call back numbers to descriptions
 		@note These results are cached for 30 minutes.
 		"""
-		if not self.is_authed():
-			return {}
 		return self._callbackNumbers
 
 	def set_callback_number(self, callbacknumber):
