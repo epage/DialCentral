@@ -37,8 +37,6 @@ __changelog__ = """
 __postinstall__ = """#!/bin/sh -e
 
 gtk-update-icon-cache -f /usr/share/icons/hicolor
-rm -f ~/.%(name)s/%(name)s.log
-rm -f ~/.%(name)s/notifier.log
 """ % {"name": constants.__app_name__}
 
 __preremove__ = """#!/bin/sh -e

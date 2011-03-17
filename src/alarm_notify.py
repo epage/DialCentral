@@ -5,6 +5,7 @@ import filecmp
 import ConfigParser
 import pprint
 import logging
+import logging.handlers
 
 import constants
 from backends.gvoice import gvoice
@@ -164,7 +165,12 @@ def notify_on_change():
 
 
 if __name__ == "__main__":
-	logging.basicConfig(level=logging.DEBUG, filename=constants._notifier_logpath_)
+	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
+	logging.basicConfig(level=logging.DEBUG, format=logFormat)
+	rotating = logging.handlers.RotatingFileHandler(constants._notifier_logpath_, maxBytes=512*1024, backupCount=1)
+	rotating.setFormatter(logging.Formatter(logFormat))
+	root = logging.getLogger()
+	root.addHandler(rotating)
 	logging.info("Notifier %s-%s" % (constants.__version__, constants.__build__))
 	logging.info("OS: %s" % (os.uname()[0], ))
 	logging.info("Kernel: %s (%s) for %s" % os.uname()[2:])
