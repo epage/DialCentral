@@ -539,8 +539,21 @@ class VoicemailPlayer(object):
 		self._app = app
 		self._session = session
 		self._errorLog = errorLog
+		self._token = None
 		self._session.voicemailAvailable.connect(self._on_voicemail_downloaded)
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
+
+		self._playButton = QtGui.QPushButton("Play")
+		self._playButton.clicked.connect(self._on_voicemail_play)
+		self._pauseButton = QtGui.QPushButton("Pause")
+		self._pauseButton.clicked.connect(self._on_voicemail_pause)
+		self._pauseButton.hide()
+		self._resumeButton = QtGui.QPushButton("Resume")
+		self._resumeButton.clicked.connect(self._on_voicemail_resume)
+		self._resumeButton.hide()
+		self._stopButton = QtGui.QPushButton("Stop")
+		self._stopButton.clicked.connect(self._on_voicemail_stop)
+		self._stopButton.hide()
 
 		self._downloadButton = QtGui.QPushButton("Download Voicemail")
 		self._downloadButton.clicked.connect(self._on_voicemail_download)
@@ -554,6 +567,10 @@ class VoicemailPlayer(object):
 		self._saveButton.clicked.connect(self._on_voicemail_save)
 		self._playerLayout = QtGui.QHBoxLayout()
 		self._playerLayout.addWidget(self._playLabel)
+		self._playerLayout.addWidget(self._playButton)
+		self._playerLayout.addWidget(self._pauseButton)
+		self._playerLayout.addWidget(self._resumeButton)
+		self._playerLayout.addWidget(self._stopButton)
 		self._playerLayout.addWidget(self._saveButton)
 		self._playerWidget = QtGui.QWidget()
 		self._playerWidget.setLayout(self._playerLayout)
@@ -572,6 +589,14 @@ class VoicemailPlayer(object):
 	def destroy(self):
 		self._session.voicemailAvailable.disconnect(self._on_voicemail_downloaded)
 		self._session.draft.recipientsChanged.disconnect(self._on_recipients_changed)
+		self._invalidate_token()
+
+	def _invalidate_token(self):
+		if self._token is not None:
+			self._token.invalidate()
+			self._token.error.disconnect(self._on_play_error)
+			self._token.stateChange.connect(self._on_play_state)
+			self._token.invalidated.connect(self._on_play_invalidated)
 
 	def _show_download(self, messageId):
 		if self._visibleWidget is self._downloadWidget:
@@ -596,6 +621,12 @@ class VoicemailPlayer(object):
 		self._layout.removeWidget(self._visibleWidget)
 		self._visibleWidget = None
 
+	def _update_play_state(self):
+		if self._token is not None and self._token.isValid:
+			self._playButton.setText("Stop")
+		else:
+			self._playButton.setText("Play")
+
 	def _update_state(self):
 		if self._session.draft.get_num_contacts() != 1:
 			self._hide()
@@ -611,6 +642,8 @@ class VoicemailPlayer(object):
 			self._show_player(messageId)
 		else:
 			self._show_download(messageId)
+		if self._token is not None:
+			self._token.invalidate()
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_voicemail_save(self, arg):
@@ -625,6 +658,69 @@ class VoicemailPlayer(object):
 			sourcePath = self._session.voicemail_path(messageId)
 			import shutil
 			shutil.copy2(sourcePath, targetPath)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_play_error(self, error):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._app.errorLog.push_error(error)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_play_invalidated(self):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._playButton.show()
+			self._pauseButton.hide()
+			self._resumeButton.hide()
+			self._stopButton.hide()
+			self._invalidate_token()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_play_state(self, state):
+		with qui_utils.notify_error(self._app.errorLog):
+			if state == self._token.STATE_PLAY:
+				self._playButton.hide()
+				self._pauseButton.show()
+				self._resumeButton.hide()
+				self._stopButton.show()
+			elif state == self._token.STATE_PAUSE:
+				self._playButton.hide()
+				self._pauseButton.hide()
+				self._resumeButton.show()
+				self._stopButton.show()
+			elif state == self._token.STATE_STOP:
+				self._playButton.show()
+				self._pauseButton.hide()
+				self._resumeButton.hide()
+				self._stopButton.hide()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_play(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			(cid, ) = self._session.draft.get_contacts()
+			messageId = self._session.draft.get_message_id(cid)
+			sourcePath = self._session.voicemail_path(messageId)
+
+			self._invalidate_token()
+			uri = "file://%s" % sourcePath
+			self._token = self._app.streamHandler.set_file(uri)
+			self._token.stateChange.connect(self._on_play_state)
+			self._token.invalidated.connect(self._on_play_invalidated)
+			self._token.error.connect(self._on_play_error)
+			self._token.play()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_pause(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._token.pause()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_resume(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._token.play()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_stop(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._token.stop()
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_voicemail_download(self, arg):

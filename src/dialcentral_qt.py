@@ -40,6 +40,7 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 		self.notifyOnVoicemail = False
 		self.notifyOnSms = False
 
+		self._streamHandler = None
 		self._ledHandler = None
 		self._alarmHandler = alarm_handler.AlarmHandler()
 
@@ -177,6 +178,13 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 	@property
 	def fsContactsPath(self):
 		return os.path.join(constants._data_path_, "contacts")
+
+	@property
+	def streamHandler(self):
+		if self._streamHandler is None:
+			import stream_handler
+			self._streamHandler = stream_handler.StreamHandler()
+		return self._streamHandler
 
 	@property
 	def alarmHandler(self):
@@ -697,6 +705,12 @@ def run():
 	except OSError, e:
 		if e.errno != 17:
 			raise
+
+	try:
+		import gobject
+		gobject.threads_init()
+	except ImportError:
+		pass
 
 	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
 	logging.basicConfig(level=logging.DEBUG, format=logFormat)
