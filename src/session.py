@@ -220,6 +220,11 @@ class Session(QtCore.QObject):
 	MESSAGE_VOICEMAILS = "Voicemail"
 	MESSAGE_ALL = "All"
 
+	HISTORY_RECEIVED = "Received"
+	HISTORY_MISSED = "Missed"
+	HISTORY_PLACED = "Placed"
+	HISTORY_ALL = "All"
+
 	_OLDEST_COMPATIBLE_FORMAT_VERSION = misc_utils.parse_version("1.3.0")
 
 	_LOGGEDOUT_TIME = -1
@@ -335,10 +340,10 @@ class Session(QtCore.QObject):
 	def get_when_messages_updated(self):
 		return self._messageUpdateTime
 
-	def update_history(self, force = True):
+	def update_history(self, historyType, force = True):
 		if not force and self._history:
 			return
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_history), (), {}
+		le = concurrent.AsyncLinearExecution(self._pool, self._update_history), (historyType, ), {}
 		self._perform_op_while_loggedin(le)
 
 	def get_history(self):
@@ -689,13 +694,13 @@ class Session(QtCore.QObject):
 		self.messagesUpdated.emit()
 		self._alert_on_messages(self._messages)
 
-	def _update_history(self):
+	def _update_history(self, historyType):
 		try:
 			assert self.state == self.LOGGEDIN_STATE, "History requires being logged in (currently %s" % self.state
 			with qui_utils.notify_busy(self._errorLog, "Updating History"):
 				self._history = yield (
 					self._backend[0].get_call_history,
-					(self._backend[0].HISTORY_ALL, ),
+					(historyType, ),
 					{},
 				)
 		except Exception, e:

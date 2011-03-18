@@ -260,7 +260,12 @@ class History(object):
 	FROM_IDX = 1
 	MAX_IDX = 2
 
-	HISTORY_ITEM_TYPES = ["Received", "Missed", "Placed", "All"]
+	HISTORY_RECEIVED = "Received"
+	HISTORY_MISSED = "Missed"
+	HISTORY_PLACED = "Placed"
+	HISTORY_ALL = "All"
+
+	HISTORY_ITEM_TYPES = [HISTORY_RECEIVED, HISTORY_MISSED, HISTORY_PLACED, HISTORY_ALL]
 	HISTORY_COLUMNS = ["Details", "From"]
 	assert len(HISTORY_COLUMNS) == MAX_IDX
 
@@ -343,7 +348,18 @@ class History(object):
 
 	def refresh(self, force=True):
 		self._itemView.setFocus(QtCore.Qt.OtherFocusReason)
-		self._session.update_history(force)
+
+		if self._selectedFilter == self.HISTORY_RECEIVED:
+			self._session.update_history(self._session.HISTORY_RECEIVED, force)
+		elif self._selectedFilter == self.HISTORY_MISSED:
+			self._session.update_history(self._session.HISTORY_MISSED, force)
+		elif self._selectedFilter == self.HISTORY_PLACED:
+			self._session.update_history(self._session.HISTORY_PLACED, force)
+		elif self._selectedFilter == self.HISTORY_ALL:
+			self._session.update_history(self._session.HISTORY_ALL, force)
+		else:
+			assert False, "How did we get here?"
+
 		if self._app.notifyOnMissed and self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_BACKGROUND:
 			self._app.ledHandler.off()
 
