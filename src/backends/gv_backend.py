@@ -44,10 +44,18 @@ class GVDialer(object):
 	MESSAGE_VOICEMAILS = "Voicemail"
 	MESSAGE_ALL = "All"
 
+	HISTORY_RECEIVED = "Received"
+	HISTORY_MISSED = "Missed"
+	HISTORY_PLACED = "Placed"
+	HISTORY_ALL = "All"
+
 	def __init__(self, cookieFile = None):
 		self._gvoice = gvoice.GVoiceBackend(cookieFile)
 		self._texts = []
 		self._voicemails = []
+		self._received = []
+		self._missed = []
+		self._placed = []
 
 	def is_quick_login_possible(self):
 		"""
@@ -66,6 +74,11 @@ class GVDialer(object):
 		return self._gvoice.login(username, password)
 
 	def logout(self):
+		self._texts = []
+		self._voicemails = []
+		self._received = []
+		self._missed = []
+		self._placed = []
 		return self._gvoice.logout()
 
 	def persist(self):
@@ -144,11 +157,39 @@ class GVDialer(object):
 		"""
 		return self._gvoice.get_callback_number()
 
-	def get_recent(self):
+	def get_call_history(self, historyType):
 		"""
 		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
 		"""
-		return list(self._gvoice.get_recent())
+		history = list(self._get_call_history(historyType))
+		history.sort(key=lambda item: item["time"])
+		return history
+
+	def _get_call_history(self, historyType):
+		"""
+		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
+		"""
+		if historyType in [self.HISTORY_RECEIVED, self.HISTORY_ALL] or not self._received:
+			self._received = list(self._gvoice.get_received_calls())
+			for item in self._received:
+				item["action"] = self.HISTORY_RECEIVED
+		if historyType in [self.HISTORY_MISSED, self.HISTORY_ALL] or not self._missed:
+			self._missed = list(self._gvoice.get_missed_calls())
+			for item in self._missed:
+				item["action"] = self.HISTORY_MISSED
+		if historyType in [self.HISTORY_PLACED, self.HISTORY_ALL] or not self._placed:
+			self._placed = list(self._gvoice.get_placed_calls())
+			for item in self._placed:
+				item["action"] = self.HISTORY_PLACED
+		received = self._received
+		missed = self._missed
+		placed = self._placed
+		for item in received:
+			yield item
+		for item in missed:
+			yield item
+		for item in placed:
+			yield item
 
 	def get_messages(self, messageType):
 		messages = list(self._get_messages(messageType))
@@ -158,9 +199,9 @@ class GVDialer(object):
 	def _get_messages(self, messageType):
 		if messageType in [self.MESSAGE_VOICEMAILS, self.MESSAGE_ALL] or not self._voicemails:
 			self._voicemails = list(self._gvoice.get_voicemails())
-		voicemails = self._voicemails
 		if messageType in [self.MESSAGE_TEXTS, self.MESSAGE_ALL] or not self._texts:
 			self._texts = list(self._gvoice.get_texts())
+		voicemails = self._voicemails
 		smss = self._texts
 
 		conversations = itertools.chain(voicemails, smss)

@@ -306,6 +306,7 @@ class GVoiceBackend(object):
 		self._browser.save_cookies()
 		self._token = None
 		self._lastAuthed = 0.0
+		self._callbackNumbers = {}
 
 	def is_dnd(self):
 		"""
@@ -464,20 +465,26 @@ class GVoiceBackend(object):
 		"""
 		return self._callbackNumber
 
-	def get_recent(self):
+	def get_received_calls(self):
 		"""
 		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
 		@blocks
 		"""
-		recentPages = [
-			(action, self._get_page(url))
-			for action, url in (
-				("Received", self._XML_RECEIVED_URL),
-				("Missed", self._XML_MISSED_URL),
-				("Placed", self._XML_PLACED_URL),
-			)
-		]
-		return self._parse_recent(recentPages)
+		return self._parse_recent(self._get_page(self._XML_RECEIVED_URL))
+
+	def get_missed_calls(self):
+		"""
+		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
+		@blocks
+		"""
+		return self._parse_recent(self._get_page(self._XML_MISSED_URL))
+
+	def get_placed_calls(self):
+		"""
+		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
+		@blocks
+		"""
+		return self._parse_recent(self._get_page(self._XML_PLACED_URL))
 
 	def get_csv_contacts(self):
 		data = {
@@ -570,13 +577,11 @@ class GVoiceBackend(object):
 			raise ValueError('Number is not valid: "%s"' % number)
 		return number
 
-	def _parse_recent(self, recentPages):
-		for action, flatXml in recentPages:
-			allRecentHtml = self._grab_html(flatXml)
-			allRecentData = self._parse_history(allRecentHtml)
-			for recentCallData in allRecentData:
-				recentCallData["action"] = action
-				yield recentCallData
+	def _parse_recent(self, recentPage):
+		allRecentHtml = self._grab_html(recentPage)
+		allRecentData = self._parse_history(allRecentHtml)
+		for recentCallData in allRecentData:
+			yield recentCallData
 
 	def _parse_history(self, historyHtml):
 		splitVoicemail = self._seperateVoicemailsRegex.split(historyHtml)
