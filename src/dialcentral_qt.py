@@ -63,85 +63,11 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 		except Exception:
 			_moduleLogger.exception("Unknown loading error")
 
-		blobs = "", ""
-		isFullscreen = False
-		isPortrait = qui_utils.screen_orientation() == QtCore.Qt.Vertical
-		tabIndex = 0
-		try:
-			blobs = [
-				config.get(constants.__pretty_app_name__, "bin_blob_%i" % i)
-				for i in xrange(len(self._mainWindow.get_default_credentials()))
-			]
-			isFullscreen = config.getboolean(constants.__pretty_app_name__, "fullscreen")
-			tabIndex = config.getint(constants.__pretty_app_name__, "tab")
-			isPortrait = config.getboolean(constants.__pretty_app_name__, "portrait")
-		except ConfigParser.NoOptionError, e:
-			_moduleLogger.info(
-				"Settings file %s is missing option %s" % (
-					constants._user_settings_,
-					e.option,
-				),
-			)
-		except ConfigParser.NoSectionError, e:
-			_moduleLogger.info(
-				"Settings file %s is missing section %s" % (
-					constants._user_settings_,
-					e.section,
-				),
-			)
-		except Exception:
-			_moduleLogger.exception("Unknown loading error")
-
-		try:
-			self._alarmHandler.load_settings(config, "alarm")
-			self.notifyOnMissed = config.getboolean("2 - Account Info", "notifyOnMissed")
-			self.notifyOnVoicemail = config.getboolean("2 - Account Info", "notifyOnVoicemail")
-			self.notifyOnSms = config.getboolean("2 - Account Info", "notifyOnSms")
-		except ConfigParser.NoOptionError, e:
-			_moduleLogger.info(
-				"Settings file %s is missing option %s" % (
-					constants._user_settings_,
-					e.option,
-				),
-			)
-		except ConfigParser.NoSectionError, e:
-			_moduleLogger.info(
-				"Settings file %s is missing section %s" % (
-					constants._user_settings_,
-					e.section,
-				),
-			)
-		except Exception:
-			_moduleLogger.exception("Unknown loading error")
-
-		creds = (
-			base64.b64decode(blob)
-			for blob in blobs
-		)
-		self._mainWindow.set_default_credentials(*creds)
-		self._fullscreenAction.setChecked(isFullscreen)
-		self._orientationAction.setChecked(isPortrait)
-		self._mainWindow.set_current_tab(tabIndex)
 		self._mainWindow.load_settings(config)
 
 	def save_settings(self):
 		_moduleLogger.info("Saving settings")
 		config = ConfigParser.SafeConfigParser()
-
-		config.add_section(constants.__pretty_app_name__)
-		config.set(constants.__pretty_app_name__, "tab", str(self._mainWindow.get_current_tab()))
-		config.set(constants.__pretty_app_name__, "fullscreen", str(self._fullscreenAction.isChecked()))
-		config.set(constants.__pretty_app_name__, "portrait", str(self._orientationAction.isChecked()))
-		for i, value in enumerate(self._mainWindow.get_default_credentials()):
-			blob = base64.b64encode(value)
-			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
-
-		config.add_section("alarm")
-		self._alarmHandler.save_settings(config, "alarm")
-		config.add_section("2 - Account Info")
-		config.set("2 - Account Info", "notifyOnMissed", repr(self.notifyOnMissed))
-		config.set("2 - Account Info", "notifyOnVoicemail", repr(self.notifyOnVoicemail))
-		config.set("2 - Account Info", "notifyOnSms", repr(self.notifyOnSms))
 
 		self._mainWindow.save_settings(config)
 
@@ -473,6 +399,66 @@ class MainWindow(qwrappers.WindowWrapper):
 		self._tabWidget.setCurrentIndex(tabIndex)
 
 	def load_settings(self, config):
+		blobs = "", ""
+		isFullscreen = False
+		isPortrait = qui_utils.screen_orientation() == QtCore.Qt.Vertical
+		tabIndex = 0
+		try:
+			blobs = [
+				config.get(constants.__pretty_app_name__, "bin_blob_%i" % i)
+				for i in xrange(len(self.get_default_credentials()))
+			]
+			isFullscreen = config.getboolean(constants.__pretty_app_name__, "fullscreen")
+			tabIndex = config.getint(constants.__pretty_app_name__, "tab")
+			isPortrait = config.getboolean(constants.__pretty_app_name__, "portrait")
+		except ConfigParser.NoOptionError, e:
+			_moduleLogger.info(
+				"Settings file %s is missing option %s" % (
+					constants._user_settings_,
+					e.option,
+				),
+			)
+		except ConfigParser.NoSectionError, e:
+			_moduleLogger.info(
+				"Settings file %s is missing section %s" % (
+					constants._user_settings_,
+					e.section,
+				),
+			)
+		except Exception:
+			_moduleLogger.exception("Unknown loading error")
+
+		try:
+			self._app.alarmHandler.load_settings(config, "alarm")
+			self._app.notifyOnMissed = config.getboolean("2 - Account Info", "notifyOnMissed")
+			self._app.notifyOnVoicemail = config.getboolean("2 - Account Info", "notifyOnVoicemail")
+			self._app.notifyOnSms = config.getboolean("2 - Account Info", "notifyOnSms")
+		except ConfigParser.NoOptionError, e:
+			_moduleLogger.info(
+				"Settings file %s is missing option %s" % (
+					constants._user_settings_,
+					e.option,
+				),
+			)
+		except ConfigParser.NoSectionError, e:
+			_moduleLogger.info(
+				"Settings file %s is missing section %s" % (
+					constants._user_settings_,
+					e.section,
+				),
+			)
+		except Exception:
+			_moduleLogger.exception("Unknown loading error")
+
+		creds = (
+			base64.b64decode(blob)
+			for blob in blobs
+		)
+		self.set_default_credentials(*creds)
+		self._app.fullscreenAction.setChecked(isFullscreen)
+		self._app.orientationAction.setChecked(isPortrait)
+		self.set_current_tab(tabIndex)
+
 		backendId = 2 # For backwards compatibility
 		for tabIndex, tabTitle in enumerate(self._TAB_TITLES):
 			sectionName = "%s - %s" % (backendId, tabTitle)
@@ -503,6 +489,21 @@ class MainWindow(qwrappers.WindowWrapper):
 			self._tabsContents[tabIndex].set_settings(settings)
 
 	def save_settings(self, config):
+		config.add_section(constants.__pretty_app_name__)
+		config.set(constants.__pretty_app_name__, "tab", str(self.get_current_tab()))
+		config.set(constants.__pretty_app_name__, "fullscreen", str(self._app.fullscreenAction.isChecked()))
+		config.set(constants.__pretty_app_name__, "portrait", str(self._app.orientationAction.isChecked()))
+		for i, value in enumerate(self.get_default_credentials()):
+			blob = base64.b64encode(value)
+			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
+
+		config.add_section("alarm")
+		self._app.alarmHandler.save_settings(config, "alarm")
+		config.add_section("2 - Account Info")
+		config.set("2 - Account Info", "notifyOnMissed", repr(self._app.notifyOnMissed))
+		config.set("2 - Account Info", "notifyOnVoicemail", repr(self._app.notifyOnVoicemail))
+		config.set("2 - Account Info", "notifyOnSms", repr(self._app.notifyOnSms))
+
 		backendId = 2 # For backwards compatibility
 		for tabIndex, tabTitle in enumerate(self._TAB_TITLES):
 			sectionName = "%s - %s" % (backendId, tabTitle)
