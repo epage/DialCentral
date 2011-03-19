@@ -9,16 +9,24 @@ from PyQt4 import QtCore
 import dbus
 try:
 	import telepathy as _telepathy
+	import util.tp_utils as telepathy_utils
 	telepathy = _telepathy
 except ImportError:
-	_telepathy = None
+	telepathy = None
 
-import constants
-import util.tp_utils as telepathy_utils
 import util.misc as misc_utils
 
 
 _moduleLogger = logging.getLogger(__name__)
+
+
+class _FakeSignaller(object):
+
+	def start(self):
+		pass
+
+	def stop(self):
+		pass
 
 
 class _MissedCallWatcher(QtCore.QObject):
@@ -28,12 +36,22 @@ class _MissedCallWatcher(QtCore.QObject):
 	def __init__(self):
 		QtCore.QObject.__init__(self)
 		self._isStarted = False
+		self._isSupported = True
 
 		self._newChannelSignaller = telepathy_utils.NewChannelSignaller(self._on_new_channel)
 		self._outstandingRequests = []
 
+	@property
+	def isSupported(self):
+		return self._isSupported
+
 	def start(self):
-		self._newChannelSignaller.start()
+		try:
+			self._newChannelSignaller.start()
+		except RuntimeError:
+			_moduleLogger.exception("Missed call detection not supported")
+			self._newChannelSignaller = _FakeSignaller()
+			self._isSupported = False
 		self._isStarted = True
 
 	def stop(self):
@@ -55,11 +73,6 @@ class _MissedCallWatcher(QtCore.QObject):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_new_channel(self, bus, serviceName, connObjectPath, channelObjectPath, channelType):
 		if channelType != telepathy.interfaces.CHANNEL_TYPE_STREAMED_MEDIA:
-			return
-
-		cmName = telepathy_utils.cm_from_path(connObjectPath)
-		if cmName == constants._telepathy_implementation_name_:
-			_moduleLogger.debug("Ignoring channels from self to prevent deadlock")
 			return
 
 		conn = telepathy.client.Connection(serviceName, connObjectPath)
@@ -92,6 +105,10 @@ class _DummyMissedCallWatcher(QtCore.QObject):
 	def __init__(self):
 		QtCore.QObject.__init__(self)
 		self._isStarted = False
+
+	@property
+	def isSupported(self):
+		return False
 
 	def start(self):
 		self._isStarted = True

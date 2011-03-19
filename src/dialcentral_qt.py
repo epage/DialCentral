@@ -15,6 +15,7 @@ from PyQt4 import QtCore
 
 import constants
 import alarm_handler
+import call_handler
 from util import qtpie
 from util import qwrappers
 from util import qui_utils
@@ -338,6 +339,13 @@ class MainWindow(qwrappers.WindowWrapper):
 		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
 		self._session.newMessages.connect(self._on_new_message_alert)
 		self._app.alarmHandler.applicationNotifySignal.connect(self._on_app_alert)
+		self._voicemailRefreshDelay = QtCore.QTimer()
+		self._voicemailRefreshDelay.setInterval(30 * 1000)
+		self._voicemailRefreshDelay.timeout.connect(self._on_call_missed)
+		self._voicemailRefreshDelay.setSingleShot(True)
+		self._callHandler = call_handler.MissedCallWatcher()
+		self._callHandler.callMissed.connect(self._voicemailRefreshDelay.start)
+
 		self._defaultCredentials = "", ""
 		self._curentCredentials = "", ""
 		self._currentTab = 0
@@ -588,6 +596,12 @@ class MainWindow(qwrappers.WindowWrapper):
 				else:
 					self._app.ledHandler.on()
 
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_call_missed(self):
+		with qui_utils.notify_error(self._errorLog):
+			self._session.update_messages(self._session.MESSAGE_VOICEMAILS, force=True)
+
 	@QtCore.pyqtSlot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_session_error(self, message):
@@ -608,6 +622,7 @@ class MainWindow(qwrappers.WindowWrapper):
 			for tab in self._tabsContents:
 				tab.enable()
 			self._initialize_tab(self._currentTab)
+			self._callHandler.start()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -615,6 +630,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		with qui_utils.notify_error(self._errorLog):
 			for tab in self._tabsContents:
 				tab.disable()
+			self._callHandler.stop()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
@@ -706,12 +722,6 @@ def run():
 		if e.errno != 17:
 			raise
 
-	try:
-		import gobject
-		gobject.threads_init()
-	except ImportError:
-		pass
-
 	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
 	logging.basicConfig(level=logging.DEBUG, format=logFormat)
 	rotating = logging.handlers.RotatingFileHandler(constants._user_logpath_, maxBytes=512*1024, backupCount=1)
@@ -722,6 +732,27 @@ def run():
 	_moduleLogger.info("OS: %s" % (os.uname()[0], ))
 	_moduleLogger.info("Kernel: %s (%s) for %s" % os.uname()[2:])
 	_moduleLogger.info("Hostname: %s" % os.uname()[1])
+
+	try:
+		import gobject
+		gobject.threads_init()
+	except ImportError:
+		_moduleLogger.info("GObject support not available")
+	try:
+		import dbus
+		try:
+			from dbus.mainloop.qt import DBusQtMainLoop
+			DBusQtMainLoop(set_as_default=True)
+			_moduleLogger.info("Using Qt mainloop")
+		except ImportError:
+			try:
+				from dbus.mainloop.glib import DBusGMainLoop
+				DBusGMainLoop(set_as_default=True)
+				_moduleLogger.info("Using GObject mainloop")
+			except ImportError:
+				_moduleLogger.info("Mainloop not available")
+	except ImportError:
+		_moduleLogger.info("DBus support not available")
 
 	app = QtGui.QApplication([])
 	handle = Dialcentral(app)
