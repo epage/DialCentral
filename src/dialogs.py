@@ -173,6 +173,10 @@ class AccountDialog(object):
 	ALARM_BACKGROUND = "Background Alert"
 	ALARM_APPLICATION = "Application Alert"
 
+	VOICEMAIL_CHECK_NOT_SUPPORTED = "Not Supported"
+	VOICEMAIL_CHECK_DISABLED = "Disabled"
+	VOICEMAIL_CHECK_ENABLED = "Enabled"
+
 	def __init__(self, app):
 		self._app = app
 		self._doClear = False
@@ -188,6 +192,7 @@ class AccountDialog(object):
 		self._missedCallsNotificationButton = QtGui.QCheckBox("Missed Calls")
 		self._voicemailNotificationButton = QtGui.QCheckBox("Voicemail")
 		self._smsNotificationButton = QtGui.QCheckBox("SMS")
+		self._voicemailOnMissedButton = QtGui.QCheckBox("Voicemail Update on Missed Calls")
 		self._clearButton = QtGui.QPushButton("Clear Account")
 		self._clearButton.clicked.connect(self._on_clear)
 		self._callbackSelector = QtGui.QComboBox()
@@ -209,10 +214,11 @@ class AccountDialog(object):
 		self._credLayout.addWidget(self._voicemailNotificationButton, 4, 1)
 		self._credLayout.addWidget(QtGui.QLabel(""), 5, 0)
 		self._credLayout.addWidget(self._smsNotificationButton, 5, 1)
-
 		self._credLayout.addWidget(QtGui.QLabel(""), 6, 0)
-		self._credLayout.addWidget(self._clearButton, 6, 1)
-		self._credLayout.addWidget(QtGui.QLabel(""), 3, 0)
+		self._credLayout.addWidget(self._voicemailOnMissedButton, 6, 1)
+
+		self._credLayout.addWidget(QtGui.QLabel(""), 7, 0)
+		self._credLayout.addWidget(self._clearButton, 7, 1)
 
 		self._loginButton = QtGui.QPushButton("&Apply")
 		self._buttonLayout = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Cancel)
@@ -259,6 +265,29 @@ class AccountDialog(object):
 
 	def set_account_number(self, num):
 		self._accountNumberLabel.setText(num)
+
+	def _set_voicemail_on_missed(self, status):
+		if status == self.VOICEMAIL_CHECK_NOT_SUPPORTED:
+			self._voicemailOnMissedButton.setChecked(False)
+			self._voicemailOnMissedButton.hide()
+		elif status == self.VOICEMAIL_CHECK_DISABLED:
+			self._voicemailOnMissedButton.setChecked(False)
+			self._voicemailOnMissedButton.show()
+		elif status == self.VOICEMAIL_CHECK_ENABLED:
+			self._voicemailOnMissedButton.setChecked(True)
+			self._voicemailOnMissedButton.show()
+		else:
+			raise RuntimeError("Unsupported option for updating voicemail on missed calls %r" % status)
+
+	def _get_voicemail_on_missed(self):
+		if not self._voicemailOnMissedButton.isVisible():
+			return self.VOICEMAIL_CHECK_NOT_SUPPORTED
+		elif self._voicemailOnMissedButton.isChecked():
+			return self.VOICEMAIL_CHECK_ENABLED
+		else:
+			return self.VOICEMAIL_CHECK_DISABLED
+
+	updateVMOnMissedCall = property(_get_voicemail_on_missed, _set_voicemail_on_missed)
 
 	def _set_notifications(self, enabled):
 		for i in xrange(self._notificationSelecter.count()):

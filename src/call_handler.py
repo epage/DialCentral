@@ -45,7 +45,14 @@ class _MissedCallWatcher(QtCore.QObject):
 	def isSupported(self):
 		return self._isSupported
 
+	@property
+	def isStarted(self):
+		return self._isStarted
+
 	def start(self):
+		if self._isStarted:
+			_moduleLogger.info("voicemail monitor already started")
+			return
 		try:
 			self._newChannelSignaller.start()
 		except RuntimeError:
@@ -109,6 +116,10 @@ class _DummyMissedCallWatcher(QtCore.QObject):
 	@property
 	def isSupported(self):
 		return False
+
+	@property
+	def isStarted(self):
+		return self._isStarted
 
 	def start(self):
 		self._isStarted = True

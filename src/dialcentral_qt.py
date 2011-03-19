@@ -271,6 +271,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		self._voicemailRefreshDelay.setSingleShot(True)
 		self._callHandler = call_handler.MissedCallWatcher()
 		self._callHandler.callMissed.connect(self._voicemailRefreshDelay.start)
+		self._updateVoicemailOnMissedCall = False
 
 		self._defaultCredentials = "", ""
 		self._curentCredentials = "", ""
@@ -433,6 +434,7 @@ class MainWindow(qwrappers.WindowWrapper):
 			self._app.notifyOnMissed = config.getboolean("2 - Account Info", "notifyOnMissed")
 			self._app.notifyOnVoicemail = config.getboolean("2 - Account Info", "notifyOnVoicemail")
 			self._app.notifyOnSms = config.getboolean("2 - Account Info", "notifyOnSms")
+			self._updateVoicemailOnMissedCall = config.getboolean("2 - Account Info", "updateVoicemailOnMissedCall")
 		except ConfigParser.NoOptionError, e:
 			_moduleLogger.info(
 				"Settings file %s is missing option %s" % (
@@ -503,6 +505,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		config.set("2 - Account Info", "notifyOnMissed", repr(self._app.notifyOnMissed))
 		config.set("2 - Account Info", "notifyOnVoicemail", repr(self._app.notifyOnVoicemail))
 		config.set("2 - Account Info", "notifyOnSms", repr(self._app.notifyOnSms))
+		config.set("2 - Account Info", "updateVoicemailOnMissedCall", repr(self._updateVoicemailOnMissedCall))
 
 		backendId = 2 # For backwards compatibility
 		for tabIndex, tabTitle in enumerate(self._TAB_TITLES):
@@ -544,6 +547,13 @@ class MainWindow(qwrappers.WindowWrapper):
 			import dialogs
 			self._accountDialog = dialogs.AccountDialog(self._app)
 			self._accountDialog.setIfNotificationsSupported(self._app.alarmHandler.backgroundNotificationsSupported)
+
+		if not self._callHandler.isSupported:
+			self._accountDialog.updateVMOnMissedCall = self._accountDialog.VOICEMAIL_CHECK_NOT_SUPPORTED
+		elif self._updateVoicemailOnMissedCall:
+			self._accountDialog.updateVMOnMissedCall = self._accountDialog.VOICEMAIL_CHECK_ENABLED
+		else:
+			self._accountDialog.updateVMOnMissedCall = self._accountDialog.VOICEMAIL_CHECK_DISABLED
 		self._accountDialog.notifications = self._app.alarmHandler.alarmType
 		self._accountDialog.notificationTime = self._app.alarmHandler.recurrence
 		self._accountDialog.notifyOnMissed = self._app.notifyOnMissed
@@ -568,6 +578,12 @@ class MainWindow(qwrappers.WindowWrapper):
 				callbackNumber = self._accountDialog.selectedCallback
 				self._session.set_callback_number(callbackNumber)
 
+			if self._accountDialog.updateVMOnMissedCall == self._accountDialog.VOICEMAIL_CHECK_ENABLED:
+				self._updateVoicemailOnMissedCall = True
+				self._callHandler.start()
+			else:
+				self._updateVoicemailOnMissedCall = False
+				self._callHandler.stop()
 			if (
 				self._accountDialog.notifyOnMissed or
 				self._accountDialog.notifyOnVoicemail or
@@ -623,7 +639,8 @@ class MainWindow(qwrappers.WindowWrapper):
 			for tab in self._tabsContents:
 				tab.enable()
 			self._initialize_tab(self._currentTab)
-			self._callHandler.start()
+			if self._updateVoicemailOnMissedCall:
+				self._callHandler.start()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
