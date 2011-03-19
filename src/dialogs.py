@@ -214,18 +214,26 @@ class AccountDialog(object):
 		self._credLayout.addWidget(self._voicemailNotificationButton, 4, 1)
 		self._credLayout.addWidget(QtGui.QLabel(""), 5, 0)
 		self._credLayout.addWidget(self._smsNotificationButton, 5, 1)
-		self._credLayout.addWidget(QtGui.QLabel(""), 6, 0)
+		self._credLayout.addWidget(QtGui.QLabel("Other"), 6, 0)
 		self._credLayout.addWidget(self._voicemailOnMissedButton, 6, 1)
 
 		self._credLayout.addWidget(QtGui.QLabel(""), 7, 0)
 		self._credLayout.addWidget(self._clearButton, 7, 1)
+		self._credWidget = QtGui.QWidget()
+		self._credWidget.setLayout(self._credLayout)
+		self._credWidget.setContentsMargins(0, 0, 0, 0)
+		self._scrollSettings = QtGui.QScrollArea()
+		self._scrollSettings.setWidget(self._credWidget)
+		self._scrollSettings.setWidgetResizable(True)
+		self._scrollSettings.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+		self._scrollSettings.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
 		self._loginButton = QtGui.QPushButton("&Apply")
 		self._buttonLayout = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Cancel)
 		self._buttonLayout.addButton(self._loginButton, QtGui.QDialogButtonBox.AcceptRole)
 
 		self._layout = QtGui.QVBoxLayout()
-		self._layout.addLayout(self._credLayout)
+		self._layout.addWidget(self._scrollSettings)
 		self._layout.addWidget(self._buttonLayout)
 
 		self._dialog = QtGui.QDialog()
