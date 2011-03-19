@@ -15,7 +15,6 @@ from PyQt4 import QtCore
 
 import constants
 import alarm_handler
-import call_handler
 from util import qtpie
 from util import qwrappers
 from util import qui_utils
@@ -269,8 +268,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		self._voicemailRefreshDelay.setInterval(30 * 1000)
 		self._voicemailRefreshDelay.timeout.connect(self._on_call_missed)
 		self._voicemailRefreshDelay.setSingleShot(True)
-		self._callHandler = call_handler.MissedCallWatcher()
-		self._callHandler.callMissed.connect(self._voicemailRefreshDelay.start)
+		self._callHandler = None
 		self._updateVoicemailOnMissedCall = False
 
 		self._defaultCredentials = "", ""
@@ -548,7 +546,7 @@ class MainWindow(qwrappers.WindowWrapper):
 			self._accountDialog = dialogs.AccountDialog(self._app)
 			self._accountDialog.setIfNotificationsSupported(self._app.alarmHandler.backgroundNotificationsSupported)
 
-		if not self._callHandler.isSupported:
+		if self._callHandler is None or not self._callHandler.isSupported:
 			self._accountDialog.updateVMOnMissedCall = self._accountDialog.VOICEMAIL_CHECK_NOT_SUPPORTED
 		elif self._updateVoicemailOnMissedCall:
 			self._accountDialog.updateVMOnMissedCall = self._accountDialog.VOICEMAIL_CHECK_ENABLED
@@ -578,7 +576,9 @@ class MainWindow(qwrappers.WindowWrapper):
 				callbackNumber = self._accountDialog.selectedCallback
 				self._session.set_callback_number(callbackNumber)
 
-			if self._accountDialog.updateVMOnMissedCall == self._accountDialog.VOICEMAIL_CHECK_ENABLED:
+			if self._callHandler is None or self._accountDialog.updateVMOnMissedCall == self._accountDialog.VOICEMAIL_CHECK_DISABLEDD:
+				pass
+			elif self._accountDialog.updateVMOnMissedCall == self._accountDialog.VOICEMAIL_CHECK_ENABLED:
 				self._updateVoicemailOnMissedCall = True
 				self._callHandler.start()
 			else:
@@ -640,6 +640,10 @@ class MainWindow(qwrappers.WindowWrapper):
 				tab.enable()
 			self._initialize_tab(self._currentTab)
 			if self._updateVoicemailOnMissedCall:
+				if self._callHandler is None:
+					import call_handler
+					self._callHandler = call_handler.MissedCallWatcher()
+					self._callHandler.callMissed.connect(self._voicemailRefreshDelay.start)
 				self._callHandler.start()
 
 	@QtCore.pyqtSlot()
@@ -648,7 +652,8 @@ class MainWindow(qwrappers.WindowWrapper):
 		with qui_utils.notify_error(self._errorLog):
 			for tab in self._tabsContents:
 				tab.disable()
-			self._callHandler.stop()
+			if self._callHandler is not None:
+				self._callHandler.stop()
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
