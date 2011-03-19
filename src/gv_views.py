@@ -8,8 +8,9 @@ import string
 import itertools
 import logging
 
-from PyQt4 import QtGui
-from PyQt4 import QtCore
+import util.qt_compat as qt_compat
+QtCore = qt_compat.QtCore
+QtGui = qt_compat.import_module("QtGui")
 
 from util import qtpie
 from util import qui_utils
@@ -159,8 +160,8 @@ class Dialpad(object):
 		with qui_utils.notify_error(self._errorLog):
 			self._entry.clear()
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_sms_clicked(self, checked = False):
 		with qui_utils.notify_error(self._errorLog):
@@ -173,8 +174,8 @@ class Dialpad(object):
 			numbersWithDescriptions = [(number, "")]
 			self._session.draft.add_contact(contactId, None, title, description, numbersWithDescriptions)
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_call_clicked(self, checked = False):
 		with qui_utils.notify_error(self._errorLog):
@@ -405,26 +406,26 @@ class History(object):
 			self._categoryManager.add_row(event["time"], row)
 		self._itemView.expandAll()
 
-	@QtCore.pyqtSlot(str)
+	@qt_compat.Slot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
 		with qui_utils.notify_error(self._errorLog):
 			self._selectedFilter = str(newItem)
 			self._populate_items()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_history_updated(self):
 		with qui_utils.notify_error(self._errorLog):
 			self._populate_items()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh_clicked(self, arg = None):
 		with qui_utils.notify_error(self._errorLog):
 			self.refresh(force=True)
 
-	@QtCore.pyqtSlot(QtCore.QModelIndex)
+	@qt_compat.Slot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		with qui_utils.notify_error(self._errorLog):
@@ -658,33 +659,33 @@ class Messages(object):
 			self._categoryManager.add_row(item["time"], row)
 		self._itemView.expandAll()
 
-	@QtCore.pyqtSlot(str)
+	@qt_compat.Slot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_type_filter_changed(self, newItem):
 		with qui_utils.notify_error(self._errorLog):
 			self._selectedTypeFilter = str(newItem)
 			self._populate_items()
 
-	@QtCore.pyqtSlot(str)
+	@qt_compat.Slot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_status_filter_changed(self, newItem):
 		with qui_utils.notify_error(self._errorLog):
 			self._selectedStatusFilter = str(newItem)
 			self._populate_items()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh_clicked(self, arg = None):
 		with qui_utils.notify_error(self._errorLog):
 			self.refresh(force=True)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_messages_updated(self):
 		with qui_utils.notify_error(self._errorLog):
 			self._populate_items()
 
-	@QtCore.pyqtSlot(QtCore.QModelIndex)
+	@qt_compat.Slot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		with qui_utils.notify_error(self._errorLog):
@@ -713,7 +714,7 @@ class Messages(object):
 			numbersWithDescriptions = [(number, "")]
 			self._session.draft.add_contact(contactId, messageId, title, description, numbersWithDescriptions)
 
-	@QtCore.pyqtSlot(QtCore.QModelIndex)
+	@qt_compat.Slot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_column_resized(self, index, oldSize, newSize):
 		self._htmlDelegate.setWidth(newSize, self._itemStore)
@@ -895,7 +896,7 @@ class Contacts(object):
 		contacts.sort(key=lambda contact: contact["name"].lower())
 		return contacts
 
-	@QtCore.pyqtSlot(str)
+	@qt_compat.Slot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
 		with qui_utils.notify_error(self._errorLog):
@@ -903,19 +904,19 @@ class Contacts(object):
 			self.refresh(force=False)
 			self._populate_items()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh_clicked(self, arg = None):
 		with qui_utils.notify_error(self._errorLog):
 			self.refresh(force=True)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_contacts_updated(self):
 		with qui_utils.notify_error(self._errorLog):
 			self._populate_items()
 
-	@QtCore.pyqtSlot(QtCore.QModelIndex)
+	@qt_compat.Slot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		with qui_utils.notify_error(self._errorLog):

@@ -3,8 +3,9 @@ import contextlib
 import datetime
 import logging
 
-from PyQt4 import QtCore
-from PyQt4 import QtGui
+import qt_compat
+QtCore = qt_compat.QtCore
+QtGui = qt_compat.import_module("QtGui")
 
 import misc
 
@@ -54,8 +55,8 @@ class ErrorMessage(object):
 
 class QErrorLog(QtCore.QObject):
 
-	messagePushed = QtCore.pyqtSignal()
-	messagePopped = QtCore.pyqtSignal()
+	messagePushed = qt_compat.Signal()
+	messagePopped = qt_compat.Signal()
 
 	def __init__(self):
 		QtCore.QObject.__init__(self)
@@ -166,18 +167,18 @@ class ErrorDisplay(object):
 		self._severityLabel.setPixmap(self._icons[error.level])
 		self._widget.show()
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc.log_exception(_moduleLogger)
 	def _on_close(self, checked = False):
 		self._errorLog.pop()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc.log_exception(_moduleLogger)
 	def _on_message_pushed(self):
 		self._show_error()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc.log_exception(_moduleLogger)
 	def _on_message_popped(self):
 		if len(self._errorLog) == 0:
@@ -264,10 +265,10 @@ class QHtmlDelegate(QtGui.QStyledItemDelegate):
 
 class QSignalingMainWindow(QtGui.QMainWindow):
 
-	closed = QtCore.pyqtSignal()
-	hidden = QtCore.pyqtSignal()
-	shown = QtCore.pyqtSignal()
-	resized = QtCore.pyqtSignal()
+	closed = qt_compat.Signal()
+	hidden = qt_compat.Signal()
+	shown = qt_compat.Signal()
+	resized = qt_compat.Signal()
 
 	def __init__(self, *args, **kwd):
 		QtGui.QMainWindow.__init__(*((self, )+args), **kwd)

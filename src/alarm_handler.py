@@ -6,7 +6,8 @@ import datetime
 import ConfigParser
 import logging
 
-from PyQt4 import QtCore
+import util.qt_compat as qt_compat
+QtCore = qt_compat.QtCore
 import dbus
 
 

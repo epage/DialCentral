@@ -5,8 +5,9 @@ from __future__ import division
 
 import logging
 
-from PyQt4 import QtGui
-from PyQt4 import QtCore
+import qt_compat
+QtCore = qt_compat.QtCore
+QtGui = qt_compat.import_module("QtGui")
 
 from util import qui_utils
 from util import misc as misc_utils

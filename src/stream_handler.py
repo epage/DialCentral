@@ -5,7 +5,8 @@ from __future__ import division
 
 import logging
 
-from PyQt4 import QtCore
+import util.qt_compat as qt_compat
+QtCore = qt_compat.QtCore
 
 import util.misc as misc_utils
 try:
@@ -25,9 +26,9 @@ _moduleLogger = logging.getLogger(__name__)
 
 class StreamToken(QtCore.QObject):
 
-	stateChange = QtCore.pyqtSignal(str)
-	invalidated = QtCore.pyqtSignal()
-	error = QtCore.pyqtSignal(str)
+	stateChange = qt_compat.Signal(str)
+	invalidated = qt_compat.Signal()
+	error = qt_compat.Signal(str)
 
 	STATE_PLAY = stream.Stream.STATE_PLAY
 	STATE_PAUSE = stream.Stream.STATE_PAUSE

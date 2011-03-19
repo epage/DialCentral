@@ -5,7 +5,8 @@ from __future__ import division
 
 import logging
 
-from PyQt4 import QtCore
+import util.qt_compat as qt_compat
+QtCore = qt_compat.QtCore
 import dbus
 try:
 	import telepathy as _telepathy
@@ -31,7 +32,7 @@ class _FakeSignaller(object):
 
 class _MissedCallWatcher(QtCore.QObject):
 
-	callMissed = QtCore.pyqtSignal()
+	callMissed = qt_compat.Signal()
 
 	def __init__(self):
 		QtCore.QObject.__init__(self)
@@ -107,7 +108,7 @@ class _MissedCallWatcher(QtCore.QObject):
 
 class _DummyMissedCallWatcher(QtCore.QObject):
 
-	callMissed = QtCore.pyqtSignal()
+	callMissed = qt_compat.Signal()
 
 	def __init__(self):
 		QtCore.QObject.__init__(self)

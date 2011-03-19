@@ -10,8 +10,9 @@ import functools
 import logging
 import logging.handlers
 
-from PyQt4 import QtGui
-from PyQt4 import QtCore
+import util.qt_compat as qt_compat
+QtCore = qt_compat.QtCore
+QtGui = qt_compat.import_module("QtGui")
 
 import constants
 import alarm_handler
@@ -126,8 +127,8 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 	def _new_main_window(self):
 		return MainWindow(None, self)
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_about(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
@@ -603,7 +604,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		else:
 			_moduleLogger.info("Unknown response")
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_new_message_alert(self):
 		with qui_utils.notify_error(self._errorLog):
@@ -613,19 +614,19 @@ class MainWindow(qwrappers.WindowWrapper):
 				else:
 					self._app.ledHandler.on()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_call_missed(self):
 		with qui_utils.notify_error(self._errorLog):
 			self._session.update_messages(self._session.MESSAGE_VOICEMAILS, force=True)
 
-	@QtCore.pyqtSlot(str)
+	@qt_compat.Slot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_session_error(self, message):
 		with qui_utils.notify_error(self._errorLog):
 			self._errorLog.push_error(message)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_login(self):
 		with qui_utils.notify_error(self._errorLog):
@@ -646,7 +647,7 @@ class MainWindow(qwrappers.WindowWrapper):
 					self._callHandler.callMissed.connect(self._voicemailRefreshDelay.start)
 				self._callHandler.start()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_logout(self):
 		with qui_utils.notify_error(self._errorLog):
@@ -655,7 +656,7 @@ class MainWindow(qwrappers.WindowWrapper):
 			if self._callHandler is not None:
 				self._callHandler.stop()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_app_alert(self):
 		with qui_utils.notify_error(self._errorLog):
@@ -667,7 +668,7 @@ class MainWindow(qwrappers.WindowWrapper):
 				}[(self._app.notifyOnSms, self._app.notifyOnVoicemail)]
 				self._session.update_messages(messageType, force=True)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_recipients_changed(self):
 		with qui_utils.notify_error(self._errorLog):
@@ -685,14 +686,14 @@ class MainWindow(qwrappers.WindowWrapper):
 	def _on_child_close(self, obj = None):
 		self._smsEntryDialog = None
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_login_requested(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
 			self._prompt_for_login()
 
-	@QtCore.pyqtSlot(int)
+	@qt_compat.Slot(int)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_tab_changed(self, index):
 		with qui_utils.notify_error(self._errorLog):
@@ -701,22 +702,22 @@ class MainWindow(qwrappers.WindowWrapper):
 			if self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_APPLICATION:
 				self._app.ledHandler.off()
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
 			self._tabsContents[self._currentTab].refresh(force=True)
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh_connection(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
 			self._session.refresh_connection()
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_import(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
@@ -729,8 +730,8 @@ class MainWindow(qwrappers.WindowWrapper):
 			if self._tabsContents[self.CONTACTS_TAB].has_child:
 				self._tabsContents[self.CONTACTS_TAB].child.update_addressbooks()
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_account(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):

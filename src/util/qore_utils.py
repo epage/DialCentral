@@ -1,6 +1,7 @@
 import logging
 
-from PyQt4 import QtCore
+import qt_compat
+QtCore = qt_compat.QtCore
 
 import misc
 
@@ -28,7 +29,7 @@ class _ParentThread(QtCore.QObject):
 		QtCore.QObject.__init__(self)
 		self._pool = pool
 
-	@QtCore.pyqtSlot(object)
+	@qt_compat.Slot(object)
 	@misc.log_exception(_moduleLogger)
 	def _on_task_complete(self, taskResult):
 		on_success, on_error, isError, result = taskResult
@@ -46,13 +47,13 @@ class _ParentThread(QtCore.QObject):
 
 class _WorkerThread(QtCore.QObject):
 
-	taskComplete  = QtCore.pyqtSignal(object)
+	taskComplete  = qt_compat.Signal(object)
 
 	def __init__(self, pool):
 		QtCore.QObject.__init__(self)
 		self._pool = pool
 
-	@QtCore.pyqtSlot(object)
+	@qt_compat.Slot(object)
 	@misc.log_exception(_moduleLogger)
 	def _on_task_added(self, task):
 		if not self._pool._isRunning:
@@ -71,7 +72,7 @@ class _WorkerThread(QtCore.QObject):
 		taskResult = on_success, on_error, isError, result
 		self.taskComplete.emit(taskResult)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc.log_exception(_moduleLogger)
 	def _on_stop_requested(self):
 		self._pool._thread.quit()
@@ -79,8 +80,8 @@ class _WorkerThread(QtCore.QObject):
 
 class AsyncPool(QtCore.QObject):
 
-	_addTask = QtCore.pyqtSignal(object)
-	_stopPool = QtCore.pyqtSignal()
+	_addTask = qt_compat.Signal(object)
+	_stopPool = qt_compat.Signal()
 
 	def __init__(self):
 		QtCore.QObject.__init__(self)

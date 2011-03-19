@@ -12,7 +12,8 @@ try:
 except ImportError:
 	import pickle
 
-from PyQt4 import QtCore
+import util.qt_compat as qt_compat
+QtCore = qt_compat.QtCore
 
 from util import qore_utils
 from util import qui_utils
@@ -37,15 +38,15 @@ class _DraftContact(object):
 
 class Draft(QtCore.QObject):
 
-	sendingMessage = QtCore.pyqtSignal()
-	sentMessage = QtCore.pyqtSignal()
-	calling = QtCore.pyqtSignal()
-	called = QtCore.pyqtSignal()
-	cancelling = QtCore.pyqtSignal()
-	cancelled = QtCore.pyqtSignal()
-	error = QtCore.pyqtSignal(str)
+	sendingMessage = qt_compat.Signal()
+	sentMessage = qt_compat.Signal()
+	calling = qt_compat.Signal()
+	called = qt_compat.Signal()
+	cancelling = qt_compat.Signal()
+	cancelled = qt_compat.Signal()
+	error = qt_compat.Signal(str)
 
-	recipientsChanged = QtCore.pyqtSignal()
+	recipientsChanged = qt_compat.Signal()
 
 	def __init__(self, pool, backend, errorLog):
 		QtCore.QObject.__init__(self)
@@ -198,19 +199,19 @@ class Session(QtCore.QObject):
 
 	# @todo Somehow add support for csv contacts
 
-	stateChange = QtCore.pyqtSignal(str)
-	loggedOut = QtCore.pyqtSignal()
-	loggedIn = QtCore.pyqtSignal()
-	callbackNumberChanged = QtCore.pyqtSignal(str)
+	stateChange = qt_compat.Signal(str)
+	loggedOut = qt_compat.Signal()
+	loggedIn = qt_compat.Signal()
+	callbackNumberChanged = qt_compat.Signal(str)
 
-	accountUpdated = QtCore.pyqtSignal()
-	messagesUpdated = QtCore.pyqtSignal()
-	newMessages = QtCore.pyqtSignal()
-	historyUpdated = QtCore.pyqtSignal()
-	dndStateChange = QtCore.pyqtSignal(bool)
-	voicemailAvailable = QtCore.pyqtSignal(str, str)
+	accountUpdated = qt_compat.Signal()
+	messagesUpdated = qt_compat.Signal()
+	newMessages = qt_compat.Signal()
+	historyUpdated = qt_compat.Signal()
+	dndStateChange = qt_compat.Signal(bool)
+	voicemailAvailable = qt_compat.Signal(str, str)
 
-	error = QtCore.pyqtSignal(str)
+	error = qt_compat.Signal(str)
 
 	LOGGEDOUT_STATE = "logged out"
 	LOGGINGIN_STATE = "logging in"

@@ -7,8 +7,9 @@ import functools
 import copy
 import logging
 
-from PyQt4 import QtGui
-from PyQt4 import QtCore
+import util.qt_compat as qt_compat
+QtCore = qt_compat.QtCore
+QtGui = qt_compat.import_module("QtGui")
 
 import constants
 from util import qwrappers
@@ -80,8 +81,8 @@ class CredentialsDialog(object):
 		except RuntimeError:
 			_moduleLogger.exception("Oh well")
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -141,8 +142,8 @@ class AboutDialog(object):
 		except RuntimeError:
 			_moduleLogger.exception("Oh well")
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -402,22 +403,22 @@ class AccountDialog(object):
 			self._voicemailNotificationButton.setChecked(False)
 			self._smsNotificationButton.setChecked(False)
 
-	@QtCore.pyqtSlot(int)
+	@qt_compat.Slot(int)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_notification_change(self, index):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._update_notification_state()
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_clear(self, checked = False):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._doClear = True
 			self._dialog.accept()
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -481,7 +482,7 @@ class ContactList(object):
 			)
 			callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
 			numberSelector.activated.connect(
-				QtCore.pyqtSlot(int)(callback)
+				qt_compat.Slot(int)(callback)
 			)
 
 			if self._closeIcon is self._SENTINEL_ICON:
@@ -767,13 +768,13 @@ class VoicemailPlayer(object):
 			self._session.download_voicemail(messageId)
 			self._hide()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_recipients_changed(self):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._update_state()
 
-	@QtCore.pyqtSlot(str, str)
+	@qt_compat.Slot(str, str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_voicemail_downloaded(self, messageId, filepath):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -1032,7 +1033,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			self._session.draft.message = message
 			self._session.draft.call()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_cancel_clicked(self, message):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -1051,7 +1052,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			number = numbers[index][0]
 			self._session.draft.set_selected_number(cid, number)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh_history(self):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -1062,14 +1063,14 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			(cid, ) = self._session.draft.get_contacts()
 			self._update_history(cid)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_recipients_changed(self):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._update_target_fields()
 			self._update_button_state()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_started(self):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -1078,13 +1079,13 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			self._dialButton.setVisible(False)
 			self.show()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_calling_started(self):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._cancelButton.setVisible(True)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_finished(self):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -1096,7 +1097,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			self.close()
 			self.destroy()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_error(self, message):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -1107,21 +1108,21 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 
 			self._errorLog.push_error(message)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_letter_count_changed(self):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._update_letter_count()
 			self._update_button_state()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_window_resized(self, checked = True):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._scroll_to_bottom()
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
 		with qui_utils.notify_error(self._app.errorLog):

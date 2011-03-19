@@ -3,8 +3,9 @@
 import math
 import logging
 
-from PyQt4 import QtGui
-from PyQt4 import QtCore
+import qt_compat
+QtCore = qt_compat.QtCore
+QtGui = qt_compat.import_module("QtGui")
 
 import misc as misc_utils
 
@@ -496,11 +497,11 @@ class QPieDisplay(QtGui.QWidget):
 
 class QPieButton(QtGui.QWidget):
 
-	activated = QtCore.pyqtSignal(int)
-	highlighted = QtCore.pyqtSignal(int)
-	canceled = QtCore.pyqtSignal()
-	aboutToShow = QtCore.pyqtSignal()
-	aboutToHide = QtCore.pyqtSignal()
+	activated = qt_compat.Signal(int)
+	highlighted = qt_compat.Signal(int)
+	canceled = qt_compat.Signal()
+	aboutToShow = qt_compat.Signal()
+	aboutToHide = qt_compat.Signal()
 
 	BUTTON_RADIUS = 24
 	DELAY = 250
@@ -778,11 +779,11 @@ class QPieButton(QtGui.QWidget):
 
 class QPieMenu(QtGui.QWidget):
 
-	activated = QtCore.pyqtSignal(int)
-	highlighted = QtCore.pyqtSignal(int)
-	canceled = QtCore.pyqtSignal()
-	aboutToShow = QtCore.pyqtSignal()
-	aboutToHide = QtCore.pyqtSignal()
+	activated = qt_compat.Signal(int)
+	highlighted = qt_compat.Signal(int)
+	canceled = qt_compat.Signal()
+	aboutToShow = qt_compat.Signal()
+	aboutToHide = qt_compat.Signal()
 
 	def __init__(self, parent = None):
 		QtGui.QWidget.__init__(self, parent)
