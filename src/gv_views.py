@@ -18,6 +18,7 @@ from util import misc as misc_utils
 
 import backends.null_backend as null_backend
 import backends.file_backend as file_backend
+import backends.qt_backend as qt_backend
 
 
 _moduleLogger = logging.getLogger(__name__)
@@ -732,6 +733,7 @@ class Contacts(object):
 		self._addressBookFactories = [
 			null_backend.NullAddressBookFactory(),
 			file_backend.FilesystemAddressBookFactory(app.fsContactsPath),
+			qt_backend.QtContactsAddressBookFactory(),
 		]
 		self._addressBooks = []
 
