@@ -8,6 +8,8 @@ try:
 	QtCore = _QtCore
 	USES_PYSIDE = True
 except ImportError:
+	import sip
+	sip.setapi('QString', 2)
 	import PyQt4.QtCore as _QtCore
 	QtCore = _QtCore
 	USES_PYSIDE = False
@@ -35,6 +37,7 @@ else:
 	Signal = QtCore.pyqtSignal
 	Slot = QtCore.pyqtSlot
 	Property = QtCore.pyqtProperty
+
 
 
 if __name__ == "__main__":

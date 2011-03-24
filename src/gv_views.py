@@ -439,7 +439,7 @@ class History(object):
 			contactDetails = detailsItem.data().toPyObject()
 
 			title = unicode(fromItem.text())
-			number = str(contactDetails[QtCore.QString("number")])
+			number = str(contactDetails["number"])
 			contactId = number # ids don't seem too unique so using numbers
 
 			descriptionRows = []
@@ -448,17 +448,17 @@ class History(object):
 				for i in xrange(randomTimeItem.rowCount()):
 					iItem = randomTimeItem.child(i, 0)
 					iContactDetails = iItem.data().toPyObject()
-					iNumber = str(iContactDetails[QtCore.QString("number")])
+					iNumber = str(iContactDetails["number"])
 					if number != iNumber:
 						continue
-					relTime = misc_utils.abbrev_relative_date(iContactDetails[QtCore.QString("relTime")])
-					action = str(iContactDetails[QtCore.QString("action")])
-					number = str(iContactDetails[QtCore.QString("number")])
+					relTime = misc_utils.abbrev_relative_date(iContactDetails["relTime"])
+					action = str(iContactDetails["action"])
+					number = str(iContactDetails["number"])
 					prettyNumber = misc_utils.make_pretty(number)
 					rowItems = relTime, action, prettyNumber
 					descriptionRows.append("<tr><td>%s</td></tr>" % "</td><td>".join(rowItems))
 			description = "<table>%s</table>" % "".join(descriptionRows)
-			numbersWithDescriptions = [(str(contactDetails[QtCore.QString("number")]), "")]
+			numbersWithDescriptions = [(str(contactDetails["number"]), "")]
 			self._session.draft.add_contact(contactId, None, title, description, numbersWithDescriptions)
 
 
@@ -697,20 +697,20 @@ class Messages(object):
 			item = self._categoryManager.get_item(timeRow, row, 0)
 			contactDetails = item.data().toPyObject()
 
-			name = unicode(contactDetails[QtCore.QString("name")])
-			number = str(contactDetails[QtCore.QString("number")])
+			name = unicode(contactDetails["name"])
+			number = str(contactDetails["number"])
 			if not name or name == number:
-				name = unicode(contactDetails[QtCore.QString("location")])
+				name = unicode(contactDetails["location"])
 			if not name:
 				name = "Unknown"
 
-			if str(contactDetails[QtCore.QString("type")]) == "Voicemail":
-				messageId = str(contactDetails[QtCore.QString("id")])
+			if str(contactDetails["type"]) == "Voicemail":
+				messageId = str(contactDetails["id"])
 			else:
 				messageId = None
-			contactId = str(contactDetails[QtCore.QString("contactId")])
+			contactId = str(contactDetails["contactId"])
 			title = name
-			description = unicode(contactDetails[QtCore.QString("expandedMessages")])
+			description = unicode(contactDetails["expandedMessages"])
 			numbersWithDescriptions = [(number, "")]
 			self._session.draft.add_contact(contactId, messageId, title, description, numbersWithDescriptions)
 
@@ -930,14 +930,14 @@ class Contacts(object):
 			item = letterItem.child(rowIndex, 0)
 			contactDetails = item.data().toPyObject()
 
-			name = unicode(contactDetails[QtCore.QString("name")])
+			name = unicode(contactDetails["name"])
 			if not name:
-				name = unicode(contactDetails[QtCore.QString("location")])
+				name = unicode(contactDetails["location"])
 			if not name:
 				name = "Unknown"
 
-			contactId = str(contactDetails[QtCore.QString("contactId")])
-			numbers = contactDetails[QtCore.QString("numbers")]
+			contactId = str(contactDetails["contactId"])
+			numbers = contactDetails["numbers"]
 			numbers = [
 				dict(
 					(str(k), str(v))

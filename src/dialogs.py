@@ -913,7 +913,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		self._scroll_to_bottom()
 
 	def _update_letter_count(self):
-		count = self._smsEntry.toPlainText().size()
+		count = len(self._smsEntry.toPlainText())
 		numTexts, numCharInText = divmod(count, self.MAX_CHAR)
 		numTexts += 1
 		numCharsLeftInText = self.MAX_CHAR - numCharInText
@@ -925,7 +925,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			self._dialButton.setEnabled(False)
 			self._smsButton.setEnabled(False)
 		elif self._session.draft.get_num_contacts() == 1:
-			count = self._smsEntry.toPlainText().size()
+			count = len(self._smsEntry.toPlainText())
 			if count == 0:
 				self._dialButton.setEnabled(True)
 				self._smsButton.setEnabled(False)
@@ -934,7 +934,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 				self._smsButton.setEnabled(True)
 		else:
 			self._dialButton.setEnabled(False)
-			count = self._smsEntry.toPlainText().size()
+			count = len(self._smsEntry.toPlainText())
 			if count == 0:
 				self._smsButton.setEnabled(False)
 			else:
