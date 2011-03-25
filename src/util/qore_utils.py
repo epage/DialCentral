@@ -25,15 +25,15 @@ class QThread44(QtCore.QThread):
 
 class _ParentThread(QtCore.QObject):
 
-	def __init__(self, pool):
+	def __init__(self, futureThread):
 		QtCore.QObject.__init__(self)
-		self._pool = pool
+		self._futureThread = futureThread
 
 	@qt_compat.Slot(object)
 	@misc.log_exception(_moduleLogger)
 	def _on_task_complete(self, taskResult):
 		on_success, on_error, isError, result = taskResult
-		if not self._pool._isRunning:
+		if not self._futureThread._isRunning:
 			if isError:
 				_moduleLogger.error("Masking: %s" % (result, ))
 			isError = True
@@ -49,14 +49,14 @@ class _WorkerThread(QtCore.QObject):
 
 	taskComplete  = qt_compat.Signal(object)
 
-	def __init__(self, pool):
+	def __init__(self, futureThread):
 		QtCore.QObject.__init__(self)
-		self._pool = pool
+		self._futureThread = futureThread
 
 	@qt_compat.Slot(object)
 	@misc.log_exception(_moduleLogger)
 	def _on_task_added(self, task):
-		if not self._pool._isRunning:
+		if not self._futureThread._isRunning:
 			_moduleLogger.error("Dropping task")
 
 		func, args, kwds, on_success, on_error = task
@@ -75,13 +75,13 @@ class _WorkerThread(QtCore.QObject):
 	@qt_compat.Slot()
 	@misc.log_exception(_moduleLogger)
 	def _on_stop_requested(self):
-		self._pool._thread.quit()
+		self._futureThread._thread.quit()
 
 
-class AsyncPool(QtCore.QObject):
+class FutureThread(QtCore.QObject):
 
 	_addTask = qt_compat.Signal(object)
-	_stopPool = qt_compat.Signal()
+	_stopFutureThread = qt_compat.Signal()
 
 	def __init__(self):
 		QtCore.QObject.__init__(self)
@@ -93,7 +93,7 @@ class AsyncPool(QtCore.QObject):
 
 		self._addTask.connect(self._worker._on_task_added)
 		self._worker.taskComplete.connect(self._parent._on_task_complete)
-		self._stopPool.connect(self._worker._on_stop_requested)
+		self._stopFutureThread.connect(self._worker._on_stop_requested)
 
 	def start(self):
 		self._thread.start()
@@ -101,7 +101,7 @@ class AsyncPool(QtCore.QObject):
 
 	def stop(self):
 		self._isRunning = False
-		self._stopPool.emit()
+		self._stopFutureThread.emit()
 
 	def add_task(self, func, args, kwds, on_success, on_error):
 		assert self._isRunning, "Task queue not started"

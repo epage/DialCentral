@@ -48,11 +48,11 @@ class Draft(QtCore.QObject):
 
 	recipientsChanged = qt_compat.Signal()
 
-	def __init__(self, pool, backend, errorLog):
+	def __init__(self, asyncQueue, backend, errorLog):
 		QtCore.QObject.__init__(self)
 		self._errorLog = errorLog
 		self._contacts = {}
-		self._pool = pool
+		self._asyncQueue = asyncQueue
 		self._backend = backend
 		self._busyReason = None
 		self._message = ""
@@ -61,7 +61,7 @@ class Draft(QtCore.QObject):
 		assert 0 < len(self._contacts), "No contacts selected"
 		assert 0 < len(self._message), "No message to send"
 		numbers = [misc_utils.make_ugly(contact.selectedNumber) for contact in self._contacts.itervalues()]
-		le = concurrent.AsyncLinearExecution(self._pool, self._send)
+		le = self._asyncQueue.add_async(self._send)
 		le.start(numbers, self._message)
 
 	def call(self):
@@ -69,11 +69,11 @@ class Draft(QtCore.QObject):
 		assert len(self._message) == 0, "Cannot send message with call"
 		(contact, ) = self._contacts.itervalues()
 		number = misc_utils.make_ugly(contact.selectedNumber)
-		le = concurrent.AsyncLinearExecution(self._pool, self._call)
+		le = self._asyncQueue.add_async(self._call)
 		le.start(number)
 
 	def cancel(self):
-		le = concurrent.AsyncLinearExecution(self._pool, self._cancel)
+		le = self._asyncQueue.add_async(self._cancel)
 		le.start()
 
 	def _get_message(self):
@@ -234,7 +234,8 @@ class Session(QtCore.QObject):
 	def __init__(self, errorLog, cachePath = None):
 		QtCore.QObject.__init__(self)
 		self._errorLog = errorLog
-		self._pool = qore_utils.AsyncPool()
+		self._pool = qore_utils.FutureThread()
+		self._asyncQueue = concurrent.AsyncTaskQueue(self._pool)
 		self._backend = []
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._loginOps = []
@@ -242,7 +243,7 @@ class Session(QtCore.QObject):
 		self._voicemailCachePath = None
 		self._username = None
 		self._password = None
-		self._draft = Draft(self._pool, self._backend, self._errorLog)
+		self._draft = Draft(self._asyncQueue, self._backend, self._errorLog)
 		self._delayedRelogin = QtCore.QTimer()
 		self._delayedRelogin.setInterval(0)
 		self._delayedRelogin.setSingleShot(True)
@@ -283,7 +284,7 @@ class Session(QtCore.QObject):
 			self._backend[0:0] = [gv_backend.GVDialer(cookiePath)]
 
 		self._pool.start()
-		le = concurrent.AsyncLinearExecution(self._pool, self._login)
+		le = self._asyncQueue.add_async(self._login)
 		le.start(username, password)
 
 	def logout(self):
@@ -316,11 +317,11 @@ class Session(QtCore.QObject):
 	def update_account(self, force = True):
 		if not force and self._contacts:
 			return
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_account), (), {}
+		le = self._asyncQueue.add_async(self._update_account), (), {}
 		self._perform_op_while_loggedin(le)
 
 	def refresh_connection(self):
-		le = concurrent.AsyncLinearExecution(self._pool, self._refresh_authentication)
+		le = self._asyncQueue.add_async(self._refresh_authentication)
 		le.start()
 
 	def get_contacts(self):
@@ -332,7 +333,7 @@ class Session(QtCore.QObject):
 	def update_messages(self, messageType, force = True):
 		if not force and self._messages:
 			return
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_messages), (messageType, ), {}
+		le = self._asyncQueue.add_async(self._update_messages), (messageType, ), {}
 		self._perform_op_while_loggedin(le)
 
 	def get_messages(self):
@@ -344,7 +345,7 @@ class Session(QtCore.QObject):
 	def update_history(self, historyType, force = True):
 		if not force and self._history:
 			return
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_history), (historyType, ), {}
+		le = self._asyncQueue.add_async(self._update_history), (historyType, ), {}
 		self._perform_op_while_loggedin(le)
 
 	def get_history(self):
@@ -354,11 +355,11 @@ class Session(QtCore.QObject):
 		return self._historyUpdateTime
 
 	def update_dnd(self):
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_dnd), (), {}
+		le = self._asyncQueue.add_async(self._update_dnd), (), {}
 		self._perform_op_while_loggedin(le)
 
 	def set_dnd(self, dnd):
-		le = concurrent.AsyncLinearExecution(self._pool, self._set_dnd)
+		le = self._asyncQueue.add_async(self._set_dnd)
 		le.start(dnd)
 
 	def is_available(self, messageId):
@@ -372,7 +373,7 @@ class Session(QtCore.QObject):
 		return actualPath
 
 	def download_voicemail(self, messageId):
-		le = concurrent.AsyncLinearExecution(self._pool, self._download_voicemail)
+		le = self._asyncQueue.add_async(self._download_voicemail)
 		le.start(messageId)
 
 	def _set_dnd(self, dnd):
@@ -410,7 +411,7 @@ class Session(QtCore.QObject):
 		return self._callback
 
 	def set_callback_number(self, callback):
-		le = concurrent.AsyncLinearExecution(self._pool, self._set_callback_number)
+		le = self._asyncQueue.add_async(self._set_callback_number)
 		le.start(callback)
 
 	def _set_callback_number(self, callback):
