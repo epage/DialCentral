@@ -697,7 +697,7 @@ class Session(QtCore.QObject):
 	def _update_history(self, historyType):
 		try:
 			assert self.state == self.LOGGEDIN_STATE, "History requires being logged in (currently %s" % self.state
-			with qui_utils.notify_busy(self._errorLog, "Updating History"):
+			with qui_utils.notify_busy(self._errorLog, "Updating '%s' History" % historyType):
 				self._history = yield (
 					self._backend[0].get_call_history,
 					(historyType, ),
