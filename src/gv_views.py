@@ -436,7 +436,7 @@ class History(object):
 			row = index.row()
 			detailsItem = self._categoryManager.get_item(timeRow, row, self.DETAILS_IDX)
 			fromItem = self._categoryManager.get_item(timeRow, row, self.FROM_IDX)
-			contactDetails = detailsItem.data().toPyObject()
+			contactDetails = detailsItem.data()
 
 			title = unicode(fromItem.text())
 			number = str(contactDetails["number"])
@@ -447,7 +447,7 @@ class History(object):
 				randomTimeItem = self._itemStore.item(t, 0)
 				for i in xrange(randomTimeItem.rowCount()):
 					iItem = randomTimeItem.child(i, 0)
-					iContactDetails = iItem.data().toPyObject()
+					iContactDetails = iItem.data()
 					iNumber = str(iContactDetails["number"])
 					if number != iNumber:
 						continue
@@ -695,7 +695,7 @@ class Messages(object):
 			timeRow = timeIndex.row()
 			row = index.row()
 			item = self._categoryManager.get_item(timeRow, row, 0)
-			contactDetails = item.data().toPyObject()
+			contactDetails = item.data()
 
 			name = unicode(contactDetails["name"])
 			number = str(contactDetails["number"])
@@ -928,7 +928,7 @@ class Contacts(object):
 			letterItem = self._alphaItem[letter]
 			rowIndex = index.row()
 			item = letterItem.child(rowIndex, 0)
-			contactDetails = item.data().toPyObject()
+			contactDetails = item.data()
 
 			name = unicode(contactDetails["name"])
 			if not name:

@@ -344,7 +344,7 @@ class AccountDialog(object):
 	@property
 	def selectedCallback(self):
 		index = self._callbackSelector.currentIndex()
-		data = str(self._callbackSelector.itemData(index).toPyObject())
+		data = str(self._callbackSelector.itemData(index))
 		return data
 
 	def set_callbacks(self, choices, default):
