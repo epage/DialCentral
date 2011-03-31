@@ -359,10 +359,13 @@ class Session(QtCore.QObject):
 		return self._dnd
 
 	def get_account_number(self):
+		if self.state != self.LOGGEDIN_STATE:
+			return ""
 		return self._backend[0].get_account_number()
 
 	def get_callback_numbers(self):
-		# @todo Remove evilness (might call is_authed which can block)
+		if self.state != self.LOGGEDIN_STATE:
+			return {}
 		return self._backend[0].get_callback_numbers()
 
 	def get_callback_number(self):

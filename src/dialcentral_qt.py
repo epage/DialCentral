@@ -662,6 +662,7 @@ class MainWindow(qwrappers.WindowWrapper):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_account(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
+			assert self._session.state == self._session.LOGGEDIN_STATE, "Must be logged in for settings"
 			self._show_account_dialog()
 
 
