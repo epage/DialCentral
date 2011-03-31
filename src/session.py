@@ -429,6 +429,8 @@ class Session(QtCore.QObject):
 						needOps = True
 
 					self.loggedIn.emit()
+					self.stateChange.emit(finalState)
+					finalState = None # Mark it as already set
 
 					if needOps:
 						loginOps = self._loginOps[:]
@@ -444,7 +446,8 @@ class Session(QtCore.QObject):
 				self._loggedInTime = self._LOGGEDOUT_TIME
 				self.error.emit(str(e))
 			finally:
-				self.stateChange.emit(finalState)
+				if finalState is not None:
+					self.stateChange.emit(finalState)
 			if isLoggedIn and self._callback:
 				self.set_callback_number(self._callback)
 
