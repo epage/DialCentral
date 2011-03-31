@@ -30,7 +30,8 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing a bug with not being able to set the callback number
+* Fixing some minor bugs with the transitions between logged-in and logged-out
+* Reporting errors not just to user but to log
 """.strip()
 
 
