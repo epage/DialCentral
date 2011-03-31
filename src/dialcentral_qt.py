@@ -521,7 +521,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		if not self._tabsContents[index].has_child():
 			tab = self._TAB_CLASS[index](self._app, self._session, self._errorLog)
 			self._tabsContents[index].set_child(tab)
-			self._tabsContents[index].refresh(force=False)
+		self._tabsContents[index].refresh(force=False)
 
 	def _prompt_for_login(self):
 		if self._credentialsDialog is None:
@@ -596,6 +596,7 @@ class MainWindow(qwrappers.WindowWrapper):
 
 			for tab in self._tabsContents:
 				tab.enable()
+			self._initialize_tab(self._currentTab)
 
 	@QtCore.pyqtSlot()
 	@misc_utils.log_exception(_moduleLogger)
