@@ -505,13 +505,19 @@ class Session(QtCore.QObject):
 			_moduleLogger.exception("Weirdness loading")
 			return False
 
-		(
-			version, build,
-			contacts, contactUpdateTime,
-			messages, messageUpdateTime,
-			history, historyUpdateTime,
-			dnd, callback
-		) = dumpedData
+		try:
+			(
+				version, build,
+				contacts, contactUpdateTime,
+				messages, messageUpdateTime,
+				history, historyUpdateTime,
+				dnd, callback
+			) = dumpedData
+		except ValueError:
+			_moduleLogger.exception("Upgrade/downgrade fun")
+			return False
+		except:
+			_moduleLogger.exception("Weirdlings")
 
 		if misc_utils.compare_versions(
 			self._OLDEST_COMPATIBLE_FORMAT_VERSION,
