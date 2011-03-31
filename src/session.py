@@ -270,6 +270,7 @@ class Session(QtCore.QObject):
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._backend[0].persist()
 		self._save_to_cache()
+		self.stateChange.emit(self.LOGGEDOUT_STATE)
 
 	def clear(self):
 		assert self.state == self.LOGGEDOUT_STATE, "Can only clear when logged out (currently %s" % self.state
@@ -283,6 +284,7 @@ class Session(QtCore.QObject):
 		self._pool.stop()
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self.clear()
+		self.stateChange.emit(self.LOGGEDOUT_STATE)
 
 	def update_contacts(self, force = True):
 		if not force and self._contacts:
