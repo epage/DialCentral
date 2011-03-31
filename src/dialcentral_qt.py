@@ -551,7 +551,10 @@ class MainWindow(qwrappers.WindowWrapper):
 		self._accountDialog.set_callbacks(
 			self._session.get_callback_numbers(), self._session.get_callback_number()
 		)
-		self._accountDialog.accountNumber = self._session.get_account_number()
+		accountNumberToDisplay = self._session.get_account_number()
+		if not accountNumberToDisplay:
+			accountNumberToDisplay = "Not Available (%s)" % self._session.state
+		self._accountDialog.set_account_number(accountNumberToDisplay)
 		response = self._accountDialog.run(self.window)
 		if response == QtGui.QDialog.Accepted:
 			if self._accountDialog.doClear:

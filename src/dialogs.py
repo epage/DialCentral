@@ -251,10 +251,8 @@ class AccountDialog(object):
 			self._voicemailNotificationButton.setVisible(False)
 			self._smsNotificationButton.setVisible(False)
 
-	accountNumber = property(
-		lambda self: str(self._accountNumberLabel.text()),
-		lambda self, num: self._accountNumberLabel.setText(num),
-	)
+	def set_account_number(self, num):
+		self._accountNumberLabel.setText(num)
 
 	notifications = property(
 		lambda self: self._notificationButton.isChecked(),
