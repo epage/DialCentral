@@ -160,6 +160,7 @@ class Draft(QtCore.QObject):
 				self.sentMessage.emit()
 				self._clear()
 		except Exception, e:
+			_moduleLogger.exception("Reporting error to user")
 			self.error.emit(str(e))
 
 	def _call(self, number):
@@ -175,6 +176,7 @@ class Draft(QtCore.QObject):
 				self.called.emit()
 				self._clear()
 		except Exception, e:
+			_moduleLogger.exception("Reporting error to user")
 			self.error.emit(str(e))
 
 	def _cancel(self):
@@ -188,6 +190,7 @@ class Draft(QtCore.QObject):
 				)
 			self.cancelled.emit()
 		except Exception, e:
+			_moduleLogger.exception("Reporting error to user")
 			self.error.emit(str(e))
 
 
@@ -266,6 +269,7 @@ class Session(QtCore.QObject):
 
 	def logout(self):
 		assert self.state != self.LOGGEDOUT_STATE, "Can only logout if logged in (currently %s" % self.state
+		_moduleLogger.info("Logging out")
 		self._pool.stop()
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._backend[0].persist()
@@ -282,6 +286,7 @@ class Session(QtCore.QObject):
 
 	def logout_and_clear(self):
 		assert self.state != self.LOGGEDOUT_STATE, "Can only logout if logged in (currently %s" % self.state
+		_moduleLogger.info("Logging out and clearing the account")
 		self._pool.stop()
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self.clear()
@@ -333,11 +338,9 @@ class Session(QtCore.QObject):
 		le.start(dnd)
 
 	def _set_dnd(self, dnd):
-		# I'm paranoid about our state geting out of sync so we set no matter
-		# what but act as if we have the cannonical state
-		assert self.state == self.LOGGEDIN_STATE, "DND requires being logged in (currently %s" % self.state
 		oldDnd = self._dnd
 		try:
+			assert self.state == self.LOGGEDIN_STATE, "DND requires being logged in (currently %s" % self.state
 			with qui_utils.notify_busy(self._errorLog, "Setting DND Status"):
 				yield (
 					self._backend[0].set_dnd,
@@ -345,6 +348,7 @@ class Session(QtCore.QObject):
 					{},
 				)
 		except Exception, e:
+			_moduleLogger.exception("Reporting error to user")
 			self.error.emit(str(e))
 			return
 		self._dnd = dnd
@@ -369,17 +373,16 @@ class Session(QtCore.QObject):
 		le.start(callback)
 
 	def _set_callback_number(self, callback):
-		# I'm paranoid about our state geting out of sync so we set no matter
-		# what but act as if we have the cannonical state
-		assert self.state == self.LOGGEDIN_STATE, "Callbacks configurable only when logged in (currently %s" % self.state
 		oldCallback = self._callback
 		try:
+			assert self.state == self.LOGGEDIN_STATE, "Callbacks configurable only when logged in (currently %s" % self.state
 			yield (
 				self._backend[0].set_callback_number,
 				(callback, ),
 				{},
 			)
 		except Exception, e:
+			_moduleLogger.exception("Reporting error to user")
 			self.error.emit(str(e))
 			return
 		self._callback = callback
@@ -444,6 +447,7 @@ class Session(QtCore.QObject):
 					self.error.emit("Error logging in")
 			except Exception, e:
 				self._loggedInTime = self._LOGGEDOUT_TIME
+				_moduleLogger.exception("Reporting error to user")
 				self.error.emit(str(e))
 			finally:
 				if finalState is not None:
@@ -579,6 +583,7 @@ class Session(QtCore.QObject):
 
 	def _update_contacts(self):
 		try:
+			assert self.state == self.LOGGEDIN_STATE, "Contacts requires being logged in (currently %s" % self.state
 			with qui_utils.notify_busy(self._errorLog, "Updating Contacts"):
 				self._contacts = yield (
 					self._backend[0].get_contacts,
@@ -586,6 +591,7 @@ class Session(QtCore.QObject):
 					{},
 				)
 		except Exception, e:
+			_moduleLogger.exception("Reporting error to user")
 			self.error.emit(str(e))
 			return
 		self._contactUpdateTime = datetime.datetime.now()
@@ -593,6 +599,7 @@ class Session(QtCore.QObject):
 
 	def _update_messages(self):
 		try:
+			assert self.state == self.LOGGEDIN_STATE, "Messages requires being logged in (currently %s" % self.state
 			with qui_utils.notify_busy(self._errorLog, "Updating Messages"):
 				self._messages = yield (
 					self._backend[0].get_messages,
@@ -600,6 +607,7 @@ class Session(QtCore.QObject):
 					{},
 				)
 		except Exception, e:
+			_moduleLogger.exception("Reporting error to user")
 			self.error.emit(str(e))
 			return
 		self._messageUpdateTime = datetime.datetime.now()
@@ -607,6 +615,7 @@ class Session(QtCore.QObject):
 
 	def _update_history(self):
 		try:
+			assert self.state == self.LOGGEDIN_STATE, "History requires being logged in (currently %s" % self.state
 			with qui_utils.notify_busy(self._errorLog, "Updating History"):
 				self._history = yield (
 					self._backend[0].get_recent,
@@ -614,6 +623,7 @@ class Session(QtCore.QObject):
 					{},
 				)
 		except Exception, e:
+			_moduleLogger.exception("Reporting error to user")
 			self.error.emit(str(e))
 			return
 		self._historyUpdateTime = datetime.datetime.now()
@@ -622,12 +632,14 @@ class Session(QtCore.QObject):
 	def _update_dnd(self):
 		oldDnd = self._dnd
 		try:
+			assert self.state == self.LOGGEDIN_STATE, "DND requires being logged in (currently %s" % self.state
 			self._dnd = yield (
 				self._backend[0].is_dnd,
 				(),
 				{},
 			)
 		except Exception, e:
+			_moduleLogger.exception("Reporting error to user")
 			self.error.emit(str(e))
 			return
 		if oldDnd != self._dnd:
