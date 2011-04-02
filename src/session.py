@@ -85,11 +85,7 @@ class Draft(QtCore.QObject):
 	def add_contact(self, contactId, title, description, numbersWithDescriptions):
 		if self._busyReason is not None:
 			raise RuntimeError("Please wait for %r" % self._busyReason)
-		if contactId in self._contacts:
-			_moduleLogger.info("Adding duplicate contact %r" % contactId)
-			# @todo Remove this evil hack to re-popup the dialog
-			self.recipientsChanged.emit()
-			return
+		# Allow overwriting of contacts so that the message can be updated and the SMS dialog popped back up
 		contactDetails = _DraftContact(title, description, numbersWithDescriptions)
 		self._contacts[contactId] = contactDetails
 		self.recipientsChanged.emit()
