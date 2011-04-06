@@ -23,35 +23,15 @@ class QThread44(QtCore.QThread):
 		self.exec_()
 
 
-class _ParentThread(QtCore.QObject):
-
-	def __init__(self, futureThread):
-		QtCore.QObject.__init__(self)
-		self._futureThread = futureThread
-
-	@qt_compat.Slot(object)
-	@misc.log_exception(_moduleLogger)
-	def _on_task_complete(self, taskResult):
-		on_success, on_error, isError, result = taskResult
-		if not self._futureThread._isRunning:
-			if isError:
-				_moduleLogger.error("Masking: %s" % (result, ))
-			isError = True
-			result = StopIteration("Cancelling all callbacks")
-		callback = on_success if not isError else on_error
-		try:
-			callback(result)
-		except Exception:
-			_moduleLogger.exception("Callback errored")
-
-
 class _WorkerThread(QtCore.QObject):
 
-	taskComplete  = qt_compat.Signal(object)
+	_taskComplete  = qt_compat.Signal(object)
 
 	def __init__(self, futureThread):
 		QtCore.QObject.__init__(self)
 		self._futureThread = futureThread
+		self._futureThread._addTask.connect(self._on_task_added)
+		self._taskComplete.connect(self._futureThread._on_task_complete)
 
 	@qt_compat.Slot(object)
 	@misc.log_exception(_moduleLogger)
@@ -70,30 +50,19 @@ class _WorkerThread(QtCore.QObject):
 			isError = True
 
 		taskResult = on_success, on_error, isError, result
-		self.taskComplete.emit(taskResult)
-
-	@qt_compat.Slot()
-	@misc.log_exception(_moduleLogger)
-	def _on_stop_requested(self):
-		self._futureThread._thread.quit()
+		self._taskComplete.emit(taskResult)
 
 
 class FutureThread(QtCore.QObject):
 
 	_addTask = qt_compat.Signal(object)
-	_stopFutureThread = qt_compat.Signal()
 
 	def __init__(self):
 		QtCore.QObject.__init__(self)
 		self._thread = QThread44()
 		self._isRunning = False
-		self._parent = _ParentThread(self)
 		self._worker = _WorkerThread(self)
 		self._worker.moveToThread(self._thread)
-
-		self._addTask.connect(self._worker._on_task_added)
-		self._worker.taskComplete.connect(self._parent._on_task_complete)
-		self._stopFutureThread.connect(self._worker._on_stop_requested)
 
 	def start(self):
 		self._thread.start()
@@ -101,9 +70,24 @@ class FutureThread(QtCore.QObject):
 
 	def stop(self):
 		self._isRunning = False
-		self._stopFutureThread.emit()
+		self._thread.quit()
 
 	def add_task(self, func, args, kwds, on_success, on_error):
 		assert self._isRunning, "Task queue not started"
 		task = func, args, kwds, on_success, on_error
 		self._addTask.emit(task)
+
+	@qt_compat.Slot(object)
+	@misc.log_exception(_moduleLogger)
+	def _on_task_complete(self, taskResult):
+		on_success, on_error, isError, result = taskResult
+		if not self._isRunning:
+			if isError:
+				_moduleLogger.error("Masking: %s" % (result, ))
+			isError = True
+			result = StopIteration("Cancelling all callbacks")
+		callback = on_success if not isError else on_error
+		try:
+			callback(result)
+		except Exception:
+			_moduleLogger.exception("Callback errored")
