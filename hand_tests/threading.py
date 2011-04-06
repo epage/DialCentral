@@ -60,7 +60,7 @@ class Consumer(qt_compat.QtCore.QObject):
 		print i
 
 
-if __name__ == "__main__":
+def run_producer_consumer():
 	app = qt_compat.QtCore.QCoreApplication([])
 
 	producerThread = qore_utils.QThread44()
@@ -99,4 +99,40 @@ if __name__ == "__main__":
 
 	producerThread.start()
 	consumerThread.start()
-	print "Status", app.exec_()
+	print "Status %s" % app.exec_()
+
+
+def run_task():
+	app = qt_compat.QtCore.QCoreApplication([])
+
+	bright = qore_utils.FutureThread()
+	def on_failure(*args):
+		print "Failure", args
+
+	def on_success(*args):
+		print "Success", args
+
+	def task(*args):
+		print "Task", args
+
+	timer = qt_compat.QtCore.QTimer()
+	timeouts = [0]
+	@qt_compat.Slot()
+	def on_timeout():
+		timeouts[0] += 1
+		print timeouts[0]
+		bright.add_task(task, (timeouts[0], ), {}, on_success, on_failure)
+		if timeouts[0] == 5:
+			timer.stop()
+			bright.stop()
+			app.exit(0)
+	timer.timeout.connect(on_timeout)
+	timer.start(10)
+	bright.start()
+
+	print "Status %s" % app.exec_()
+
+
+if __name__ == "__main__":
+	#run_producer_consumer()
+	run_task()
