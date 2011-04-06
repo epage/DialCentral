@@ -8,6 +8,7 @@ import time
 import sys
 sys.path.insert(0,"./src")
 from util import qt_compat
+from util import qore_utils
 
 
 class QThread44(qt_compat.QtCore.QThread):
@@ -62,12 +63,12 @@ class Consumer(qt_compat.QtCore.QObject):
 if __name__ == "__main__":
 	app = qt_compat.QtCore.QCoreApplication([])
 
-	producerThread = QThread44()
+	producerThread = qore_utils.QThread44()
 	producer = Producer()
 	producer.moveToThread(producerThread)
 	producerThread.started.connect(producer.process)
 
-	consumerThread = QThread44()
+	consumerThread = qore_utils.QThread44()
 	consumer = Consumer()
 	consumer.moveToThread(consumerThread)
 	consumerThread.started.connect(consumer.process)
