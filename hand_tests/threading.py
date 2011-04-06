@@ -5,10 +5,12 @@ from __future__ import division
 
 import time
 
-import PyQt4.QtCore as QtCore
+import sys
+sys.path.insert(0,"./src")
+from util import qt_compat
 
 
-class QThread44(QtCore.QThread):
+class QThread44(qt_compat.QtCore.QThread):
 	"""
 	This is to imitate QThread in Qt 4.4+ for when running on older version
 	See http://labs.trolltech.com/blogs/2010/06/17/youre-doing-it-wrong
@@ -16,21 +18,21 @@ class QThread44(QtCore.QThread):
 	"""
 
 	def __init__(self, parent = None):
-		QtCore.QThread.__init__(self, parent)
+		qt_compat.QtCore.QThread.__init__(self, parent)
 
 	def run(self):
 		self.exec_()
 
 
-class Producer(QtCore.QObject):
+class Producer(qt_compat.QtCore.QObject):
 
-	data = QtCore.pyqtSignal(int)
-	done = QtCore.pyqtSignal()
+	data = qt_compat.Signal(int)
+	done = qt_compat.Signal()
 
 	def __init__(self):
-		QtCore.QObject.__init__(self)
+		qt_compat.QtCore.QObject.__init__(self)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	def process(self):
 		print "Starting producer"
 		for i in xrange(10):
@@ -39,26 +41,26 @@ class Producer(QtCore.QObject):
 		self.done.emit()
 
 
-class Consumer(QtCore.QObject):
+class Consumer(qt_compat.QtCore.QObject):
 
 	def __init__(self):
-		QtCore.QObject.__init__(self)
+		qt_compat.QtCore.QObject.__init__(self)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	def process(self):
 		print "Starting consumer"
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	def print_done(self):
 		print "Done"
 
-	@QtCore.pyqtSlot(int)
+	@qt_compat.Slot(int)
 	def print_data(self, i):
 		print i
 
 
 if __name__ == "__main__":
-	app = QtCore.QCoreApplication([])
+	app = qt_compat.QtCore.QCoreApplication([])
 
 	producerThread = QThread44()
 	producer = Producer()
@@ -73,7 +75,7 @@ if __name__ == "__main__":
 	producer.data.connect(consumer.print_data)
 	producer.done.connect(consumer.print_done)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	def producer_done():
 		print "Shutting down"
 		producerThread.quit()
@@ -83,7 +85,7 @@ if __name__ == "__main__":
 
 	count = [0]
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	def thread_done():
 		print "Thread done"
 		count[0] += 1
