@@ -3,12 +3,57 @@
 from __future__ import with_statement
 from __future__ import division
 
+import functools
 import time
 
-import sys
-sys.path.insert(0,"./src")
-from util import qt_compat
-QtCore = qt_compat.QtCore
+
+FORCE_PYQT = False
+DECORATE = True
+
+
+try:
+	if FORCE_PYQT:
+		raise ImportError()
+	import PySide.QtCore as _QtCore
+	QtCore = _QtCore
+	USES_PYSIDE = True
+except ImportError:
+	import sip
+	sip.setapi('QString', 2)
+	sip.setapi('QVariant', 2)
+	import PyQt4.QtCore as _QtCore
+	QtCore = _QtCore
+	USES_PYSIDE = False
+
+
+if USES_PYSIDE:
+	Signal = QtCore.Signal
+	Slot = QtCore.Slot
+	Property = QtCore.Property
+else:
+	Signal = QtCore.pyqtSignal
+	Slot = QtCore.pyqtSlot
+	Property = QtCore.pyqtProperty
+
+
+def log_exception():
+
+	def log_exception_decorator(func):
+
+		@functools.wraps(func)
+		def wrapper(*args, **kwds):
+			try:
+				return func(*args, **kwds)
+			except Exception:
+				print "Exception", func.__name__
+				raise
+
+		if DECORATE:
+			return wrapper
+		else:
+			return func
+
+	return log_exception_decorator
 
 
 class QThread44(QtCore.QThread):
@@ -25,83 +70,16 @@ class QThread44(QtCore.QThread):
 		self.exec_()
 
 
-class _WorkerThread(QtCore.QObject):
-
-	_taskComplete  = qt_compat.Signal(object)
-
-	def __init__(self, futureThread):
-		QtCore.QObject.__init__(self)
-		self._futureThread = futureThread
-		self._futureThread._addTask.connect(self._on_task_added)
-		self._taskComplete.connect(self._futureThread._on_task_complete)
-
-	@qt_compat.Slot(object)
-	def _on_task_added(self, task):
-		if not self._futureThread._isRunning:
-			print "Dropping task"
-
-		func, args, kwds, on_success, on_error = task
-
-		try:
-			result = func(*args, **kwds)
-			isError = False
-		except Exception, e:
-			print "Error, passing it back to the main thread"
-			result = e
-			isError = True
-
-		taskResult = on_success, on_error, isError, result
-		self._taskComplete.emit(taskResult)
-
-
-class FutureThread(QtCore.QObject):
-
-	_addTask = qt_compat.Signal(object)
-
-	def __init__(self):
-		QtCore.QObject.__init__(self)
-		self._thread = QThread44()
-		self._isRunning = False
-		self._worker = _WorkerThread(self)
-		self._worker.moveToThread(self._thread)
-
-	def start(self):
-		self._thread.start()
-		self._isRunning = True
-
-	def stop(self):
-		self._isRunning = False
-		self._thread.quit()
-
-	def add_task(self, func, args, kwds, on_success, on_error):
-		assert self._isRunning, "Task queue not started"
-		task = func, args, kwds, on_success, on_error
-		self._addTask.emit(task)
-
-	@qt_compat.Slot(object)
-	def _on_task_complete(self, taskResult):
-		on_success, on_error, isError, result = taskResult
-		if not self._isRunning:
-			if isError:
-				print "Masking: %s" % (result, )
-			isError = True
-			result = StopIteration("Cancelling all callbacks")
-		callback = on_success if not isError else on_error
-		try:
-			callback(result)
-		except Exception:
-			print "Callback errored"
-
-
 class Producer(QtCore.QObject):
 
-	data = qt_compat.Signal(int)
-	done = qt_compat.Signal()
+	data = Signal(int)
+	done = Signal()
 
 	def __init__(self):
 		QtCore.QObject.__init__(self)
 
-	@qt_compat.Slot()
+	@Slot()
+	@log_exception()
 	def process(self):
 		print "Starting producer"
 		for i in xrange(10):
@@ -115,15 +93,18 @@ class Consumer(QtCore.QObject):
 	def __init__(self):
 		QtCore.QObject.__init__(self)
 
-	@qt_compat.Slot()
+	@Slot()
+	@log_exception()
 	def process(self):
 		print "Starting consumer"
 
-	@qt_compat.Slot()
+	@Slot()
+	@log_exception()
 	def print_done(self):
 		print "Done"
 
-	@qt_compat.Slot(int)
+	@Slot(int)
+	@log_exception()
 	def print_data(self, i):
 		print i
 
@@ -144,7 +125,8 @@ def run_producer_consumer():
 	producer.data.connect(consumer.print_data)
 	producer.done.connect(consumer.print_done)
 
-	@qt_compat.Slot()
+	@Slot()
+	@log_exception()
 	def producer_done():
 		print "Shutting down"
 		producerThread.quit()
@@ -154,7 +136,8 @@ def run_producer_consumer():
 
 	count = [0]
 
-	@qt_compat.Slot()
+	@Slot()
+	@log_exception()
 	def thread_done():
 		print "Thread done"
 		count[0] += 1
@@ -170,37 +153,5 @@ def run_producer_consumer():
 	print "Status %s" % app.exec_()
 
 
-def run_task():
-	app = QtCore.QCoreApplication([])
-
-	bright = FutureThread()
-	def on_failure(*args):
-		print "Failure", args
-
-	def on_success(*args):
-		print "Success", args
-
-	def task(*args):
-		print "Task", args
-
-	timer = QtCore.QTimer()
-	timeouts = [0]
-	@qt_compat.Slot()
-	def on_timeout():
-		timeouts[0] += 1
-		print timeouts[0]
-		bright.add_task(task, (timeouts[0], ), {}, on_success, on_failure)
-		if timeouts[0] == 5:
-			timer.stop()
-			bright.stop()
-			app.exit(0)
-	timer.timeout.connect(on_timeout)
-	timer.start(10)
-	bright.start()
-
-	print "Status %s" % app.exec_()
-
-
 if __name__ == "__main__":
 	run_producer_consumer()
-	#run_task()
