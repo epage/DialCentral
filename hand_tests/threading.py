@@ -8,10 +8,10 @@ import time
 import sys
 sys.path.insert(0,"./src")
 from util import qt_compat
-from util import qore_utils
+QtCore = qt_compat.QtCore
 
 
-class QThread44(qt_compat.QtCore.QThread):
+class QThread44(QtCore.QThread):
 	"""
 	This is to imitate QThread in Qt 4.4+ for when running on older version
 	See http://labs.trolltech.com/blogs/2010/06/17/youre-doing-it-wrong
@@ -19,19 +19,87 @@ class QThread44(qt_compat.QtCore.QThread):
 	"""
 
 	def __init__(self, parent = None):
-		qt_compat.QtCore.QThread.__init__(self, parent)
+		QtCore.QThread.__init__(self, parent)
 
 	def run(self):
 		self.exec_()
 
 
-class Producer(qt_compat.QtCore.QObject):
+class _WorkerThread(QtCore.QObject):
+
+	_taskComplete  = qt_compat.Signal(object)
+
+	def __init__(self, futureThread):
+		QtCore.QObject.__init__(self)
+		self._futureThread = futureThread
+		self._futureThread._addTask.connect(self._on_task_added)
+		self._taskComplete.connect(self._futureThread._on_task_complete)
+
+	@qt_compat.Slot(object)
+	def _on_task_added(self, task):
+		if not self._futureThread._isRunning:
+			print "Dropping task"
+
+		func, args, kwds, on_success, on_error = task
+
+		try:
+			result = func(*args, **kwds)
+			isError = False
+		except Exception, e:
+			print "Error, passing it back to the main thread"
+			result = e
+			isError = True
+
+		taskResult = on_success, on_error, isError, result
+		self._taskComplete.emit(taskResult)
+
+
+class FutureThread(QtCore.QObject):
+
+	_addTask = qt_compat.Signal(object)
+
+	def __init__(self):
+		QtCore.QObject.__init__(self)
+		self._thread = QThread44()
+		self._isRunning = False
+		self._worker = _WorkerThread(self)
+		self._worker.moveToThread(self._thread)
+
+	def start(self):
+		self._thread.start()
+		self._isRunning = True
+
+	def stop(self):
+		self._isRunning = False
+		self._thread.quit()
+
+	def add_task(self, func, args, kwds, on_success, on_error):
+		assert self._isRunning, "Task queue not started"
+		task = func, args, kwds, on_success, on_error
+		self._addTask.emit(task)
+
+	@qt_compat.Slot(object)
+	def _on_task_complete(self, taskResult):
+		on_success, on_error, isError, result = taskResult
+		if not self._isRunning:
+			if isError:
+				print "Masking: %s" % (result, )
+			isError = True
+			result = StopIteration("Cancelling all callbacks")
+		callback = on_success if not isError else on_error
+		try:
+			callback(result)
+		except Exception:
+			print "Callback errored"
+
+
+class Producer(QtCore.QObject):
 
 	data = qt_compat.Signal(int)
 	done = qt_compat.Signal()
 
 	def __init__(self):
-		qt_compat.QtCore.QObject.__init__(self)
+		QtCore.QObject.__init__(self)
 
 	@qt_compat.Slot()
 	def process(self):
@@ -42,10 +110,10 @@ class Producer(qt_compat.QtCore.QObject):
 		self.done.emit()
 
 
-class Consumer(qt_compat.QtCore.QObject):
+class Consumer(QtCore.QObject):
 
 	def __init__(self):
-		qt_compat.QtCore.QObject.__init__(self)
+		QtCore.QObject.__init__(self)
 
 	@qt_compat.Slot()
 	def process(self):
@@ -61,14 +129,14 @@ class Consumer(qt_compat.QtCore.QObject):
 
 
 def run_producer_consumer():
-	app = qt_compat.QtCore.QCoreApplication([])
+	app = QtCore.QCoreApplication([])
 
-	producerThread = qore_utils.QThread44()
+	producerThread = QThread44()
 	producer = Producer()
 	producer.moveToThread(producerThread)
 	producerThread.started.connect(producer.process)
 
-	consumerThread = qore_utils.QThread44()
+	consumerThread = QThread44()
 	consumer = Consumer()
 	consumer.moveToThread(consumerThread)
 	consumerThread.started.connect(consumer.process)
@@ -103,9 +171,9 @@ def run_producer_consumer():
 
 
 def run_task():
-	app = qt_compat.QtCore.QCoreApplication([])
+	app = QtCore.QCoreApplication([])
 
-	bright = qore_utils.FutureThread()
+	bright = FutureThread()
 	def on_failure(*args):
 		print "Failure", args
 
@@ -115,7 +183,7 @@ def run_task():
 	def task(*args):
 		print "Task", args
 
-	timer = qt_compat.QtCore.QTimer()
+	timer = QtCore.QTimer()
 	timeouts = [0]
 	@qt_compat.Slot()
 	def on_timeout():
@@ -134,5 +202,5 @@ def run_task():
 
 
 if __name__ == "__main__":
-	#run_producer_consumer()
-	run_task()
+	run_producer_consumer()
+	#run_task()
