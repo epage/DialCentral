@@ -21,9 +21,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 Filesystem backend for contact support
 """
 
+from __future__ import with_statement
 
 import os
 import csv
+
+
+def try_unicode(s):
+	try:
+		return s.decode("UTF-8")
+	except UnicodeDecodeError:
+		return s
 
 
 class CsvAddressBook(object):
@@ -63,11 +71,12 @@ class CsvAddressBook(object):
 
 	def _read_csv(self, csvPath):
 		try:
-			csvReader = iter(csv.reader(open(csvPath, "rU")))
+			f = open(csvPath, "rU")
+			csvReader = iter(csv.reader(f))
 		except IOError, e:
-			if e.errno != 2:
-				raise
-			return
+			if e.errno == 2:
+				return
+			raise
 
 		header = csvReader.next()
 		nameColumns, nameFallbacks, phoneColumns = self._guess_columns(header)
@@ -80,7 +89,7 @@ class CsvAddressBook(object):
 					if len(row[phoneColumn]) == 0:
 						continue
 					contactDetails.append({
-						"phoneType": phoneType,
+						"phoneType": try_unicode(phoneType),
 						"phoneNumber": row[phoneColumn],
 					})
 				except IndexError:
@@ -96,6 +105,7 @@ class CsvAddressBook(object):
 							break
 					else:
 						fullName = "Unknown"
+				fullName = try_unicode(fullName)
 				yield str(yieldCount), {
 					"contactId": "%s-%d" % (self._name, yieldCount),
 					"name": fullName,
