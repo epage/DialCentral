@@ -34,8 +34,11 @@ class _WorkerThread(QtCore.QObject):
 		self._taskComplete.connect(self._futureThread._on_task_complete)
 
 	@qt_compat.Slot(object)
-	@misc.log_exception(_moduleLogger)
 	def _on_task_added(self, task):
+		self.__on_task_added(task)
+
+	@misc.log_exception(_moduleLogger)
+	def __on_task_added(self, task):
 		if not self._futureThread._isRunning:
 			_moduleLogger.error("Dropping task")
 
@@ -78,8 +81,11 @@ class FutureThread(QtCore.QObject):
 		self._addTask.emit(task)
 
 	@qt_compat.Slot(object)
-	@misc.log_exception(_moduleLogger)
 	def _on_task_complete(self, taskResult):
+		self.__on_task_complete(taskResult)
+
+	@misc.log_exception(_moduleLogger)
+	def __on_task_complete(self, taskResult):
 		on_success, on_error, isError, result = taskResult
 		if not self._isRunning:
 			if isError:
