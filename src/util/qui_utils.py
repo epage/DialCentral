@@ -272,16 +272,19 @@ class QSignalingMainWindow(QtGui.QMainWindow):
 		QtGui.QMainWindow.__init__(*((self, )+args), **kwd)
 
 	def closeEvent(self, event):
-		QtGui.QMainWindow.closeEvent(self, event)
+		val = QtGui.QMainWindow.closeEvent(self, event)
 		self.closed.emit()
+		return val
 
 	def hideEvent(self, event):
-		QtGui.QMainWindow.hideEvent(self, event)
+		val = QtGui.QMainWindow.hideEvent(self, event)
 		self.hidden.emit()
+		return val
 
 	def showEvent(self, event):
-		QtGui.QMainWindow.showEvent(self, event)
+		val = QtGui.QMainWindow.showEvent(self, event)
 		self.shown.emit()
+		return val
 
 
 def _null_set_stackable(window, isStackable):
