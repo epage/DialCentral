@@ -857,6 +857,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		self._window.setWindowTitle("Contact")
 		self._window.closed.connect(self._on_close_window)
 		self._window.hidden.connect(self._on_close_window)
+		self._window.resized.connect(self._on_window_resized)
 
 		self._scrollTimer = QtCore.QTimer()
 		self._scrollTimer.setInterval(100)
@@ -1112,6 +1113,12 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._update_letter_count()
 			self._update_button_state()
+
+	@QtCore.pyqtSlot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_window_resized(self, checked = True):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._scroll_to_bottom()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)

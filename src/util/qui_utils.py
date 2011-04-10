@@ -267,6 +267,7 @@ class QSignalingMainWindow(QtGui.QMainWindow):
 	closed = QtCore.pyqtSignal()
 	hidden = QtCore.pyqtSignal()
 	shown = QtCore.pyqtSignal()
+	resized = QtCore.pyqtSignal()
 
 	def __init__(self, *args, **kwd):
 		QtGui.QMainWindow.__init__(*((self, )+args), **kwd)
@@ -284,6 +285,11 @@ class QSignalingMainWindow(QtGui.QMainWindow):
 	def showEvent(self, event):
 		val = QtGui.QMainWindow.showEvent(self, event)
 		self.shown.emit()
+		return val
+
+	def resizeEvent(self, event):
+		val = QtGui.QMainWindow.resizeEvent(self, event)
+		self.resized.emit()
 		return val
 
 
