@@ -22,6 +22,9 @@ import backends.file_backend as file_backend
 _moduleLogger = logging.getLogger(__name__)
 
 
+_SENTINEL_ICON = QtGui.QIcon()
+
+
 class Dialpad(object):
 
 	def __init__(self, app, session, errorLog):
@@ -283,9 +286,13 @@ class History(object):
 		)
 		self._typeSelection.currentIndexChanged[str].connect(self._on_filter_changed)
 		refreshIcon = qui_utils.get_theme_icon(
-			("view-refresh", "general_refresh", "gtk-refresh", )
+			("view-refresh", "general_refresh", "gtk-refresh", ),
+			_SENTINEL_ICON
 		)
-		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		if refreshIcon is not _SENTINEL_ICON:
+			self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		else:
+			self._refreshButton = QtGui.QPushButton("Refresh")
 		self._refreshButton.clicked.connect(self._on_refresh_clicked)
 		self._refreshButton.setSizePolicy(QtGui.QSizePolicy(
 			QtGui.QSizePolicy.Minimum,
@@ -492,9 +499,13 @@ class Messages(object):
 		self._statusSelection.currentIndexChanged[str].connect(self._on_status_filter_changed)
 
 		refreshIcon = qui_utils.get_theme_icon(
-			("view-refresh", "general_refresh", "gtk-refresh", )
+			("view-refresh", "general_refresh", "gtk-refresh", ),
+			_SENTINEL_ICON
 		)
-		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		if refreshIcon is not _SENTINEL_ICON:
+			self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		else:
+			self._refreshButton = QtGui.QPushButton("Refresh")
 		self._refreshButton.clicked.connect(self._on_refresh_clicked)
 		self._refreshButton.setSizePolicy(QtGui.QSizePolicy(
 			QtGui.QSizePolicy.Minimum,
@@ -728,9 +739,13 @@ class Contacts(object):
 		self._listSelection.currentIndexChanged[str].connect(self._on_filter_changed)
 		self._activeList = "None"
 		refreshIcon = qui_utils.get_theme_icon(
-			("view-refresh", "general_refresh", "gtk-refresh", )
+			("view-refresh", "general_refresh", "gtk-refresh", ),
+			_SENTINEL_ICON
 		)
-		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		if refreshIcon is not _SENTINEL_ICON:
+			self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		else:
+			self._refreshButton = QtGui.QPushButton("Refresh")
 		self._refreshButton.clicked.connect(self._on_refresh_clicked)
 		self._refreshButton.setSizePolicy(QtGui.QSizePolicy(
 			QtGui.QSizePolicy.Minimum,
