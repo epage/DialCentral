@@ -193,6 +193,7 @@ class Draft(QtCore.QObject):
 class Session(QtCore.QObject):
 
 	# @todo Somehow add support for csv contacts
+	# @BUG When loading without caches, downloads messages twice
 
 	stateChange = QtCore.pyqtSignal(str)
 	loggedOut = QtCore.pyqtSignal()
