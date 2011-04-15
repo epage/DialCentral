@@ -231,7 +231,7 @@ class Session(QtCore.QObject):
 	_LOGGEDOUT_TIME = -1
 	_LOGGINGIN_TIME = 0
 
-	def __init__(self, errorLog, cachePath = None):
+	def __init__(self, errorLog, cachePath):
 		QtCore.QObject.__init__(self)
 		self._errorLog = errorLog
 		self._pool = qore_utils.FutureThread()
