@@ -309,12 +309,12 @@ except AttributeError:
 	set_stackable = _null_set_stackable
 
 
-def _null_set_autorient(window, isStackable):
+def _null_set_autorient(window, doAutoOrient):
 	pass
 
 
-def _maemo_set_autorient(window, isStackable):
-	window.setAttribute(QtCore.Qt.WA_Maemo5AutoOrientation, isStackable)
+def _maemo_set_autorient(window, doAutoOrient):
+	window.setAttribute(QtCore.Qt.WA_Maemo5AutoOrientation, doAutoOrient)
 
 
 try:
@@ -338,13 +338,16 @@ def _null_set_window_orientation(window, orientation):
 
 def _maemo_set_window_orientation(window, orientation):
 	if orientation == QtCore.Qt.Vertical:
-		oldHint = QtCore.Qt.WA_Maemo5LandscapeOrientation
-		newHint = QtCore.Qt.WA_Maemo5PortraitOrientation
+		window.setAttribute(QtCore.Qt.WA_Maemo5LandscapeOrientation, False)
+		window.setAttribute(QtCore.Qt.WA_Maemo5PortraitOrientation, True)
 	elif orientation == QtCore.Qt.Horizontal:
-		oldHint = QtCore.Qt.WA_Maemo5PortraitOrientation
-		newHint = QtCore.Qt.WA_Maemo5LandscapeOrientation
-	window.setAttribute(oldHint, False)
-	window.setAttribute(newHint, True)
+		window.setAttribute(QtCore.Qt.WA_Maemo5LandscapeOrientation, True)
+		window.setAttribute(QtCore.Qt.WA_Maemo5PortraitOrientation, False)
+	elif orientation is None:
+		window.setAttribute(QtCore.Qt.WA_Maemo5LandscapeOrientation, True)
+		window.setAttribute(QtCore.Qt.WA_Maemo5PortraitOrientation, True)
+	else:
+		raise RuntimeError("Unknown orientation: %r" % orientation)
 
 
 try:

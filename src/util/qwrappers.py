@@ -18,6 +18,11 @@ _moduleLogger = logging.getLogger(__name__)
 
 class ApplicationWrapper(object):
 
+	DEFAULT_ORIENTATION = "Default"
+	AUTO_ORIENTATION = "Auto"
+	LANDSCAPE_ORIENTATION = "Landscape"
+	PORTRAIT_ORIENTATION = "Portrait"
+
 	def __init__(self, qapp, constants):
 		self._constants = constants
 		self._qapp = qapp
@@ -32,11 +37,12 @@ class ApplicationWrapper(object):
 		self._fullscreenAction.setShortcut(QtGui.QKeySequence("CTRL+Enter"))
 		self._fullscreenAction.toggled.connect(self._on_toggle_fullscreen)
 
+		self._orientation = self.DEFAULT_ORIENTATION
 		self._orientationAction = QtGui.QAction(None)
-		self._orientationAction.setText("Orientation")
+		self._orientationAction.setText("Next Orientation")
 		self._orientationAction.setCheckable(True)
 		self._orientationAction.setShortcut(QtGui.QKeySequence("CTRL+o"))
-		self._orientationAction.toggled.connect(self._on_toggle_orientation)
+		self._orientationAction.triggered.connect(self._on_next_orientation)
 
 		self._logAction = QtGui.QAction(None)
 		self._logAction.setText("Log")
@@ -95,6 +101,10 @@ class ApplicationWrapper(object):
 		return self._orientationAction
 
 	@property
+	def orientation(self):
+		return self._orientation
+
+	@property
 	def logAction(self):
 		return self._logAction
 
@@ -105,6 +115,15 @@ class ApplicationWrapper(object):
 	@property
 	def quitAction(self):
 		return self._quitAction
+
+	@classmethod
+	def _next_orientation(cls, current):
+		return {
+			cls.DEFAULT_ORIENTATION: cls.AUTO_ORIENTATION,
+			cls.AUTO_ORIENTATION: cls.LANDSCAPE_ORIENTATION,
+			cls.LANDSCAPE_ORIENTATION: cls.PORTRAIT_ORIENTATION,
+			cls.PORTRAIT_ORIENTATION: cls.DEFAULT_ORIENTATION,
+		}[current]
 
 	def _close_windows(self):
 		if self._mainWindow is not None:
@@ -135,9 +154,10 @@ class ApplicationWrapper(object):
 			self._mainWindow.set_fullscreen(checked)
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_toggle_orientation(self, checked = False):
+	def _on_next_orientation(self, checked = False):
 		with qui_utils.notify_error(self._errorLog):
-			self._mainWindow.set_orientation(checked)
+			self._orientation = self._next_orientation(self._orientation)
+			self._mainWindow.update_orientation(self._orientation)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_about(self, checked = True):
@@ -196,6 +216,24 @@ class WindowWrapper(object):
 	def window(self):
 		return self._window
 
+	@property
+	def windowOrientation(self):
+		geom = self._window.size()
+		if geom.width() <= geom.height():
+			return QtCore.Qt.Vertical
+		else:
+			return QtCore.Qt.Horizontal
+
+	@property
+	def idealWindowOrientation(self):
+		if self._app.orientation ==  self._app.LANDSCAPE_ORIENTATION:
+			windowOrientation = QtCore.Qt.Horizontal
+		elif self._app.orientation ==  self._app.PORTRAIT_ORIENTATION:
+			windowOrientation = QtCore.Qt.Vertical
+		else:
+			windowOrientation = self.windowOrientation
+		return windowOrientation
+
 	def walk_children(self):
 		return ()
 
@@ -231,13 +269,23 @@ class WindowWrapper(object):
 		for child in self.walk_children():
 			child.set_fullscreen(isFullscreen)
 
-	def set_orientation(self, isPortrait):
-		if isPortrait:
+	def update_orientation(self, orientation):
+		if orientation == self._app.DEFAULT_ORIENTATION:
+			qui_utils.set_autorient(self.window, False)
+			qui_utils.set_window_orientation(self.window, None)
+		elif orientation == self._app.AUTO_ORIENTATION:
+			qui_utils.set_autorient(self.window, True)
+			qui_utils.set_window_orientation(self.window, None)
+		elif orientation == self._app.LANDSCAPE_ORIENTATION:
+			qui_utils.set_autorient(self.window, False)
+			qui_utils.set_window_orientation(self.window, QtCore.Qt.Horizontal)
+		elif orientation == self._app.PORTRAIT_ORIENTATION:
+			qui_utils.set_autorient(self.window, False)
 			qui_utils.set_window_orientation(self.window, QtCore.Qt.Vertical)
 		else:
-			qui_utils.set_window_orientation(self.window, QtCore.Qt.Horizontal)
+			raise RuntimeError("Unknown orientation: %r" % orientation)
 		for child in self.walk_children():
-			child.set_orientation(isPortrait)
+			child.update_orientation(orientation)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_child_close(self, obj = None):

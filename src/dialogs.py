@@ -869,7 +869,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		self._update_letter_count()
 		self._update_target_fields()
 		self.set_fullscreen(self._app.fullscreenAction.isChecked())
-		self.set_orientation(self._app.orientationAction.isChecked())
+		self.update_orientation(self._app.orientation)
 
 	def close(self):
 		if self._window is None:
@@ -908,8 +908,8 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		except RuntimeError:
 			_moduleLogger.exception("Oh well")
 
-	def set_orientation(self, isPortrait):
-		qwrappers.WindowWrapper.set_orientation(self, isPortrait)
+	def update_orientation(self, orientation):
+		qwrappers.WindowWrapper.update_orientation(self, orientation)
 		self._scroll_to_bottom()
 
 	def _update_letter_count(self):
@@ -1117,7 +1117,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 
 	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_window_resized(self, checked = True):
+	def _on_window_resized(self):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._scroll_to_bottom()
 

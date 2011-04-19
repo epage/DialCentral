@@ -256,6 +256,7 @@ class MainWindow(qwrappers.WindowWrapper):
 	def __init__(self, parent, app):
 		qwrappers.WindowWrapper.__init__(self, parent, app)
 		self._window.setWindowTitle("%s" % constants.__pretty_app_name__)
+		self._window.resized.connect(self._on_window_resized)
 		self._errorLog = self._app.errorLog
 
 		self._session = session.Session(self._errorLog, constants._data_path_)
@@ -350,7 +351,7 @@ class MainWindow(qwrappers.WindowWrapper):
 
 		self._initialize_tab(self._tabWidget.currentIndex())
 		self.set_fullscreen(self._app.fullscreenAction.isChecked())
-		self.set_orientation(self._app.orientationAction.isChecked())
+		self.update_orientation(self._app.orientation)
 
 	def set_default_credentials(self, username, password):
 		self._defaultCredentials = username, password
@@ -401,7 +402,7 @@ class MainWindow(qwrappers.WindowWrapper):
 	def load_settings(self, config):
 		blobs = "", ""
 		isFullscreen = False
-		isPortrait = qui_utils.screen_orientation() == QtCore.Qt.Vertical
+		orientation = self._app.orientation
 		tabIndex = 0
 		try:
 			blobs = [
@@ -410,7 +411,7 @@ class MainWindow(qwrappers.WindowWrapper):
 			]
 			isFullscreen = config.getboolean(constants.__pretty_app_name__, "fullscreen")
 			tabIndex = config.getint(constants.__pretty_app_name__, "tab")
-			isPortrait = config.getboolean(constants.__pretty_app_name__, "portrait")
+			orientation = config.get(constants.__pretty_app_name__, "orientation")
 		except ConfigParser.NoOptionError, e:
 			_moduleLogger.info(
 				"Settings file %s is missing option %s" % (
@@ -457,7 +458,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		)
 		self.set_default_credentials(*creds)
 		self._app.fullscreenAction.setChecked(isFullscreen)
-		self._app.orientationAction.setChecked(isPortrait)
+		self.update_orientation(orientation)
 		self.set_current_tab(tabIndex)
 
 		backendId = 2 # For backwards compatibility
@@ -493,7 +494,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		config.add_section(constants.__pretty_app_name__)
 		config.set(constants.__pretty_app_name__, "tab", str(self.get_current_tab()))
 		config.set(constants.__pretty_app_name__, "fullscreen", str(self._app.fullscreenAction.isChecked()))
-		config.set(constants.__pretty_app_name__, "portrait", str(self._app.orientationAction.isChecked()))
+		config.set(constants.__pretty_app_name__, "orientation", str(self._app.orientation))
 		for i, value in enumerate(self.get_default_credentials()):
 			blob = base64.b64encode(value)
 			config.set(constants.__pretty_app_name__, "bin_blob_%i" % i, blob)
@@ -514,12 +515,13 @@ class MainWindow(qwrappers.WindowWrapper):
 			for settingName, settingValue in tabSettings.iteritems():
 				config.set(sectionName, settingName, settingValue)
 
-	def set_orientation(self, isPortrait):
-		qwrappers.WindowWrapper.set_orientation(self, isPortrait)
-		if isPortrait:
-			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
-		else:
+	def update_orientation(self, orientation):
+		qwrappers.WindowWrapper.update_orientation(self, orientation)
+		windowOrientation = self.idealWindowOrientation
+		if windowOrientation == QtCore.Qt.Horizontal:
 			self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
+		else:
+			self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
 
 	def _initialize_tab(self, index):
 		assert index < self.MAX_TABS, "Invalid tab"
@@ -603,6 +605,16 @@ class MainWindow(qwrappers.WindowWrapper):
 			_moduleLogger.info("Cancelled")
 		else:
 			_moduleLogger.info("Unknown response")
+
+	@qt_compat.Slot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_window_resized(self):
+		with qui_utils.notify_error(self._app.errorLog):
+			windowOrientation = self.idealWindowOrientation
+			if windowOrientation == QtCore.Qt.Horizontal:
+				self._tabWidget.setTabPosition(QtGui.QTabWidget.West)
+			else:
+				self._tabWidget.setTabPosition(QtGui.QTabWidget.South)
 
 	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
