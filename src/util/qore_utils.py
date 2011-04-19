@@ -1,6 +1,7 @@
 import logging
 
-from PyQt4 import QtCore
+import qt_compat
+QtCore = qt_compat.QtCore
 
 import misc
 
@@ -22,40 +23,23 @@ class QThread44(QtCore.QThread):
 		self.exec_()
 
 
-class _ParentThread(QtCore.QObject):
-
-	def __init__(self, pool):
-		QtCore.QObject.__init__(self)
-		self._pool = pool
-
-	@QtCore.pyqtSlot(object)
-	@misc.log_exception(_moduleLogger)
-	def _on_task_complete(self, taskResult):
-		on_success, on_error, isError, result = taskResult
-		if not self._pool._isRunning:
-			if isError:
-				_moduleLogger.error("Masking: %s" % (result, ))
-			isError = True
-			result = StopIteration("Cancelling all callbacks")
-		callback = on_success if not isError else on_error
-		try:
-			callback(result)
-		except Exception:
-			_moduleLogger.exception("Callback errored")
-
-
 class _WorkerThread(QtCore.QObject):
 
-	taskComplete  = QtCore.pyqtSignal(object)
+	_taskComplete  = qt_compat.Signal(object)
 
-	def __init__(self, pool):
+	def __init__(self, futureThread):
 		QtCore.QObject.__init__(self)
-		self._pool = pool
+		self._futureThread = futureThread
+		self._futureThread._addTask.connect(self._on_task_added)
+		self._taskComplete.connect(self._futureThread._on_task_complete)
 
-	@QtCore.pyqtSlot(object)
-	@misc.log_exception(_moduleLogger)
+	@qt_compat.Slot(object)
 	def _on_task_added(self, task):
-		if not self._pool._isRunning:
+		self.__on_task_added(task)
+
+	@misc.log_exception(_moduleLogger)
+	def __on_task_added(self, task):
+		if not self._futureThread._isRunning:
 			_moduleLogger.error("Dropping task")
 
 		func, args, kwds, on_success, on_error = task
@@ -69,30 +53,19 @@ class _WorkerThread(QtCore.QObject):
 			isError = True
 
 		taskResult = on_success, on_error, isError, result
-		self.taskComplete.emit(taskResult)
-
-	@QtCore.pyqtSlot()
-	@misc.log_exception(_moduleLogger)
-	def _on_stop_requested(self):
-		self._pool._thread.quit()
+		self._taskComplete.emit(taskResult)
 
 
-class AsyncPool(QtCore.QObject):
+class FutureThread(QtCore.QObject):
 
-	_addTask = QtCore.pyqtSignal(object)
-	_stopPool = QtCore.pyqtSignal()
+	_addTask = qt_compat.Signal(object)
 
 	def __init__(self):
 		QtCore.QObject.__init__(self)
 		self._thread = QThread44()
 		self._isRunning = False
-		self._parent = _ParentThread(self)
 		self._worker = _WorkerThread(self)
 		self._worker.moveToThread(self._thread)
-
-		self._addTask.connect(self._worker._on_task_added)
-		self._worker.taskComplete.connect(self._parent._on_task_complete)
-		self._stopPool.connect(self._worker._on_stop_requested)
 
 	def start(self):
 		self._thread.start()
@@ -100,9 +73,27 @@ class AsyncPool(QtCore.QObject):
 
 	def stop(self):
 		self._isRunning = False
-		self._stopPool.emit()
+		self._thread.quit()
 
 	def add_task(self, func, args, kwds, on_success, on_error):
 		assert self._isRunning, "Task queue not started"
 		task = func, args, kwds, on_success, on_error
 		self._addTask.emit(task)
+
+	@qt_compat.Slot(object)
+	def _on_task_complete(self, taskResult):
+		self.__on_task_complete(taskResult)
+
+	@misc.log_exception(_moduleLogger)
+	def __on_task_complete(self, taskResult):
+		on_success, on_error, isError, result = taskResult
+		if not self._isRunning:
+			if isError:
+				_moduleLogger.error("Masking: %s" % (result, ))
+			isError = True
+			result = StopIteration("Cancelling all callbacks")
+		callback = on_success if not isError else on_error
+		try:
+			callback(result)
+		except Exception:
+			_moduleLogger.exception("Callback errored")

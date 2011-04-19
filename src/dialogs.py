@@ -7,8 +7,9 @@ import functools
 import copy
 import logging
 
-from PyQt4 import QtGui
-from PyQt4 import QtCore
+import util.qt_compat as qt_compat
+QtCore = qt_compat.QtCore
+QtGui = qt_compat.import_module("QtGui")
 
 import constants
 from util import qwrappers
@@ -80,8 +81,8 @@ class CredentialsDialog(object):
 		except RuntimeError:
 			_moduleLogger.exception("Oh well")
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -141,15 +142,15 @@ class AboutDialog(object):
 		except RuntimeError:
 			_moduleLogger.exception("Oh well")
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._dialog.reject()
 
 
-class AccountDialog(object):
+class AccountDialog(QtCore.QObject, qwrappers.WindowWrapper):
 
 	# @bug Can't enter custom callback numbers
 
@@ -169,13 +170,25 @@ class AccountDialog(object):
 		(12*60, "12 hours"),
 	]
 
-	def __init__(self, app):
+	ALARM_NONE = "No Alert"
+	ALARM_BACKGROUND = "Background Alert"
+	ALARM_APPLICATION = "Application Alert"
+
+	VOICEMAIL_CHECK_NOT_SUPPORTED = "Not Supported"
+	VOICEMAIL_CHECK_DISABLED = "Disabled"
+	VOICEMAIL_CHECK_ENABLED = "Enabled"
+
+	settingsApproved = qt_compat.Signal()
+
+	def __init__(self, parent, app, errorLog):
+		QtCore.QObject.__init__(self)
+		qwrappers.WindowWrapper.__init__(self, parent, app)
 		self._app = app
 		self._doClear = False
 
 		self._accountNumberLabel = QtGui.QLabel("NUMBER NOT SET")
-		self._notificationButton = QtGui.QCheckBox("Notifications")
-		self._notificationButton.stateChanged.connect(self._on_notification_change)
+		self._notificationSelecter = QtGui.QComboBox()
+		self._notificationSelecter.currentIndexChanged.connect(self._on_notification_change)
 		self._notificationTimeSelector = QtGui.QComboBox()
 		#self._notificationTimeSelector.setEditable(True)
 		self._notificationTimeSelector.setInsertPolicy(QtGui.QComboBox.InsertAtTop)
@@ -184,11 +197,20 @@ class AccountDialog(object):
 		self._missedCallsNotificationButton = QtGui.QCheckBox("Missed Calls")
 		self._voicemailNotificationButton = QtGui.QCheckBox("Voicemail")
 		self._smsNotificationButton = QtGui.QCheckBox("SMS")
+		self._voicemailOnMissedButton = QtGui.QCheckBox("Voicemail Update on Missed Calls")
 		self._clearButton = QtGui.QPushButton("Clear Account")
 		self._clearButton.clicked.connect(self._on_clear)
 		self._callbackSelector = QtGui.QComboBox()
 		#self._callbackSelector.setEditable(True)
 		self._callbackSelector.setInsertPolicy(QtGui.QComboBox.InsertAtTop)
+		self._orientationSelector = QtGui.QComboBox()
+		for orientationMode in [
+			self._app.DEFAULT_ORIENTATION,
+			self._app.AUTO_ORIENTATION,
+			self._app.LANDSCAPE_ORIENTATION,
+			self._app.PORTRAIT_ORIENTATION,
+		]:
+			self._orientationSelector.addItem(orientationMode)
 
 		self._update_notification_state()
 
@@ -197,7 +219,7 @@ class AccountDialog(object):
 		self._credLayout.addWidget(self._accountNumberLabel, 0, 1)
 		self._credLayout.addWidget(QtGui.QLabel("Callback"), 1, 0)
 		self._credLayout.addWidget(self._callbackSelector, 1, 1)
-		self._credLayout.addWidget(self._notificationButton, 2, 0)
+		self._credLayout.addWidget(self._notificationSelecter, 2, 0)
 		self._credLayout.addWidget(self._notificationTimeSelector, 2, 1)
 		self._credLayout.addWidget(QtGui.QLabel(""), 3, 0)
 		self._credLayout.addWidget(self._missedCallsNotificationButton, 3, 1)
@@ -205,33 +227,37 @@ class AccountDialog(object):
 		self._credLayout.addWidget(self._voicemailNotificationButton, 4, 1)
 		self._credLayout.addWidget(QtGui.QLabel(""), 5, 0)
 		self._credLayout.addWidget(self._smsNotificationButton, 5, 1)
+		self._credLayout.addWidget(QtGui.QLabel("Other"), 6, 0)
+		self._credLayout.addWidget(self._voicemailOnMissedButton, 6, 1)
+		self._credLayout.addWidget(QtGui.QLabel("Orientation"), 7, 0)
+		self._credLayout.addWidget(self._orientationSelector, 7, 1)
+		self._credLayout.addWidget(QtGui.QLabel(""), 8, 0)
+		self._credLayout.addWidget(QtGui.QLabel(""), 9, 0)
+		self._credLayout.addWidget(self._clearButton, 9, 1)
 
-		self._credLayout.addWidget(QtGui.QLabel(""), 6, 0)
-		self._credLayout.addWidget(self._clearButton, 6, 1)
-		self._credLayout.addWidget(QtGui.QLabel(""), 3, 0)
+		self._credWidget = QtGui.QWidget()
+		self._credWidget.setLayout(self._credLayout)
+		self._credWidget.setContentsMargins(0, 0, 0, 0)
+		self._scrollSettings = QtGui.QScrollArea()
+		self._scrollSettings.setWidget(self._credWidget)
+		self._scrollSettings.setWidgetResizable(True)
+		self._scrollSettings.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+		self._scrollSettings.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-		self._loginButton = QtGui.QPushButton("&Apply")
-		self._buttonLayout = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Cancel)
-		self._buttonLayout.addButton(self._loginButton, QtGui.QDialogButtonBox.AcceptRole)
+		self._applyButton = QtGui.QPushButton("&Apply")
+		self._applyButton.clicked.connect(self._on_settings_apply)
+		self._cancelButton = QtGui.QPushButton("&Cancel")
+		self._cancelButton.clicked.connect(self._on_settings_cancel)
+		self._buttonLayout = QtGui.QDialogButtonBox()
+		self._buttonLayout.addButton(self._applyButton, QtGui.QDialogButtonBox.AcceptRole)
+		self._buttonLayout.addButton(self._cancelButton, QtGui.QDialogButtonBox.RejectRole)
 
-		self._layout = QtGui.QVBoxLayout()
-		self._layout.addLayout(self._credLayout)
+		self._layout.addWidget(self._scrollSettings)
 		self._layout.addWidget(self._buttonLayout)
+		self._layout.setDirection(QtGui.QBoxLayout.TopToBottom)
 
-		self._dialog = QtGui.QDialog()
-		self._dialog.setWindowTitle("Account")
-		self._dialog.setLayout(self._layout)
-		self._buttonLayout.accepted.connect(self._dialog.accept)
-		self._buttonLayout.rejected.connect(self._dialog.reject)
-
-		self._closeWindowAction = QtGui.QAction(None)
-		self._closeWindowAction.setText("Close")
-		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
-		self._closeWindowAction.triggered.connect(self._on_close_window)
-
-		self._dialog.addAction(self._closeWindowAction)
-		self._dialog.addAction(app.quitAction)
-		self._dialog.addAction(app.fullscreenAction)
+		self._window.setWindowTitle("Account")
+		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
 
 	@property
 	def doClear(self):
@@ -239,24 +265,54 @@ class AccountDialog(object):
 
 	def setIfNotificationsSupported(self, isSupported):
 		if isSupported:
-			self._notificationButton.setVisible(True)
-			self._notificationTimeSelector.setVisible(True)
-			self._missedCallsNotificationButton.setVisible(True)
-			self._voicemailNotificationButton.setVisible(True)
-			self._smsNotificationButton.setVisible(True)
+			self._notificationSelecter.clear()
+			self._notificationSelecter.addItems([self.ALARM_NONE, self.ALARM_APPLICATION, self.ALARM_BACKGROUND])
+			self._notificationTimeSelector.setEnabled(False)
+			self._missedCallsNotificationButton.setEnabled(False)
+			self._voicemailNotificationButton.setEnabled(False)
+			self._smsNotificationButton.setEnabled(False)
 		else:
-			self._notificationButton.setVisible(False)
-			self._notificationTimeSelector.setVisible(False)
-			self._missedCallsNotificationButton.setVisible(False)
-			self._voicemailNotificationButton.setVisible(False)
-			self._smsNotificationButton.setVisible(False)
+			self._notificationSelecter.clear()
+			self._notificationSelecter.addItems([self.ALARM_NONE, self.ALARM_APPLICATION])
+			self._notificationTimeSelector.setEnabled(False)
+			self._missedCallsNotificationButton.setEnabled(False)
+			self._voicemailNotificationButton.setEnabled(False)
+			self._smsNotificationButton.setEnabled(False)
 
 	def set_account_number(self, num):
 		self._accountNumberLabel.setText(num)
 
+	orientation = property(
+		lambda self: str(self._orientationSelector.currentText()),
+		lambda self, mode: qui_utils.set_current_index(self._orientationSelector, mode),
+	)
+
+	def _set_voicemail_on_missed(self, status):
+		if status == self.VOICEMAIL_CHECK_NOT_SUPPORTED:
+			self._voicemailOnMissedButton.setChecked(False)
+			self._voicemailOnMissedButton.hide()
+		elif status == self.VOICEMAIL_CHECK_DISABLED:
+			self._voicemailOnMissedButton.setChecked(False)
+			self._voicemailOnMissedButton.show()
+		elif status == self.VOICEMAIL_CHECK_ENABLED:
+			self._voicemailOnMissedButton.setChecked(True)
+			self._voicemailOnMissedButton.show()
+		else:
+			raise RuntimeError("Unsupported option for updating voicemail on missed calls %r" % status)
+
+	def _get_voicemail_on_missed(self):
+		if not self._voicemailOnMissedButton.isVisible():
+			return self.VOICEMAIL_CHECK_NOT_SUPPORTED
+		elif self._voicemailOnMissedButton.isChecked():
+			return self.VOICEMAIL_CHECK_ENABLED
+		else:
+			return self.VOICEMAIL_CHECK_DISABLED
+
+	updateVMOnMissedCall = property(_get_voicemail_on_missed, _set_voicemail_on_missed)
+
 	notifications = property(
-		lambda self: self._notificationButton.isChecked(),
-		lambda self, enabled: self._notificationButton.setChecked(enabled),
+		lambda self: str(self._notificationSelecter.currentText()),
+		lambda self, enabled: qui_utils.set_current_index(self._notificationSelecter, enabled),
 	)
 
 	notifyOnMissed = property(
@@ -292,7 +348,7 @@ class AccountDialog(object):
 	@property
 	def selectedCallback(self):
 		index = self._callbackSelector.currentIndex()
-		data = str(self._callbackSelector.itemData(index).toPyObject())
+		data = str(self._callbackSelector.itemData(index))
 		return data
 
 	def set_callbacks(self, choices, default):
@@ -311,51 +367,72 @@ class AccountDialog(object):
 			if uglyNumber == uglyDefault:
 				self._callbackSelector.setCurrentIndex(self._callbackSelector.count() - 1)
 
-	def run(self, parent=None):
+	def run(self):
 		self._doClear = False
-		self._dialog.setParent(parent, QtCore.Qt.Dialog)
-
-		response = self._dialog.exec_()
-		return response
+		self._window.show()
 
 	def close(self):
 		try:
-			self._dialog.reject()
+			self._window.hide()
 		except RuntimeError:
 			_moduleLogger.exception("Oh well")
 
 	def _update_notification_state(self):
-		if self._notificationButton.isChecked():
+		currentText = str(self._notificationSelecter.currentText())
+		if currentText == self.ALARM_BACKGROUND:
 			self._notificationTimeSelector.setEnabled(True)
+
 			self._missedCallsNotificationButton.setEnabled(True)
 			self._voicemailNotificationButton.setEnabled(True)
 			self._smsNotificationButton.setEnabled(True)
+		elif currentText == self.ALARM_APPLICATION:
+			self._notificationTimeSelector.setEnabled(True)
+
+			self._missedCallsNotificationButton.setEnabled(False)
+			self._voicemailNotificationButton.setEnabled(True)
+			self._smsNotificationButton.setEnabled(True)
+
+			self._missedCallsNotificationButton.setChecked(False)
 		else:
 			self._notificationTimeSelector.setEnabled(False)
+
 			self._missedCallsNotificationButton.setEnabled(False)
 			self._voicemailNotificationButton.setEnabled(False)
 			self._smsNotificationButton.setEnabled(False)
 
-	@QtCore.pyqtSlot(int)
+			self._missedCallsNotificationButton.setChecked(False)
+			self._voicemailNotificationButton.setChecked(False)
+			self._smsNotificationButton.setChecked(False)
+
+	@qt_compat.Slot(int)
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_notification_change(self, state):
+	def _on_notification_change(self, index):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._update_notification_state()
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_settings_cancel(self, checked = False):
+		with qui_utils.notify_error(self._app.errorLog):
+			self.hide()
+
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_settings_apply(self, checked = False):
+		with qui_utils.notify_error(self._app.errorLog):
+			self.settingsApproved.emit()
+			self.hide()
+
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_clear(self, checked = False):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._doClear = True
-			self._dialog.accept()
-
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
-	@misc_utils.log_exception(_moduleLogger)
-	def _on_close_window(self, checked = True):
-		with qui_utils.notify_error(self._app.errorLog):
-			self._dialog.reject()
+			self.settingsApproved.emit()
+			self.hide()
 
 
 class ContactList(object):
@@ -415,7 +492,7 @@ class ContactList(object):
 			)
 			callback.__name__ = "thanks partials for not having names and pyqt for requiring them"
 			numberSelector.activated.connect(
-				QtCore.pyqtSlot(int)(callback)
+				qt_compat.Slot(int)(callback)
 			)
 
 			if self._closeIcon is self._SENTINEL_ICON:
@@ -504,6 +581,216 @@ class ContactList(object):
 			self._session.draft.remove_contact(self._uiItems[index]["cid"])
 
 
+class VoicemailPlayer(object):
+
+	def __init__(self, app, session, errorLog):
+		self._app = app
+		self._session = session
+		self._errorLog = errorLog
+		self._token = None
+		self._session.voicemailAvailable.connect(self._on_voicemail_downloaded)
+		self._session.draft.recipientsChanged.connect(self._on_recipients_changed)
+
+		self._playButton = QtGui.QPushButton("Play")
+		self._playButton.clicked.connect(self._on_voicemail_play)
+		self._pauseButton = QtGui.QPushButton("Pause")
+		self._pauseButton.clicked.connect(self._on_voicemail_pause)
+		self._pauseButton.hide()
+		self._resumeButton = QtGui.QPushButton("Resume")
+		self._resumeButton.clicked.connect(self._on_voicemail_resume)
+		self._resumeButton.hide()
+		self._stopButton = QtGui.QPushButton("Stop")
+		self._stopButton.clicked.connect(self._on_voicemail_stop)
+		self._stopButton.hide()
+
+		self._downloadButton = QtGui.QPushButton("Download Voicemail")
+		self._downloadButton.clicked.connect(self._on_voicemail_download)
+		self._downloadLayout = QtGui.QHBoxLayout()
+		self._downloadLayout.addWidget(self._downloadButton)
+		self._downloadWidget = QtGui.QWidget()
+		self._downloadWidget.setLayout(self._downloadLayout)
+
+		self._playLabel = QtGui.QLabel("Voicemail")
+		self._saveButton = QtGui.QPushButton("Save")
+		self._saveButton.clicked.connect(self._on_voicemail_save)
+		self._playerLayout = QtGui.QHBoxLayout()
+		self._playerLayout.addWidget(self._playLabel)
+		self._playerLayout.addWidget(self._playButton)
+		self._playerLayout.addWidget(self._pauseButton)
+		self._playerLayout.addWidget(self._resumeButton)
+		self._playerLayout.addWidget(self._stopButton)
+		self._playerLayout.addWidget(self._saveButton)
+		self._playerWidget = QtGui.QWidget()
+		self._playerWidget.setLayout(self._playerLayout)
+
+		self._visibleWidget = None
+		self._layout = QtGui.QHBoxLayout()
+		self._layout.setContentsMargins(0, 0, 0, 0)
+		self._widget = QtGui.QWidget()
+		self._widget.setLayout(self._layout)
+		self._update_state()
+
+	@property
+	def toplevel(self):
+		return self._widget
+
+	def destroy(self):
+		self._session.voicemailAvailable.disconnect(self._on_voicemail_downloaded)
+		self._session.draft.recipientsChanged.disconnect(self._on_recipients_changed)
+		self._invalidate_token()
+
+	def _invalidate_token(self):
+		if self._token is not None:
+			self._token.invalidate()
+			self._token.error.disconnect(self._on_play_error)
+			self._token.stateChange.connect(self._on_play_state)
+			self._token.invalidated.connect(self._on_play_invalidated)
+
+	def _show_download(self, messageId):
+		if self._visibleWidget is self._downloadWidget:
+			return
+		self._hide()
+		self._layout.addWidget(self._downloadWidget)
+		self._visibleWidget = self._downloadWidget
+		self._visibleWidget.show()
+
+	def _show_player(self, messageId):
+		if self._visibleWidget is self._playerWidget:
+			return
+		self._hide()
+		self._layout.addWidget(self._playerWidget)
+		self._visibleWidget = self._playerWidget
+		self._visibleWidget.show()
+
+	def _hide(self):
+		if self._visibleWidget is None:
+			return
+		self._visibleWidget.hide()
+		self._layout.removeWidget(self._visibleWidget)
+		self._visibleWidget = None
+
+	def _update_play_state(self):
+		if self._token is not None and self._token.isValid:
+			self._playButton.setText("Stop")
+		else:
+			self._playButton.setText("Play")
+
+	def _update_state(self):
+		if self._session.draft.get_num_contacts() != 1:
+			self._hide()
+			return
+
+		(cid, ) = self._session.draft.get_contacts()
+		messageId = self._session.draft.get_message_id(cid)
+		if messageId is None:
+			self._hide()
+			return
+
+		if self._session.is_available(messageId):
+			self._show_player(messageId)
+		else:
+			self._show_download(messageId)
+		if self._token is not None:
+			self._token.invalidate()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_save(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			targetPath = QtGui.QFileDialog.getSaveFileName(None, caption="Save Voicemail", filter="Audio File (*.mp3)")
+			targetPath = unicode(targetPath)
+			if not targetPath:
+				return
+
+			(cid, ) = self._session.draft.get_contacts()
+			messageId = self._session.draft.get_message_id(cid)
+			sourcePath = self._session.voicemail_path(messageId)
+			import shutil
+			shutil.copy2(sourcePath, targetPath)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_play_error(self, error):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._app.errorLog.push_error(error)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_play_invalidated(self):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._playButton.show()
+			self._pauseButton.hide()
+			self._resumeButton.hide()
+			self._stopButton.hide()
+			self._invalidate_token()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_play_state(self, state):
+		with qui_utils.notify_error(self._app.errorLog):
+			if state == self._token.STATE_PLAY:
+				self._playButton.hide()
+				self._pauseButton.show()
+				self._resumeButton.hide()
+				self._stopButton.show()
+			elif state == self._token.STATE_PAUSE:
+				self._playButton.hide()
+				self._pauseButton.hide()
+				self._resumeButton.show()
+				self._stopButton.show()
+			elif state == self._token.STATE_STOP:
+				self._playButton.show()
+				self._pauseButton.hide()
+				self._resumeButton.hide()
+				self._stopButton.hide()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_play(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			(cid, ) = self._session.draft.get_contacts()
+			messageId = self._session.draft.get_message_id(cid)
+			sourcePath = self._session.voicemail_path(messageId)
+
+			self._invalidate_token()
+			uri = "file://%s" % sourcePath
+			self._token = self._app.streamHandler.set_file(uri)
+			self._token.stateChange.connect(self._on_play_state)
+			self._token.invalidated.connect(self._on_play_invalidated)
+			self._token.error.connect(self._on_play_error)
+			self._token.play()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_pause(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._token.pause()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_resume(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._token.play()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_stop(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._token.stop()
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_download(self, arg):
+		with qui_utils.notify_error(self._app.errorLog):
+			(cid, ) = self._session.draft.get_contacts()
+			messageId = self._session.draft.get_message_id(cid)
+			self._session.download_voicemail(messageId)
+			self._hide()
+
+	@qt_compat.Slot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_recipients_changed(self):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._update_state()
+
+	@qt_compat.Slot(str, str)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_voicemail_downloaded(self, messageId, filepath):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._update_state()
+
+
 class SMSEntryWindow(qwrappers.WindowWrapper):
 
 	MAX_CHAR = 160
@@ -525,20 +812,21 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		self._session.draft.called.connect(self._on_op_finished)
 		self._session.draft.cancelled.connect(self._on_op_finished)
 		self._session.draft.error.connect(self._on_op_error)
-		self._errorLog = errorLog
 
-		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
+		self._errorLog = errorLog
 
 		self._targetList = ContactList(self._app, self._session)
 		self._history = QtGui.QLabel()
 		self._history.setTextFormat(QtCore.Qt.RichText)
 		self._history.setWordWrap(True)
+		self._voicemailPlayer = VoicemailPlayer(self._app, self._session, self._errorLog)
 		self._smsEntry = QtGui.QTextEdit()
 		self._smsEntry.textChanged.connect(self._on_letter_count_changed)
 
 		self._entryLayout = QtGui.QVBoxLayout()
 		self._entryLayout.addWidget(self._targetList.toplevel)
 		self._entryLayout.addWidget(self._history)
+		self._entryLayout.addWidget(self._voicemailPlayer.toplevel, 0)
 		self._entryLayout.addWidget(self._smsEntry)
 		self._entryLayout.setContentsMargins(0, 0, 0, 0)
 		self._entryWidget = QtGui.QWidget()
@@ -579,6 +867,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		self._window.setWindowTitle("Contact")
 		self._window.closed.connect(self._on_close_window)
 		self._window.hidden.connect(self._on_close_window)
+		self._window.resized.connect(self._on_window_resized)
 
 		self._scrollTimer = QtCore.QTimer()
 		self._scrollTimer.setInterval(100)
@@ -589,7 +878,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		self._update_letter_count()
 		self._update_target_fields()
 		self.set_fullscreen(self._app.fullscreenAction.isChecked())
-		self.set_orientation(self._app.orientationAction.isChecked())
+		self.update_orientation(self._app.orientation)
 
 	def close(self):
 		if self._window is None:
@@ -617,6 +906,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		self._session.draft.called.disconnect(self._on_op_finished)
 		self._session.draft.cancelled.disconnect(self._on_op_finished)
 		self._session.draft.error.disconnect(self._on_op_error)
+		self._voicemailPlayer.destroy()
 		window = self._window
 		self._window = None
 		try:
@@ -627,12 +917,12 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		except RuntimeError:
 			_moduleLogger.exception("Oh well")
 
-	def set_orientation(self, isPortrait):
-		qwrappers.WindowWrapper.set_orientation(self, isPortrait)
+	def update_orientation(self, orientation):
+		qwrappers.WindowWrapper.update_orientation(self, orientation)
 		self._scroll_to_bottom()
 
 	def _update_letter_count(self):
-		count = self._smsEntry.toPlainText().size()
+		count = len(self._smsEntry.toPlainText())
 		numTexts, numCharInText = divmod(count, self.MAX_CHAR)
 		numTexts += 1
 		numCharsLeftInText = self.MAX_CHAR - numCharInText
@@ -644,7 +934,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			self._dialButton.setEnabled(False)
 			self._smsButton.setEnabled(False)
 		elif self._session.draft.get_num_contacts() == 1:
-			count = self._smsEntry.toPlainText().size()
+			count = len(self._smsEntry.toPlainText())
 			if count == 0:
 				self._dialButton.setEnabled(True)
 				self._smsButton.setEnabled(False)
@@ -653,7 +943,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 				self._smsButton.setEnabled(True)
 		else:
 			self._dialButton.setEnabled(False)
-			count = self._smsEntry.toPlainText().size()
+			count = len(self._smsEntry.toPlainText())
 			if count == 0:
 				self._smsButton.setEnabled(False)
 			else:
@@ -752,7 +1042,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			self._session.draft.message = message
 			self._session.draft.call()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_cancel_clicked(self, message):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -771,24 +1061,25 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			number = numbers[index][0]
 			self._session.draft.set_selected_number(cid, number)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh_history(self):
-		draftContactsCount = self._session.draft.get_num_contacts()
-		if draftContactsCount != 1:
-			# Changing contact count will automatically refresh it
-			return
-		(cid, ) = self._session.draft.get_contacts()
-		self._update_history(cid)
+		with qui_utils.notify_error(self._app.errorLog):
+			draftContactsCount = self._session.draft.get_num_contacts()
+			if draftContactsCount != 1:
+				# Changing contact count will automatically refresh it
+				return
+			(cid, ) = self._session.draft.get_contacts()
+			self._update_history(cid)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_recipients_changed(self):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._update_target_fields()
 			self._update_button_state()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_started(self):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -797,13 +1088,13 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			self._dialButton.setVisible(False)
 			self.show()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_calling_started(self):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._cancelButton.setVisible(True)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_finished(self):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -815,7 +1106,7 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			self.close()
 			self.destroy()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_op_error(self, message):
 		with qui_utils.notify_error(self._app.errorLog):
@@ -826,15 +1117,21 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 
 			self._errorLog.push_error(message)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_letter_count_changed(self):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._update_letter_count()
 			self._update_button_state()
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_window_resized(self):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._scroll_to_bottom()
+
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
 		with qui_utils.notify_error(self._app.errorLog):

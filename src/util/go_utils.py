@@ -138,7 +138,7 @@ class Timeout(object):
 _QUEUE_EMPTY = object()
 
 
-class AsyncPool(object):
+class FutureThread(object):
 
 	def __init__(self):
 		self.__workQueue = Queue.Queue()

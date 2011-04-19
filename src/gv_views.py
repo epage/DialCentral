@@ -8,8 +8,9 @@ import string
 import itertools
 import logging
 
-from PyQt4 import QtGui
-from PyQt4 import QtCore
+import util.qt_compat as qt_compat
+QtCore = qt_compat.QtCore
+QtGui = qt_compat.import_module("QtGui")
 
 from util import qtpie
 from util import qui_utils
@@ -17,9 +18,13 @@ from util import misc as misc_utils
 
 import backends.null_backend as null_backend
 import backends.file_backend as file_backend
+import backends.qt_backend as qt_backend
 
 
 _moduleLogger = logging.getLogger(__name__)
+
+
+_SENTINEL_ICON = QtGui.QIcon()
 
 
 class Dialpad(object):
@@ -156,8 +161,8 @@ class Dialpad(object):
 		with qui_utils.notify_error(self._errorLog):
 			self._entry.clear()
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_sms_clicked(self, checked = False):
 		with qui_utils.notify_error(self._errorLog):
@@ -168,10 +173,10 @@ class Dialpad(object):
 			title = misc_utils.make_pretty(number)
 			description = misc_utils.make_pretty(number)
 			numbersWithDescriptions = [(number, "")]
-			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			self._session.draft.add_contact(contactId, None, title, description, numbersWithDescriptions)
 
-	@QtCore.pyqtSlot()
-	@QtCore.pyqtSlot(bool)
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_call_clicked(self, checked = False):
 		with qui_utils.notify_error(self._errorLog):
@@ -183,7 +188,7 @@ class Dialpad(object):
 			description = misc_utils.make_pretty(number)
 			numbersWithDescriptions = [(number, "")]
 			self._session.draft.clear()
-			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			self._session.draft.add_contact(contactId, None, title, description, numbersWithDescriptions)
 			self._session.draft.call()
 
 
@@ -260,7 +265,12 @@ class History(object):
 	FROM_IDX = 1
 	MAX_IDX = 2
 
-	HISTORY_ITEM_TYPES = ["Received", "Missed", "Placed", "All"]
+	HISTORY_RECEIVED = "Received"
+	HISTORY_MISSED = "Missed"
+	HISTORY_PLACED = "Placed"
+	HISTORY_ALL = "All"
+
+	HISTORY_ITEM_TYPES = [HISTORY_RECEIVED, HISTORY_MISSED, HISTORY_PLACED, HISTORY_ALL]
 	HISTORY_COLUMNS = ["Details", "From"]
 	assert len(HISTORY_COLUMNS) == MAX_IDX
 
@@ -278,9 +288,13 @@ class History(object):
 		)
 		self._typeSelection.currentIndexChanged[str].connect(self._on_filter_changed)
 		refreshIcon = qui_utils.get_theme_icon(
-			("view-refresh", "general_refresh", "gtk-refresh", )
+			("view-refresh", "general_refresh", "gtk-refresh", ),
+			_SENTINEL_ICON
 		)
-		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		if refreshIcon is not _SENTINEL_ICON:
+			self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		else:
+			self._refreshButton = QtGui.QPushButton("Refresh")
 		self._refreshButton.clicked.connect(self._on_refresh_clicked)
 		self._refreshButton.setSizePolicy(QtGui.QSizePolicy(
 			QtGui.QSizePolicy.Minimum,
@@ -343,8 +357,19 @@ class History(object):
 
 	def refresh(self, force=True):
 		self._itemView.setFocus(QtCore.Qt.OtherFocusReason)
-		self._session.update_history(force)
-		if self._app.notifyOnMissed:
+
+		if self._selectedFilter == self.HISTORY_RECEIVED:
+			self._session.update_history(self._session.HISTORY_RECEIVED, force)
+		elif self._selectedFilter == self.HISTORY_MISSED:
+			self._session.update_history(self._session.HISTORY_MISSED, force)
+		elif self._selectedFilter == self.HISTORY_PLACED:
+			self._session.update_history(self._session.HISTORY_PLACED, force)
+		elif self._selectedFilter == self.HISTORY_ALL:
+			self._session.update_history(self._session.HISTORY_ALL, force)
+		else:
+			assert False, "How did we get here?"
+
+		if self._app.notifyOnMissed and self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_BACKGROUND:
 			self._app.ledHandler.off()
 
 	def _populate_items(self):
@@ -382,26 +407,26 @@ class History(object):
 			self._categoryManager.add_row(event["time"], row)
 		self._itemView.expandAll()
 
-	@QtCore.pyqtSlot(str)
+	@qt_compat.Slot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
 		with qui_utils.notify_error(self._errorLog):
 			self._selectedFilter = str(newItem)
 			self._populate_items()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_history_updated(self):
 		with qui_utils.notify_error(self._errorLog):
 			self._populate_items()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh_clicked(self, arg = None):
 		with qui_utils.notify_error(self._errorLog):
 			self.refresh(force=True)
 
-	@QtCore.pyqtSlot(QtCore.QModelIndex)
+	@qt_compat.Slot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		with qui_utils.notify_error(self._errorLog):
@@ -412,10 +437,10 @@ class History(object):
 			row = index.row()
 			detailsItem = self._categoryManager.get_item(timeRow, row, self.DETAILS_IDX)
 			fromItem = self._categoryManager.get_item(timeRow, row, self.FROM_IDX)
-			contactDetails = detailsItem.data().toPyObject()
+			contactDetails = detailsItem.data()
 
 			title = unicode(fromItem.text())
-			number = str(contactDetails[QtCore.QString("number")])
+			number = str(contactDetails["number"])
 			contactId = number # ids don't seem too unique so using numbers
 
 			descriptionRows = []
@@ -423,19 +448,19 @@ class History(object):
 				randomTimeItem = self._itemStore.item(t, 0)
 				for i in xrange(randomTimeItem.rowCount()):
 					iItem = randomTimeItem.child(i, 0)
-					iContactDetails = iItem.data().toPyObject()
-					iNumber = str(iContactDetails[QtCore.QString("number")])
+					iContactDetails = iItem.data()
+					iNumber = str(iContactDetails["number"])
 					if number != iNumber:
 						continue
-					relTime = misc_utils.abbrev_relative_date(iContactDetails[QtCore.QString("relTime")])
-					action = str(iContactDetails[QtCore.QString("action")])
-					number = str(iContactDetails[QtCore.QString("number")])
+					relTime = misc_utils.abbrev_relative_date(iContactDetails["relTime"])
+					action = str(iContactDetails["action"])
+					number = str(iContactDetails["number"])
 					prettyNumber = misc_utils.make_pretty(number)
 					rowItems = relTime, action, prettyNumber
 					descriptionRows.append("<tr><td>%s</td></tr>" % "</td><td>".join(rowItems))
 			description = "<table>%s</table>" % "".join(descriptionRows)
-			numbersWithDescriptions = [(str(contactDetails[QtCore.QString("number")]), "")]
-			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			numbersWithDescriptions = [(str(contactDetails["number"]), "")]
+			self._session.draft.add_contact(contactId, None, title, description, numbersWithDescriptions)
 
 
 class Messages(object):
@@ -476,9 +501,13 @@ class Messages(object):
 		self._statusSelection.currentIndexChanged[str].connect(self._on_status_filter_changed)
 
 		refreshIcon = qui_utils.get_theme_icon(
-			("view-refresh", "general_refresh", "gtk-refresh", )
+			("view-refresh", "general_refresh", "gtk-refresh", ),
+			_SENTINEL_ICON
 		)
-		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		if refreshIcon is not _SENTINEL_ICON:
+			self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		else:
+			self._refreshButton = QtGui.QPushButton("Refresh")
 		self._refreshButton.clicked.connect(self._on_refresh_clicked)
 		self._refreshButton.setSizePolicy(QtGui.QSizePolicy(
 			QtGui.QSizePolicy.Minimum,
@@ -553,8 +582,19 @@ class Messages(object):
 
 	def refresh(self, force=True):
 		self._itemView.setFocus(QtCore.Qt.OtherFocusReason)
-		self._session.update_messages(force)
-		if self._app.notifyOnSms or self._app.notifyOnVoicemail:
+
+		if self._selectedTypeFilter == self.NO_MESSAGES:
+			pass
+		elif self._selectedTypeFilter == self.TEXT_MESSAGES:
+			self._session.update_messages(self._session.MESSAGE_TEXTS, force)
+		elif self._selectedTypeFilter == self.VOICEMAIL_MESSAGES:
+			self._session.update_messages(self._session.MESSAGE_VOICEMAILS, force)
+		elif self._selectedTypeFilter == self.ALL_TYPES:
+			self._session.update_messages(self._session.MESSAGE_ALL, force)
+		else:
+			assert False, "How did we get here?"
+
+		if self._app.notifyOnSms or self._app.notifyOnVoicemail and self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_BACKGROUND:
 			self._app.ledHandler.off()
 
 	def _populate_items(self):
@@ -620,33 +660,33 @@ class Messages(object):
 			self._categoryManager.add_row(item["time"], row)
 		self._itemView.expandAll()
 
-	@QtCore.pyqtSlot(str)
+	@qt_compat.Slot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_type_filter_changed(self, newItem):
 		with qui_utils.notify_error(self._errorLog):
 			self._selectedTypeFilter = str(newItem)
 			self._populate_items()
 
-	@QtCore.pyqtSlot(str)
+	@qt_compat.Slot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_status_filter_changed(self, newItem):
 		with qui_utils.notify_error(self._errorLog):
 			self._selectedStatusFilter = str(newItem)
 			self._populate_items()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh_clicked(self, arg = None):
 		with qui_utils.notify_error(self._errorLog):
 			self.refresh(force=True)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_messages_updated(self):
 		with qui_utils.notify_error(self._errorLog):
 			self._populate_items()
 
-	@QtCore.pyqtSlot(QtCore.QModelIndex)
+	@qt_compat.Slot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		with qui_utils.notify_error(self._errorLog):
@@ -656,22 +696,26 @@ class Messages(object):
 			timeRow = timeIndex.row()
 			row = index.row()
 			item = self._categoryManager.get_item(timeRow, row, 0)
-			contactDetails = item.data().toPyObject()
+			contactDetails = item.data()
 
-			name = unicode(contactDetails[QtCore.QString("name")])
-			number = str(contactDetails[QtCore.QString("number")])
+			name = unicode(contactDetails["name"])
+			number = str(contactDetails["number"])
 			if not name or name == number:
-				name = unicode(contactDetails[QtCore.QString("location")])
+				name = unicode(contactDetails["location"])
 			if not name:
 				name = "Unknown"
 
-			contactId = str(contactDetails[QtCore.QString("id")])
+			if str(contactDetails["type"]) == "Voicemail":
+				messageId = str(contactDetails["id"])
+			else:
+				messageId = None
+			contactId = str(contactDetails["contactId"])
 			title = name
-			description = unicode(contactDetails[QtCore.QString("expandedMessages")])
+			description = unicode(contactDetails["expandedMessages"])
 			numbersWithDescriptions = [(number, "")]
-			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			self._session.draft.add_contact(contactId, messageId, title, description, numbersWithDescriptions)
 
-	@QtCore.pyqtSlot(QtCore.QModelIndex)
+	@qt_compat.Slot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_column_resized(self, index, oldSize, newSize):
 		self._htmlDelegate.setWidth(newSize, self._itemStore)
@@ -684,11 +728,12 @@ class Contacts(object):
 	def __init__(self, app, session, errorLog):
 		self._app = app
 		self._session = session
-		self._session.contactsUpdated.connect(self._on_contacts_updated)
+		self._session.accountUpdated.connect(self._on_contacts_updated)
 		self._errorLog = errorLog
 		self._addressBookFactories = [
 			null_backend.NullAddressBookFactory(),
 			file_backend.FilesystemAddressBookFactory(app.fsContactsPath),
+			qt_backend.QtContactsAddressBookFactory(),
 		]
 		self._addressBooks = []
 
@@ -697,9 +742,13 @@ class Contacts(object):
 		self._listSelection.currentIndexChanged[str].connect(self._on_filter_changed)
 		self._activeList = "None"
 		refreshIcon = qui_utils.get_theme_icon(
-			("view-refresh", "general_refresh", "gtk-refresh", )
+			("view-refresh", "general_refresh", "gtk-refresh", ),
+			_SENTINEL_ICON
 		)
-		self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		if refreshIcon is not _SENTINEL_ICON:
+			self._refreshButton = QtGui.QPushButton(refreshIcon, "")
+		else:
+			self._refreshButton = QtGui.QPushButton("Refresh")
 		self._refreshButton.clicked.connect(self._on_refresh_clicked)
 		self._refreshButton.setSizePolicy(QtGui.QSizePolicy(
 			QtGui.QSizePolicy.Minimum,
@@ -765,7 +814,7 @@ class Contacts(object):
 
 	def refresh(self, force=True):
 		self._itemView.setFocus(QtCore.Qt.OtherFocusReason)
-		self._backend.update_contacts(force)
+		self._backend.update_account(force)
 
 	@property
 	def _backend(self):
@@ -849,7 +898,7 @@ class Contacts(object):
 		contacts.sort(key=lambda contact: contact["name"].lower())
 		return contacts
 
-	@QtCore.pyqtSlot(str)
+	@qt_compat.Slot(str)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_filter_changed(self, newItem):
 		with qui_utils.notify_error(self._errorLog):
@@ -857,19 +906,19 @@ class Contacts(object):
 			self.refresh(force=False)
 			self._populate_items()
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_refresh_clicked(self, arg = None):
 		with qui_utils.notify_error(self._errorLog):
 			self.refresh(force=True)
 
-	@QtCore.pyqtSlot()
+	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_contacts_updated(self):
 		with qui_utils.notify_error(self._errorLog):
 			self._populate_items()
 
-	@QtCore.pyqtSlot(QtCore.QModelIndex)
+	@qt_compat.Slot(QtCore.QModelIndex)
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_row_activated(self, index):
 		with qui_utils.notify_error(self._errorLog):
@@ -881,16 +930,16 @@ class Contacts(object):
 			letterItem = self._alphaItem[letter]
 			rowIndex = index.row()
 			item = letterItem.child(rowIndex, 0)
-			contactDetails = item.data().toPyObject()
+			contactDetails = item.data()
 
-			name = unicode(contactDetails[QtCore.QString("name")])
+			name = unicode(contactDetails["name"])
 			if not name:
-				name = unicode(contactDetails[QtCore.QString("location")])
+				name = unicode(contactDetails["location"])
 			if not name:
 				name = "Unknown"
 
-			contactId = str(contactDetails[QtCore.QString("contactId")])
-			numbers = contactDetails[QtCore.QString("numbers")]
+			contactId = str(contactDetails["contactId"])
+			numbers = contactDetails["numbers"]
 			numbers = [
 				dict(
 					(str(k), str(v))
@@ -907,7 +956,7 @@ class Contacts(object):
 			]
 			title = name
 			description = name
-			self._session.draft.add_contact(contactId, title, description, numbersWithDescriptions)
+			self._session.draft.add_contact(contactId, None, title, description, numbersWithDescriptions)
 
 	@staticmethod
 	def _choose_phonetype(numberDetails):

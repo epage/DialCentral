@@ -12,7 +12,8 @@ try:
 except ImportError:
 	import pickle
 
-from PyQt4 import QtCore
+import util.qt_compat as qt_compat
+QtCore = qt_compat.QtCore
 
 from util import qore_utils
 from util import qui_utils
@@ -27,7 +28,8 @@ _moduleLogger = logging.getLogger(__name__)
 
 class _DraftContact(object):
 
-	def __init__(self, title, description, numbersWithDescriptions):
+	def __init__(self, messageId, title, description, numbersWithDescriptions):
+		self.messageId = messageId
 		self.title = title
 		self.description = description
 		self.numbers = numbersWithDescriptions
@@ -36,21 +38,21 @@ class _DraftContact(object):
 
 class Draft(QtCore.QObject):
 
-	sendingMessage = QtCore.pyqtSignal()
-	sentMessage = QtCore.pyqtSignal()
-	calling = QtCore.pyqtSignal()
-	called = QtCore.pyqtSignal()
-	cancelling = QtCore.pyqtSignal()
-	cancelled = QtCore.pyqtSignal()
-	error = QtCore.pyqtSignal(str)
+	sendingMessage = qt_compat.Signal()
+	sentMessage = qt_compat.Signal()
+	calling = qt_compat.Signal()
+	called = qt_compat.Signal()
+	cancelling = qt_compat.Signal()
+	cancelled = qt_compat.Signal()
+	error = qt_compat.Signal(str)
 
-	recipientsChanged = QtCore.pyqtSignal()
+	recipientsChanged = qt_compat.Signal()
 
-	def __init__(self, pool, backend, errorLog):
+	def __init__(self, asyncQueue, backend, errorLog):
 		QtCore.QObject.__init__(self)
 		self._errorLog = errorLog
 		self._contacts = {}
-		self._pool = pool
+		self._asyncQueue = asyncQueue
 		self._backend = backend
 		self._busyReason = None
 		self._message = ""
@@ -59,7 +61,7 @@ class Draft(QtCore.QObject):
 		assert 0 < len(self._contacts), "No contacts selected"
 		assert 0 < len(self._message), "No message to send"
 		numbers = [misc_utils.make_ugly(contact.selectedNumber) for contact in self._contacts.itervalues()]
-		le = concurrent.AsyncLinearExecution(self._pool, self._send)
+		le = self._asyncQueue.add_async(self._send)
 		le.start(numbers, self._message)
 
 	def call(self):
@@ -67,11 +69,11 @@ class Draft(QtCore.QObject):
 		assert len(self._message) == 0, "Cannot send message with call"
 		(contact, ) = self._contacts.itervalues()
 		number = misc_utils.make_ugly(contact.selectedNumber)
-		le = concurrent.AsyncLinearExecution(self._pool, self._call)
+		le = self._asyncQueue.add_async(self._call)
 		le.start(number)
 
 	def cancel(self):
-		le = concurrent.AsyncLinearExecution(self._pool, self._cancel)
+		le = self._asyncQueue.add_async(self._cancel)
 		le.start()
 
 	def _get_message(self):
@@ -82,11 +84,11 @@ class Draft(QtCore.QObject):
 
 	message = property(_get_message, _set_message)
 
-	def add_contact(self, contactId, title, description, numbersWithDescriptions):
+	def add_contact(self, contactId, messageId, title, description, numbersWithDescriptions):
 		if self._busyReason is not None:
 			raise RuntimeError("Please wait for %r" % self._busyReason)
 		# Allow overwriting of contacts so that the message can be updated and the SMS dialog popped back up
-		contactDetails = _DraftContact(title, description, numbersWithDescriptions)
+		contactDetails = _DraftContact(messageId, title, description, numbersWithDescriptions)
 		self._contacts[contactId] = contactDetails
 		self.recipientsChanged.emit()
 
@@ -102,6 +104,9 @@ class Draft(QtCore.QObject):
 
 	def get_num_contacts(self):
 		return len(self._contacts)
+
+	def get_message_id(self, cid):
+		return self._contacts[cid].messageId
 
 	def get_title(self, cid):
 		return self._contacts[cid].title
@@ -195,41 +200,60 @@ class Session(QtCore.QObject):
 	# @todo Somehow add support for csv contacts
 	# @BUG When loading without caches, downloads messages twice
 
-	stateChange = QtCore.pyqtSignal(str)
-	loggedOut = QtCore.pyqtSignal()
-	loggedIn = QtCore.pyqtSignal()
-	callbackNumberChanged = QtCore.pyqtSignal(str)
+	stateChange = qt_compat.Signal(str)
+	loggedOut = qt_compat.Signal()
+	loggedIn = qt_compat.Signal()
+	callbackNumberChanged = qt_compat.Signal(str)
 
-	contactsUpdated = QtCore.pyqtSignal()
-	messagesUpdated = QtCore.pyqtSignal()
-	historyUpdated = QtCore.pyqtSignal()
-	dndStateChange = QtCore.pyqtSignal(bool)
+	accountUpdated = qt_compat.Signal()
+	messagesUpdated = qt_compat.Signal()
+	newMessages = qt_compat.Signal()
+	historyUpdated = qt_compat.Signal()
+	dndStateChange = qt_compat.Signal(bool)
+	voicemailAvailable = qt_compat.Signal(str, str)
 
-	error = QtCore.pyqtSignal(str)
+	error = qt_compat.Signal(str)
 
 	LOGGEDOUT_STATE = "logged out"
 	LOGGINGIN_STATE = "logging in"
 	LOGGEDIN_STATE = "logged in"
 
-	_OLDEST_COMPATIBLE_FORMAT_VERSION = misc_utils.parse_version("1.1.90")
+	MESSAGE_TEXTS = "Text"
+	MESSAGE_VOICEMAILS = "Voicemail"
+	MESSAGE_ALL = "All"
+
+	HISTORY_RECEIVED = "Received"
+	HISTORY_MISSED = "Missed"
+	HISTORY_PLACED = "Placed"
+	HISTORY_ALL = "All"
+
+	_OLDEST_COMPATIBLE_FORMAT_VERSION = misc_utils.parse_version("1.3.0")
 
 	_LOGGEDOUT_TIME = -1
 	_LOGGINGIN_TIME = 0
 
-	def __init__(self, errorLog, cachePath = None):
+	def __init__(self, errorLog, cachePath):
 		QtCore.QObject.__init__(self)
 		self._errorLog = errorLog
-		self._pool = qore_utils.AsyncPool()
+		self._pool = qore_utils.FutureThread()
+		self._asyncQueue = concurrent.AsyncTaskQueue(self._pool)
 		self._backend = []
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._loginOps = []
 		self._cachePath = cachePath
+		self._voicemailCachePath = None
 		self._username = None
-		self._draft = Draft(self._pool, self._backend, self._errorLog)
+		self._password = None
+		self._draft = Draft(self._asyncQueue, self._backend, self._errorLog)
+		self._delayedRelogin = QtCore.QTimer()
+		self._delayedRelogin.setInterval(0)
+		self._delayedRelogin.setSingleShot(True)
+		self._delayedRelogin.timeout.connect(self._on_delayed_relogin)
 
 		self._contacts = {}
-		self._contactUpdateTime = datetime.datetime(1971, 1, 1)
+		self._accountUpdateTime = datetime.datetime(1971, 1, 1)
 		self._messages = []
+		self._cleanMessages = []
 		self._messageUpdateTime = datetime.datetime(1971, 1, 1)
 		self._history = []
 		self._historyUpdateTime = datetime.datetime(1971, 1, 1)
@@ -261,7 +285,7 @@ class Session(QtCore.QObject):
 			self._backend[0:0] = [gv_backend.GVDialer(cookiePath)]
 
 		self._pool.start()
-		le = concurrent.AsyncLinearExecution(self._pool, self._login)
+		le = self._asyncQueue.add_async(self._login)
 		le.start(username, password)
 
 	def logout(self):
@@ -271,6 +295,7 @@ class Session(QtCore.QObject):
 		self._loggedInTime = self._LOGGEDOUT_TIME
 		self._backend[0].persist()
 		self._save_to_cache()
+		self._clear_voicemail_cache()
 		self.stateChange.emit(self.LOGGEDOUT_STATE)
 		self.loggedOut.emit()
 
@@ -290,22 +315,26 @@ class Session(QtCore.QObject):
 		self.stateChange.emit(self.LOGGEDOUT_STATE)
 		self.loggedOut.emit()
 
-	def update_contacts(self, force = True):
+	def update_account(self, force = True):
 		if not force and self._contacts:
 			return
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_contacts)
+		le = self._asyncQueue.add_async(self._update_account), (), {}
 		self._perform_op_while_loggedin(le)
+
+	def refresh_connection(self):
+		le = self._asyncQueue.add_async(self._refresh_authentication)
+		le.start()
 
 	def get_contacts(self):
 		return self._contacts
 
 	def get_when_contacts_updated(self):
-		return self._contactUpdateTime
+		return self._accountUpdateTime
 
-	def update_messages(self, force = True):
+	def update_messages(self, messageType, force = True):
 		if not force and self._messages:
 			return
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_messages)
+		le = self._asyncQueue.add_async(self._update_messages), (messageType, ), {}
 		self._perform_op_while_loggedin(le)
 
 	def get_messages(self):
@@ -314,10 +343,10 @@ class Session(QtCore.QObject):
 	def get_when_messages_updated(self):
 		return self._messageUpdateTime
 
-	def update_history(self, force = True):
+	def update_history(self, historyType, force = True):
 		if not force and self._history:
 			return
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_history)
+		le = self._asyncQueue.add_async(self._update_history), (historyType, ), {}
 		self._perform_op_while_loggedin(le)
 
 	def get_history(self):
@@ -327,12 +356,26 @@ class Session(QtCore.QObject):
 		return self._historyUpdateTime
 
 	def update_dnd(self):
-		le = concurrent.AsyncLinearExecution(self._pool, self._update_dnd)
+		le = self._asyncQueue.add_async(self._update_dnd), (), {}
 		self._perform_op_while_loggedin(le)
 
 	def set_dnd(self, dnd):
-		le = concurrent.AsyncLinearExecution(self._pool, self._set_dnd)
+		le = self._asyncQueue.add_async(self._set_dnd)
 		le.start(dnd)
+
+	def is_available(self, messageId):
+		actualPath = os.path.join(self._voicemailCachePath, "%s.mp3" % messageId)
+		return os.path.exists(actualPath)
+
+	def voicemail_path(self, messageId):
+		actualPath = os.path.join(self._voicemailCachePath, "%s.mp3" % messageId)
+		if not os.path.exists(actualPath):
+			raise RuntimeError("Voicemail not available")
+		return actualPath
+
+	def download_voicemail(self, messageId):
+		le = self._asyncQueue.add_async(self._download_voicemail)
+		le.start(messageId)
 
 	def _set_dnd(self, dnd):
 		oldDnd = self._dnd
@@ -369,7 +412,7 @@ class Session(QtCore.QObject):
 		return self._callback
 
 	def set_callback_number(self, callback):
-		le = concurrent.AsyncLinearExecution(self._pool, self._set_callback_number)
+		le = self._asyncQueue.add_async(self._set_callback_number)
 		le.start(callback)
 
 	def _set_callback_number(self, callback):
@@ -394,15 +437,15 @@ class Session(QtCore.QObject):
 			self._loggedInTime = self._LOGGINGIN_TIME
 			self.stateChange.emit(self.LOGGINGIN_STATE)
 			finalState = self.LOGGEDOUT_STATE
-			isLoggedIn = False
+			accountData = None
 			try:
-				if not isLoggedIn and self._backend[0].is_quick_login_possible():
-					isLoggedIn = yield (
-						self._backend[0].is_authed,
+				if accountData is None and self._backend[0].is_quick_login_possible():
+					accountData = yield (
+						self._backend[0].refresh_account_info,
 						(),
 						{},
 					)
-					if isLoggedIn:
+					if accountData is not None:
 						_moduleLogger.info("Logged in through cookies")
 					else:
 						# Force a clearing of the cookies
@@ -412,70 +455,113 @@ class Session(QtCore.QObject):
 							{},
 						)
 
-				if not isLoggedIn:
-					isLoggedIn = yield (
+				if accountData is None:
+					accountData = yield (
 						self._backend[0].login,
 						(username, password),
 						{},
 					)
-					if isLoggedIn:
+					if accountData is not None:
 						_moduleLogger.info("Logged in through credentials")
 
-				if isLoggedIn:
+				if accountData is not None:
 					self._loggedInTime = int(time.time())
 					oldUsername = self._username
 					self._username = username
+					self._password = password
 					finalState = self.LOGGEDIN_STATE
 					if oldUsername != self._username:
 						needOps = not self._load()
 					else:
 						needOps = True
 
+					self._voicemailCachePath = os.path.join(self._cachePath, "%s.voicemail.cache" % self._username)
+					try:
+						os.makedirs(self._voicemailCachePath)
+					except OSError, e:
+						if e.errno != 17:
+							raise
+
 					self.loggedIn.emit()
 					self.stateChange.emit(finalState)
 					finalState = None # Mark it as already set
+					self._process_account_data(accountData)
 
 					if needOps:
 						loginOps = self._loginOps[:]
 					else:
 						loginOps = []
 					del self._loginOps[:]
-					for asyncOp in loginOps:
-						asyncOp.start()
+					for asyncOp, args, kwds in loginOps:
+						asyncOp.start(*args, **kwds)
 				else:
 					self._loggedInTime = self._LOGGEDOUT_TIME
 					self.error.emit("Error logging in")
 			except Exception, e:
+				_moduleLogger.exception("Booh")
 				self._loggedInTime = self._LOGGEDOUT_TIME
 				_moduleLogger.exception("Reporting error to user")
 				self.error.emit(str(e))
 			finally:
 				if finalState is not None:
 					self.stateChange.emit(finalState)
-			if isLoggedIn and self._callback:
+			if accountData is not None and self._callback:
 				self.set_callback_number(self._callback)
 
+	def _update_account(self):
+		try:
+			with qui_utils.notify_busy(self._errorLog, "Updating Account"):
+				accountData = yield (
+					self._backend[0].refresh_account_info,
+					(),
+					{},
+				)
+		except Exception, e:
+			_moduleLogger.exception("Reporting error to user")
+			self.error.emit(str(e))
+			return
+		self._loggedInTime = int(time.time())
+		self._process_account_data(accountData)
+
+	def _refresh_authentication(self):
+		try:
+			with qui_utils.notify_busy(self._errorLog, "Updating Account"):
+				accountData = yield (
+					self._backend[0].refresh_account_info,
+					(),
+					{},
+				)
+				accountData = None
+		except Exception, e:
+			_moduleLogger.exception("Passing to user")
+			self.error.emit(str(e))
+			# refresh_account_info does not normally throw, so it is fine if we
+			# just quit early because something seriously wrong is going on
+			return
+
+		if accountData is not None:
+			self._loggedInTime = int(time.time())
+			self._process_account_data(accountData)
+		else:
+			self._delayedRelogin.start()
+
 	def _load(self):
-		updateContacts = len(self._contacts) != 0
 		updateMessages = len(self._messages) != 0
 		updateHistory = len(self._history) != 0
 		oldDnd = self._dnd
 		oldCallback = self._callback
 
-		self._contacts = {}
 		self._messages = []
+		self._cleanMessages = []
 		self._history = []
 		self._dnd = False
 		self._callback = ""
 
 		loadedFromCache = self._load_from_cache()
 		if loadedFromCache:
-			updateContacts = True
 			updateMessages = True
 			updateHistory = True
 
-		if updateContacts:
-			self.contactsUpdated.emit()
 		if updateMessages:
 			self.messagesUpdated.emit()
 		if updateHistory:
@@ -495,7 +581,7 @@ class Session(QtCore.QObject):
 		try:
 			with open(cachePath, "rb") as f:
 				dumpedData = pickle.load(f)
-		except (pickle.PickleError, IOError, EOFError, ValueError):
+		except (pickle.PickleError, IOError, EOFError, ValueError, ImportError):
 			_moduleLogger.exception("Pickle fun loading")
 			return False
 		except:
@@ -503,27 +589,35 @@ class Session(QtCore.QObject):
 			return False
 
 		try:
-			(
-				version, build,
-				contacts, contactUpdateTime,
-				messages, messageUpdateTime,
-				history, historyUpdateTime,
-				dnd, callback
-			) = dumpedData
+			version, build = dumpedData[0:2]
 		except ValueError:
 			_moduleLogger.exception("Upgrade/downgrade fun")
 			return False
 		except:
 			_moduleLogger.exception("Weirdlings")
+			return False
 
 		if misc_utils.compare_versions(
 			self._OLDEST_COMPATIBLE_FORMAT_VERSION,
 			misc_utils.parse_version(version),
 		) <= 0:
+			try:
+				(
+					version, build,
+					messages, messageUpdateTime,
+					history, historyUpdateTime,
+					dnd, callback
+				) = dumpedData
+			except ValueError:
+				_moduleLogger.exception("Upgrade/downgrade fun")
+				return False
+			except:
+				_moduleLogger.exception("Weirdlings")
+				return False
+
 			_moduleLogger.info("Loaded cache")
-			self._contacts = contacts
-			self._contactUpdateTime = contactUpdateTime
 			self._messages = messages
+			self._alert_on_messages(self._messages)
 			self._messageUpdateTime = messageUpdateTime
 			self._history = history
 			self._historyUpdateTime = historyUpdateTime
@@ -547,7 +641,6 @@ class Session(QtCore.QObject):
 		try:
 			dataToDump = (
 				constants.__version__, constants.__build__,
-				self._contacts, self._contactUpdateTime,
 				self._messages, self._messageUpdateTime,
 				self._history, self._historyUpdateTime,
 				self._dnd, self._callback
@@ -559,14 +652,11 @@ class Session(QtCore.QObject):
 			_moduleLogger.exception("While saving")
 
 	def _clear_cache(self):
-		updateContacts = len(self._contacts) != 0
 		updateMessages = len(self._messages) != 0
 		updateHistory = len(self._history) != 0
 		oldDnd = self._dnd
 		oldCallback = self._callback
 
-		self._contacts = {}
-		self._contactUpdateTime = datetime.datetime(1971, 1, 1)
 		self._messages = []
 		self._messageUpdateTime = datetime.datetime(1971, 1, 1)
 		self._history = []
@@ -574,8 +664,6 @@ class Session(QtCore.QObject):
 		self._dnd = False
 		self._callback = ""
 
-		if updateContacts:
-			self.contactsUpdated.emit()
 		if updateMessages:
 			self.messagesUpdated.emit()
 		if updateHistory:
@@ -586,30 +674,19 @@ class Session(QtCore.QObject):
 			self.callbackNumberChanged.emit(self._callback)
 
 		self._save_to_cache()
+		self._clear_voicemail_cache()
 
-	def _update_contacts(self):
-		try:
-			assert self.state == self.LOGGEDIN_STATE, "Contacts requires being logged in (currently %s" % self.state
-			with qui_utils.notify_busy(self._errorLog, "Updating Contacts"):
-				self._contacts = yield (
-					self._backend[0].get_contacts,
-					(),
-					{},
-				)
-		except Exception, e:
-			_moduleLogger.exception("Reporting error to user")
-			self.error.emit(str(e))
-			return
-		self._contactUpdateTime = datetime.datetime.now()
-		self.contactsUpdated.emit()
+	def _clear_voicemail_cache(self):
+		import shutil
+		shutil.rmtree(self._voicemailCachePath, True)
 
-	def _update_messages(self):
+	def _update_messages(self, messageType):
 		try:
 			assert self.state == self.LOGGEDIN_STATE, "Messages requires being logged in (currently %s" % self.state
-			with qui_utils.notify_busy(self._errorLog, "Updating Messages"):
+			with qui_utils.notify_busy(self._errorLog, "Updating %s Messages" % messageType):
 				self._messages = yield (
 					self._backend[0].get_messages,
-					(),
+					(messageType, ),
 					{},
 				)
 		except Exception, e:
@@ -618,14 +695,15 @@ class Session(QtCore.QObject):
 			return
 		self._messageUpdateTime = datetime.datetime.now()
 		self.messagesUpdated.emit()
+		self._alert_on_messages(self._messages)
 
-	def _update_history(self):
+	def _update_history(self, historyType):
 		try:
 			assert self.state == self.LOGGEDIN_STATE, "History requires being logged in (currently %s" % self.state
-			with qui_utils.notify_busy(self._errorLog, "Updating History"):
+			with qui_utils.notify_busy(self._errorLog, "Updating '%s' History" % historyType):
 				self._history = yield (
-					self._backend[0].get_recent,
-					(),
+					self._backend[0].get_call_history,
+					(historyType, ),
 					{},
 				)
 		except Exception, e:
@@ -636,24 +714,55 @@ class Session(QtCore.QObject):
 		self.historyUpdated.emit()
 
 	def _update_dnd(self):
-		oldDnd = self._dnd
-		try:
-			assert self.state == self.LOGGEDIN_STATE, "DND requires being logged in (currently %s" % self.state
-			self._dnd = yield (
-				self._backend[0].is_dnd,
-				(),
-				{},
-			)
-		except Exception, e:
-			_moduleLogger.exception("Reporting error to user")
-			self.error.emit(str(e))
+		with qui_utils.notify_busy(self._errorLog, "Updating Do-Not-Disturb Status"):
+			oldDnd = self._dnd
+			try:
+				assert self.state == self.LOGGEDIN_STATE, "DND requires being logged in (currently %s" % self.state
+				self._dnd = yield (
+					self._backend[0].is_dnd,
+					(),
+					{},
+				)
+			except Exception, e:
+				_moduleLogger.exception("Reporting error to user")
+				self.error.emit(str(e))
+				return
+			if oldDnd != self._dnd:
+				self.dndStateChange(self._dnd)
+
+	def _download_voicemail(self, messageId):
+		actualPath = os.path.join(self._voicemailCachePath, "%s.mp3" % messageId)
+		targetPath = "%s.%s.part" % (actualPath, time.time())
+		if os.path.exists(actualPath):
+			self.voicemailAvailable.emit(messageId, actualPath)
 			return
-		if oldDnd != self._dnd:
-			self.dndStateChange(self._dnd)
+		with qui_utils.notify_busy(self._errorLog, "Downloading Voicemail"):
+			try:
+				yield (
+					self._backend[0].download,
+					(messageId, targetPath),
+					{},
+				)
+			except Exception, e:
+				_moduleLogger.exception("Passing to user")
+				self.error.emit(str(e))
+				return
+
+		if os.path.exists(actualPath):
+			try:
+				os.remove(targetPath)
+			except:
+				_moduleLogger.exception("Ignoring file problems with cache")
+			self.voicemailAvailable.emit(messageId, actualPath)
+			return
+		else:
+			os.rename(targetPath, actualPath)
+			self.voicemailAvailable.emit(messageId, actualPath)
 
 	def _perform_op_while_loggedin(self, op):
 		if self.state == self.LOGGEDIN_STATE:
-			op.start()
+			op, args, kwds = op
+			op.start(*args, **kwds)
 		else:
 			self._push_login_op(op)
 
@@ -663,3 +772,59 @@ class Session(QtCore.QObject):
 			_moduleLogger.info("Skipping queueing duplicate op: %r" % asyncOp)
 			return
 		self._loginOps.append(asyncOp)
+
+	def _process_account_data(self, accountData):
+		self._contacts = dict(
+			(contactId, contactDetails)
+			for contactId, contactDetails in accountData["contacts"].iteritems()
+			# A zero contact id is the catch all for unknown contacts
+			if contactId != "0"
+		)
+
+		self._accountUpdateTime = datetime.datetime.now()
+		self.accountUpdated.emit()
+
+	def _alert_on_messages(self, messages):
+		cleanNewMessages = list(self._clean_messages(messages))
+		cleanNewMessages.sort(key=lambda m: m["contactId"])
+		if self._cleanMessages:
+			if self._cleanMessages != cleanNewMessages:
+				self.newMessages.emit()
+		self._cleanMessages = cleanNewMessages
+
+	def _clean_messages(self, messages):
+		for message in messages:
+			cleaned = dict(
+				kv
+				for kv in message.iteritems()
+				if kv[0] not in
+				[
+					"relTime",
+					"time",
+					"isArchived",
+					"isRead",
+					"isSpam",
+					"isTrash",
+				]
+			)
+
+			# Don't let outbound messages cause alerts, especially if the package has only outbound
+			cleaned["messageParts"] = [
+				tuple(part[0:-1]) for part in cleaned["messageParts"] if part[0] != "Me:"
+			]
+			if not cleaned["messageParts"]:
+				continue
+
+			yield cleaned
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_delayed_relogin(self):
+		try:
+			username = self._username
+			password = self._password
+			self.logout()
+			self.login(username, password)
+		except Exception, e:
+			_moduleLogger.exception("Passing to user")
+			self.error.emit(str(e))
+			return

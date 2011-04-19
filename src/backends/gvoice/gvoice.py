@@ -170,7 +170,6 @@ class GVoiceBackend(object):
 
 		SECURE_URL_BASE = "https://www.google.com/voice/"
 		SECURE_MOBILE_URL_BASE = SECURE_URL_BASE + "mobile/"
-		self._forwardURL = SECURE_MOBILE_URL_BASE + "phones"
 		self._tokenURL = SECURE_URL_BASE + "m"
 		self._callUrl = SECURE_URL_BASE + "call/connect"
 		self._callCancelURL = SECURE_URL_BASE + "call/cancel"
@@ -211,9 +210,6 @@ class GVoiceBackend(object):
 		self._XML_MISSED_URL = SECURE_URL_BASE + "inbox/recent/missed/"
 
 		self._galxRe = re.compile(r"""<input.*?name="GALX".*?value="(.*?)".*?/>""", re.MULTILINE | re.DOTALL)
-		self._tokenRe = re.compile(r"""<input.*?name="_rnr_se".*?value="(.*?)"\s*/>""")
-		self._accountNumRe = re.compile(r"""<b class="ms\d">(.{14})</b></div>""")
-		self._callbackRe = re.compile(r"""\s+(.*?):\s*(.*?)<br\s*/>\s*$""", re.M)
 
 		self._seperateVoicemailsRegex = re.compile(r"""^\s*<div id="(\w+)"\s* class=".*?gc-message.*?">""", re.MULTILINE | re.DOTALL)
 		self._exactVoicemailTimeRegex = re.compile(r"""<span class="gc-message-time">(.*?)</span>""", re.MULTILINE)
@@ -230,32 +226,21 @@ class GVoiceBackend(object):
 
 	def is_quick_login_possible(self):
 		"""
-		@returns True then is_authed might be enough to login, else full login is required
+		@returns True then refresh_account_info might be enough to login, else full login is required
 		"""
 		return self._loadedFromCookies or 0.0 < self._lastAuthed
 
-	def is_authed(self, force = False):
-		"""
-		Attempts to detect a current session
-		@note Once logged in try not to reauth more than once a minute.
-		@returns If authenticated
-		@blocks
-		"""
-		isRecentledAuthed = (time.time() - self._lastAuthed) < 120
-		isPreviouslyAuthed = self._token is not None
-		if isRecentledAuthed and isPreviouslyAuthed and not force:
-			return True
-
+	def refresh_account_info(self):
 		try:
-			page = self._get_page(self._forwardURL)
-			self._grab_account_info(page)
+			page = self._get_page(self._JSON_CONTACTS_URL)
+			accountData = self._grab_account_info(page)
 		except Exception, e:
 			_moduleLogger.exception(str(e))
-			return False
+			return None
 
 		self._browser.save_cookies()
 		self._lastAuthed = time.time()
-		return True
+		return accountData
 
 	def _get_token(self):
 		tokenPage = self._get_page(self._tokenURL)
@@ -277,7 +262,7 @@ class GVoiceBackend(object):
 			"btmpl": "mobile",
 			"PersistentCookie": "yes",
 			"GALX": token,
-			"continue": self._forwardURL,
+			"continue": self._JSON_CONTACTS_URL,
 		}
 
 		loginSuccessOrFailurePage = self._get_page(self._loginURL, loginData)
@@ -294,19 +279,19 @@ class GVoiceBackend(object):
 		loginSuccessOrFailurePage = self._login(username, password, galxToken)
 
 		try:
-			self._grab_account_info(loginSuccessOrFailurePage)
+			accountData = self._grab_account_info(loginSuccessOrFailurePage)
 		except Exception, e:
 			# Retry in case the redirect failed
-			# luckily is_authed does everything we need for a retry
-			loggedIn = self.is_authed(True)
-			if not loggedIn:
+			# luckily refresh_account_info does everything we need for a retry
+			accountData = self.refresh_account_info()
+			if accountData is None:
 				_moduleLogger.exception(str(e))
-				return False
+				return None
 			_moduleLogger.info("Redirection failed on initial login attempt, auto-corrected for this")
 
 		self._browser.save_cookies()
 		self._lastAuthed = time.time()
-		return True
+		return accountData
 
 	def persist(self):
 		self._browser.save_cookies()
@@ -321,6 +306,7 @@ class GVoiceBackend(object):
 		self._browser.save_cookies()
 		self._token = None
 		self._lastAuthed = 0.0
+		self._callbackNumbers = {}
 
 	def is_dnd(self):
 		"""
@@ -429,20 +415,21 @@ class GVoiceBackend(object):
 
 		return json
 
-	def download(self, messageId, adir):
+	def recording_url(self, messageId):
+		url = self._downloadVoicemailURL+messageId
+		return url
+
+	def download(self, messageId, targetPath):
 		"""
 		Download a voicemail or recorded call MP3 matching the given ``msg``
 		which can either be a ``Message`` instance, or a SHA1 identifier. 
-		Saves files to ``adir`` (defaults to current directory). 
 		Message hashes can be found in ``self.voicemail().messages`` for example. 
 		@returns location of saved file.
 		@blocks
 		"""
-		page = self._get_page(self._downloadVoicemailURL, {"id": messageId})
-		fn = os.path.join(adir, '%s.mp3' % messageId)
-		with open(fn, 'wb') as fo:
+		page = self._get_page(self.recording_url(messageId))
+		with open(targetPath, 'wb') as fo:
 			fo.write(page)
-		return fn
 
 	def is_valid_syntax(self, number):
 		"""
@@ -478,28 +465,26 @@ class GVoiceBackend(object):
 		"""
 		return self._callbackNumber
 
-	def get_recent(self):
+	def get_received_calls(self):
 		"""
 		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
 		@blocks
 		"""
-		recentPages = [
-			(action, self._get_page(url))
-			for action, url in (
-				("Received", self._XML_RECEIVED_URL),
-				("Missed", self._XML_MISSED_URL),
-				("Placed", self._XML_PLACED_URL),
-			)
-		]
-		return self._parse_recent(recentPages)
+		return self._parse_recent(self._get_page(self._XML_RECEIVED_URL))
 
-	def get_contacts(self):
+	def get_missed_calls(self):
 		"""
-		@returns Iterable of (contact id, contact name)
+		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
 		@blocks
 		"""
-		page = self._get_page(self._JSON_CONTACTS_URL)
-		return self._process_contacts(page)
+		return self._parse_recent(self._get_page(self._XML_MISSED_URL))
+
+	def get_placed_calls(self):
+		"""
+		@returns Iterable of (personsName, phoneNumber, exact date, relative date, action)
+		@blocks
+		"""
+		return self._parse_recent(self._get_page(self._XML_PLACED_URL))
 
 	def get_csv_contacts(self):
 		data = {
@@ -578,46 +563,25 @@ class GVoiceBackend(object):
 		return flatHtml
 
 	def _grab_account_info(self, page):
-		tokenGroup = self._tokenRe.search(page)
-		if tokenGroup is None:
-			raise RuntimeError("Could not extract authentication token from GoogleVoice")
-		self._token = tokenGroup.group(1)
-
-		anGroup = self._accountNumRe.search(page)
-		if anGroup is not None:
-			self._accountNum = anGroup.group(1)
-		else:
-			_moduleLogger.debug("Could not extract account number from GoogleVoice")
-
-		self._callbackNumbers = {}
-		for match in self._callbackRe.finditer(page):
-			callbackNumber = match.group(2)
-			callbackName = match.group(1)
-			self._callbackNumbers[callbackNumber] = callbackName
+		accountData = parse_json(page)
+		self._token = accountData["r"]
+		self._accountNum = accountData["number"]["raw"]
+		for callback in accountData["phones"].itervalues():
+			self._callbackNumbers[callback["phoneNumber"]] = callback["name"]
 		if len(self._callbackNumbers) == 0:
 			_moduleLogger.debug("Could not extract callback numbers from GoogleVoice (the troublesome page follows):\n%s" % page)
+		return accountData
 
 	def _send_validation(self, number):
 		if not self.is_valid_syntax(number):
 			raise ValueError('Number is not valid: "%s"' % number)
-		elif not self.is_authed():
-			raise RuntimeError("Not Authenticated")
 		return number
 
-	def _parse_recent(self, recentPages):
-		for action, flatXml in recentPages:
-			allRecentHtml = self._grab_html(flatXml)
-			allRecentData = self._parse_history(allRecentHtml)
-			for recentCallData in allRecentData:
-				recentCallData["action"] = action
-				yield recentCallData
-
-	def _process_contacts(self, page):
-		accountData = parse_json(page)
-		for contactId, contactDetails in accountData["contacts"].iteritems():
-			# A zero contact id is the catch all for unknown contacts
-			if contactId != "0":
-				yield contactId, contactDetails
+	def _parse_recent(self, recentPage):
+		allRecentHtml = self._grab_html(recentPage)
+		allRecentData = self._parse_history(allRecentHtml)
+		for recentCallData in allRecentData:
+			yield recentCallData
 
 	def _parse_history(self, historyHtml):
 		splitVoicemail = self._seperateVoicemailsRegex.split(historyHtml)
@@ -986,7 +950,6 @@ def grab_debug_info(username, password):
 	browser = backend._browser
 
 	_TEST_WEBPAGES = [
-		("forward", backend._forwardURL),
 		("token", backend._tokenURL),
 		("login", backend._loginURL),
 		("isdnd", backend._isDndURL),
@@ -1029,8 +992,8 @@ def grab_debug_info(username, password):
 		backend._grab_account_info(loginSuccessOrFailurePage)
 	except Exception:
 		# Retry in case the redirect failed
-		# luckily is_authed does everything we need for a retry
-		loggedIn = backend.is_authed(True)
+		# luckily refresh_account_info does everything we need for a retry
+		loggedIn = backend.refresh_account_info() is not None
 		if not loggedIn:
 			raise
 
@@ -1056,6 +1019,21 @@ def grab_debug_info(username, password):
 		)
 
 
+def grab_voicemails(username, password):
+	cookieFile = os.path.join(".", "raw_cookies.txt")
+	try:
+		os.remove(cookieFile)
+	except OSError:
+		pass
+
+	backend = GVoiceBackend(cookieFile)
+	backend.login(username, password)
+	voicemails = list(backend.get_voicemails())
+	for voicemail in voicemails:
+		print voicemail.id
+		backend.download(voicemail.id, ".")
+
+
 def main():
 	import sys
 	logging.basicConfig(level=logging.DEBUG)
@@ -1065,6 +1043,7 @@ def main():
 		password = args[2]
 
 	grab_debug_info(username, password)
+	grab_voicemails(username, password)
 
 
 if __name__ == "__main__":

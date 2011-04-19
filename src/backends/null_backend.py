@@ -26,7 +26,7 @@ class NullAddressBook(object):
 	def name(self):
 		return "None"
 
-	def update_contacts(self, force = True):
+	def update_account(self, force = True):
 		pass
 
 	def get_contacts(self):

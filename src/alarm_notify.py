@@ -5,6 +5,7 @@ import filecmp
 import ConfigParser
 import pprint
 import logging
+import logging.handlers
 
 import constants
 from backends.gvoice import gvoice
@@ -30,12 +31,22 @@ def get_sms(backend):
 
 def remove_reltime(data):
 	for messageData in data["messages"].itervalues():
-		del messageData["relativeStartTime"]
-		del messageData["labels"]
-		del messageData["isRead"]
-		del messageData["isSpam"]
-		del messageData["isTrash"]
-		del messageData["star"]
+		for badPart in [
+			"relTime",
+			"relativeStartTime",
+			"time",
+			"star",
+			"isArchived",
+			"isRead",
+			"isSpam",
+			"isTrash",
+			"labels",
+		]:
+			if badPart in messageData:
+				del messageData[badPart]
+	for globalBad in ["unreadCounts", "totalSize", "resultsPerPage"]:
+		if globalBad in data:
+			del data[globalBad]
 
 
 def is_type_changed(backend, type, get_material):
@@ -82,7 +93,7 @@ def create_backend(config):
 	loggedIn = False
 
 	if not loggedIn:
-		loggedIn = backend.is_authed()
+		loggedIn = backend.refresh_account_info() is not None
 
 	if not loggedIn:
 		import base64
@@ -96,7 +107,7 @@ def create_backend(config):
 				for blob in blobs
 			)
 			username, password = tuple(creds)
-			loggedIn = backend.login(username, password)
+			loggedIn = backend.login(username, password) is not None
 		except ConfigParser.NoOptionError, e:
 			pass
 		except ConfigParser.NoSectionError, e:
@@ -154,7 +165,12 @@ def notify_on_change():
 
 
 if __name__ == "__main__":
-	logging.basicConfig(level=logging.WARNING, filename=constants._notifier_logpath_)
+	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
+	logging.basicConfig(level=logging.DEBUG, format=logFormat)
+	rotating = logging.handlers.RotatingFileHandler(constants._notifier_logpath_, maxBytes=512*1024, backupCount=1)
+	rotating.setFormatter(logging.Formatter(logFormat))
+	root = logging.getLogger()
+	root.addHandler(rotating)
 	logging.info("Notifier %s-%s" % (constants.__version__, constants.__build__))
 	logging.info("OS: %s" % (os.uname()[0], ))
 	logging.info("Kernel: %s (%s) for %s" % os.uname()[2:])

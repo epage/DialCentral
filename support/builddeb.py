@@ -30,15 +30,28 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Couldn't update SMS conversations in SMS window, fixed
+* In-application alert system for new messages
+* Auto-update of voicemail on missed calls
+* Ability to only refresh SMS or Voicemail for faster refreshes
+* Ability to refresh only parts of call history for faster refreshes
+* Voicemail audio download and playback
+* Account refresh for when connection has expired
+* Improved look of refresh buttons (Maemo 4.1)
+* Improved rotation settings
+* Auto-scroll SMS window for the user when on-screen-keyboard pops up (Maemo 4.1)
+* Added support for QtMobility Contacts (Note: there seems to be a bug in libraries I depend on when run as root)
+* Improving the settings dialog
+* Fixing message ordering
+* Limited log size due to longer release cycles
+* Some minor optimizations
+* Reduced network timeout, connections while transition networks wouldn't immediately die but timeout which took too long
+* Fixed text encoding issue for CSV contacts
 """.strip()
 
 
 __postinstall__ = """#!/bin/sh -e
 
 gtk-update-icon-cache -f /usr/share/icons/hicolor
-rm -f ~/.%(name)s/%(name)s.log
-rm -f ~/.%(name)s/notifier.log
 """ % {"name": constants.__app_name__}
 
 __preremove__ = """#!/bin/sh -e
@@ -90,7 +103,7 @@ def build_package(distribution):
 	p.depends += {
 		"debian": ", python-qt4",
 		"diablo": ", python2.5-qt4-core, python2.5-qt4-gui",
-		"fremantle": ", python2.5-qt4-core, python2.5-qt4-gui, python2.5-qt4-maemo5",
+		"fremantle": ", python-pyside.qtgui, python-pyside.qtcore, python-pyside.qtmaemo5, python-qtmobility.contacts",
 	}[distribution]
 	p.recommends = ", ".join([
 	])

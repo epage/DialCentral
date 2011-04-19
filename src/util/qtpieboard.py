@@ -6,7 +6,8 @@ from __future__ import division
 import os
 import warnings
 
-from PyQt4 import QtGui
+import qt_compat
+QtGui = qt_compat.import_module("QtGui")
 
 import qtpie
 
