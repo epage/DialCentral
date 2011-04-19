@@ -199,6 +199,14 @@ class AccountDialog(object):
 		self._callbackSelector = QtGui.QComboBox()
 		#self._callbackSelector.setEditable(True)
 		self._callbackSelector.setInsertPolicy(QtGui.QComboBox.InsertAtTop)
+		self._orientationSelector = QtGui.QComboBox()
+		for orientationMode in [
+			self._app.DEFAULT_ORIENTATION,
+			self._app.AUTO_ORIENTATION,
+			self._app.LANDSCAPE_ORIENTATION,
+			self._app.PORTRAIT_ORIENTATION,
+		]:
+			self._orientationSelector.addItem(orientationMode)
 
 		self._update_notification_state()
 
@@ -217,9 +225,12 @@ class AccountDialog(object):
 		self._credLayout.addWidget(self._smsNotificationButton, 5, 1)
 		self._credLayout.addWidget(QtGui.QLabel("Other"), 6, 0)
 		self._credLayout.addWidget(self._voicemailOnMissedButton, 6, 1)
+		self._credLayout.addWidget(QtGui.QLabel("Orientation"), 7, 0)
+		self._credLayout.addWidget(self._orientationSelector, 7, 1)
+		self._credLayout.addWidget(QtGui.QLabel(""), 8, 0)
+		self._credLayout.addWidget(QtGui.QLabel(""), 9, 0)
+		self._credLayout.addWidget(self._clearButton, 9, 1)
 
-		self._credLayout.addWidget(QtGui.QLabel(""), 7, 0)
-		self._credLayout.addWidget(self._clearButton, 7, 1)
 		self._credWidget = QtGui.QWidget()
 		self._credWidget.setLayout(self._credLayout)
 		self._credWidget.setContentsMargins(0, 0, 0, 0)
@@ -275,6 +286,11 @@ class AccountDialog(object):
 	def set_account_number(self, num):
 		self._accountNumberLabel.setText(num)
 
+	orientation = property(
+		lambda self: str(self._orientationSelector.currentText()),
+		lambda self, mode: qui_utils.set_current_index(self._orientationSelector, mode),
+	)
+
 	def _set_voicemail_on_missed(self, status):
 		if status == self.VOICEMAIL_CHECK_NOT_SUPPORTED:
 			self._voicemailOnMissedButton.setChecked(False)
@@ -298,17 +314,9 @@ class AccountDialog(object):
 
 	updateVMOnMissedCall = property(_get_voicemail_on_missed, _set_voicemail_on_missed)
 
-	def _set_notifications(self, enabled):
-		for i in xrange(self._notificationSelecter.count()):
-			if self._notificationSelecter.itemText(i) == enabled:
-				self._notificationSelecter.setCurrentIndex(i)
-				break
-		else:
-			self._notificationSelecter.setCurrentIndex(0)
-
 	notifications = property(
 		lambda self: str(self._notificationSelecter.currentText()),
-		_set_notifications,
+		lambda self, enabled: qui_utils.set_current_index(self._notificationSelecter, enabled),
 	)
 
 	notifyOnMissed = property(

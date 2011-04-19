@@ -458,7 +458,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		)
 		self.set_default_credentials(*creds)
 		self._app.fullscreenAction.setChecked(isFullscreen)
-		self.update_orientation(orientation)
+		self._app.set_orientation(orientation)
 		self.set_current_tab(tabIndex)
 
 		backendId = 2 # For backwards compatibility
@@ -567,6 +567,8 @@ class MainWindow(qwrappers.WindowWrapper):
 		if not accountNumberToDisplay:
 			accountNumberToDisplay = "Not Available (%s)" % self._session.state
 		self._accountDialog.set_account_number(accountNumberToDisplay)
+		self._accountDialog.orientation = self._app.orientation
+
 		response = self._accountDialog.run(self.window)
 		if response == QtGui.QDialog.Accepted:
 			if self._accountDialog.doClear:
@@ -600,6 +602,7 @@ class MainWindow(qwrappers.WindowWrapper):
 			self._app.notifyOnMissed = self._accountDialog.notifyOnMissed
 			self._app.notifyOnVoicemail = self._accountDialog.notifyOnVoicemail
 			self._app.notifyOnSms = self._accountDialog.notifyOnSms
+			self._app.set_orientation(self._accountDialog.orientation)
 			self._app.save_settings()
 		elif response == QtGui.QDialog.Rejected:
 			_moduleLogger.info("Cancelled")

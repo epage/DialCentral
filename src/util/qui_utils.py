@@ -293,6 +293,14 @@ class QSignalingMainWindow(QtGui.QMainWindow):
 		self.resized.emit()
 		return val
 
+def set_current_index(selector, itemText, default = 0):
+	for i in xrange(selector.count()):
+		if selector.itemText(i) == itemText:
+			selector.setCurrentIndex(i)
+			break
+	else:
+		itemText.setCurrentIndex(default)
+
 
 def _null_set_stackable(window, isStackable):
 	pass

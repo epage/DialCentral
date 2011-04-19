@@ -116,6 +116,10 @@ class ApplicationWrapper(object):
 	def quitAction(self):
 		return self._quitAction
 
+	def set_orientation(self, orientation):
+		self._orientation = orientation
+		self._mainWindow.update_orientation(self._orientation)
+
 	@classmethod
 	def _next_orientation(cls, current):
 		return {
@@ -156,8 +160,7 @@ class ApplicationWrapper(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_next_orientation(self, checked = False):
 		with qui_utils.notify_error(self._errorLog):
-			self._orientation = self._next_orientation(self._orientation)
-			self._mainWindow.update_orientation(self._orientation)
+			self.set_orientation(self._next_orientation(self._orientation))
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_about(self, checked = True):
