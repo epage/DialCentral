@@ -546,8 +546,9 @@ class MainWindow(qwrappers.WindowWrapper):
 	def _show_account_dialog(self):
 		if self._accountDialog is None:
 			import dialogs
-			self._accountDialog = dialogs.AccountDialog(self._app)
+			self._accountDialog = dialogs.AccountDialog(self._window, self._app, self._app.errorLog)
 			self._accountDialog.setIfNotificationsSupported(self._app.alarmHandler.backgroundNotificationsSupported)
+			self._accountDialog.settingsApproved.connect(self._on_settings_approved)
 
 		if self._callHandler is None or not self._callHandler.isSupported:
 			self._accountDialog.updateVMOnMissedCall = self._accountDialog.VOICEMAIL_CHECK_NOT_SUPPORTED
@@ -569,45 +570,44 @@ class MainWindow(qwrappers.WindowWrapper):
 		self._accountDialog.set_account_number(accountNumberToDisplay)
 		self._accountDialog.orientation = self._app.orientation
 
-		response = self._accountDialog.run(self.window)
-		if response == QtGui.QDialog.Accepted:
-			if self._accountDialog.doClear:
-				self._session.logout_and_clear()
-				self._defaultCredentials = "", ""
-				self._curentCredentials = "", ""
-				for tab in self._tabsContents:
-					tab.disable()
-			else:
-				callbackNumber = self._accountDialog.selectedCallback
-				self._session.set_callback_number(callbackNumber)
+		self._accountDialog.run()
 
-			if self._callHandler is None or self._accountDialog.updateVMOnMissedCall == self._accountDialog.VOICEMAIL_CHECK_DISABLEDD:
-				pass
-			elif self._accountDialog.updateVMOnMissedCall == self._accountDialog.VOICEMAIL_CHECK_ENABLED:
-				self._updateVoicemailOnMissedCall = True
-				self._callHandler.start()
-			else:
-				self._updateVoicemailOnMissedCall = False
-				self._callHandler.stop()
-			if (
-				self._accountDialog.notifyOnMissed or
-				self._accountDialog.notifyOnVoicemail or
-				self._accountDialog.notifyOnSms
-			):
-				notifications = self._accountDialog.notifications
-			else:
-				notifications = self._accountDialog.ALARM_NONE
-			self._app.alarmHandler.apply_settings(notifications, self._accountDialog.notificationTime)
-
-			self._app.notifyOnMissed = self._accountDialog.notifyOnMissed
-			self._app.notifyOnVoicemail = self._accountDialog.notifyOnVoicemail
-			self._app.notifyOnSms = self._accountDialog.notifyOnSms
-			self._app.set_orientation(self._accountDialog.orientation)
-			self._app.save_settings()
-		elif response == QtGui.QDialog.Rejected:
-			_moduleLogger.info("Cancelled")
+	@qt_compat.Slot()
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_settings_approved(self):
+		if self._accountDialog.doClear:
+			self._session.logout_and_clear()
+			self._defaultCredentials = "", ""
+			self._curentCredentials = "", ""
+			for tab in self._tabsContents:
+				tab.disable()
 		else:
-			_moduleLogger.info("Unknown response")
+			callbackNumber = self._accountDialog.selectedCallback
+			self._session.set_callback_number(callbackNumber)
+
+		if self._callHandler is None or self._accountDialog.updateVMOnMissedCall == self._accountDialog.VOICEMAIL_CHECK_DISABLEDD:
+			pass
+		elif self._accountDialog.updateVMOnMissedCall == self._accountDialog.VOICEMAIL_CHECK_ENABLED:
+			self._updateVoicemailOnMissedCall = True
+			self._callHandler.start()
+		else:
+			self._updateVoicemailOnMissedCall = False
+			self._callHandler.stop()
+		if (
+			self._accountDialog.notifyOnMissed or
+			self._accountDialog.notifyOnVoicemail or
+			self._accountDialog.notifyOnSms
+		):
+			notifications = self._accountDialog.notifications
+		else:
+			notifications = self._accountDialog.ALARM_NONE
+		self._app.alarmHandler.apply_settings(notifications, self._accountDialog.notificationTime)
+
+		self._app.notifyOnMissed = self._accountDialog.notifyOnMissed
+		self._app.notifyOnVoicemail = self._accountDialog.notifyOnVoicemail
+		self._app.notifyOnSms = self._accountDialog.notifyOnSms
+		self._app.set_orientation(self._accountDialog.orientation)
+		self._app.save_settings()
 
 	@qt_compat.Slot()
 	@misc_utils.log_exception(_moduleLogger)

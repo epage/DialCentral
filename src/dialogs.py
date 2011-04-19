@@ -150,7 +150,7 @@ class AboutDialog(object):
 			self._dialog.reject()
 
 
-class AccountDialog(object):
+class AccountDialog(QtCore.QObject, qwrappers.WindowWrapper):
 
 	# @bug Can't enter custom callback numbers
 
@@ -178,7 +178,11 @@ class AccountDialog(object):
 	VOICEMAIL_CHECK_DISABLED = "Disabled"
 	VOICEMAIL_CHECK_ENABLED = "Enabled"
 
-	def __init__(self, app):
+	settingsApproved = qt_compat.Signal()
+
+	def __init__(self, parent, app, errorLog):
+		QtCore.QObject.__init__(self)
+		qwrappers.WindowWrapper.__init__(self, parent, app)
 		self._app = app
 		self._doClear = False
 
@@ -240,28 +244,20 @@ class AccountDialog(object):
 		self._scrollSettings.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
 		self._scrollSettings.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-		self._loginButton = QtGui.QPushButton("&Apply")
-		self._buttonLayout = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Cancel)
-		self._buttonLayout.addButton(self._loginButton, QtGui.QDialogButtonBox.AcceptRole)
+		self._applyButton = QtGui.QPushButton("&Apply")
+		self._applyButton.clicked.connect(self._on_settings_apply)
+		self._cancelButton = QtGui.QPushButton("&Cancel")
+		self._cancelButton.clicked.connect(self._on_settings_cancel)
+		self._buttonLayout = QtGui.QDialogButtonBox()
+		self._buttonLayout.addButton(self._applyButton, QtGui.QDialogButtonBox.AcceptRole)
+		self._buttonLayout.addButton(self._cancelButton, QtGui.QDialogButtonBox.RejectRole)
 
-		self._layout = QtGui.QVBoxLayout()
 		self._layout.addWidget(self._scrollSettings)
 		self._layout.addWidget(self._buttonLayout)
+		self._layout.setDirection(QtGui.QBoxLayout.TopToBottom)
 
-		self._dialog = QtGui.QDialog()
-		self._dialog.setWindowTitle("Account")
-		self._dialog.setLayout(self._layout)
-		self._buttonLayout.accepted.connect(self._dialog.accept)
-		self._buttonLayout.rejected.connect(self._dialog.reject)
-
-		self._closeWindowAction = QtGui.QAction(None)
-		self._closeWindowAction.setText("Close")
-		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
-		self._closeWindowAction.triggered.connect(self._on_close_window)
-
-		self._dialog.addAction(self._closeWindowAction)
-		self._dialog.addAction(app.quitAction)
-		self._dialog.addAction(app.fullscreenAction)
+		self._window.setWindowTitle("Account")
+		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
 
 	@property
 	def doClear(self):
@@ -371,16 +367,13 @@ class AccountDialog(object):
 			if uglyNumber == uglyDefault:
 				self._callbackSelector.setCurrentIndex(self._callbackSelector.count() - 1)
 
-	def run(self, parent=None):
+	def run(self):
 		self._doClear = False
-		self._dialog.setParent(parent, QtCore.Qt.Dialog)
-
-		response = self._dialog.exec_()
-		return response
+		self._window.show()
 
 	def close(self):
 		try:
-			self._dialog.reject()
+			self._window.hide()
 		except RuntimeError:
 			_moduleLogger.exception("Oh well")
 
@@ -420,17 +413,26 @@ class AccountDialog(object):
 	@qt_compat.Slot()
 	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_clear(self, checked = False):
+	def _on_settings_cancel(self, checked = False):
 		with qui_utils.notify_error(self._app.errorLog):
-			self._doClear = True
-			self._dialog.accept()
+			self.hide()
 
 	@qt_compat.Slot()
 	@qt_compat.Slot(bool)
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_close_window(self, checked = True):
+	def _on_settings_apply(self, checked = False):
 		with qui_utils.notify_error(self._app.errorLog):
-			self._dialog.reject()
+			self.settingsApproved.emit()
+			self.hide()
+
+	@qt_compat.Slot()
+	@qt_compat.Slot(bool)
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_clear(self, checked = False):
+		with qui_utils.notify_error(self._app.errorLog):
+			self._doClear = True
+			self.settingsApproved.emit()
+			self.hide()
 
 
 class ContactList(object):
@@ -810,9 +812,8 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 		self._session.draft.called.connect(self._on_op_finished)
 		self._session.draft.cancelled.connect(self._on_op_finished)
 		self._session.draft.error.connect(self._on_op_error)
-		self._errorLog = errorLog
 
-		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
+		self._errorLog = errorLog
 
 		self._targetList = ContactList(self._app, self._session)
 		self._history = QtGui.QLabel()
