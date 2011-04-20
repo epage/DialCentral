@@ -419,8 +419,11 @@ class AccountDialog(QtCore.QObject, qwrappers.WindowWrapper):
 
 	@qt_compat.Slot()
 	@qt_compat.Slot(bool)
-	@misc_utils.log_exception(_moduleLogger)
 	def _on_settings_apply(self, checked = False):
+		self._on_settings_apply(checked)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def __on_settings_apply(self, checked = False):
 		with qui_utils.notify_error(self._app.errorLog):
 			self.settingsApproved.emit()
 			self.hide()
