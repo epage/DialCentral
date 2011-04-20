@@ -30,22 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* In-application alert system for new messages
-* Auto-update of voicemail on missed calls
-* Ability to only refresh SMS or Voicemail for faster refreshes
-* Ability to refresh only parts of call history for faster refreshes
-* Voicemail audio download and playback
-* Account refresh for when connection has expired
-* Improved look of refresh buttons (Maemo 4.1)
-* Improved rotation settings
-* Auto-scroll SMS window for the user when on-screen-keyboard pops up (Maemo 4.1)
-* Added support for QtMobility Contacts (Note: there seems to be a bug in libraries I depend on when run as root)
-* Improving the settings dialog
-* Fixing message ordering
-* Limited log size due to longer release cycles
-* Some minor optimizations
-* Reduced network timeout, connections while transition networks wouldn't immediately die but timeout which took too long
-* Fixed text encoding issue for CSV contacts
+* Fixing account dialog buttons on Maemo 5
 """.strip()
 
 
