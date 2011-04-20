@@ -229,12 +229,16 @@ class WindowWrapper(object):
 
 	@property
 	def idealWindowOrientation(self):
-		if self._app.orientation ==  self._app.LANDSCAPE_ORIENTATION:
+		if self._app.orientation ==  self._app.AUTO_ORIENTATION:
+			windowOrientation = self.windowOrientation
+		elif self._app.orientation ==  self._app.DEFAULT_ORIENTATION:
+			windowOrientation = qui_utils.screen_orientation()
+		elif self._app.orientation ==  self._app.LANDSCAPE_ORIENTATION:
 			windowOrientation = QtCore.Qt.Horizontal
 		elif self._app.orientation ==  self._app.PORTRAIT_ORIENTATION:
 			windowOrientation = QtCore.Qt.Vertical
 		else:
-			windowOrientation = self.windowOrientation
+			raise RuntimeError("Bad! No %r for you" % self._app.orientation)
 		return windowOrientation
 
 	def walk_children(self):
