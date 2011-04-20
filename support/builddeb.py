@@ -30,7 +30,10 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing account dialog buttons on Maemo 5
+* Another attempt at fixing account dialog buttons on Maemo 5 (yay pyside bug #820)
+* Adding back in voicemail update on missed calls, a bug stopped it from showing up
+* Attempting to fix pie menu back button (another shoutout to pyside bug #820)
+* Tweaking the "default" orientation setting
 """.strip()
 
 
