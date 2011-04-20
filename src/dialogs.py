@@ -248,12 +248,12 @@ class AccountDialog(QtCore.QObject, qwrappers.WindowWrapper):
 		self._applyButton.clicked.connect(self._on_settings_apply)
 		self._cancelButton = QtGui.QPushButton("&Cancel")
 		self._cancelButton.clicked.connect(self._on_settings_cancel)
-		self._buttonLayout = QtGui.QDialogButtonBox()
-		self._buttonLayout.addButton(self._applyButton, QtGui.QDialogButtonBox.AcceptRole)
-		self._buttonLayout.addButton(self._cancelButton, QtGui.QDialogButtonBox.RejectRole)
+		self._buttonLayout = QtGui.QHBoxLayout()
+		self._buttonLayout.addWidget(self._cancelButton)
+		self._buttonLayout.addWidget(self._applyButton)
 
 		self._layout.addWidget(self._scrollSettings)
-		self._layout.addWidget(self._buttonLayout)
+		self._layout.addLayout(self._buttonLayout)
 		self._layout.setDirection(QtGui.QBoxLayout.TopToBottom)
 
 		self._window.setWindowTitle("Account")
