@@ -353,6 +353,13 @@ class MainWindow(qwrappers.WindowWrapper):
 		self.set_fullscreen(self._app.fullscreenAction.isChecked())
 		self.update_orientation(self._app.orientation)
 
+	def _init_call_handler(self):
+		if self._callHandler is not None:
+			return
+		import call_handler
+		self._callHandler = call_handler.MissedCallWatcher()
+		self._callHandler.callMissed.connect(self._voicemailRefreshDelay.start)
+
 	def set_default_credentials(self, username, password):
 		self._defaultCredentials = username, password
 
@@ -550,7 +557,7 @@ class MainWindow(qwrappers.WindowWrapper):
 			self._accountDialog.setIfNotificationsSupported(self._app.alarmHandler.backgroundNotificationsSupported)
 			self._accountDialog.settingsApproved.connect(self._on_settings_approved)
 
-		if self._callHandler is None or not self._callHandler.isSupported:
+		if self._callHandler is not None and not self._callHandler.isSupported:
 			self._accountDialog.updateVMOnMissedCall = self._accountDialog.VOICEMAIL_CHECK_NOT_SUPPORTED
 		elif self._updateVoicemailOnMissedCall:
 			self._accountDialog.updateVMOnMissedCall = self._accountDialog.VOICEMAIL_CHECK_ENABLED
@@ -585,14 +592,16 @@ class MainWindow(qwrappers.WindowWrapper):
 			callbackNumber = self._accountDialog.selectedCallback
 			self._session.set_callback_number(callbackNumber)
 
-		if self._callHandler is None or self._accountDialog.updateVMOnMissedCall == self._accountDialog.VOICEMAIL_CHECK_DISABLEDD:
+		if self._accountDialog.updateVMOnMissedCall == self._accountDialog.VOICEMAIL_CHECK_NOT_SUPPORTED:
 			pass
 		elif self._accountDialog.updateVMOnMissedCall == self._accountDialog.VOICEMAIL_CHECK_ENABLED:
 			self._updateVoicemailOnMissedCall = True
+			self._init_call_handler()
 			self._callHandler.start()
 		else:
 			self._updateVoicemailOnMissedCall = False
-			self._callHandler.stop()
+			if self._callHandler is not None:
+				self._callHandler.stop()
 		if (
 			self._accountDialog.notifyOnMissed or
 			self._accountDialog.notifyOnVoicemail or
@@ -656,10 +665,7 @@ class MainWindow(qwrappers.WindowWrapper):
 				tab.enable()
 			self._initialize_tab(self._currentTab)
 			if self._updateVoicemailOnMissedCall:
-				if self._callHandler is None:
-					import call_handler
-					self._callHandler = call_handler.MissedCallWatcher()
-					self._callHandler.callMissed.connect(self._voicemailRefreshDelay.start)
+				self._init_call_handler()
 				self._callHandler.start()
 
 	@qt_compat.Slot()
