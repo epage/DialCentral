@@ -420,7 +420,7 @@ class AccountDialog(QtCore.QObject, qwrappers.WindowWrapper):
 	@qt_compat.Slot()
 	@qt_compat.Slot(bool)
 	def _on_settings_apply(self, checked = False):
-		self._on_settings_apply(checked)
+		self.__on_settings_apply(checked)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def __on_settings_apply(self, checked = False):
