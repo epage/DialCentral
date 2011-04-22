@@ -271,7 +271,7 @@ class History(object):
 	HISTORY_ALL = "All"
 
 	HISTORY_ITEM_TYPES = [HISTORY_RECEIVED, HISTORY_MISSED, HISTORY_PLACED, HISTORY_ALL]
-	HISTORY_COLUMNS = ["Details", "From"]
+	HISTORY_COLUMNS = ["", "From"]
 	assert len(HISTORY_COLUMNS) == MAX_IDX
 
 	def __init__(self, app, session, errorLog):
@@ -313,6 +313,7 @@ class History(object):
 		self._itemView.setModel(self._itemStore)
 		self._itemView.setUniformRowHeights(True)
 		self._itemView.setRootIsDecorated(False)
+		self._itemView.setIndentation(0)
 		self._itemView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 		self._itemView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
 		self._itemView.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
@@ -326,6 +327,12 @@ class History(object):
 		self._layout.addWidget(self._itemView)
 		self._widget = QtGui.QWidget()
 		self._widget.setLayout(self._layout)
+
+		self._actionIcon = {
+			"Placed": self._app.get_icon("placed.png"),
+			"Missed": self._app.get_icon("missed.png"),
+			"Received": self._app.get_icon("received.png"),
+		}
 
 		self._populate_items()
 
@@ -381,19 +388,21 @@ class History(object):
 			if self._selectedFilter not in [self.HISTORY_ITEM_TYPES[-1], event["action"]]:
 				continue
 
-			relTime = misc_utils.abbrev_relative_date(event["relTime"])
+			relTime = event["relTime"]
 			action = event["action"]
 			number = event["number"]
 			prettyNumber = misc_utils.make_pretty(number)
+			if prettyNumber.startswith("+1 "):
+				prettyNumber = prettyNumber[len("+1 "):]
 			name = event["name"]
 			if not name or name == number:
 				name = event["location"]
 			if not name:
 				name = "Unknown"
 
-			detailsItem = QtGui.QStandardItem("%s - %s\n%s" % (relTime, action, prettyNumber))
+			detailsItem = QtGui.QStandardItem(self._actionIcon[action], "%s\n%s" % (prettyNumber, relTime))
 			detailsFont = detailsItem.font()
-			detailsFont.setPointSize(max(detailsFont.pointSize() - 7, 5))
+			detailsFont.setPointSize(max(detailsFont.pointSize() - 6, 5))
 			detailsItem.setFont(detailsFont)
 			nameItem = QtGui.QStandardItem(name)
 			nameFont = nameItem.font()
@@ -403,7 +412,7 @@ class History(object):
 			for item in row:
 				item.setEditable(False)
 				item.setCheckable(False)
-			row[0].setData(event)
+			row[self.DETAILS_IDX].setData(event)
 			self._categoryManager.add_row(event["time"], row)
 		self._itemView.expandAll()
 
