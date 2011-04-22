@@ -30,8 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Fixing a bug on applying settings
-* Disabling PySide support and any associated features (system contacts).  It is just too buggy right now.
+*Jut hoping to force the maemo.org package system along
 """.strip()
 
 
