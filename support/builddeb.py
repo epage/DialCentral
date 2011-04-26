@@ -30,7 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Tweaking the history view.  Sadly I don't think this improves things for Maemo 4.1
+* Adjusting window rotation behavior
 """.strip()
 
 
