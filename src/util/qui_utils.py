@@ -352,8 +352,8 @@ def _maemo_set_window_orientation(window, orientation):
 		window.setAttribute(QtCore.Qt.WA_Maemo5LandscapeOrientation, True)
 		window.setAttribute(QtCore.Qt.WA_Maemo5PortraitOrientation, False)
 	elif orientation is None:
-		window.setAttribute(QtCore.Qt.WA_Maemo5LandscapeOrientation, True)
-		window.setAttribute(QtCore.Qt.WA_Maemo5PortraitOrientation, True)
+		window.setAttribute(QtCore.Qt.WA_Maemo5LandscapeOrientation, False)
+		window.setAttribute(QtCore.Qt.WA_Maemo5PortraitOrientation, False)
 	else:
 		raise RuntimeError("Unknown orientation: %r" % orientation)
 
