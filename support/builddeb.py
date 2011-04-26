@@ -30,7 +30,7 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-*Jut hoping to force the maemo.org package system along
+* Tweaking the history view.  Sadly I don't think this improves things for Maemo 4.1
 """.strip()
 
 
