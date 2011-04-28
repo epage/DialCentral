@@ -86,9 +86,9 @@ def build_package(distribution):
 		"python-simplejson",
 	])
 	p.depends += {
-		"debian": ", python-qt4",
+		"debian": ", python-qt4, python-gst0.10",
 		"diablo": ", python2.5-qt4-core, python2.5-qt4-gui",
-		"fremantle": ", python2.5-qt4-core, python2.5-qt4-gui, python2.5-qt4-maemo5",
+		"fremantle": ", python2.5-qt4-core, python2.5-qt4-gui, python2.5-qt4-maemo5, python-gst0.10",
 		#"fremantle": ", python-pyside.qtgui, python-pyside.qtcore, python-pyside.qtmaemo5, python-qtmobility.contacts",
 	}[distribution]
 	p.recommends = ", ".join([
