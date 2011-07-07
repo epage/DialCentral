@@ -23,7 +23,7 @@ class AsyncTaskQueue(object):
 
 	def add_async(self, func):
 		self.flush()
-		a = _AsyncGeneratorTask(self._taskPool, func)
+		a = AsyncGeneratorTask(self._taskPool, func)
 		self._asyncs.append(a)
 		return a
 
@@ -31,7 +31,7 @@ class AsyncTaskQueue(object):
 		self._asyncs = [a for a in self._asyncs if not a.isDone]
 
 
-class _AsyncGeneratorTask(object):
+class AsyncGeneratorTask(object):
 
 	def __init__(self, pool, func):
 		self._pool = pool

@@ -649,6 +649,35 @@ def call_trace(f):
 
 
 @contextlib.contextmanager
+def nested_break():
+	"""
+	>>> with nested_break() as mylabel:
+	... 	for i in xrange(3):
+	... 		print "Outer", i
+	... 		for j in xrange(3):
+	... 			if i == 2: raise mylabel
+	... 			if j == 2: break
+	... 			print "Inner", j
+	... 		print "more processing"
+	Outer 0
+	Inner 0
+	Inner 1
+	Outer 1
+	Inner 0
+	Inner 1
+	Outer 2
+	"""
+
+	class NestedBreakException(Exception):
+		pass
+
+	try:
+		yield NestedBreakException
+	except NestedBreakException:
+		pass
+
+
+@contextlib.contextmanager
 def lexical_scope(*args):
 	"""
 	@note Source: http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/520586

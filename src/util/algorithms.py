@@ -8,6 +8,8 @@ import itertools
 import functools
 import datetime
 import types
+import array
+import random
 
 
 def ordered_itr(collection):
@@ -39,6 +41,17 @@ def itercat(*iterators):
 	for i in iterators:
 		for x in i:
 			yield x
+
+
+def product(*args, **kwds):
+	# product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
+	# product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
+	pools = map(tuple, args) * kwds.get('repeat', 1)
+	result = [[]]
+	for pool in pools:
+		result = [x+[y] for x in result for y in pool]
+	for prod in result:
+		yield tuple(prod)
 
 
 def iterwhile(func, iterator):
@@ -577,6 +590,73 @@ def itr_available(queue, initiallyBlock = False):
 		yield queue.get()
 	while not queue.empty():
 		yield queue.get_nowait()
+
+
+class BloomFilter(object):
+	"""
+	http://en.wikipedia.org/wiki/Bloom_filter
+	Sources:
+	http://code.activestate.com/recipes/577684-bloom-filter/
+	http://code.activestate.com/recipes/577686-bloom-filter/
+
+	>>> from random import sample
+	>>> from string import ascii_letters
+	>>> states = '''Alabama Alaska Arizona Arkansas California Colorado Connecticut
+	... Delaware Florida Georgia Hawaii Idaho Illinois Indiana Iowa Kansas
+	... Kentucky Louisiana Maine Maryland Massachusetts Michigan Minnesota
+	... Mississippi Missouri Montana Nebraska Nevada NewHampshire NewJersey
+	... NewMexico NewYork NorthCarolina NorthDakota Ohio Oklahoma Oregon
+	... Pennsylvania RhodeIsland SouthCarolina SouthDakota Tennessee Texas Utah
+	... Vermont Virginia Washington WestVirginia Wisconsin Wyoming'''.split()
+	>>> bf = BloomFilter(num_bits=1000, num_probes=14)
+	>>> for state in states:
+	... 	bf.add(state)
+	>>> numStatesFound = sum(state in bf for state in states)
+	>>> numStatesFound, len(states)
+	(50, 50)
+	>>> trials = 100
+	>>> numGarbageFound = sum(''.join(sample(ascii_letters, 5)) in bf for i in range(trials))
+	>>> numGarbageFound, trials
+	(0, 100)
+	"""
+
+	def __init__(self, num_bits, num_probes):
+		num_words = (num_bits + 31) // 32
+		self._arr = array.array('B', [0]) * num_words
+		self._num_probes = num_probes
+
+	def add(self, key):
+		for i, mask in self._get_probes(key):
+			self._arr[i] |= mask
+
+	def union(self, bfilter):
+		if self._match_template(bfilter):
+			for i, b in enumerate(bfilter._arr):
+				self._arr[i] |= b
+		else:
+			# Union b/w two unrelated bloom filter raises this
+			raise ValueError("Mismatched bloom filters")
+
+	def intersection(self, bfilter):
+		if self._match_template(bfilter):
+			for i, b in enumerate(bfilter._arr):
+				self._arr[i] &= b
+		else:
+			# Intersection b/w two unrelated bloom filter raises this
+			raise ValueError("Mismatched bloom filters")
+
+	def __contains__(self, key):
+		return all(self._arr[i] & mask for i, mask in self._get_probes(key))
+
+	def _match_template(self, bfilter):
+		return self.num_bits == bfilter.num_bits and self.num_probes == bfilter.num_probes
+
+	def _get_probes(self, key):
+		hasher = random.Random(key).randrange
+		for _ in range(self._num_probes):
+			array_index = hasher(len(self._arr))
+			bit_index = hasher(32)
+			yield array_index, 1 << bit_index
 
 
 if __name__ == "__main__":
