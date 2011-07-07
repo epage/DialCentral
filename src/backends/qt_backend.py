@@ -7,8 +7,11 @@ import logging
 
 import util.qt_compat as qt_compat
 if qt_compat.USES_PYSIDE:
-	import QtMobility.Contacts as _QtContacts
-	QtContacts = _QtContacts
+	try:
+		import QtMobility.Contacts as _QtContacts
+		QtContacts = _QtContacts
+	except ImportError:
+		QtContacts = None
 else:
 	QtContacts = None
 
