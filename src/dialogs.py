@@ -357,11 +357,14 @@ class AccountDialog(QtCore.QObject, qwrappers.WindowWrapper):
 		self._callbackSelector.addItem("Not Set", "")
 
 		uglyDefault = misc_utils.make_ugly(default)
+		if not uglyDefault:
+			uglyDefault = default
 		for number, description in choices.iteritems():
 			prettyNumber = misc_utils.make_pretty(number)
 			uglyNumber = misc_utils.make_ugly(number)
 			if not uglyNumber:
-				continue
+				prettyNumber = number
+				uglyNumber = number
 
 			self._callbackSelector.addItem("%s - %s" % (prettyNumber, description), uglyNumber)
 			if uglyNumber == uglyDefault:
