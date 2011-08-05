@@ -634,7 +634,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		with qui_utils.notify_error(self._errorLog):
 			if self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_APPLICATION:
 				if self._currentTab == self.MESSAGES_TAB or not self._app.ledHandler.isReal:
-					self._errorLog.push_message("New messages available")
+					self._errorLog.push_message("New messages")
 				else:
 					self._app.ledHandler.on()
 
