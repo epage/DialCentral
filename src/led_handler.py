@@ -43,7 +43,7 @@ class LedHandler(object):
 
 	def off(self):
 		self._lazy_init()
-		self._actual.on()
+		self._actual.off()
 
 	@property
 	def isReal(self):
