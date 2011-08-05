@@ -30,7 +30,9 @@ __email__ = "eopage@byu.net"
 __version__ = constants.__version__
 __build__ = constants.__build__
 __changelog__ = """
-* Adjusting window rotation behavior
+* Adding back in GTalk callback for those who can use it
+* Polishing button sizing and some wording
+* Fixed a bug with alert LED on Maemo 4.1
 """.strip()
 
 
