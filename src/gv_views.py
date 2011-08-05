@@ -376,7 +376,7 @@ class History(object):
 		else:
 			assert False, "How did we get here?"
 
-		if self._app.notifyOnMissed and self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_BACKGROUND:
+		if self._app.notifyOnMissed and self._app.alarmHandler.alarmType != self._app.alarmHandler.ALARM_NONE:
 			self._app.ledHandler.off()
 
 	def _populate_items(self):
@@ -603,7 +603,7 @@ class Messages(object):
 		else:
 			assert False, "How did we get here?"
 
-		if self._app.notifyOnSms or self._app.notifyOnVoicemail and self._app.alarmHandler.alarmType == self._app.alarmHandler.ALARM_BACKGROUND:
+		if (self._app.notifyOnSms or self._app.notifyOnVoicemail) and self._app.alarmHandler.alarmType != self._app.alarmHandler.ALARM_NONE:
 			self._app.ledHandler.off()
 
 	def _populate_items(self):
