@@ -249,8 +249,11 @@ class AccountDialog(QtCore.QObject, qwrappers.WindowWrapper):
 		self._cancelButton = QtGui.QPushButton("&Cancel")
 		self._cancelButton.clicked.connect(self._on_settings_cancel)
 		self._buttonLayout = QtGui.QHBoxLayout()
+		self._buttonLayout.addStretch()
 		self._buttonLayout.addWidget(self._cancelButton)
+		self._buttonLayout.addStretch()
 		self._buttonLayout.addWidget(self._applyButton)
+		self._buttonLayout.addStretch()
 
 		self._layout.addWidget(self._scrollSettings)
 		self._layout.addLayout(self._buttonLayout)
@@ -860,7 +863,9 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 
 		self._buttonLayout = QtGui.QHBoxLayout()
 		self._buttonLayout.addWidget(self._characterCountLabel)
+		self._buttonLayout.addStretch()
 		self._buttonLayout.addWidget(self._singleNumberSelector)
+		self._buttonLayout.addStretch()
 		self._buttonLayout.addWidget(self._smsButton)
 		self._buttonLayout.addWidget(self._dialButton)
 		self._buttonLayout.addWidget(self._cancelButton)
