@@ -43,7 +43,7 @@ def main(args):
 				pass
 
 	icon = Image.open(options.input)
-	icon.thumbnail((options.size, options.size), Image.ANTIALIAS)
+	icon.thumbnail((int(options.size), int(options.size)), Image.ANTIALIAS)
 	icon.save(options.output)
 
 
