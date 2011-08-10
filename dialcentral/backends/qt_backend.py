@@ -5,7 +5,7 @@ from __future__ import division
 
 import logging
 
-import util.qt_compat as qt_compat
+from dialcentral.util import qt_compat
 if qt_compat.USES_PYSIDE:
 	try:
 		import QtMobility.Contacts as _QtContacts

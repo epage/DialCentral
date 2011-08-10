@@ -30,8 +30,7 @@ _moduleLogger = logging.getLogger(__name__)
 class Dialcentral(qwrappers.ApplicationWrapper):
 
 	_DATA_PATHS = [
-		os.path.join(os.path.dirname(__file__), "../share"),
-		os.path.join(os.path.dirname(__file__), "../data"),
+		os.path.join(os.path.dirname(__file__), "data"),
 	]
 
 	def __init__(self, app):

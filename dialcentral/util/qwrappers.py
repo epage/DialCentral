@@ -9,8 +9,8 @@ import qt_compat
 QtCore = qt_compat.QtCore
 QtGui = qt_compat.import_module("QtGui")
 
-from util import qui_utils
-from util import misc as misc_utils
+import qui_utils
+import misc as misc_utils
 
 
 _moduleLogger = logging.getLogger(__name__)

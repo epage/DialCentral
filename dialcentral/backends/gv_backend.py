@@ -32,7 +32,7 @@ import logging
 
 from gvoice import gvoice
 
-from util import io as io_utils
+from dialcentral.util import io as io_utils
 
 
 _moduleLogger = logging.getLogger(__name__)

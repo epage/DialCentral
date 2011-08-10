@@ -3,12 +3,15 @@
 from __future__ import with_statement
 from __future__ import division
 
-#try:
-#	import PySide.QtCore as _QtCore
-#	QtCore = _QtCore
-#	USES_PYSIDE = True
-#except ImportError:
-if True:
+_TRY_PYSIDE = False
+
+try:
+	if not _TRY_PYSIDE:
+		raise ImportError()
+	import PySide.QtCore as _QtCore
+	QtCore = _QtCore
+	USES_PYSIDE = True
+except ImportError:
 	import sip
 	sip.setapi('QString', 2)
 	sip.setapi('QVariant', 2)

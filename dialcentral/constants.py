@@ -10,4 +10,5 @@ _user_settings_ = "%s/settings.ini" % _data_path_
 _custom_notifier_settings_ = "%s/notifier.ini" % _data_path_
 _user_logpath_ = "%s/%s.log" % (_data_path_, __app_name__)
 _notifier_logpath_ = "%s/notifier.log" % _data_path_
+
 IS_MAEMO = True
