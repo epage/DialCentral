@@ -28,35 +28,13 @@ def set_process_name(name):
 		_moduleLogger.warning('Unable to set processName: %s" % e')
 
 
-def get_new_resource(resourceType, resource, name):
+def _get_xdg_path(resourceType):
 	if BaseDirectory is not None:
 		if resourceType == "data":
 			base = BaseDirectory.xdg_data_home
 			if base == "/usr/share/mime":
 				# Ugly hack because somehow Maemo 4.1 seems to be set to this
-				base = os.path.join(os.path.expanduser("~"), ".%s" % resource)
-		elif resourceType == "config":
-			base = BaseDirectory.xdg_config_home
-		elif resourceType == "cache":
-			base = BaseDirectory.xdg_cache_home
-		else:
-			raise RuntimeError("Unknown type: "+resourceType)
-	else:
-		base = os.path.join(os.path.expanduser("~"), ".%s" % resource)
-
-	filePath = os.path.join(base, resource, name)
-	dirPath = os.path.dirname(filePath)
-	if not os.path.exists(dirPath):
-		# Looking before I leap to not mask errors
-		os.makedirs(dirPath)
-
-	return filePath
-
-
-def get_existing_resource(resourceType, resource, name):
-	if BaseDirectory is not None:
-		if resourceType == "data":
-			base = BaseDirectory.xdg_data_home
+				base = None
 		elif resourceType == "config":
 			base = BaseDirectory.xdg_config_home
 		elif resourceType == "cache":
@@ -65,6 +43,34 @@ def get_existing_resource(resourceType, resource, name):
 			raise RuntimeError("Unknown type: "+resourceType)
 	else:
 		base = None
+
+	return base
+
+
+def get_resource_path(resourceType, resource, name = None):
+	base = _get_xdg_path(resourceType)
+	if base is not None:
+		dirPath = os.path.join(base, resource)
+	else:
+		base = os.path.join(os.path.expanduser("~"), ".%s" % resource)
+		dirPath = base
+	if name is not None:
+		dirPath = os.path.join(dirPath, name)
+	return dirPath
+
+
+def get_new_resource(resourceType, resource, name):
+	dirPath = get_resource_path(resourceType, resource)
+	filePath = os.path.join(dirPath, name)
+	if not os.path.exists(dirPath):
+		# Looking before I leap to not mask errors
+		os.makedirs(dirPath)
+
+	return filePath
+
+
+def get_existing_resource(resourceType, resource, name):
+	base = _get_xdg_path(resourceType)
 
 	if base is not None:
 		finalPath = os.path.join(base, name)

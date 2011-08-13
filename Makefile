@@ -5,7 +5,7 @@ SOURCE_PATH=$(PACKAGE_NAME)
 SOURCE=$(shell find $(SOURCE_PATH) -iname "*.py")
 
 PROGRAM=DialCentral
-ICON_SIZES=26 32 48 80
+ICON_SIZES=26 32 48 64 80
 ICONS=$(foreach size, $(ICON_SIZES), data/icons/$(size)/$(PROJECT_NAME).png)
 PACKAGE_VARIANTS=fremantle harmattan ubuntu
 DESKTOP_FILES=$(foreach variant, $(PACKAGE_VARIANTS), data/$(variant)/$(PROJECT_NAME).desktop)
@@ -46,27 +46,43 @@ debug: $(OBJ)
 test: $(OBJ)
 	$(UNIT_TEST)
 
-package: $(OBJ) $(ICONS) $(SETUP_FILES) $(DESKTOP_FILES)
-	rm -Rf $(DIST_BASE_PATH)_*/*
+_package_prep: $(OBJ) $(ICONS) $(SETUP_FILES) $(DESKTOP_FILES)
+
+package_diablo: _package_prep
+	rm -Rf $(DIST_BASE_PATH)_diablo/*
 	./setup.fremantle.py sdist_diablo \
 		-d $(DIST_BASE_PATH)_diablo \
 		--install-purelib=/usr/lib/python2.5/site-packages
+package_fremantle: _package_prep
+	rm -Rf $(DIST_BASE_PATH)_fremantle/*
 	./setup.fremantle.py sdist_fremantle \
 		-d $(DIST_BASE_PATH)_fremantle \
 		--install-purelib=/usr/lib/python2.5/site-packages
+package_harmattan: _package_prep
+	rm -Rf $(DIST_BASE_PATH)_harmattan/*
 	./setup.harmattan.py sdist_harmattan \
-		-d $(DIST_BASE_PATH)_harmattan
+		-d $(DIST_BASE_PATH)_harmattan \
 		--install-purelib=/usr/lib/python2.6/dist-packages
+package_ubuntu: _package_prep
+	rm -Rf $(DIST_BASE_PATH)_ubuntu/*
 	./setup.ubuntu.py sdist_ubuntu \
 		-d $(DIST_BASE_PATH)_ubuntu
 	mkdir $(DIST_BASE_PATH)_ubuntu/build
 	cd $(DIST_BASE_PATH)_ubuntu/build ; tar -zxvf ../*.tar.gz
 	cd $(DIST_BASE_PATH)_ubuntu/build ; dpkg-buildpackage -tc -rfakeroot -us -uc
 
-upload:
+package: package_diablo package_fremantle package_harmattan package_ubuntu
+
+upload_diablo:
 	dput diablo-extras-builder $(DIST_BASE_PATH)_diablo/$(PROJECT_NAME)*.changes
+upload_fremantle:
 	dput fremantle-extras-builder $(DIST_BASE_PATH)_fremantle/$(PROJECT_NAME)*.changes
+upload_harmattan:
+	./support/obs_upload.sh $(PROJECT_NAME) harmattan dist_harmattan
+upload_ubuntu:
 	cp $(DIST_BASE_PATH)_ubuntu/*.deb www/$(PROJECT_NAME).deb
+
+upload: upload_diablo upload_fremantle upload_harmattan upload_ubuntu
 
 lint: $(OBJ)
 	$(foreach file, $(SOURCE), $(LINT) $(file) ; )
@@ -79,7 +95,7 @@ clean:
 	rm -Rf $(OBJ)
 	rm -Rf $(TODO_FILE)
 	rm -f $(ICONS) $(SETUP_FILES) $(DESKTOP_FILES)
-	rm -Rf $(DIST_PATHS)
+	rm -Rf $(DIST_PATHS) ./build
 
 distclean: clean
 	find $(SOURCE_PATH) -name "*.*~" | xargs rm -f
@@ -103,8 +119,8 @@ setup.harmattan.py: setup.py src/constants.py
 	cog.py -c \
 		-D DESKTOP_FILE_PATH=/usr/share/applications \
 		-D INPUT_DESKTOP_FILE=data/$(VARIANT)/$(PROJECT_NAME).desktop \
-		-D ICON_CATEGORY=hildon \
-		-D ICON_SIZES=32,80 \
+		-D ICON_CATEGORY=apps \
+		-D ICON_SIZES=64,80 \
 		-o $@ $<
 	chmod +x $@
 
@@ -128,6 +144,7 @@ $(DESKTOP_FILES): data/template.desktop
 	cog.py -d \
 		-D VARIANT=$(VARIANT) \
 		-D PROGRAM=$(PROGRAM) \
+		-D ICON_NAME=$(PROJECT_NAME) \
 		-o $@ $<
 
 

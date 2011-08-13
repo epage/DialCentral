@@ -3,7 +3,7 @@
 from __future__ import with_statement
 from __future__ import division
 
-_TRY_PYSIDE = False
+_TRY_PYSIDE = True
 
 try:
 	if not _TRY_PYSIDE:

@@ -171,11 +171,11 @@ class KeyboardHandler(object):
 		del self.__modifiers["<%s>" % modifierName]
 
 	def map_slice_action(self, slice, action):
-		callback = lambda direction: self(direction, action)
+		callback = lambda: self(action)
 		slice.action().triggered.connect(callback)
 		self.__sliceActions[slice] = (action, callback)
 
-	def __call__(self, direction, action):
+	def __call__(self, action):
 		activeModifiers = [
 			mod.name
 			for mod in self.__modifiers.itervalues()

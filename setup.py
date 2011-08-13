@@ -88,6 +88,7 @@ setup(
 	},
 	data_files=[
 		(DESKTOP_FILE_PATH, [INPUT_DESKTOP_FILE]),
+		("/usr/share/icons/hicolor/scalable/apps", ["data/%s.svg" % APP_NAME]),
 	] +
 	[
 		(
@@ -98,7 +99,6 @@ setup(
 	],
 	requires=[
 		"PySide",
-		"simplejson",
 		"xml",
 	],
 	cmdclass={
@@ -114,7 +114,7 @@ setup(
 			"copyright": "lgpl",
 			"changelog": CHANGES,
 			"buildversion": str(BUILD),
-			"depends": "python, python-pyside.qtcore, python-pyside.qtgui, python-simplejson, python-xml, python-dbus, python-gst0.10",
+			"depends": "python, python-pyside.qtcore, python-pyside.qtgui, python-xdg, python-dbus, python-gst0.10",
 			"architecture": "any",
 		},
 		"sdist_diablo": {
@@ -127,7 +127,7 @@ setup(
 			"copyright": "lgpl",
 			"changelog": CHANGES,
 			"buildversion": str(BUILD),
-			"depends": "python2.5, python2.5-qt4-core, python2.5-qt4-gui, python-simplejson, python-xml | python2.5-xml, python-dbus | python2.5-dbus",
+			"depends": "python2.5, python2.5-qt4-core, python2.5-qt4-gui, python-xdg, python-simplejson, python-xml | python2.5-xml, python-dbus | python2.5-dbus",
 			"architecture": "any",
 		},
 		"sdist_fremantle": {
@@ -140,7 +140,7 @@ setup(
 			"copyright": "lgpl",
 			"changelog": CHANGES,
 			"buildversion": str(BUILD),
-			"depends": "python, python-pyside.qtcore, python-pyside.qtgui, python-pyside.qtmaemo5, python-simplejson, python-gst0.10, python-xml | python2.5-xml, python-dbus | python2.5-dbus",
+			"depends": "python, python-pyside.qtcore, python-pyside.qtgui, python-pyside.qtmaemo5, python-xdg, python-simplejson, python-gst0.10, python-xml | python2.5-xml, python-dbus | python2.5-dbus",
 			"architecture": "any",
 		},
 		"sdist_harmattan": {
@@ -155,7 +155,7 @@ setup(
 			"copyright": "lgpl",
 			"changelog": CHANGES,
 			"buildversion": str(BUILD),
-			"depends": "python, python-pyside.qtcore, python-pyside.qtgui, python-simplejson, python-xml",
+			"depends": "python, python-pyside.qtcore, python-pyside.qtgui, python-xdg",
 			"architecture": "any",
 		},
 		"bdist_rpm": {

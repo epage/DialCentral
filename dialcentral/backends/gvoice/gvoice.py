@@ -41,10 +41,14 @@ from xml.sax import saxutils
 from xml.etree import ElementTree
 
 try:
-	import simplejson as _simplejson
-	simplejson = _simplejson
+	import json as _json
+	simplejson = _json
 except ImportError:
-	simplejson = None
+	try:
+		import simplejson as _simplejson
+		simplejson = _simplejson
+	except ImportError:
+		simplejson = None
 
 import browser_emu
 
