@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 
+from __future__ import with_statement
+
 import os
 import time
 import datetime
 import ConfigParser
 import logging
 
+import dbus
+
 import util.qt_compat as qt_compat
 QtCore = qt_compat.QtCore
-import dbus
+from util import linux as linux_utils
 
 
 _FREMANTLE_ALARM = "Fremantle"
@@ -432,9 +436,11 @@ def main():
 	parser.add_option("-r", "--recurrence", action="store", type="int", dest="recurrence", help="How often the alarm occurs", default=5)
 	(commandOptions, commandArgs) = parser.parse_args()
 
+	settingsPath = linux_utils.get_resource_path("config", constants.__app_name__, "settings.ini")
+
 	alarmHandler = AlarmHandler()
 	config = ConfigParser.SafeConfigParser()
-	config.read(constants._user_settings_)
+	config.read(settingsPath)
 	alarmHandler.load_settings(config, "alarm")
 
 	if commandOptions.display:
@@ -449,11 +455,8 @@ def main():
 		alarmHandler.apply_settings(isEnabled, recurrence)
 
 		alarmHandler.save_settings(config, "alarm")
-		configFile = open(constants._user_settings_, "wb")
-		try:
+		with open(settingsPath, "wb") as configFile:
 			config.write(configFile)
-		finally:
-			configFile.close()
 
 
 if __name__ == "__main__":

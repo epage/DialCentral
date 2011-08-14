@@ -2,24 +2,22 @@
 
 from __future__ import with_statement
 
-import sys
 import datetime
 import ConfigParser
 
-
-sys.path.insert(0,"/usr/lib/dialcentral/")
-
-
-import constants
-import alarm_notify
+from dialcentral import constants
+from dialcentral.util import linux as linux_utils
+from dialcentral import alarm_notify
 
 
 def notify_on_change():
-	with open(constants._notifier_logpath_, "a") as file:
+	notifierLogPath = linux_utils.get_resource_path("cache", constants.__app_name__, "notifier.log")
+	settingsPath = linux_utils.get_resource_path("config", constants.__app_name__, "settings.ini")
+	with open(notifierLogPath, "a") as file:
 		file.write("Notification: %r\n" % (datetime.datetime.now(), ))
 
 		config = ConfigParser.SafeConfigParser()
-		config.read(constants._user_settings_)
+		config.read(settingsPath)
 		backend = alarm_notify.create_backend(config)
 		notifyUser = alarm_notify.is_changed(config, backend)
 

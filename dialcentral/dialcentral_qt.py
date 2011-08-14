@@ -19,6 +19,7 @@ import alarm_handler
 from util import qtpie
 from util import qwrappers
 from util import qui_utils
+from util import linux as linux_utils
 from util import misc as misc_utils
 
 import session
@@ -48,8 +49,9 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 
 	def load_settings(self):
 		try:
+			settingsPath = linux_utils.get_resource_path("config", constants.__app_name__, "settings.ini")
 			config = ConfigParser.SafeConfigParser()
-			config.read(constants._user_settings_)
+			config.read(settingsPath)
 		except IOError, e:
 			_moduleLogger.info("No settings")
 			return
@@ -70,7 +72,8 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 
 		self._mainWindow.save_settings(config)
 
-		with open(constants._user_settings_, "wb") as configFile:
+		settingsPath = linux_utils.get_resource_path("config", constants.__app_name__, "settings.ini")
+		with open(settingsPath, "wb") as configFile:
 			config.write(configFile)
 
 	def get_icon(self, name):
@@ -103,7 +106,7 @@ class Dialcentral(qwrappers.ApplicationWrapper):
 
 	@property
 	def fsContactsPath(self):
-		return os.path.join(constants._data_path_, "contacts")
+		return linux_utils.get_resource_path("data", constants.__app_name__, "contacts")
 
 	@property
 	def streamHandler(self):
@@ -258,7 +261,8 @@ class MainWindow(qwrappers.WindowWrapper):
 		self._window.resized.connect(self._on_window_resized)
 		self._errorLog = self._app.errorLog
 
-		self._session = session.Session(self._errorLog, constants._data_path_)
+		cachePath = linux_utils.get_resource_path("cache", constants.__app_name__)
+		self._session = session.Session(self._errorLog, cachePath)
 		self._session.error.connect(self._on_session_error)
 		self._session.loggedIn.connect(self._on_login)
 		self._session.loggedOut.connect(self._on_logout)
@@ -420,15 +424,13 @@ class MainWindow(qwrappers.WindowWrapper):
 			orientation = config.get(constants.__pretty_app_name__, "orientation")
 		except ConfigParser.NoOptionError, e:
 			_moduleLogger.info(
-				"Settings file %s is missing option %s" % (
-					constants._user_settings_,
+				"Settings file is missing option %s" % (
 					e.option,
 				),
 			)
 		except ConfigParser.NoSectionError, e:
 			_moduleLogger.info(
-				"Settings file %s is missing section %s" % (
-					constants._user_settings_,
+				"Settings file is missing section %s" % (
 					e.section,
 				),
 			)
@@ -443,15 +445,13 @@ class MainWindow(qwrappers.WindowWrapper):
 			self._updateVoicemailOnMissedCall = config.getboolean("2 - Account Info", "updateVoicemailOnMissedCall")
 		except ConfigParser.NoOptionError, e:
 			_moduleLogger.info(
-				"Settings file %s is missing option %s" % (
-					constants._user_settings_,
+				"Settings file is missing option %s" % (
 					e.option,
 				),
 			)
 		except ConfigParser.NoSectionError, e:
 			_moduleLogger.info(
-				"Settings file %s is missing section %s" % (
-					constants._user_settings_,
+				"Settings file is missing section %s" % (
 					e.section,
 				),
 			)
@@ -476,16 +476,14 @@ class MainWindow(qwrappers.WindowWrapper):
 					settingValue = config.get(sectionName, settingName)
 				except ConfigParser.NoOptionError, e:
 					_moduleLogger.info(
-						"Settings file %s is missing section %s" % (
-							constants._user_settings_,
+						"Settings file is missing section %s" % (
 							e.section,
 						),
 					)
 					return
 				except ConfigParser.NoSectionError, e:
 					_moduleLogger.info(
-						"Settings file %s is missing section %s" % (
-							constants._user_settings_,
+						"Settings file is missing section %s" % (
 							e.section,
 						),
 					)
@@ -761,14 +759,25 @@ class MainWindow(qwrappers.WindowWrapper):
 
 def run():
 	try:
-		os.makedirs(constants._data_path_)
+		os.makedirs(linux_utils.get_resource_path("config", constants.__app_name__))
+	except OSError, e:
+		if e.errno != 17:
+			raise
+	try:
+		os.makedirs(linux_utils.get_resource_path("cache", constants.__app_name__))
+	except OSError, e:
+		if e.errno != 17:
+			raise
+	try:
+		os.makedirs(linux_utils.get_resource_path("data", constants.__app_name__))
 	except OSError, e:
 		if e.errno != 17:
 			raise
 
+	logPath = linux_utils.get_resource_path("cache", constants.__app_name__, "%s.log" % constants.__app_name__)
 	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
 	logging.basicConfig(level=logging.DEBUG, format=logFormat)
-	rotating = logging.handlers.RotatingFileHandler(constants._user_logpath_, maxBytes=512*1024, backupCount=1)
+	rotating = logging.handlers.RotatingFileHandler(logPath, maxBytes=512*1024, backupCount=1)
 	rotating.setFormatter(logging.Formatter(logFormat))
 	root = logging.getLogger()
 	root.addHandler(rotating)

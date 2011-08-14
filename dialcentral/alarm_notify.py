@@ -8,7 +8,11 @@ import logging
 import logging.handlers
 
 import constants
+from util import linux as linux_utils
 from backends.gvoice import gvoice
+
+
+CACHE_PATH = linux_utils.get_resource_path("cache", constants.__app_name__)
 
 
 def get_missed(backend):
@@ -53,8 +57,8 @@ def is_type_changed(backend, type, get_material):
 	jsonMaterial = get_material(backend)
 	unreadCount = jsonMaterial["unreadCounts"][type]
 
-	previousSnapshotPath = os.path.join(constants._data_path_, "snapshot_%s.old.json" % type)
-	currentSnapshotPath = os.path.join(constants._data_path_, "snapshot_%s.json" % type)
+	previousSnapshotPath = os.path.join(CACHE_PATH, "snapshot_%s.old.json" % type)
+	currentSnapshotPath = os.path.join(CACHE_PATH, "snapshot_%s.json" % type)
 
 	try:
 		os.remove(previousSnapshotPath)
@@ -87,7 +91,7 @@ def is_type_changed(backend, type, get_material):
 
 
 def create_backend(config):
-	gvCookiePath = os.path.join(constants._data_path_, "gv_cookies.txt")
+	gvCookiePath = os.path.join(CACHE_PATH, "gv_cookies.txt")
 	backend = gvoice.GVoiceBackend(gvCookiePath)
 
 	loggedIn = False
@@ -150,8 +154,10 @@ def is_changed(config, backend):
 
 
 def notify_on_change():
+	settingsPath = linux_utils.get_resource_path("config", constants.__app_name__, "settings.ini")
+
 	config = ConfigParser.SafeConfigParser()
-	config.read(constants._user_settings_)
+	config.read(settingsPath)
 	backend = create_backend(config)
 	notifyUser = is_changed(config, backend)
 
@@ -165,9 +171,11 @@ def notify_on_change():
 
 
 if __name__ == "__main__":
+	notifierPath = os.path.join(CACHE_PATH, "notifier.log")
+
 	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
 	logging.basicConfig(level=logging.DEBUG, format=logFormat)
-	rotating = logging.handlers.RotatingFileHandler(constants._notifier_logpath_, maxBytes=512*1024, backupCount=1)
+	rotating = logging.handlers.RotatingFileHandler(notifierPath, maxBytes=512*1024, backupCount=1)
 	rotating.setFormatter(logging.Formatter(logFormat))
 	root = logging.getLogger()
 	root.addHandler(rotating)

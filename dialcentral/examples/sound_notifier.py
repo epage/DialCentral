@@ -1,26 +1,26 @@
 #!/usr/bin/env python
 
 import os
-import sys
 import ConfigParser
 import logging
 
 
-sys.path.insert(0,"/usr/lib/dialcentral/")
-
-
-import constants
-import alarm_notify
+from dialcentral import constants
+from dialcentral.util import linux as linux_utils
+from dialcentral import alarm_notify
 
 
 def notify_on_change():
+	settingsPath = linux_utils.get_resource_path("config", constants.__app_name__, "settings.ini")
+	notifierSettingsPath = linux_utils.get_resource_path("config", constants.__app_name__, "notifier.ini")
+
 	config = ConfigParser.SafeConfigParser()
-	config.read(constants._user_settings_)
+	config.read(settingsPath)
 	backend = alarm_notify.create_backend(config)
 	notifyUser = alarm_notify.is_changed(config, backend)
 
 	config = ConfigParser.SafeConfigParser()
-	config.read(constants._custom_notifier_settings_)
+	config.read(notifierSettingsPath)
 	soundFile = config.get("Sound Notifier", "soundfile")
 	soundFile = "/usr/lib/gv-notifier/alert.mp3"
 
@@ -36,7 +36,9 @@ def notify_on_change():
 
 
 if __name__ == "__main__":
-	logging.basicConfig(level=logging.WARNING, filename=constants._notifier_logpath_)
+	notifierLogPath = linux_utils.get_resource_path("cache", constants.__app_name__, "notifier.log")
+
+	logging.basicConfig(level=logging.WARNING, filename=notifierLogPath)
 	logging.info("Sound Notifier %s-%s" % (constants.__version__, constants.__build__))
 	logging.info("OS: %s" % (os.uname()[0], ))
 	logging.info("Kernel: %s (%s) for %s" % os.uname()[2:])
