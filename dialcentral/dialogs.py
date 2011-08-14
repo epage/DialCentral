@@ -703,7 +703,7 @@ class VoicemailPlayer(object):
 			self._token.invalidate()
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_voicemail_save(self, arg):
+	def _on_voicemail_save(self, arg = None):
 		with qui_utils.notify_error(self._app.errorLog):
 			targetPath = QtGui.QFileDialog.getSaveFileName(None, caption="Save Voicemail", filter="Audio File (*.mp3)")
 			targetPath = unicode(targetPath)
@@ -750,7 +750,7 @@ class VoicemailPlayer(object):
 				self._stopButton.hide()
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_voicemail_play(self, arg):
+	def _on_voicemail_play(self, arg = None):
 		with qui_utils.notify_error(self._app.errorLog):
 			(cid, ) = self._session.draft.get_contacts()
 			messageId = self._session.draft.get_message_id(cid)
@@ -765,22 +765,22 @@ class VoicemailPlayer(object):
 			self._token.play()
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_voicemail_pause(self, arg):
+	def _on_voicemail_pause(self, arg = None):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._token.pause()
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_voicemail_resume(self, arg):
+	def _on_voicemail_resume(self, arg = None):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._token.play()
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_voicemail_stop(self, arg):
+	def _on_voicemail_stop(self, arg = None):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._token.stop()
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_voicemail_download(self, arg):
+	def _on_voicemail_download(self, arg = None):
 		with qui_utils.notify_error(self._app.errorLog):
 			(cid, ) = self._session.draft.get_contacts()
 			messageId = self._session.draft.get_message_id(cid)
@@ -1040,14 +1040,14 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			self._scrollEntry.ensureWidgetVisible(self._smsEntry)
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_sms_clicked(self, arg):
+	def _on_sms_clicked(self, arg = None):
 		with qui_utils.notify_error(self._app.errorLog):
 			message = unicode(self._smsEntry.toPlainText())
 			self._session.draft.message = message
 			self._session.draft.send()
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_call_clicked(self, arg):
+	def _on_call_clicked(self, arg = None):
 		with qui_utils.notify_error(self._app.errorLog):
 			message = unicode(self._smsEntry.toPlainText())
 			self._session.draft.message = message
