@@ -37,7 +37,7 @@ ICON_CATEGORY="apps"
 ICON_SIZES=[32,48]
 #[[[end]]] (checksum: 6b362845c8509854ec12f330afd9c7b7)
 
-CHANGES = """* Fixing a launch issue with previous python versions
+CHANGES = """* Switching back to PyQt4
 """.strip()
 BUGTRACKER_URL = "https://bugs.maemo.org/enter_bug.cgi?product=Dialcentral"
 
