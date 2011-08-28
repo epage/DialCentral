@@ -10,9 +10,9 @@ import logging
 
 import dbus
 
-import util.qt_compat as qt_compat
+import dialcentral.util.qt_compat as qt_compat
 QtCore = qt_compat.QtCore
-from util import linux as linux_utils
+import dialcentral.util.linux as linux_utils
 
 
 _FREMANTLE_ALARM = "Fremantle"
@@ -423,7 +423,7 @@ class AlarmHandler(object):
 def main():
 	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
 	logging.basicConfig(level=logging.DEBUG, format=logFormat)
-	import constants
+	from dialcentral import constants
 	try:
 		import optparse
 	except ImportError:
@@ -452,7 +452,7 @@ def main():
 	else:
 		isEnabled = commandOptions.enabled
 		recurrence = commandOptions.recurrence
-		alarmHandler.apply_settings(isEnabled, recurrence)
+		alarmHandler.apply_settings(AlarmHandler.ALARM_BACKGROUND if isEnabled else AlarmHandler.ALARM_NONE, recurrence)
 
 		alarmHandler.save_settings(config, "alarm")
 		with open(settingsPath, "wb") as configFile:
