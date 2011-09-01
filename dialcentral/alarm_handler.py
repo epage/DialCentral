@@ -98,7 +98,7 @@ class _FremantleAlarmHandler(object):
 	_INVALID_COOKIE = -1
 	_REPEAT_FOREVER = -1
 	_TITLE = "Dialcentral Notifications"
-	_LAUNCHER = os.path.abspath(os.path.join(os.path.dirname(__file__), "alarm_notify.py"))
+	_LAUNCHER = "python %s" % os.path.abspath(os.path.join(os.path.dirname(__file__), "alarm_notify.py"))
 
 	def __init__(self):
 		self._recurrence = 5
@@ -180,7 +180,7 @@ class _DiabloAlarmHandler(object):
 
 	_INVALID_COOKIE = -1
 	_TITLE = "Dialcentral Notifications"
-	_LAUNCHER = os.path.abspath(os.path.join(os.path.dirname(__file__), "alarm_notify.py"))
+	_LAUNCHER = "python %s" % os.path.abspath(os.path.join(os.path.dirname(__file__), "alarm_notify.py"))
 	_REPEAT_FOREVER = -1
 
 	def __init__(self):
