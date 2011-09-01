@@ -797,10 +797,19 @@ def google_strptime(time):
 	local system's locale is different, there isn't a way to perfectly handle
 	the time.  So instead we handle implement some time formatting
 	"""
-	abbrevTime = time[:-3]
-	parsedTime = datetime.datetime.strptime(abbrevTime, "%m/%d/%y %I:%M")
+	try:
+		abbrevTime = time[:-3]
+		parsedTime = datetime.datetime.strptime(abbrevTime, "%m/%d/%y %I:%M")
+	except:
+		_moduleLogger.exception("Fooey, going with a dummy date")
+		parsedTime = datetime.datetime(1, 1, 1)
+		return parsedTime
 	if time.endswith("PM"):
 		parsedTime += datetime.timedelta(hours=12)
+	elif time.endswith("AM"):
+		pass
+	else:
+		_moduleLogger.error("Unknown time of date for %r" % time)
 	return parsedTime
 
 
