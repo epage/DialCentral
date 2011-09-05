@@ -718,7 +718,7 @@ class Messages(object):
 				messageId = str(contactDetails["id"])
 			else:
 				messageId = None
-			contactId = str(contactDetails["contactId"])
+			contactId = number
 			title = name
 			description = unicode(contactDetails["expandedMessages"])
 			numbersWithDescriptions = [(number, "")]

@@ -35,6 +35,15 @@ class _DraftContact(object):
 		self.numbers = numbersWithDescriptions
 		self.selectedNumber = numbersWithDescriptions[0][0]
 
+	def __repr__(self):
+		return "<%s (%s)>" % (
+			type(self).__name__,
+			", ".join(
+				"%r=%r" % (m, getattr(self, m))
+				for m in ("messageId", "title", "numbers", "selectedNumber")
+			)
+		)
+
 
 class Draft(QtCore.QObject):
 
