@@ -170,7 +170,7 @@ def notify_on_change():
 		logging.info("No Change")
 
 
-if __name__ == "__main__":
+def run():
 	notifierPath = os.path.join(CACHE_PATH, "notifier.log")
 
 	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
@@ -188,3 +188,7 @@ if __name__ == "__main__":
 	except:
 		logging.exception("Error")
 		raise
+
+
+if __name__ == "__main__":
+	run()

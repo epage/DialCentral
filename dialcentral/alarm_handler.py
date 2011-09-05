@@ -106,6 +106,10 @@ class _FremantleAlarmHandler(object):
 		self._alarmCookie = self._INVALID_COOKIE
 		self._launcher = self._LAUNCHER
 
+	@property
+	def alarmCookie(self):
+		return self._alarmCookie
+
 	def load_settings(self, config, sectionName):
 		try:
 			self._recurrence = config.getint(sectionName, "recurrence")
@@ -190,6 +194,10 @@ class _DiabloAlarmHandler(object):
 		self._alarmdDBus = bus.get_object("com.nokia.alarmd", "/com/nokia/alarmd");
 		self._alarmCookie = self._INVALID_COOKIE
 		self._launcher = self._LAUNCHER
+
+	@property
+	def alarmCookie(self):
+		return self._alarmCookie
 
 	def load_settings(self, config, sectionName):
 		try:
@@ -276,6 +284,10 @@ class _ApplicationAlarmHandler(object):
 		self._timer.setSingleShot(False)
 		self._timer.setInterval(5 * self._MIN_TO_MS_FACTORY)
 
+	@property
+	def alarmCookie(self):
+		return 0
+
 	def load_settings(self, config, sectionName):
 		try:
 			self._timer.setInterval(config.getint(sectionName, "recurrence") * self._MIN_TO_MS_FACTORY)
@@ -313,6 +325,10 @@ class _NoneAlarmHandler(object):
 	def __init__(self):
 		self._enabled = False
 		self._recurrence = 5
+
+	@property
+	def alarmCookie(self):
+		return 0
 
 	def load_settings(self, config, sectionName):
 		try:
@@ -415,12 +431,16 @@ class AlarmHandler(object):
 	def isEnabled(self):
 		return self._currentAlarmType != self.ALARM_NONE
 
+	@property
+	def alarmCookie(self):
+		return self._alarms[self._currentAlarmType].alarmCookie
+
 	def _init_alarm(self, t):
 		if t not in self._alarms and self.ALARM_FACTORY[t] is not None:
 			self._alarms[t] = self.ALARM_FACTORY[t]()
 
 
-def main():
+def run():
 	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
 	logging.basicConfig(level=logging.DEBUG, format=logFormat)
 	from dialcentral import constants
@@ -445,14 +465,19 @@ def main():
 
 	if commandOptions.display:
 		print "Alarm (%s) is %s for every %d minutes" % (
-			alarmHandler._alarmCookie,
+			alarmHandler.alarmCookie,
 			"enabled" if alarmHandler.isEnabled else "disabled",
 			alarmHandler.recurrence,
 		)
 	else:
 		isEnabled = commandOptions.enabled
 		recurrence = commandOptions.recurrence
-		alarmHandler.apply_settings(AlarmHandler.ALARM_BACKGROUND if isEnabled else AlarmHandler.ALARM_NONE, recurrence)
+
+		if alarmHandler.backgroundNotificationsSupported:
+			enableType = AlarmHandler.ALARM_BACKGROUND
+		else:
+			enableType = AlarmHandler.ALARM_APPLICATION
+		alarmHandler.apply_settings(enableType if isEnabled else AlarmHandler.ALARM_NONE, recurrence)
 
 		alarmHandler.save_settings(config, "alarm")
 		with open(settingsPath, "wb") as configFile:
@@ -460,4 +485,4 @@ def main():
 
 
 if __name__ == "__main__":
-	main()
+	run()
