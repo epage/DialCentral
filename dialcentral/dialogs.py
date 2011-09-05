@@ -556,10 +556,11 @@ class ContactList(object):
 			defaultIndex = _index_number(numbers, selectedNumber)
 
 		for number, description in numbers:
+			prettyNumber = misc_utils.make_pretty(number)
 			if description:
-				label = "%s - %s" % (number, description)
+				label = "%s - %s" % (prettyNumber, description)
 			else:
-				label = number
+				label = prettyNumber
 			selector.addItem(label)
 		selector.setVisible(True)
 		if 1 < len(numbers):
@@ -1019,10 +1020,11 @@ class SMSEntryWindow(qwrappers.WindowWrapper):
 			defaultIndex = _index_number(numbers, selectedNumber)
 
 		for number, description in numbers:
+			prettyNumber = misc_utils.make_pretty(number)
 			if description:
-				label = "%s - %s" % (number, description)
+				label = "%s - %s" % (prettyNumber, description)
 			else:
-				label = number
+				label = prettyNumber
 			selector.addItem(label)
 		selector.setVisible(True)
 		if 1 < len(numbers):
