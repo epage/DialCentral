@@ -586,7 +586,7 @@ class ContactList(object):
 			self._session.draft.set_selected_number(cid, number)
 
 	@misc_utils.log_exception(_moduleLogger)
-	def _on_remove_contact(self, index, toggled):
+	def _on_remove_contact(self, index, toggled = True):
 		with qui_utils.notify_error(self._app.errorLog):
 			self._session.draft.remove_contact(self._uiItems[index]["cid"])
 
