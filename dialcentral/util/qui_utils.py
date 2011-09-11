@@ -229,7 +229,7 @@ class QHtmlDelegate(QtGui.QStyledItemDelegate):
 				)
 			)
 
-		textRect = style.subElementRect(QtGui.QStyle.SE_ItemViewItemText, newOption)
+		textRect = style.subElementRect(QtGui.QStyle.SE_ItemViewItemText, newOption, None)
 		painter.save()
 		painter.translate(textRect.topLeft())
 		painter.setClipRect(textRect.translated(-textRect.topLeft()))
