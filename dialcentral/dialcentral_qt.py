@@ -315,7 +315,7 @@ class MainWindow(qwrappers.WindowWrapper):
 		defaultTabIconWidth = max(defaultTabIconWidth, 32)
 		defaultTabIconHeight = max(defaultTabIconHeight, 32)
 		self._tabWidget.setIconSize(QtCore.QSize(defaultTabIconWidth, defaultTabIconHeight))
-		self._tabWidget.currentChanged.connect(self._on_tab_changed)
+		self._tabWidget.currentChanged[int].connect(self._on_tab_changed)
 		self._tabWidget.setContentsMargins(0, 0, 0, 0)
 
 		self._layout.addWidget(self._tabWidget)
