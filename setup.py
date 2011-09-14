@@ -37,8 +37,7 @@ ICON_CATEGORY="apps"
 ICON_SIZES=[32,48]
 #[[[end]]] (checksum: 6b362845c8509854ec12f330afd9c7b7)
 
-CHANGES = """* Fixing broadcast messages from the Message tab
-* Making it more consistent on what numbers are shown
+CHANGES = """* PySide testing
 """.strip()
 BUGTRACKER_URL = "https://bugs.maemo.org/enter_bug.cgi?product=Dialcentral"
 
